@@ -61,4 +61,5 @@ public class ControllerAdvisor {
         //errorResponse.put("globalErrors", error.getBindingResult().getGlobalErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).collect(Collectors.toList()));
         return ResponseEntity.status(406).body(errorResponse);
     }
+
 }
