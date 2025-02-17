@@ -1,0 +1,40 @@
+spring:
+  datasource:
+    url: ${APP_DB_URL}
+    username: ${APP_DB_USERNAME}
+    password: ${APP_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  #to be updated with your own credential
+  mail:
+    host: ${APP_MAIL_HOST}
+    port: ${APP_MAIL_PORT}
+    username: ${APP_MAIL_USERNAME}
+    password: ${APP_MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          ssl:
+            trust: smtp.gmail.com
+server:
+  port: ${APP_SERVER_SECURE}
+  ssl:
+    key-store: classpath:keystore.p12
+    key-store-password: ${APP_SSL_PASSWORD}
+    key-store-type: PKCS12
+    key-alias: ${APP_SSL_KEY_ALIAS}
+
+  # Configuration pour écouter sur le port 8080 aussi
+  http:
+    port: ${APP_SERVER_HTTP}
+
