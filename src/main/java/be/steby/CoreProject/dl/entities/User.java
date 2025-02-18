@@ -2,16 +2,13 @@ package be.steby.CoreProject.dl.entities;
 
 import be.steby.CoreProject.dl.enums.UserRole;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -62,7 +59,7 @@ public class User extends BaseEntity<Long> implements UserDetails {
      * The password of the user.
      * This will be encoded using bcrypt before storage.
      */
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false)
     private String password;
 
     /**
@@ -74,10 +71,14 @@ public class User extends BaseEntity<Long> implements UserDetails {
     /**
      * The Role associated with the user.
      */
-    @ElementCollection(fetch = FetchType.EAGER)  // Cela permet de récupérer les rôles d'un utilisateur facilement
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id")
+    )
+    @Column(name = "role")
     @Enumerated(EnumType.STRING)
-    @Column(name = "user_role")
-    private Set<UserRole> userRoles = new HashSet<>();  // Stockage de plusieurs rôles
+    private Set<UserRole> userRoles = new HashSet<>();
 
     /**
      * Whether the user has verified their email.
