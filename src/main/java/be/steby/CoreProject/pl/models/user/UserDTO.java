@@ -6,7 +6,7 @@ import be.steby.CoreProject.dl.enums.UserRole;
 import java.util.Set;
 
 public record UserDTO(
-        Long Id,
+        Long id,
         String username,
         String firstname,
         String lastname,
