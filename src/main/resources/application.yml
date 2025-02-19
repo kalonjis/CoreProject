@@ -38,3 +38,12 @@ server:
   http:
     port: ${APP_SERVER_HTTP}
 
+security:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token:
+      expiration: 900000  # 15 minutes
+      name: "access_token"
+    refresh-token:
+      expiration: 604800000  # 7 jours
+      name: "refresh_token"

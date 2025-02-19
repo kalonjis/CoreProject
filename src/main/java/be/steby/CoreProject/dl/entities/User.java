@@ -148,7 +148,7 @@ public class User extends BaseEntity<Long> implements UserDetails {
 
     @Override
     public String getUsername() {
-        return getEmail(); // Default to email for authentication
+        return this.username;
     }
 
     /**
