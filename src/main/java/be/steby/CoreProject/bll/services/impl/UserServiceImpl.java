@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.specifications.UserSpecification;
 import be.steby.CoreProject.dal.repositories.UserRepository;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -36,7 +37,42 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUserById(Long id){
         return userRepository.findById(id)
-                .orElseThrow(()-> new DoesntExistException("Username with id "+ id +" does not exist"));
+                .orElseThrow(()-> new DoesntExistException("User with id "+ id +" does not exist"));
+    }
+
+    @Override
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(()-> new DoesntExistException("User with email address "+ email +" not found"));
+    }
+
+    @Override
+    public void saveUser(User user) {
+        userRepository.save(user);
+    }
+
+    @Override
+    public void setUserEnabled(User user) {
+        user.setEnabled(true);
+        userRepository.save(user);
+    }
+
+    @Override
+    public void setUserDisabled(User user) {
+        user.setEnabled(false);
+        userRepository.save(user);
+    }
+
+    @Override
+    public void setUserMailVerified(User user) {
+        user.setEmailVerified(true);
+        userRepository.save(user);
+    }
+
+    @Override
+    public void addRole(User user, UserRole role) {
+        user.getUserRoles().add(role);
+        userRepository.save(user);
     }
 }
 
