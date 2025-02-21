@@ -26,7 +26,7 @@ public interface AuthService extends UserDetailsService {
      * <p>This method checks the provided credentials and returns the authenticated user details along with
      * an authentication token if the login is successful.</p>
      *
-     * @param username    The email of the user to be authenticated.
+     * @param username    The username of the user to be authenticated.
      * @param password The password of the user to be authenticated.
      * @return A {@link User} object containing the user's details and an authentication token.
      * AuthenticationException If the login credentials are invalid or authentication fails.
@@ -36,7 +36,7 @@ public interface AuthService extends UserDetailsService {
     void logout();
 
 
-    User register(User user, User currentUser);
+    User register(User user);
 
     /**
      * Resets the password of the specified user.

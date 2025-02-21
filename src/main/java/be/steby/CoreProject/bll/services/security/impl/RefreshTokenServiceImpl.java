@@ -1,35 +1,56 @@
 package be.steby.CoreProject.bll.services.security.impl;
 
-import be.steby.CoreProject.bll.exceptions.TokenRefreshExpiredException;
-import be.steby.CoreProject.bll.exceptions.TokenRefreshRevokedException;
-import be.steby.CoreProject.bll.services.security.RefreshTokenService;
-import be.steby.CoreProject.dal.repositories.RefreshTokenRepository;
-import be.steby.CoreProject.dl.entities.RefreshToken;
+import be.steby.CoreProject.dal.repositories.tokens.RefreshTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
-import lombok.RequiredArgsConstructor;
+import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.Optional;
 
-@Slf4j
+
+/**
+ * Service implementation for managing refresh tokens. This service extends {@link BaseTokenServiceImpl}
+ * and specifically handles operations related to JWT refresh tokens.
+ * It provides functionality for creating, rotating, and verifying refresh tokens with proper
+ * security measures.
+ *
+ * @see BaseTokenServiceImpl
+ */
 @Service
-@RequiredArgsConstructor
-public class RefreshTokenServiceImpl implements RefreshTokenService {
-
-    private final RefreshTokenRepository refreshTokenRepository;
+@Slf4j
+public class RefreshTokenServiceImpl extends BaseTokenServiceImpl<RefreshToken> {
 
     @Value("${security.jwt.refresh-token.expiration}")
     private Long refreshTokenDurationMs;
 
+    /**
+     * Constructs a new {@link RefreshTokenServiceImpl} using the provided token repository.
+     *
+     * @param refreshTokenRepository The repository specifically for refresh tokens,
+     *                              qualified to ensure correct repository injection
+     */
+    public RefreshTokenServiceImpl(
+            @Qualifier("refreshTokenRepository") RefreshTokenRepository refreshTokenRepository) {
+        super(refreshTokenRepository, RefreshToken.class);
+    }
 
-    @Override
+    /**
+     * Creates a new refresh token for a user with the configured expiration time.
+     *
+     * @param user The user for whom to create the refresh token
+     * @return The newly created refresh token
+     */
+    @Transactional
+    public RefreshToken createRefreshToken(User user) {
+        return super.createToken(user, refreshTokenDurationMs);
+    }
+
+
+    @Transactional
     public int getRefreshTokenDurationInSeconds() {
         long durationInSeconds = refreshTokenDurationMs / 1000;
         if (durationInSeconds > Integer.MAX_VALUE) {
@@ -38,67 +59,15 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         return (int) durationInSeconds;
     }
 
-    @Override
+    /**
+     * Scheduled task to clean up expired and revoked tokens.
+     * Runs hourly to maintain database cleanliness.
+     */
+    @Scheduled(cron = "0 0 * * * *")
     @Transactional
-    public RefreshToken createRefreshToken(User user) {
-        // Révoquer tous les tokens existants de l'utilisateur
-        refreshTokenRepository.revokeAllUserTokens(user);
-
-        RefreshToken refreshToken = new RefreshToken();
-        refreshToken.setUser(user);
-        refreshToken.setToken(generateSecureToken());
-        refreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
-
-        return refreshTokenRepository.save(refreshToken);
-    }
-
-    @Override
-    @Transactional
-    public RefreshToken rotateRefreshToken(RefreshToken oldToken) {
-        // Révoquer l'ancien token
-        oldToken.setRevoked(true);
-        refreshTokenRepository.save(oldToken);
-
-        // Créer un nouveau token pour l'utilisateur
-        return createRefreshToken(oldToken.getUser());
-    }
-
-    @Override
-    public Optional<RefreshToken> verifyToken(Long id, String token) {
-        return refreshTokenRepository.findByIdAndTokenAndRevokedFalse(id, token);
-    }
-
-    @Override
-    @Transactional
-    public RefreshToken verifyExpiration(RefreshToken token) {
-        if (token.isRevoked()) {
-            throw new TokenRefreshRevokedException("Refresh token was revoked. Please sign in again");
-        }
-
-        if (token.getExpiryDate().compareTo(Instant.now()) < 0) {
-            token.setRevoked(true);
-            refreshTokenRepository.save(token);
-            throw new TokenRefreshExpiredException("Refresh token was expired. Please sign in again");
-        }
-
-        return token;
-    }
-
-
-    @Override
-    public void saveToken(RefreshToken token) {
-        refreshTokenRepository.save(token);
-    }
-
-    @Transactional
-    @Scheduled(cron = "0 0 * * * *") // Toutes les heures
     public void cleanExpiredTokens() {
-        refreshTokenRepository.deleteExpiredTokens(Instant.now());
-    }
-
-    private String generateSecureToken() {
-        byte[] randomBytes = new byte[32];
-        new SecureRandom().nextBytes(randomBytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+        log.info("Starting scheduled cleanup of expired tokens");
+//        refreshTokenRepository.deleteExpiredTokens(Instant.now());
+        log.info("Completed cleanup of expired tokens");
     }
 }

@@ -1,0 +1,23 @@
+<!doctype html>
+<html xmlns:th="http://www.thymleaf.org"  lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Account confirmation</title>
+</head>
+<body>
+<h1>RumeXperts : Account confirmation </h1>
+
+<p>
+    <span th:text="'Hello ' + ${username}"></span>,<br/>
+    It seems that you want to create an account on RumeXperts.<br/>
+    For your first login, please click on the link below to activate your account.  <br/>
+    After this step, you will also be invited to set your application password using your current password: <br/>
+    <p>
+    <b>Login</b> : your current email address; <br/>
+    <b>Current password</b> : <span th:text="${temporaryPassword}"></span><br/>
+        <a th:href="${url}">Confirm account</a>.
+    </p>
+</p>
+
+</body>
+</html>
