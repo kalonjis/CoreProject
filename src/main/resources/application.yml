@@ -38,6 +38,10 @@ server:
   http:
     port: ${APP_SERVER_HTTP}
 
+url:
+  back_server: ${URL_BACK_SERVER}
+  front_server: ${URL_FRONT_SERVER}
+
 security:
   jwt:
     secret: ${JWT_SECRET}
@@ -47,3 +51,13 @@ security:
     refresh-token:
       expiration: 604800000  # 7 jours
       name: "refresh_token"
+  password-reset-token:
+    expiration: 900000  # 15 minutes
+  account-confirmation-token:
+    expiration: 86400000  # 24 heures
+  password-reset:
+    max-attempts: 3
+    lockout-minutes: 30
+  account-confirmation:
+    max-attempts: 5
+    lockout-minutes: 60
