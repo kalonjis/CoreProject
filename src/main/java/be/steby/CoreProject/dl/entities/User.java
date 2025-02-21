@@ -7,6 +7,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+
+import java.time.Instant;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -22,6 +24,8 @@ import java.util.stream.Collectors;
 @ToString(onlyExplicitlyIncluded = true)
 @EntityListeners(AuditingEntityListener.class)
 public class User extends BaseEntity<Long> implements UserDetails {
+
+    //region Fields
 
     /**
      * The email address of the user.
@@ -63,12 +67,6 @@ public class User extends BaseEntity<Long> implements UserDetails {
     private String password;
 
     /**
-     * Temporary password, used when an admin creates a user and sends a password by email.
-     */
-    @Transient
-    private String temporaryPassword;
-
-    /**
      * The Role associated with the user.
      */
     @ElementCollection(fetch = FetchType.EAGER)
@@ -84,7 +82,7 @@ public class User extends BaseEntity<Long> implements UserDetails {
      * Whether the user has verified their email.
      */
     @Column(nullable = false)
-    private boolean verified;
+    private boolean emailVerified;
 
     /**
      * Whether the user is enabled (able to log in).
@@ -98,18 +96,23 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Column(nullable = false)
     private boolean mustChangePassword;
 
-    /**
-     * Number of failed attempts for password reset.
-     */
+
     @Column(nullable = false)
     private int resetPasswordAttempts;
 
-    /**
-     * Number of failed attempts for account confirmation.
-     */
+    @Column
+    private Instant resetPasswordLastAttemptTime;
+
     @Column(nullable = false)
     private int accountConfirmationAttempts;
 
+    @Column
+    private Instant accountConfirmationLastAttemptTime;
+
+    // endregion
+
+
+    // region Constructors
     /**
      * Constructor to initialize common fields (used by admin creation).
      */
@@ -121,10 +124,12 @@ public class User extends BaseEntity<Long> implements UserDetails {
         this.phoneNumber = phoneNumber;
         this.userRoles = userRoles;
         this.enabled = false;
-        this.verified = false;
+        this.emailVerified = false;
         this.mustChangePassword = true;
-        this.resetPasswordAttempts = 0;  // Initialize attempt counters
-        this.accountConfirmationAttempts = 0;  // Initialize attempt counters
+        this.resetPasswordAttempts = 0;
+        this.resetPasswordLastAttemptTime = null;
+        this.accountConfirmationAttempts = 0;
+        this.accountConfirmationLastAttemptTime = null;
     }
 
     /**
@@ -136,6 +141,10 @@ public class User extends BaseEntity<Long> implements UserDetails {
         this.password = password;
     }
 
+    // endregion
+
+
+    // region UserDetails methods implementation
     /**
      * Retrieves the GrantedAuthority for the user's role.
      */
@@ -183,45 +192,7 @@ public class User extends BaseEntity<Long> implements UserDetails {
         return this.enabled;
     }
 
-    /**
-     * Reset password attempt increment.
-     */
-    public void incrementResetPasswordAttempts() {
-        this.resetPasswordAttempts++;
-    }
 
-    /**
-     * Account confirmation attempt increment.
-     */
-    public void incrementAccountConfirmationAttempts() {
-        this.accountConfirmationAttempts++;
-    }
+    // endregion
 
-    /**
-     * Resets the password attempts counter.
-     */
-    public void resetPasswordAttempts() {
-        this.resetPasswordAttempts = 0;
-    }
-
-    /**
-     * Resets the account confirmation attempts counter.
-     */
-    public void resetAccountConfirmationAttempts() {
-        this.accountConfirmationAttempts = 0;
-    }
-
-    /**
-     * Checks if the user has exceeded the reset password attempts limit.
-     */
-    public boolean hasExceededResetPasswordAttempts(int maxAttempts) {
-        return this.resetPasswordAttempts >= maxAttempts;
-    }
-
-    /**
-     * Checks if the user has exceeded the account confirmation attempts limit.
-     */
-    public boolean hasExceededAccountConfirmationAttempts(int maxAttempts) {
-        return this.accountConfirmationAttempts >= maxAttempts;
-    }
 }
