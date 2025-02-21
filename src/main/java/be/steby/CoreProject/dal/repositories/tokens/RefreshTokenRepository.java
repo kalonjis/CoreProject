@@ -1,16 +1,15 @@
-package be.steby.CoreProject.dal.repositories;
+package be.steby.CoreProject.dal.repositories.tokens;
 
 
-import be.steby.CoreProject.dl.entities.RefreshToken;
+import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.dl.entities.User;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.Instant;
 import java.util.Optional;
 
-public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
+public interface RefreshTokenRepository extends BaseTokenRepository<RefreshToken> {
 
     Optional<RefreshToken> findByIdAndTokenAndRevokedFalse(Long id, String token);
 
@@ -18,11 +17,11 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
 
     Optional<RefreshToken> findByToken(String token);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM RefreshToken rt WHERE rt.expiryDate < ?1 OR rt.revoked = true")
     void deleteExpiredTokens(Instant now);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE RefreshToken rt SET rt.revoked = true WHERE rt.user = ?1")
     void revokeAllUserTokens(User user);
 
