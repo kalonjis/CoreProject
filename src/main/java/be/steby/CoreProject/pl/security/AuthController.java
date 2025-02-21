@@ -1,20 +1,27 @@
 package be.steby.CoreProject.pl.security;
 
 import be.steby.CoreProject.bll.services.security.AuthService;
-import be.steby.CoreProject.bll.services.security.RefreshTokenService;
-import be.steby.CoreProject.dl.entities.RefreshToken;
+import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
+import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
 import be.steby.CoreProject.pl.models.user.UserDTO;
 import be.steby.CoreProject.pl.security.models.LoginForm;
+import be.steby.CoreProject.pl.security.models.UserRegisterForm;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,11 +31,26 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtUtil jwtUtil;
-    private final RefreshTokenService refreshTokenService;
+    private final RefreshTokenServiceImpl refreshTokenService;
 
     private static final String COOKIE_PATH = "/api";  // Path unifié pour tous les cookies
 
 
+
+    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
+    @PostMapping("/register")
+    public ResponseEntity<Map<String,String>> register(@Valid @RequestBody UserRegisterForm form ){
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Map<String, String> response =  new HashMap<>();
+        User u = authService.register(form.toEntity());
+        String message = "Thank you. " + u.getFirstname() + " " + u.getLastname()+ " has been successfully registered and a confirmation email has been sent to his email address " + u.getEmail() + ".";
+        response.put("message", message);
+        return ResponseEntity.ok(response);
+
+    }
+
+
+    @PreAuthorize("isAnonymous()")
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginForm form, HttpServletResponse response) {
         User user = authService.login(form.username(), form.password());
@@ -74,7 +96,7 @@ public class AuthController {
             refreshTokenService.verifyExpiration(oldToken);
 
             // Créer un nouveau refresh token
-            RefreshToken newToken = refreshTokenService.rotateRefreshToken(oldToken);
+            RefreshToken newToken = refreshTokenService.rotateToken(oldToken);
 
             // Générer le nouveau cookie avec ID et token
             String newRefreshTokenCookie = newToken.getId() + "." + newToken.getToken();
