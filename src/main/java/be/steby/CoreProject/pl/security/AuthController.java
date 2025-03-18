@@ -1,14 +1,19 @@
 package be.steby.CoreProject.pl.security;
 
 import be.steby.CoreProject.bll.services.security.AuthService;
+import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
+import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
 import be.steby.CoreProject.pl.models.user.UserDTO;
+import be.steby.CoreProject.pl.models.user.UserShortDTO;
 import be.steby.CoreProject.pl.security.models.LoginForm;
-import be.steby.CoreProject.pl.security.models.UserRegisterForm;
+import be.steby.CoreProject.pl.security.models.UserSignupForm;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +21,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.net.URI;
 
 @RestController
 @RequiredArgsConstructor
@@ -32,32 +35,29 @@ public class AuthController {
     private final AuthService authService;
     private final JwtUtil jwtUtil;
     private final RefreshTokenServiceImpl refreshTokenService;
+    private final DeviceService deviceService;
 
     private static final String COOKIE_PATH = "/api";  // Path unifié pour tous les cookies
 
 
-
-    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
-    @PostMapping("/register")
-    public ResponseEntity<Map<String,String>> register(@Valid @RequestBody UserRegisterForm form ){
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        Map<String, String> response =  new HashMap<>();
-        User u = authService.register(form.toEntity());
-        String message = "Thank you. " + u.getFirstname() + " " + u.getLastname()+ " has been successfully registered and a confirmation email has been sent to his email address " + u.getEmail() + ".";
-        response.put("message", message);
-        return ResponseEntity.ok(response);
-
+    @PostMapping("signup")
+    public ResponseEntity<UserShortDTO>signup(@Valid @RequestBody UserSignupForm form){
+       User user = authService.signup(form.toEntity());
+       String location = "/api/user/" + user.getId();
+       return ResponseEntity.created(URI.create(location)).build();
     }
 
 
     @PreAuthorize("isAnonymous()")
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginForm form, HttpServletResponse response) {
+    public ResponseEntity<?> login(
+            @RequestBody @Valid LoginForm form,
+            HttpServletRequest request,
+            HttpServletResponse response) {
         User user = authService.login(form.username(), form.password());
-        String accessToken = jwtUtil.generateAccessToken(user);
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
-
-        // Format du cookie: "id.token"
+        Device device = deviceService.detectAndRegisterDevice(request, user, true);
+        String accessToken = jwtUtil.generateAccessToken(user, device);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, device);
         String refreshTokenCookie = refreshToken.getId() + "." + refreshToken.getToken();
 
         addAccessTokenCookie(response, accessToken);
@@ -93,7 +93,7 @@ public class AuthController {
             RefreshToken oldToken = refreshTokenService.verifyToken(tokenId, tokenValue)
                     .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
 
-            refreshTokenService.verifyExpiration(oldToken);
+            refreshTokenService.verifyTokenValidity(oldToken);
 
             // Créer un nouveau refresh token
             RefreshToken newToken = refreshTokenService.rotateToken(oldToken);
@@ -102,7 +102,7 @@ public class AuthController {
             String newRefreshTokenCookie = newToken.getId() + "." + newToken.getToken();
 
             // Générer nouveau access token
-            String newAccessToken = jwtUtil.generateAccessToken(newToken.getUser());
+            String newAccessToken = jwtUtil.generateAccessToken(newToken.getUser(), newToken.getDevice());
 
             addAccessTokenCookie(response, newAccessToken);
             addRefreshTokenCookie(response, newRefreshTokenCookie);
@@ -144,8 +144,41 @@ public class AuthController {
         deleteAccessTokenCookie(response);
         deleteRefreshTokenCookie(response);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
+
+    // region Change-Email
+
+    @PostMapping("change-email-request")
+    public ResponseEntity<Void>changeEmailRequest(@Valid @RequestBody ChangeEmailForm form){
+        authService.changeEmailRequest(form);
+        return ResponseEntity.noContent().build();
+    }
+
+
+    @PatchMapping("cancel-email-change")
+    public ResponseEntity<Void>cancelEmailChange(@RequestParam String token){
+        authService.cancelEmailChange(token);
+        return ResponseEntity.noContent().build();
+    }
+
+
+    @PatchMapping("change-email-verification")
+    public ResponseEntity<Void>changeEmailVerification(@RequestParam String token){
+        authService.changeEmailVerification(token);
+        return ResponseEntity.noContent().build();
+    }
+
+
+    @PutMapping("change-email-confirmation")
+    public ResponseEntity<Void>changeEmailConfirmation(@RequestParam String token){
+        authService.confirmEmail(token);
+        return ResponseEntity.noContent().build();
+    }
+
+
+    //endregion
+
 
     private void addAccessTokenCookie(HttpServletResponse response, String token) {
         Cookie cookie = new Cookie(jwtUtil.getAccessTokenCookieName(), token);

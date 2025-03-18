@@ -2,10 +2,8 @@ package be.steby.CoreProject.bll.services.security.impl;
 
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.tokens.AccountConfirmationTokenRepository;
-import be.steby.CoreProject.dal.repositories.tokens.RefreshTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
-import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,9 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 /**
- * Service implementation for managing refresh tokens. This service extends {@link BaseTokenServiceImpl}
- * and specifically handles operations related to JWT refresh tokens.
- * It provides functionality for creating, rotating, and verifying refresh tokens with proper
+ * This service extends {@link BaseTokenServiceImpl}
+ *
+ * It provides functionality for creating, rotating, and verifying tokens with proper
  * security measures.
  *
  * @see BaseTokenServiceImpl
@@ -26,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class AccountConfirmationTokenServiceImpl extends BaseTokenServiceImpl<AccountConfirmationToken> {
 
-    @Value("${security.account-confirmation-token.expiration}")
+    @Value("${security.account-confirmation.token.expiration}")
     private Long accountConfirmationTokenDurationMs;
 
     private final AccountConfirmationAttemptServiceImpl attemptService;

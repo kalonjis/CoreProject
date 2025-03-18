@@ -51,13 +51,29 @@ security:
     refresh-token:
       expiration: 604800000  # 7 jours
       name: "refresh_token"
-  password-reset-token:
-    expiration: 900000  # 15 minutes
-  account-confirmation-token:
-    expiration: 86400000  # 24 heures
   password-reset:
+    token:
+      expiration: 900000  # 15 minutes
+      #expiration: 1000  # 1 second
     max-attempts: 3
     lockout-minutes: 30
   account-confirmation:
+    token:
+      expiration: 86400000 # 24 heures
+      #expiration: 1000  # 1 second
     max-attempts: 5
     lockout-minutes: 60
+  email-confirmation:
+    token:
+      expiration: 900000  # 15 minutes
+      #expiration: 1000  # 1 second
+    max-attempts: 3
+    lockout-minutes: 30
+  device-confirmation:
+    token:
+      expiration: 900000  # 15 minutes
+      #expiration: 1000  # 1 second
+    max-attempts: 3
+    lockout-minutes: 30
+    alert:
+      threshold-minutes: 10

@@ -1,16 +1,19 @@
 package be.steby.CoreProject.bll.exceptions;
 
-public class TokenRefreshRevokedException extends CoreProjectException {
+
+
+public class UserAuthenticationStateException extends CoreProjectException {
+
     /**
-     * Constructs a new {@code AuthenticationException} with the specified {@code detail message}.
-     * The {@code status code} is set to {@code 401 (Unauthorized)} by default.
+     * Constructs a new {@code UserAuthenticationStateException} with specified detail message and automatically assign
+     * the HTTP status code 401.
      *
-     * @param message the detail message (which is saved for later retrieval
-     *                by the {@link #getMessage()} method).
+     * @param message the detail message to explaining the cause of exception.
      */
-    public TokenRefreshRevokedException(String message) {
-        super(message, 401);
+    public UserAuthenticationStateException(String message) {
+        super(message,400);
     }
+
 
     /**
      * Constructs a new {@code AuthenticationException} with the specified {@code detail message} and {@code status code}.
@@ -20,7 +23,7 @@ public class TokenRefreshRevokedException extends CoreProjectException {
      * @param status  the {@code HTTP status code} (which is saved for later retrieval
      *                by the {@link #getStatus()} method).
      */
-    public TokenRefreshRevokedException(String message, int status) {
+    public UserAuthenticationStateException(String message, int status) {
         super(message, status);
     }
 }

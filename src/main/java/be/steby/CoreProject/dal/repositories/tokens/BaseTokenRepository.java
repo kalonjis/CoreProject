@@ -10,6 +10,10 @@ import java.time.Instant;
 import java.util.Optional;
 
 public interface BaseTokenRepository<T extends BaseToken> extends JpaRepository<T, Long> {
+
+    @Query("SELECT t FROM #{#entityName} t WHERE t.token ilike :token")
+    Optional<T> findByToken(String token);
+
     Optional<T> findByIdAndTokenAndRevokedFalse(Long id, String token);
 
     @Modifying

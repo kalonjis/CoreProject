@@ -48,4 +48,13 @@ public abstract class BaseToken extends BaseEntity<Long> {
 
     @Column(nullable = false)
     private boolean revoked = false;
+
+
+    public boolean isExpired(){
+        return this.getExpiryDate().compareTo(Instant.now()) < 0 ;
+    }
+
+    public boolean isValid(){
+        return !this.revoked && !this.isExpired();
+    }
 }

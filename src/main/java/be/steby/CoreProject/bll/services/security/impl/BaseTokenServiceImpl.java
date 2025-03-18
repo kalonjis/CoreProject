@@ -1,7 +1,8 @@
 package be.steby.CoreProject.bll.services.security.impl;
 
-import be.steby.CoreProject.bll.exceptions.TokenRefreshExpiredException;
-import be.steby.CoreProject.bll.exceptions.TokenRefreshRevokedException;
+import be.steby.CoreProject.bll.exceptions.DoesntExistException;
+import be.steby.CoreProject.bll.exceptions.TokenExpiredException;
+import be.steby.CoreProject.bll.exceptions.TokenRevokedException;
 import be.steby.CoreProject.bll.services.security.BaseTokenService;
 import be.steby.CoreProject.dal.repositories.tokens.BaseTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
@@ -27,6 +28,14 @@ public abstract class BaseTokenServiceImpl<T extends BaseToken> implements BaseT
     private final BaseTokenRepository<T> tokenRepository;
     private final Class<T> tokenClass;
 
+    @Override
+    @Transactional
+    public T getToken(String token){
+        return tokenRepository.findByToken(token)
+                .orElseThrow(()-> new DoesntExistException("Token : " + token + " does not exist"));
+    }
+
+
     /**
      * Creates a new token for a user with specified expiration time.
      *
@@ -37,9 +46,11 @@ public abstract class BaseTokenServiceImpl<T extends BaseToken> implements BaseT
      */
     @Override
     @Transactional
-    public T createToken(User user, Long expirationInMillis) {
+    public T createToken(User user, Long expirationInMillis, boolean revokeExisting) {
         try {
-            revokeAllUserTokens(user);
+            if (revokeExisting){
+                revokeAllUserTokens(user);
+            }
 
             T token = tokenClass.getDeclaredConstructor().newInstance();
             token.setUser(user);
@@ -52,6 +63,12 @@ public abstract class BaseTokenServiceImpl<T extends BaseToken> implements BaseT
         }
     }
 
+    @Override
+    @Transactional
+    public T createToken(User user, Long expirationInMillis) {
+        return createToken(user, expirationInMillis, true);
+    }
+
 
 
     @Override
@@ -59,16 +76,6 @@ public abstract class BaseTokenServiceImpl<T extends BaseToken> implements BaseT
         tokenRepository.save(token);
     }
 
-    @Override
-    @Transactional
-    public T rotateToken(T oldToken) {
-        // Révoquer l'ancien token
-        revokeToken(oldToken);
-
-        // Créer un nouveau token pour l'utilisateur
-        return createToken(oldToken.getUser(),
-                oldToken.getExpiryDate().toEpochMilli() - oldToken.getCreatedAt().toEpochMilli());
-    }
 
     @Override
     public Optional<T> verifyToken(Long id, String token) {
@@ -77,15 +84,14 @@ public abstract class BaseTokenServiceImpl<T extends BaseToken> implements BaseT
     }
 
     @Override
-    @Transactional
-    public T verifyExpiration(T token) {
+    public T verifyTokenValidity(T token) {
         if (token.isRevoked()) {
-            throw new TokenRefreshRevokedException("Token was revoked");
+            throw new TokenRevokedException("Token was revoked");
         }
 
-        if (token.getExpiryDate().compareTo(Instant.now()) < 0) {
-            revokeToken(token);
-            throw new TokenRefreshExpiredException("Token has expired");
+        if (token.isExpired()) {
+            this.revokeToken(token);
+            throw new TokenExpiredException("Token has expired", token);
         }
 
         return token;
@@ -101,6 +107,7 @@ public abstract class BaseTokenServiceImpl<T extends BaseToken> implements BaseT
     @Transactional
     public void revokeToken(T token) {
         token.setRevoked(true);
+        System.out.println("TOKEN HAS BEEN REVOKED " + token.getToken());
         tokenRepository.save(token);
     }
 

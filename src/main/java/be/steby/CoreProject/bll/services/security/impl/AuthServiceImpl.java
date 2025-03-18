@@ -1,64 +1,67 @@
 package be.steby.CoreProject.bll.services.security.impl;
 
-import be.steby.CoreProject.bll.exceptions.AlreadyExistException;
-import be.steby.CoreProject.bll.exceptions.DoesntExistException;
-import be.steby.CoreProject.bll.exceptions.InvalidPasswordException;
+import be.steby.CoreProject.bll.exceptions.*;
+import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.MailerService;
+import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.services.security.AuthService;
-import be.steby.CoreProject.dal.repositories.UserRepository;
+import be.steby.CoreProject.bll.services.security.SecurityService;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
+import be.steby.CoreProject.dl.entities.tokens.EmailConfirmationToken;
+import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
+import be.steby.CoreProject.dl.enums.UserRole;
+import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
+import be.steby.CoreProject.pl.security.models.ChangePasswordForm;
+import be.steby.CoreProject.pl.security.models.PasswordResetForm;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.ThreadLocalRandom;
+import java.security.SecureRandom;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final UserService userService;
+    private final SecurityService securityService;
     private final MailerService mailerService;
+    private final PasswordEncoder passwordEncoder;
+    private final PasswordResetTokenServiceImpl passwordResetTokenService;
+    private final PasswordResetAttemptServiceImpl PasswordResetAttemptService;
+    private final AccountConfirmationTokenServiceImpl accountConfirmationTokenService;
+    private final AccountConfirmationAttemptServiceImpl accountConfirmationAttemptService;
+    private final EmailConfirmationTokenServiceImpl emailConfirmationTokenService;
+    private final DeviceService deviceService;
 
 
-    /**
-     * Creation of user and saved in db
-     *
-     * @param user
-     * @return
-     */
+    @Value("${url.front_server}")
+    private String FRONT_URL;
+
+
+
     @Override
-    public User register(User user) {
-        if ( userRepository.existsByUsernameIgnoreCase( user.getUsername() ) ) {
-            throw new AlreadyExistException("User account with username : "+ user.getUsername() +" already exist");
-        }
-        if ( userRepository.existsByEmailIgnoreCase( user.getEmail() ) ) {
-            throw new AlreadyExistException("User account with email : "+ user.getEmail() +" already exist");
-        }
-//        if ("ADMIN".equals(currentUser.getUserRole()) && "SUPER_ADMIN".equals(user.getUserRole())) {
-//            throw new NotEnoughAuthorities("Not enough authorities");
-//        }
-
-        int temporaryPasswordNumbers = generateRandomNumber();
-        String temporaryPassword = "W3lcome" +
-                user.getFirstname().substring(0,1).toUpperCase() +
-                "."+user.getLastname().substring(0,1).toUpperCase() +
-                temporaryPasswordNumbers;
-        user.setPassword(passwordEncoder.encode(temporaryPassword));
-        userRepository.save(user);
-        mailerService.sendAccountConfirmation(user, temporaryPassword);
+    public User signup(User user) {
+        userService.checkIfUserExists(user);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        userService.saveUser(user);
+        AccountConfirmationToken token = accountConfirmationTokenService.createAccountConfirmationToken(user);
+        mailerService.sendSignUpConfirmation(token.getToken(), user);
         return user;
     }
-
 
     @Override
     public User login(String username, String password) {
         User user = (User) loadUserByUsername(username);
+        if (!user.isEnabled()) {
+            throw new UserEnabledStatusException("User account is disabled", 403);
+        }
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new InvalidPasswordException("Incorrect password", 401);
+            throw new InvalidPasswordException("Incorrect password");
         }
         return user;
     }
@@ -70,23 +73,200 @@ public class AuthServiceImpl implements AuthService {
 
 
     @Override
-    public void resetPassword(User user, String password) {
+    public UserDetails loadUserByUsername(String username){
+        return userService.getUserByUsername(username);
+    }
+
+
+
+
+    // region AccountConfirmation
+
+    @Override
+    public User confirmNewUserAccount(String token) {
+        AccountConfirmationToken accountConfirmationToken = accountConfirmationTokenService.getToken(token);
+        accountConfirmationTokenService.verifyTokenValidity(accountConfirmationToken);
+        accountConfirmationTokenService.revokeToken(accountConfirmationToken);
+        User user = accountConfirmationToken.getUser();
+        accountConfirmationAttemptService.clearAttempts(user);
+        userService.activateUser(user.getId());
+        userService.setUserMailVerified(user);
+        mailerService.sendWelcome(user);
+        return user;
 
     }
 
     @Override
-    public void changePassword(String username, String currentPassword, String newPassword) {
+    public void requestActivation(String token) {
+        AccountConfirmationToken accountConfirmationToken = accountConfirmationTokenService.getToken(token);
+        if( accountConfirmationToken.getUser().isEnabled()) {
+            throw new UserEnabledStatusException("This user account is already activated.", 409);
+        }
+        if(accountConfirmationToken.isValid()) {
+            String url = FRONT_URL + "/api/account-confirmation/activation=" + token ;
+            throw new TokenValidityException("This token, is still valid. Please follow this link: " + url);
+        }
+        accountConfirmationTokenService.revokeToken(accountConfirmationToken);
+        User user = accountConfirmationToken.getUser();
+        AccountConfirmationToken newToken = accountConfirmationTokenService.createAccountConfirmationToken(user);
+        mailerService.sendNewAccountConfirmation(newToken.getToken(), user);
 
+    }
+
+    // endregion
+
+
+    // region password
+    @Override
+    public void resetPassword(PasswordResetForm form, String token){
+        checkIsNotAnonymous();
+        PasswordResetToken passwordResetToken = passwordResetTokenService.getToken(token);
+        passwordResetTokenService.verifyTokenValidity(passwordResetToken);
+        passwordResetTokenService.revokeToken(passwordResetToken);
+        User user = passwordResetToken.getUser();
+        PasswordResetAttemptService.clearAttempts(user);
+        savePassword(form.password(), user);
+    }
+
+
+    @Override
+    public void changePassword(ChangePasswordForm form) {
+        User authenticatedUser = securityService.getAuthenticatedUser();
+        if(!passwordEncoder.matches( form.currentPassword(), authenticatedUser.getPassword() ) ){
+            throw new InvalidPasswordException("The current password is not correct", 400);
+        }
+        String newPassword = form.password();
+        if(!newPassword.equals(form.confirmPassword())){
+            throw new InvalidPasswordException("Les mots de passe doivent être identiques", 400);
+        }
+        savePassword(newPassword, authenticatedUser);
+    }
+
+
+    @Override
+    public void requestPasswordReset(String email) {
+        checkIsNotAnonymous();
+        User user = userService.getUserByEmail(email);
+        PasswordResetToken token = passwordResetTokenService.createPasswordResetToken(user);
+        mailerService.sendPasswordReset(token.getToken(), user);
+    }
+
+
+    @Override
+    public void requestPasswordToken(String token){
+        checkIsNotAnonymous();
+        PasswordResetToken passwordResetToken = passwordResetTokenService.getToken(token);
+        if(passwordResetToken.isValid()) {
+            String url = FRONT_URL + "/api/password/reset-password?token=" + token ;
+            throw new TokenValidityException("This token, is still valid. Please follow this link: " + url);
+        }
+        passwordResetTokenService.revokeToken(passwordResetToken);
+        User user = passwordResetToken.getUser();
+        PasswordResetToken newToken = passwordResetTokenService.createPasswordResetToken(user);
+        mailerService.sendPasswordResetRefresh(newToken.getToken(), user);
+    }
+
+    // endregion
+
+
+    // region changeEmail
+    @Override
+    public void changeEmailRequest(ChangeEmailForm form) {
+        User user = securityService.getAuthenticatedUser();
+        String email = form.email();
+        checkEmailValidity(email);
+        if( !email.equals( form.confirmEmail() ) ){
+            throw new InvalidEmailException("Les adresses email doivent être identiques");
+        }
+        checkEmailAvailability(email);
+        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.createEmailConfirmationToken(user);
+        emailConfirmationToken.setNewEmailAddress(email);
+        emailConfirmationTokenService.saveToken(emailConfirmationToken);
+        mailerService.sendChangeEmailRequest(emailConfirmationToken.getToken(),user);
+    }
+
+
+    @Override
+    public void cancelEmailChange(String token) {
+        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getToken(token);
+        if (!emailConfirmationToken.isRevoked()){
+            emailConfirmationTokenService.revokeToken(emailConfirmationToken);
+        }
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new DoesntExistException("User account with username : "+ username +" not Found: "));
+    public void changeEmailVerification(String token) {
+        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getToken(token);
+        checkEmailAvailability(emailConfirmationToken.getNewEmailAddress());
+        emailConfirmationTokenService.verifyTokenValidity(emailConfirmationToken);
+        if( emailConfirmationToken.isConfirmed() ){
+            throw new TokenConfirmationStatusException("The request is already confirmed, please check " + emailConfirmationToken.getNewEmailAddress() + " mail box for the next step");
+        }
+        emailConfirmationToken.setConfirmed(true);
+        emailConfirmationTokenService.saveToken(emailConfirmationToken);
+        mailerService.sendChangeEmailVerification(
+                token,
+                emailConfirmationToken.getUser(),
+                emailConfirmationToken.getNewEmailAddress()
+        );
+
     }
 
 
-    private int generateRandomNumber() {
-        return ThreadLocalRandom.current().nextInt(10000, 100000);
+
+    @Override
+    public void confirmEmail(String token) {
+        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getToken(token);
+        emailConfirmationTokenService.verifyTokenValidity(emailConfirmationToken);
+        emailConfirmationTokenService.revokeToken(emailConfirmationToken);
+        User user = emailConfirmationToken.getUser();
+        String oldEmail = user.getEmail();
+        String newEmail = emailConfirmationToken.getNewEmailAddress();
+        checkEmailAvailability(newEmail);
+        mailerService.sendChangeEmailConfirmation(token, user, oldEmail, newEmail );
+        user.setEmail(newEmail);
+        userService.saveUser(user);
     }
+
+    // endregion
+
+
+
+
+    private void checkEmailValidity(String email) {
+        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+        if(!Pattern.compile(emailRegex).matcher(email).matches()){
+            throw new InvalidEmailException("Email address " + email + " is not in a valid format");
+        }
+    }
+
+
+    private void checkEmailAvailability(String email){
+        if( userService.existsByEmail(email) ) {
+            throw new AlreadyExistException("The email address " + email + " is already used by another user");
+        }
+
+    }
+
+
+
+
+    private void checkIsNotAnonymous(){
+        if(!securityService.isAnonymous()) {
+            String url = FRONT_URL + "/password/change-password";
+            String message = "You are logged in. Please use the change password feature instead: ";
+            throw new UserAuthenticationStateException(message + url, 403);
+        }
+    }
+
+
+
+    private void savePassword(String password, User user){
+        user.setPassword( passwordEncoder.encode(password) );
+        userService.saveUser(user);
+        mailerService.sendPasswordChangeConfirmation(user);
+    }
+
+
 }
 

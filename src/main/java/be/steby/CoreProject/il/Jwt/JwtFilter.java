@@ -37,13 +37,16 @@ public class JwtFilter extends OncePerRequestFilter {
         if (token != null) {
             try {
                 Claims claims = jwtUtil.validateToken(token);
-                String email = claims.get("username", String.class);
-                UserDetails userDetails = authService.loadUserByUsername(email);
+                String username = claims.get("username", String.class);
+                UserDetails userDetails = authService.loadUserByUsername(username);
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                request.setAttribute("jwt_claims", claims);
+
             } catch (Exception e) {
                 SecurityContextHolder.clearContext();
             }

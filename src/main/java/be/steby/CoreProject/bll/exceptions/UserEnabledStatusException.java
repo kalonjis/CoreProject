@@ -1,15 +1,15 @@
 package be.steby.CoreProject.bll.exceptions;
 
-public class TokenRefreshExpiredException extends CoreProjectException {
+public class UserEnabledStatusException extends CoreProjectException {
     /**
      * Constructs a new {@code AuthenticationException} with the specified {@code detail message}.
-     * The {@code status code} is set to {@code 401 (Unauthorized)} by default.
+     * The {@code status code} is set to {@code 403 (Unauthorized)} by default.
      *
      * @param message the detail message (which is saved for later retrieval
      *                by the {@link #getMessage()} method).
      */
-    public TokenRefreshExpiredException(String message) {
-        super(message, 401);
+    public UserEnabledStatusException(String message) {
+        super(message, 400);
     }
 
     /**
@@ -20,7 +20,7 @@ public class TokenRefreshExpiredException extends CoreProjectException {
      * @param status  the {@code HTTP status code} (which is saved for later retrieval
      *                by the {@link #getStatus()} method).
      */
-    public TokenRefreshExpiredException(String message, int status) {
+    public UserEnabledStatusException(String message, int status) {
         super(message, status);
     }
 }

@@ -1,6 +1,9 @@
 package be.steby.CoreProject.bll.services.impl;
 
+import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
 import be.steby.CoreProject.bll.exceptions.DoesntExistException;
+import be.steby.CoreProject.bll.exceptions.EmailAlreadyTakenException;
+import be.steby.CoreProject.bll.exceptions.UsernameAlreadyTakenException;
 import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.specifications.UserSpecification;
 import be.steby.CoreProject.dal.repositories.UserRepository;
@@ -12,11 +15,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+
+
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
+
 
     @Override
     public Page<User> searchUsers(String query, Pageable pageable) {
@@ -40,6 +47,13 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(()-> new DoesntExistException("User with id "+ id +" does not exist"));
     }
 
+
+    @Override
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new DoesntExistException("User account with username : "+ username +" not Found: "));
+    }
+
+
     @Override
     public User getUserByEmail(String email) {
         return userRepository.findByEmailIgnoreCase(email)
@@ -52,13 +66,28 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void setUserEnabled(User user) {
+    public void deleteUser(Long id) {
+        User user = getUserById(id);
+        userRepository.delete(user);
+    }
+
+    @Override
+    public void activateUser(Long id) {
+        User user = getUserById(id);
+        if(user.isEnabled()){
+            throw new AttributeUnchangedException("The user is already activated.");
+        }
         user.setEnabled(true);
+        user.setActivatedAt(Instant.now());
         userRepository.save(user);
     }
 
     @Override
-    public void setUserDisabled(User user) {
+    public void deactivateUser(Long id) {
+        User user = getUserById(id);
+        if(!user.isEnabled()){
+            throw new AttributeUnchangedException("The user is already deactivated.");
+        }
         user.setEnabled(false);
         userRepository.save(user);
     }
@@ -69,10 +98,50 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
+
     @Override
-    public void addRole(User user, UserRole role) {
+    public void checkIfUserExists(User user) {
+        if ( existsByUsername(user.getUsername()) ) {
+            throw new UsernameAlreadyTakenException("User account with username: " + user.getUsername() + " already exists");
+        }
+        if ( existsByEmail(user.getEmail()) ) {
+            throw new EmailAlreadyTakenException("User account with email address: " + user.getEmail() + " already exists");
+        }
+    }
+
+    @Override
+    public boolean existsByUsername(String username) {
+        return userRepository.existsByUsernameIgnoreCase(username);
+    }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmailIgnoreCase(email);
+    }
+
+
+    @Override
+    public void grantUserRole(Long id, UserRole role) {
+        User user = getUserById(id);
+        if( user.getUserRoles().contains(role)){
+            throw new AttributeUnchangedException("The user is already granted with role " + role);
+        }
+
         user.getUserRoles().add(role);
         userRepository.save(user);
     }
+
+    @Override
+    public void revokeUserRole(Long id, UserRole role) {
+        User user = getUserById(id);
+        if(! user.getUserRoles().contains(role)){
+            throw new AttributeUnchangedException("The user is not granted with role " + role);
+        }
+
+        user.getUserRoles().remove(role);
+        userRepository.save(user);
+    }
+
+
 }
 

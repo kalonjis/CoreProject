@@ -17,17 +17,28 @@ public interface UserService {
 
     User getUserById(Long id);
 
+    User getUserByUsername(String username);
+
     User getUserByEmail(String email);
 
     void saveUser(User user);
 
-    void setUserEnabled(User user);
+    void deleteUser(Long id);
 
-    void setUserDisabled(User user);
+    void activateUser(Long id);
+
+    void deactivateUser(Long id);
 
     void setUserMailVerified(User user);
 
-    void addRole(User user, UserRole role);
+    void checkIfUserExists(User user);
 
+    boolean existsByUsername(String username);
+
+    boolean existsByEmail(String email);
+
+    void grantUserRole(Long id, UserRole role);
+
+    void revokeUserRole(Long id, UserRole role);
 }
 
