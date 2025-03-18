@@ -1,16 +1,15 @@
 package be.steby.CoreProject.bll.exceptions;
 
-
-public class InvalidPasswordException extends CoreProjectException {
+public class TokenRevokedException extends CoreProjectException {
     /**
      * Constructs a new {@code AuthenticationException} with the specified {@code detail message}.
-     * The {@code status code} is set to {@code 403 (Unauthorized)} by default.
+     * The {@code status code} is set to {@code 401 (Unauthorized)} by default.
      *
      * @param message the detail message (which is saved for later retrieval
      *                by the {@link #getMessage()} method).
      */
-    public InvalidPasswordException(String message) {
-        super(message, 403);
+    public TokenRevokedException(String message) {
+        super(message, 401);
     }
 
     /**
@@ -21,7 +20,7 @@ public class InvalidPasswordException extends CoreProjectException {
      * @param status  the {@code HTTP status code} (which is saved for later retrieval
      *                by the {@link #getStatus()} method).
      */
-    public InvalidPasswordException(String message, int status) {
+    public TokenRevokedException(String message, int status) {
         super(message, status);
     }
 }
