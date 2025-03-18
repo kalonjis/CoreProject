@@ -3,6 +3,8 @@ package be.steby.CoreProject.il.configs;
 import be.steby.CoreProject.bll.services.security.AuthService;
 import be.steby.CoreProject.il.Jwt.JwtFilter;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
+import be.steby.CoreProject.bll.utils.DeviceSecurityEvaluator;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -28,11 +30,17 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    @Value("${url.front_server}")
+    private String FRONT_URL;
+
+    @Value("${url.back_server}")
+    private String BACK_URL;
+
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfig) throws Exception {
@@ -44,25 +52,29 @@ public class SecurityConfig {
         return new JwtFilter(authService, jwtUtil);
     }
 
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtFilter jwtFilter) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(r -> r
+                        // Routes publiques ne nécessitant pas d'authentification
                         .requestMatchers("/api/auth/register").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/auth/refresh-token").permitAll()
                         .requestMatchers("/api/auth/logout").permitAll()
-                        .requestMatchers("/api/account-confirmation", "/request-confirmtoken").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/account-confirmation/**").permitAll()
                         .requestMatchers("/api/password/**").permitAll()
+                        .requestMatchers("/api/device/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/history/**").hasAnyAuthority("SUPER_ADMIN", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE).hasAnyAuthority("SUPER_ADMIN", "ADMIN")
-                        .requestMatchers(HttpMethod.POST).hasAnyAuthority("SUPER_ADMIN", "ADMIN", "USER")
-                        .requestMatchers(HttpMethod.PUT).hasAnyAuthority("SUPER_ADMIN", "ADMIN", "USER")
-                        .requestMatchers(HttpMethod.GET).hasAnyAuthority("SUPER_ADMIN", "ADMIN", "USER", "SPECTATOR")
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // Définir uniquement les règles basées sur les rôles
+                        .requestMatchers("/api/admin/**").hasAnyAuthority("SUPER_ADMIN", "ADMIN")
+                        // Vous pouvez garder d'autres règles générales basées sur les rôles si nécessaire
+
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->
@@ -70,14 +82,16 @@ public class SecurityConfig {
                 )
                 .logout(logout -> logout.disable())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        // Supprimer le deviceTrustLevelFilter car il sera remplacé par l'aspect
+
         return http.build();
     }
 
-    // Your existing CORS configuration method
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedOrigins(List.of(FRONT_URL, BACK_URL));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
         configuration.setAllowCredentials(true);
 
@@ -85,9 +99,4 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
-
-
-
-
 }

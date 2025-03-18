@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirm Your MyFavApp Account</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+<h1 style="color: #2C3E50;">MyFavApp – Confirm Your Account</h1>
+
+<p>
+    <strong>Hello <span th:text="${username}"></span>,</strong>
+</p>
+
+<p>
+    Thank you for signing up on <strong>MyFavApp</strong>! <br>
+    To activate your account and complete your registration, please click on the link below:
+</p>
+
+<p style="display: block; margin: 20px 0;">
+    <a th:href="${url}"
+       style="background-color: #3498DB; color: white; padding: 12px 20px;
+              text-decoration: none; border-radius: 5px; font-weight: bold;
+              display: inline-block;">
+        Confirm My Account
+    </a>
+</p>
+
+
+
+<p>
+    If you did not request this registration, please ignore this email.
+</p>
+
+<p style="margin-top: 30px; font-size: 14px; color: #777;">
+    Best regards, <br>
+    <strong>The MyFavApp Team</strong>
+</p>
+</body>
+</html>

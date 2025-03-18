@@ -1,5 +1,6 @@
 package be.steby.CoreProject.il.Jwt;
 
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -35,14 +36,20 @@ public class JwtUtil {
         this.refreshTokenCookieName = refreshTokenCookieName;
     }
 
-    public String generateAccessToken(User user) {
-        return generateToken(user, accessTokenExpiration);
+    public String generateAccessToken(User user, Device device) {
+        return generateToken(user, device, accessTokenExpiration);
     }
 
-    private String generateToken(User user, long expiration) {
+    private String generateToken(User user, Device device, long expiration) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("username", user.getUsername());
         claims.put("roles", user.getAuthorities());
+
+        // Ajouter les informations du Device
+        claims.put("deviceId", device.getId());
+        claims.put("deviceFingerprint", device.getFingerprint());
+        claims.put("deviceTrustLevel", device.getDeviceTrustLevel().name());
+        claims.put("deviceConfirmed", device.isConfirmed());
 
         return Jwts.builder()
                 .setClaims(claims)

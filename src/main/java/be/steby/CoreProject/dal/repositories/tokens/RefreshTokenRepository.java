@@ -1,12 +1,14 @@
 package be.steby.CoreProject.dal.repositories.tokens;
 
 
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.dl.entities.User;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 public interface RefreshTokenRepository extends BaseTokenRepository<RefreshToken> {
@@ -24,6 +26,9 @@ public interface RefreshTokenRepository extends BaseTokenRepository<RefreshToken
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE RefreshToken rt SET rt.revoked = true WHERE rt.user = ?1")
     void revokeAllUserTokens(User user);
+
+
+    List<RefreshToken> findAllByUserAndDevice(User user, Device device);
 
     Optional<RefreshToken> findByUserAndRevokedFalse(User user);
 }

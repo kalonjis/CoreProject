@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.services.security.impl;
 
 import be.steby.CoreProject.dal.repositories.tokens.RefreshTokenRepository;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 
 
 /**
@@ -27,6 +29,7 @@ public class RefreshTokenServiceImpl extends BaseTokenServiceImpl<RefreshToken> 
     @Value("${security.jwt.refresh-token.expiration}")
     private Long refreshTokenDurationMs;
 
+    private final RefreshTokenRepository refreshTokenRepository;
     /**
      * Constructs a new {@link RefreshTokenServiceImpl} using the provided token repository.
      *
@@ -36,6 +39,7 @@ public class RefreshTokenServiceImpl extends BaseTokenServiceImpl<RefreshToken> 
     public RefreshTokenServiceImpl(
             @Qualifier("refreshTokenRepository") RefreshTokenRepository refreshTokenRepository) {
         super(refreshTokenRepository, RefreshToken.class);
+        this.refreshTokenRepository = refreshTokenRepository;
     }
 
     /**
@@ -45,8 +49,19 @@ public class RefreshTokenServiceImpl extends BaseTokenServiceImpl<RefreshToken> 
      * @return The newly created refresh token
      */
     @Transactional
-    public RefreshToken createRefreshToken(User user) {
-        return super.createToken(user, refreshTokenDurationMs);
+    public RefreshToken createRefreshToken(User user, Device device) {
+        revokeDeviceTokens(user, device);
+
+        RefreshToken token = super.createToken(user, refreshTokenDurationMs, false);
+        token.setDevice(device);
+        saveToken(token);
+        return token;
+    }
+
+
+    @Transactional
+    public RefreshToken rotateToken(RefreshToken oldToken) {
+        return createRefreshToken(oldToken.getUser(), oldToken.getDevice());
     }
 
 
@@ -69,5 +84,15 @@ public class RefreshTokenServiceImpl extends BaseTokenServiceImpl<RefreshToken> 
         log.info("Starting scheduled cleanup of expired tokens");
 //        refreshTokenRepository.deleteExpiredTokens(Instant.now());
         log.info("Completed cleanup of expired tokens");
+    }
+
+
+    @Transactional
+    private void revokeDeviceTokens(User user, Device device) {
+        List<RefreshToken> activeTokens = refreshTokenRepository.findAllByUserAndDevice(user, device);
+        for (RefreshToken token : activeTokens) {
+            token.setRevoked(true);
+            refreshTokenRepository.save(token);
+        }
     }
 }

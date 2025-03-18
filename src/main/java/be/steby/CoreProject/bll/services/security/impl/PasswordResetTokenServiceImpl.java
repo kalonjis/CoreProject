@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class PasswordResetTokenServiceImpl extends BaseTokenServiceImpl<PasswordResetToken> {
 
-    @Value("${security.password-reset-token.expiration}")
+    @Value("${security.password-reset.token.expiration}")
     private Long passwordResetTokenDurationMs;
 
     private final PasswordResetAttemptServiceImpl attemptService;

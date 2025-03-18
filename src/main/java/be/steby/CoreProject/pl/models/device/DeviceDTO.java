@@ -1,0 +1,50 @@
+package be.steby.CoreProject.pl.models.device;
+
+import be.steby.CoreProject.dl.entities.Device;
+import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
+
+import java.time.Instant;
+
+public record DeviceDTO(
+        Long id,
+        String deviceType,
+        String browser,
+        String browserVersion,
+        String operatingSystem,
+        String osVersion,
+        String device_cpu,
+        String device_cpu_bits,
+        String language,
+        String deviceClass,
+        String deviceBrand,
+        String fingerprint,
+        Instant firstSeen,
+        Instant lastSeen,
+        String lastIpAddress,
+        DeviceTrustLevel level,
+        boolean confirmed,
+        boolean blacklisted
+) {
+    public static DeviceDTO fromEntity(Device device){
+        return new DeviceDTO(
+                device.getId(),
+                device.getDeviceType(),
+                device.getBrowser(),
+                device.getBrowserVersion(),
+                device.getOperatingSystem(),
+                device.getOsVersion(),
+                device.getDevice_cpu(),
+                device.getDevice_cpu_bits(),
+                device.getLanguage(),
+                device.getDeviceClass(),
+                device.getDeviceBrand(),
+                device.getFingerprint(),
+                device.getFirstSeen(),
+                device.getLastSeen(),
+                device.getLastIpAddress(),
+                device.getDeviceTrustLevel(),
+                device.isConfirmed(),
+                device.isBlacklisted()
+            );
+    }
+}

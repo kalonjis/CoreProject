@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirm Email Change Request</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+
+<h1 style="color: #2c3e50; text-align: center;">🔐 Email Change Request</h1>
+
+<p>
+    Hello <span th:text="${username}"></span>,<br/><br/>
+    A request to change your email address was made on your account.<br/>
+    If you initiated this request, please confirm by clicking the link below:<br/>
+</p>
+
+<p>
+    <a th:href="${oldEmailConfirmationUrl}"
+       style="background-color: #3498db; color: #fff; padding: 12px 20px; text-decoration: none; font-weight: bold; border-radius: 5px;">
+        Confirm Email Change
+    </a>
+</p>
+
+<p>
+    ❗ **Didn't request this change?** Click below to cancel it immediately:<br/>
+</p>
+
+<p>
+    <a th:href="${cancelChangeUrl}"
+       style="background-color: #e74c3c; color: #fff; padding: 12px 20px; text-decoration: none; font-weight: bold; border-radius: 5px;">
+        Cancel Change Request
+    </a>
+</p>
+
+<p>
+    For security reasons, this link will expire in **24 hours**.<br/>
+    If you have any questions, please contact our support team.<br/><br/>
+</p>
+
+<p>
+    Best regards, <br/>
+    <b>The MyFavApp Security Team</b>
+</p>
+
+</body>
+</html>

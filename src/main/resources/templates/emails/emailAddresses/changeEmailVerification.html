@@ -1,0 +1,35 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirm Your New Email</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+
+<h1 style="color: #2c3e50; text-align: center;">📩 Confirm Your New Email</h1>
+
+<p>
+    Hello <span th:text="${username}"></span>,<br/><br/>
+    You’re almost done updating your email address!<br/>
+    To finalize the change and start using your new email, click the button below:<br/>
+</p>
+
+<p>
+    <a th:href="${newEmailConfirmationUrl}"
+       style="background-color: #27ae60; color: #fff; padding: 12px 20px; text-decoration: none; font-weight: bold; border-radius: 5px;">
+        Confirm My New Email
+    </a>
+</p>
+
+<p>
+    If you didn’t request this change, please **ignore this email**.<br/>
+    This link will expire in **24 hours** for security reasons.<br/><br/>
+</p>
+
+<p>
+    Best regards, <br/>
+    <b>The MyFavApp Security Team</b>
+</p>
+
+</body>
+</html>

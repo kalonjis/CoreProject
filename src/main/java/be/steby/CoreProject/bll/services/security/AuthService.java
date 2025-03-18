@@ -1,6 +1,12 @@
 package be.steby.CoreProject.bll.services.security;
 
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
+import be.steby.CoreProject.pl.security.models.ChangePasswordForm;
+import be.steby.CoreProject.pl.security.models.PasswordResetForm;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
 /**
@@ -36,29 +42,34 @@ public interface AuthService extends UserDetailsService {
     void logout();
 
 
-    User register(User user);
-
     /**
      * Resets the password of the specified user.
      *
      * <p>This method allows a user to reset their password, typically triggered by a password reset request.</p>
      *
-     * @param user     The user whose password is to be reset.
+     * @param form
      * @param password The new password to set for the user.
      */
-    void resetPassword(User user, String password);
+    void resetPassword(PasswordResetForm form, String password);
 
-    /**
-     * Changes the password of the specified user.
-     *
-     * <p>This method allows the user to change their password by providing the current password
-     * and the desired new password.</p>
-     *
-     * @param username        The username of the user whose password is to be changed.
-     * @param currentPassword The user's current password.
-     * @param newPassword     The new password to set for the user.
-     *                        InvalidPasswordException If the current password is incorrect.
-     */
-    void changePassword(String username, String currentPassword, String newPassword);
+    void changePassword(ChangePasswordForm form);
 
+    void requestPasswordReset(String email);
+
+    void requestPasswordToken(String token);
+
+    User confirmNewUserAccount(String token);
+
+    void requestActivation(String token);
+
+    void changeEmailRequest(ChangeEmailForm form);
+
+    void confirmEmail(String token);
+
+    void cancelEmailChange(String token);
+
+    void changeEmailVerification(String token);
+
+    User signup(User user);
 }
+

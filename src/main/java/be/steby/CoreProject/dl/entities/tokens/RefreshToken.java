@@ -1,10 +1,11 @@
 package be.steby.CoreProject.dl.entities.tokens;
 
 
+import be.steby.CoreProject.dl.entities.Device;
 import jakarta.persistence.Entity;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.*;
 
 
 /**
@@ -25,8 +26,12 @@ import lombok.Getter;
  * @see BaseToken
  */
 @Entity
-@Getter
-@AllArgsConstructor
+@Getter @Setter
+@AllArgsConstructor @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class RefreshToken extends BaseToken {
+
+    @ManyToOne
+    @JoinColumn(name = "device_id")
+    private Device device;
 }

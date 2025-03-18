@@ -44,13 +44,13 @@ public class User extends BaseEntity<Long> implements UserDetails {
     /**
      * The first name of the user.
      */
-    @Column(nullable = false, length = 50)
+    @Column(length = 50)
     private String firstname;
 
     /**
      * The last name of the user.
      */
-    @Column(nullable = false, length = 50)
+    @Column(length = 50)
     private String lastname;
 
     /**
@@ -96,23 +96,26 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Column(nullable = false)
     private boolean mustChangePassword;
 
-
-    @Column(nullable = false)
-    private int resetPasswordAttempts;
-
-    @Column
-    private Instant resetPasswordLastAttemptTime;
-
-    @Column(nullable = false)
-    private int accountConfirmationAttempts;
-
-    @Column
-    private Instant accountConfirmationLastAttemptTime;
-
+    private Instant activatedAt;
     // endregion
 
 
     // region Constructors
+
+    /**
+     * Constructor to initialize only necessary fields (new user auto creation).
+     */
+    public User(String username, String email, String password) {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+        this.userRoles = UserRole.setRoles(UserRole.USER);
+        this.enabled = false;
+        this.emailVerified = false;
+        this.mustChangePassword = false;
+    }
+
+
     /**
      * Constructor to initialize common fields (used by admin creation).
      */
@@ -126,10 +129,6 @@ public class User extends BaseEntity<Long> implements UserDetails {
         this.enabled = false;
         this.emailVerified = false;
         this.mustChangePassword = true;
-        this.resetPasswordAttempts = 0;
-        this.resetPasswordLastAttemptTime = null;
-        this.accountConfirmationAttempts = 0;
-        this.accountConfirmationLastAttemptTime = null;
     }
 
     /**
