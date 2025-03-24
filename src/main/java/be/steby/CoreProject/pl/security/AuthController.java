@@ -37,7 +37,7 @@ public class AuthController {
     private final RefreshTokenServiceImpl refreshTokenService;
     private final DeviceService deviceService;
 
-    private static final String COOKIE_PATH = "/api";  // Path unifié pour tous les cookies
+    private static final String COOKIE_PATH = "/";  // Path unifié pour tous les cookies
 
 
     @PostMapping("signup")
@@ -196,7 +196,7 @@ public class AuthController {
         Cookie cookie = new Cookie(jwtUtil.getAccessTokenCookieName(), "");
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
-        cookie.setPath("/api");  // Utiliser le même path que lors de la création
+        cookie.setPath(COOKIE_PATH);  // Utiliser le même path que lors de la création
         cookie.setMaxAge(0);
         response.addCookie(cookie);
     }
@@ -205,7 +205,7 @@ public class AuthController {
         Cookie cookie = new Cookie(jwtUtil.getRefreshTokenCookieName(), "");
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
-        cookie.setPath("/api");  // Utiliser le même path que lors de la création
+        cookie.setPath(COOKIE_PATH);  // Utiliser le même path que lors de la création
         cookie.setMaxAge(0);
         response.addCookie(cookie);
     }

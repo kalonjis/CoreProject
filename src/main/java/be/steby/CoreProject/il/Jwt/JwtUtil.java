@@ -43,6 +43,7 @@ public class JwtUtil {
     private String generateToken(User user, Device device, long expiration) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("username", user.getUsername());
+        claims.put("mustChangePassword", user.isMustChangePassword());
         claims.put("roles", user.getAuthorities());
 
         // Ajouter les informations du Device

@@ -29,7 +29,7 @@ public class MailerServiceImpl implements MailerService {
   private final String PASSWORD_URL = "/api/password";
   private final String ACCOUNT_URL = "/api/account-confirmation";
   private final String USER_URL = "/api/user";
-  private final String DEVICE_URL = "/api/user";
+  private final String DEVICE_URL = "/api/devices";
 
   // region Password
 
