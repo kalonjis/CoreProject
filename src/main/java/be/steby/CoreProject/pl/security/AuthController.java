@@ -20,11 +20,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -69,6 +73,24 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getCurrentUser(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(UserDTO.fromEntity(user));
+    }
+
+
+    @GetMapping("/status")
+    public ResponseEntity<Map<String, Object>> getAuthStatus(@AuthenticationPrincipal User user) {
+        Map<String, Object> response = new HashMap<>();
+        boolean isAuthenticated = user != null;
+
+        response.put("isAuthenticated", isAuthenticated);
+
+        if (isAuthenticated) {
+            response.put("username", user.getUsername());
+            response.put("roles", user.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.toList()));
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/refresh-token")
