@@ -3,6 +3,7 @@ package be.steby.CoreProject.pl.models.user;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
 
+import java.time.Instant;
 import java.util.Set;
 
 public record UserDTO(
@@ -12,6 +13,7 @@ public record UserDTO(
         String lastname,
         String email,
         String phoneNumber,
+        Instant createdAt,
         Set<UserRole> userRoles
 ) {
     public static UserDTO fromEntity(User u){
@@ -22,6 +24,7 @@ public record UserDTO(
                 u.getLastname(),
                 u.getEmail(),
                 u.getPhoneNumber(),
+                u.getCreatedAt(),
                 u.getUserRoles()
         );
     }
