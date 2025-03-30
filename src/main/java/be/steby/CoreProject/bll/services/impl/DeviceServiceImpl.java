@@ -184,7 +184,7 @@ public class DeviceServiceImpl implements DeviceService {
         System.out.println("Device under update");
 
         if( ( device.isFirstDeviceUsed() && calculateTimeFromActivationInMinutes(user) > 1 && !device.isConfirmed() )
-                || !device.isConfirmed() ){
+                || !device.isConfirmed() && !device.isBlacklisted() ){
             sendNewDeviceAlert(device);
         }
 

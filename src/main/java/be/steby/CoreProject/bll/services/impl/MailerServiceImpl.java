@@ -162,31 +162,40 @@ public class MailerServiceImpl implements MailerService {
   @Async
   @Override
   public void sendNewDeviceAlert(User user, Device device, String token) {
-    String newDeviceConfirmationUrl = FRONT_URL + DEVICE_URL + "/device-confirmation?token=" + token;
+    String confirmDeviceUrl = FRONT_URL + "/auth/device-confirmation?token=" + token + "&action=confirm";
+    String rejectDeviceUrl = FRONT_URL + "/auth/device-confirmation?token=" + token + "&action=reject";
+
     Context context = new Context();
     String username = user.getFirstname() == null ? user.getUsername() : user.getFirstname() + " " + user.getLastname();
     String formattedTime = formatTime(device.getLastSeen());
+
     context.setVariable("username", username);
     context.setVariable("deviceType", device.getDeviceType());
-    context.setVariable("confirmUrl", newDeviceConfirmationUrl);
+    context.setVariable("confirmDeviceUrl", confirmDeviceUrl);
+    context.setVariable("revokeDeviceUrl", rejectDeviceUrl);
     context.setVariable("location", device.getLocation());
     context.setVariable("timestamp", formattedTime);
-    mailerUtil.sendMail("Security Alert: New Device Login", "devices/newDeviceAlert", context, user.getEmail());
+    context.setVariable("token", token);
 
+    mailerUtil.sendMail("Security Alert: New Device Login", "devices/newDeviceAlert", context, user.getEmail());
   }
 
   @Async
   @Override
   public void sendBlacklistedDeviceAlert(User user, Device device, String token) {
-    String newDeviceConfirmationUrl = FRONT_URL + DEVICE_URL + "/device-confirmation?token=" + token;
+    String whitelistDeviceUrl = FRONT_URL + "/auth/device-confirmation?token=" + token + "&action=confirm";
+
     Context context = new Context();
     String username = user.getFirstname() == null ? user.getUsername() : user.getFirstname() + " " + user.getLastname();
     String formattedTime = formatTime(device.getLastSeen());
+
     context.setVariable("username", username);
     context.setVariable("deviceType", device.getDeviceType());
-    context.setVariable("confirmUrl", newDeviceConfirmationUrl);
+    context.setVariable("whitelistDeviceUrl", whitelistDeviceUrl);
     context.setVariable("location", device.getLocation());
     context.setVariable("timestamp", formattedTime);
+    context.setVariable("token", token);
+
     mailerUtil.sendMail("Security Alert: Blacklisted Device Login Attempt", "devices/blacklistedDeviceAlert", context, user.getEmail());
   }
 

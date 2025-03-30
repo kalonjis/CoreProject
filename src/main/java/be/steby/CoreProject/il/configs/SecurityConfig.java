@@ -59,7 +59,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers("/api/auth/**") // Exclure les endpoints d'authentification
+                        .ignoringRequestMatchers("/api/auth/**", "/api/device/confirm/**", "/api/device/reject/**") // Exclure les endpoints d'authentification
                 )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(r -> r
@@ -86,7 +86,6 @@ public class SecurityConfig {
                 )
                 .logout(logout -> logout.disable())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-        // Supprimer le deviceTrustLevelFilter car il sera remplacé par l'aspect
 
         return http.build();
     }
