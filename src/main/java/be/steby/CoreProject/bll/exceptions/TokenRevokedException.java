@@ -9,7 +9,7 @@ public class TokenRevokedException extends CoreProjectException {
      *                by the {@link #getMessage()} method).
      */
     public TokenRevokedException(String message) {
-        super(message, 401);
+        super(message, 410);
     }
 
     /**
