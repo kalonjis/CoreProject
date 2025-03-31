@@ -15,7 +15,7 @@ public class TokenExpiredException extends CoreProjectException {
      * @param token the token that caused the exception
      */
     public TokenExpiredException(String message, BaseToken token) {
-        super(message, 401);
+        super(message, 498);
         this.token = token;
     }
 
@@ -40,7 +40,7 @@ public class TokenExpiredException extends CoreProjectException {
      * @param message the detail message
      */
     public TokenExpiredException(String message) {
-        super(message, 401);
+        super(message, 498);
         this.token = null;
     }
 
