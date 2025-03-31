@@ -59,7 +59,11 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers("/api/auth/**", "/api/device/confirm/**", "/api/device/reject/**") // Exclure les endpoints d'authentification
+                        .ignoringRequestMatchers("/api/auth/**",
+                                "/api/device/confirm/**",
+                                "/api/device/reject/**",
+                                "/api/account-confirmation/**"
+                        )
                 )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(r -> r

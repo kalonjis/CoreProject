@@ -27,7 +27,6 @@ public class MailerServiceImpl implements MailerService {
   private String FRONT_URL;
 
   private final String PASSWORD_URL = "/api/password";
-  private final String ACCOUNT_URL = "/api/account-confirmation";
   private final String USER_URL = "/api/user";
   private final String DEVICE_URL = "/api/devices";
 
@@ -78,7 +77,7 @@ public class MailerServiceImpl implements MailerService {
   @Async
   @Override
   public void sendSignUpConfirmation(String token, User user) {
-    String confirmationUrl = FRONT_URL + ACCOUNT_URL + "/activation?token=" + token;
+    String confirmationUrl = FRONT_URL + "/auth/account-confirmation?token=" + token;
     Context context = new Context();
     context.setVariable("username", user.getUsername());
     context.setVariable("temporaryPassword", "The password you defined");
@@ -90,7 +89,7 @@ public class MailerServiceImpl implements MailerService {
   @Async
   @Override
   public void sendAccountConfirmation(String token, User user, String temporaryPassword) {
-    String confirmationUrl = FRONT_URL + ACCOUNT_URL + "/activation?token=" + token;
+    String confirmationUrl = FRONT_URL + "/auth/account-confirmation?token=" + token;
     Context context = new Context();
     context.setVariable("username", user.getFirstname() + " " + user.getLastname());
     context.setVariable("temporaryPassword", temporaryPassword);
@@ -101,7 +100,7 @@ public class MailerServiceImpl implements MailerService {
   @Async
   @Override
   public void sendNewAccountConfirmation(String token, User user) {
-    String confirmationUrl = FRONT_URL + ACCOUNT_URL + "/activation?token=" + token;
+    String confirmationUrl = FRONT_URL + "/auth/account-confirmation?token=" + token;
     Context context = new Context();
     context.setVariable("username", user.getFirstname() + " " + user.getLastname());
     context.setVariable("url", confirmationUrl);
