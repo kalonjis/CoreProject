@@ -62,7 +62,9 @@ public class SecurityConfig {
                         .ignoringRequestMatchers("/api/auth/**",
                                 "/api/device/confirm/**",
                                 "/api/device/reject/**",
-                                "/api/account-confirmation/**"
+                                "/api/account-confirmation/**",
+                                "/api/password/request-password-reset",
+                                "/api/password/reset-password"
                         )
                 )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
