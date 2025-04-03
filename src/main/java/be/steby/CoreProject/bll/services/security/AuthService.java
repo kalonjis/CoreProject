@@ -62,6 +62,8 @@ public interface AuthService extends UserDetailsService {
 
     void requestActivation(String token);
 
+    void requestConfirmationLinkByUsername(String username);
+
     void changeEmailRequest(ChangeEmailForm form);
 
     void confirmEmail(String token);
@@ -71,5 +73,6 @@ public interface AuthService extends UserDetailsService {
     void changeEmailVerification(String token);
 
     User signup(User user);
+
 }
 

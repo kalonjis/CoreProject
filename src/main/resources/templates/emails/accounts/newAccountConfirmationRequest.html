@@ -1,18 +1,57 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymleaf.org"  lang="fr">
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>New Account Confirmation</title>
+    <title>Welcome! Confirm Your Account</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            line-height: 1.6;
+            max-width: 600px;
+            margin: auto;
+        }
+        .button {
+            display: block;
+            width: 80%;
+            text-align: center;
+            padding: 12px;
+            font-weight: bold;
+            border-radius: 5px;
+            text-decoration: none;
+            margin: 10px auto;
+            background-color: #3498db;
+            color: #fff;
+        }
+    </style>
 </head>
 <body>
-<h1 th:text="'Welcome ' + ${username}"> </h1>
+
+<h1 style="color: #2c3e50; text-align: center;"> Confirm your account!</h1><br/><br/>
 
 <p>
-    <span th:text="'Hello ' + ${username}"></span>,<br/>
-    Thank you again for joining the MyFavApp Team.
+    <span th:text="'Hello ' + ${username}"></span>,<br/><br/>
+    Thank you again for joining the MyFavApp Team.<br/>
+    To start using your account, please confirm your email address.
+</p>
 
-    Please click on the link below to confirm your user account:<br/>
-    <a th:href="${url}">Confirm account</a>.<br/>
+<p style="text-align: center;">
+    <a th:href="${url}" class="button">
+        ✅ Confirm My Account
+    </a>
+</p>
+
+<p>
+    If you didn’t sign up for this account, you can ignore this message.
+</p>
+
+<p>
+    Welcome aboard! If you have any questions, feel free to reach out to our support team.
+</p>
+
+<p>
+    Best regards, <br/>
+    <b>The MyFavApp Team</b>
 </p>
 
 </body>

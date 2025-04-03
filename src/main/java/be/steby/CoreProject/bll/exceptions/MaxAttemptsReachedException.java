@@ -3,13 +3,13 @@ package be.steby.CoreProject.bll.exceptions;
 public class MaxAttemptsReachedException extends CoreProjectException {
     /**
      * Constructs a new {@code AuthenticationException} with the specified {@code detail message}.
-     * The {@code status code} is set to {@code 401 (Unauthorized)} by default.
+     * The {@code status code} is set to {@code 429 - Too Many Requests  } by default.
      *
      * @param message the detail message (which is saved for later retrieval
      *                by the {@link #getMessage()} method).
      */
     public MaxAttemptsReachedException(String message) {
-        super(message, 401);
+        super(message, 429);
     }
 
     /**

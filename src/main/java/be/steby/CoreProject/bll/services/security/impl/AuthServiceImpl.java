@@ -15,6 +15,7 @@ import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
 import be.steby.CoreProject.pl.security.models.ChangePasswordForm;
 import be.steby.CoreProject.pl.security.models.PasswordResetForm;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 import java.util.regex.Pattern;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -58,7 +60,11 @@ public class AuthServiceImpl implements AuthService {
     public User login(String username, String password) {
         User user = (User) loadUserByUsername(username);
         if (!user.isEnabled()) {
-            throw new UserEnabledStatusException("User account is disabled", 403);
+            if (!user.isEverActivated()) {
+                throw new AccountActivationException("Your account has never been activated. Please check your email and follow the activation instructions.", user.getUsername());
+            } else {
+                throw new UserEnabledStatusException("User account has been disabled by an administrator. Please contact support.", 403);
+            }
         }
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new InvalidPasswordException("Incorrect password");
@@ -111,6 +117,20 @@ public class AuthServiceImpl implements AuthService {
         AccountConfirmationToken newToken = accountConfirmationTokenService.createAccountConfirmationToken(user);
         mailerService.sendNewAccountConfirmation(newToken.getToken(), user);
 
+    }
+
+    @Override
+    public void requestConfirmationLinkByUsername(String username) {
+        User user = userService.getUserByUsername(username);
+        if(user.isEnabled()){
+            throw new UserEnabledStatusException("User account is already activated");
+        }
+        if(user.isEverActivated()){
+            log.info("Tentative de réactivation d'un compte désactivé par un admin: {}", username);
+            throw new AccountActivationException("User has been diactivated by administrator, please contact support for more information", user.getUsername());
+        }
+        AccountConfirmationToken accountConfirmationToken = accountConfirmationTokenService.createAccountConfirmationToken(user);
+        mailerService.sendNewAccountConfirmation(accountConfirmationToken.getToken(), user);
     }
 
     // endregion

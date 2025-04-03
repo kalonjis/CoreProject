@@ -91,7 +91,7 @@ public abstract class BaseTokenServiceImpl<T extends BaseToken> implements BaseT
 
         if (token.isExpired()) {
             this.revokeToken(token);
-            throw new TokenExpiredException("Token has expired", token);
+            throw new TokenExpiredException("Token has expired");
         }
 
         return token;

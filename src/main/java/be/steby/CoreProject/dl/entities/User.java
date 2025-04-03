@@ -90,6 +90,16 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Column(nullable = false)
     private boolean enabled;
 
+
+    /**
+     * Whether the user account has ever been activated.
+     * Used to distinguish between accounts that have never been activated
+     * and accounts that have been deactivated by an admin.
+     */
+    @Column(nullable = false)
+    private boolean everActivated;
+
+
     /**
      * Whether the user must change their password after logging in.
      */

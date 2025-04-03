@@ -26,9 +26,6 @@ public class MailerServiceImpl implements MailerService {
   @Value("${url.front_server}")
   private String FRONT_URL;
 
-  private final String PASSWORD_URL = "/api/password";
-  private final String USER_URL = "/api/user";
-  private final String DEVICE_URL = "/api/devices";
 
   // region Password
 
@@ -40,9 +37,11 @@ public class MailerServiceImpl implements MailerService {
   @Async
   @Override
   public void sendPasswordReset(String token, User user) {
-    String resetUrl = FRONT_URL + PASSWORD_URL + "/reset-password?token=" + token;
+    String resetUrl = FRONT_URL + "/auth/reset-password?token=" + token;
+    String username = defineUsername(user);
     Context context = new Context();
-    context.setVariable("username", user.getUsername());
+
+    context.setVariable("username", username);
     context.setVariable("url", resetUrl);
     context.setVariable("token", token);
 
@@ -52,9 +51,11 @@ public class MailerServiceImpl implements MailerService {
   @Async
   @Override
   public void sendPasswordResetRefresh(String newToken, User user) {
-    String resetUrl = FRONT_URL + PASSWORD_URL + "/reset-password?token=" + newToken;
+    String resetUrl = FRONT_URL + "/auth/reset-password?token=" + newToken;
+    String username = defineUsername(user);
+
     Context context = new Context();
-    context.setVariable("username", user.getUsername());
+    context.setVariable("username", username);
     context.setVariable("url", resetUrl);
     context.setVariable("token", newToken);
 
@@ -65,8 +66,10 @@ public class MailerServiceImpl implements MailerService {
   @Async
   @Override
   public void sendPasswordChangeConfirmation(User user) {
+    String username = defineUsername(user);
+
     Context context = new Context();
-    context.setVariable("username", user.getFirstname() + " " + user.getLastname());
+    context.setVariable("username", username);
     mailerUtil.sendMail("Password Change Confirmation", "passwords/passwordChangeConfirmation", context, user.getEmail());
   }
 
@@ -78,8 +81,10 @@ public class MailerServiceImpl implements MailerService {
   @Override
   public void sendSignUpConfirmation(String token, User user) {
     String confirmationUrl = FRONT_URL + "/auth/account-confirmation?token=" + token;
+    String username = defineUsername(user);
+
     Context context = new Context();
-    context.setVariable("username", user.getUsername());
+    context.setVariable("username", username);
     context.setVariable("temporaryPassword", "The password you defined");
     context.setVariable("url", confirmationUrl);
     mailerUtil.sendMail("Account confirmation", "accounts/signupConfirmation", context, user.getEmail());
@@ -90,8 +95,10 @@ public class MailerServiceImpl implements MailerService {
   @Override
   public void sendAccountConfirmation(String token, User user, String temporaryPassword) {
     String confirmationUrl = FRONT_URL + "/auth/account-confirmation?token=" + token;
+    String username = defineUsername(user);
+
     Context context = new Context();
-    context.setVariable("username", user.getFirstname() + " " + user.getLastname());
+    context.setVariable("username", username);
     context.setVariable("temporaryPassword", temporaryPassword);
     context.setVariable("url", confirmationUrl);
     mailerUtil.sendMail("Account confirmation", "accounts/accountConfirmation", context, user.getEmail());
@@ -101,8 +108,10 @@ public class MailerServiceImpl implements MailerService {
   @Override
   public void sendNewAccountConfirmation(String token, User user) {
     String confirmationUrl = FRONT_URL + "/auth/account-confirmation?token=" + token;
+    String username = defineUsername(user);
+
     Context context = new Context();
-    context.setVariable("username", user.getFirstname() + " " + user.getLastname());
+    context.setVariable("username", username);
     context.setVariable("url", confirmationUrl);
     mailerUtil.sendMail("Account confirmation", "accounts/newAccountConfirmationRequest", context, user.getEmail());
   }
@@ -110,8 +119,9 @@ public class MailerServiceImpl implements MailerService {
   @Async
   @Override
   public void sendWelcome(User user) {
+    String username = defineUsername(user);
+
     Context context = new Context();
-    String username = user.getFirstname() == null ? user.getUsername() : user.getFirstname() + " " + user.getLastname();
     context.setVariable("username", username);
     mailerUtil.sendMail("Welcome", "accounts/GreetingComfirmedUser", context, user.getEmail());
   }
@@ -122,10 +132,12 @@ public class MailerServiceImpl implements MailerService {
   @Async
   @Override
   public void sendChangeEmailRequest(String token, User user) {
-    String oldEmailConfirmationUrl = FRONT_URL + USER_URL + "/email-verification?token=" + token;
-    String cancelChangeUrl = FRONT_URL + USER_URL + "/cancel-email-change?token=" + token;
+    String oldEmailConfirmationUrl = FRONT_URL  + "/email-verification?token=" + token;
+    String cancelChangeUrl = FRONT_URL +  "/cancel-email-change?token=" + token;
+    String username = defineUsername(user);
+
     Context context = new Context();
-    context.setVariable("username", user.getFirstname()+ " " + user.getLastname());
+    context.setVariable("username", username);
     context.setVariable("oldEmailConfirmationUrl", oldEmailConfirmationUrl);
     context.setVariable("cancelChangeUrl", cancelChangeUrl);
     mailerUtil.sendMail("Email confirmation", "emailAddresses/changeEmailRequest", context, user.getEmail());
@@ -134,9 +146,11 @@ public class MailerServiceImpl implements MailerService {
   @Async
   @Override
   public void sendChangeEmailVerification(String token, User user, String newEmail) {
-    String newEmailConfirmationUrl = FRONT_URL + USER_URL + "/email-confirmation?token=" + token;
+    String newEmailConfirmationUrl = FRONT_URL + "/email-confirmation?token=" + token;
+    String username = defineUsername(user);
+
     Context context = new Context();
-    context.setVariable("username", user.getFirstname()+ " " + user.getLastname());
+    context.setVariable("username", username);
     context.setVariable("newEmailConfirmationUrl", newEmailConfirmationUrl);
     mailerUtil.sendMail("Email confirmation", "emailAddresses/changeEmailVerification", context, newEmail);
   }
@@ -144,9 +158,10 @@ public class MailerServiceImpl implements MailerService {
   @Async
   @Override
   public void sendChangeEmailConfirmation(String token, User user, String oldEmail, String newEmail) {
-    String newEmailConfirmationUrl = FRONT_URL + USER_URL + "/email-confirmation?token=" + token;
+    String newEmailConfirmationUrl = FRONT_URL  + "/email-confirmation?token=" + token;
     Context context = new Context();
-    String username = user.getFirstname() == null ? user.getUsername() : user.getFirstname() + " " + user.getLastname();
+    String username = defineUsername(user);
+
     context.setVariable("username", username);
     context.setVariable("oldEmail", oldEmail);
     context.setVariable("newEmail", newEmail);
@@ -165,7 +180,7 @@ public class MailerServiceImpl implements MailerService {
     String rejectDeviceUrl = FRONT_URL + "/auth/device-confirmation?token=" + token + "&action=reject";
 
     Context context = new Context();
-    String username = user.getFirstname() == null ? user.getUsername() : user.getFirstname() + " " + user.getLastname();
+    String username = defineUsername(user);
     String formattedTime = formatTime(device.getLastSeen());
 
     context.setVariable("username", username);
@@ -185,7 +200,7 @@ public class MailerServiceImpl implements MailerService {
     String whitelistDeviceUrl = FRONT_URL + "/auth/device-confirmation?token=" + token + "&action=confirm";
 
     Context context = new Context();
-    String username = user.getFirstname() == null ? user.getUsername() : user.getFirstname() + " " + user.getLastname();
+    String username = defineUsername(user);
     String formattedTime = formatTime(device.getLastSeen());
 
     context.setVariable("username", username);
@@ -199,6 +214,11 @@ public class MailerServiceImpl implements MailerService {
   }
 
   // endregion
+
+
+  private String defineUsername(User user){
+    return user.getFirstname() == null ? user.getUsername() : user.getFirstname() + " " + user.getLastname();
+  }
 
   private String formatTime(Instant timestamp){
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")

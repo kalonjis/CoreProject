@@ -9,7 +9,7 @@ public class UserEnabledStatusException extends CoreProjectException {
      *                by the {@link #getMessage()} method).
      */
     public UserEnabledStatusException(String message) {
-        super(message, 400);
+        super(message, 403);
     }
 
     /**
