@@ -78,6 +78,9 @@ public class UserServiceImpl implements UserService {
             throw new AttributeUnchangedException("The user is already activated.");
         }
         user.setEnabled(true);
+        if( !user.isEverActivated() ){
+            user.setEverActivated(true);
+        }
         user.setActivatedAt(Instant.now());
         userRepository.save(user);
     }
