@@ -84,47 +84,5 @@ public class ControllerAdvisor {
                 .body(response);
     }
 
-
-    /**
-     * Handles exceptions of type {@link TokenExpiredException} specifically for
-     * PasswordResetToken and AccountConfirmationToken.
-     *
-     * @param error the {@link TokenExpiredException} that was thrown
-     * @return a {@link ResponseEntity} with custom handling for specific token types
-     */
-    @ExceptionHandler(TokenExpiredException.class)
-    public ResponseEntity<?> handleTokenExpiredException(TokenExpiredException error) {
-        log.error("TokenExpiredException occurred: {}", error.toString());
-
-        // On récupère le token depuis l'exception (il faudra modifier TokenExpiredException)
-        if (error instanceof TokenExpiredException && error.getToken() != null) {
-            BaseToken token = error.getToken();
-
-            // Traitement spécifique pour PasswordResetToken ou AccountConfirmationToken
-            if (token instanceof PasswordResetToken || token instanceof AccountConfirmationToken) {
-                String email = token.getUser().getEmail();
-
-                Map<String, String> response = new HashMap<>();
-                String endpoint = token instanceof PasswordResetToken ?
-                        "/api/password/request-password-token" : "/api/account/request-confirmation-token";
-                String requestNewTokenUrl = BACK_URL + endpoint + "?token=" + token.getToken();
-
-                String message = "Link has expired. Please restart procedure.";
-                response.put("error", message);
-                response.put("url", requestNewTokenUrl);
-
-                return ResponseEntity.status(error.getStatus())
-                        .header("Content-Type", "application/json")
-                        .body(response);
-            }
-        }
-
-        // Traitement par défaut pour les autres types de tokens
-        HashMap<String, String> map = new HashMap<>();
-        map.put("error", error.getMessage());
-        return ResponseEntity.status(error.getStatus())
-                .header("Content-Type", "application/json")
-                .body(map);
-    }
 }
 
