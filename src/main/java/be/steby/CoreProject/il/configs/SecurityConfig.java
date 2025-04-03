@@ -64,7 +64,8 @@ public class SecurityConfig {
                                 "/api/device/reject/**",
                                 "/api/account-confirmation/**",
                                 "/api/password/request-password-reset",
-                                "/api/password/reset-password"
+                                "/api/password/reset-password",
+                                "/api/password/request-password-token"
                         )
                 )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
