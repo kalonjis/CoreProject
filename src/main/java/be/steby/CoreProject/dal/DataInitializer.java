@@ -80,6 +80,7 @@ public class DataInitializer implements CommandLineRunner {
                 u -> {
                     u.setMustChangePassword(false);
                     u.setEnabled(true);
+                    u.setEverActivated(true);
                 }
         );
         userRepository.saveAll(users);
