@@ -132,8 +132,8 @@ public class MailerServiceImpl implements MailerService {
   @Async
   @Override
   public void sendChangeEmailRequest(String token, User user) {
-    String oldEmailConfirmationUrl = FRONT_URL  + "/email-verification?token=" + token;
-    String cancelChangeUrl = FRONT_URL +  "/cancel-email-change?token=" + token;
+    String oldEmailConfirmationUrl = FRONT_URL  + "/auth/verify-email?token=" + token + "&action=verify";
+    String cancelChangeUrl = FRONT_URL +  "/auth/verify-email?token=" + token + "&action=cancel";
     String username = defineUsername(user);
 
     Context context = new Context();
@@ -146,12 +146,14 @@ public class MailerServiceImpl implements MailerService {
   @Async
   @Override
   public void sendChangeEmailVerification(String token, User user, String newEmail) {
-    String newEmailConfirmationUrl = FRONT_URL + "/email-confirmation?token=" + token;
+    String newEmailConfirmationUrl = FRONT_URL  + "/auth/verify-email?token=" + token + "&action=confirm";
+    String cancelChangeUrl = FRONT_URL +  "/auth/verify-email?token=" + token + "&action=cancel";
     String username = defineUsername(user);
 
     Context context = new Context();
     context.setVariable("username", username);
     context.setVariable("newEmailConfirmationUrl", newEmailConfirmationUrl);
+    context.setVariable("cancelChangeUrl", cancelChangeUrl);
     mailerUtil.sendMail("Email confirmation", "emailAddresses/changeEmailVerification", context, newEmail);
   }
 
