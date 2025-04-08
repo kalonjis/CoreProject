@@ -26,6 +26,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+import static be.steby.CoreProject.il.utils.SecurityConstants.CSRF_IGNORE_PATHS;
+import static be.steby.CoreProject.il.utils.SecurityConstants.PUBLIC_ROUTES;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -59,27 +62,11 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers("/api/auth/**",
-                                "/api/device/confirm/**",
-                                "/api/device/reject/**",
-                                "/api/account-confirmation/**",
-                                "/api/password/request-password-reset",
-                                "/api/password/reset-password",
-                                "/api/password/request-password-token"
-                        )
+                        .ignoringRequestMatchers(CSRF_IGNORE_PATHS)
                 )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(r -> r
-                        // Routes publiques ne nécessitant pas d'authentification
-                        .requestMatchers("/api/auth/register").permitAll()
-                        .requestMatchers("/api/auth/login").permitAll()
-                        .requestMatchers("/api/auth/refresh-token").permitAll()
-                        .requestMatchers("/api/auth/logout").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/account-confirmation/**").permitAll()
-                        .requestMatchers("/api/password/**").permitAll()
-                        .requestMatchers("/api/device/**").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers(PUBLIC_ROUTES).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // Définir uniquement les règles basées sur les rôles
