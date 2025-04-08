@@ -283,6 +283,9 @@ public class AuthServiceImpl implements AuthService {
 
     private void savePassword(String password, User user){
         user.setPassword( passwordEncoder.encode(password) );
+        if(user.isMustChangePassword()){
+            user.setMustChangePassword(false);
+        }
         userService.saveUser(user);
         mailerService.sendPasswordChangeConfirmation(user);
     }
