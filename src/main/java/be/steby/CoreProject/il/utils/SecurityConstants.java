@@ -10,7 +10,8 @@ public class SecurityConstants {
             "/api/password/request-password-reset",
             "/api/password/reset-password",
             "/api/password/request-password-token",
-            "/api/password/change-password"
+            "/api/password/change-password",
+            "/api/admin/users"
     };
 
     // Vous pouvez aussi définir d'autres constantes liées à la sécurité
