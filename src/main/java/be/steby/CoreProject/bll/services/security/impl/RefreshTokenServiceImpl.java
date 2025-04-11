@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 
 
@@ -84,6 +85,12 @@ public class RefreshTokenServiceImpl extends BaseTokenServiceImpl<RefreshToken> 
         log.info("Starting scheduled cleanup of expired tokens");
 //        refreshTokenRepository.deleteExpiredTokens(Instant.now());
         log.info("Completed cleanup of expired tokens");
+    }
+
+
+    @Transactional(readOnly = true)
+    public long countActiveUsers() {
+        return refreshTokenRepository.countActiveUsers(Instant.now());
     }
 
 
