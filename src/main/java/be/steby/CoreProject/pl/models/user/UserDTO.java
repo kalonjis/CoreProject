@@ -15,7 +15,8 @@ public record UserDTO(
         String phoneNumber,
         Instant createdAt,
         Set<UserRole> userRoles,
-        boolean mustChangePassword
+        boolean mustChangePassword,
+        boolean enabled
 ) {
     public static UserDTO fromEntity(User u){
         return new UserDTO(
@@ -27,7 +28,8 @@ public record UserDTO(
                 u.getPhoneNumber(),
                 u.getCreatedAt(),
                 u.getUserRoles(),
-                u.isMustChangePassword()
+                u.isMustChangePassword(),
+                u.isEnabled()
         );
     }
 }
