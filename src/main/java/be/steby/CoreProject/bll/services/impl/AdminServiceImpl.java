@@ -161,6 +161,11 @@ public class AdminServiceImpl implements AdminService    {
         return deviceService.getUserDevice(user);
     }
 
+    @Override
+    public Long getTotalUsers() {
+        return userService.getTotalUsers();
+    }
+
 
     private boolean hasRole(User user, UserRole role) {
         return user.getAuthorities().stream()
