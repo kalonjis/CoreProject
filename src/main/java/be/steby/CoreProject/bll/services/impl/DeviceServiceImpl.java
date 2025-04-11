@@ -157,6 +157,11 @@ public class DeviceServiceImpl implements DeviceService {
         deviceRepository.save(device);
     }
 
+    @Override
+    public Long getTotalDevices() {
+        return deviceRepository.count();
+    }
+
     // =========================================================================
     // Méthodes utilitaires privées
     // =========================================================================
