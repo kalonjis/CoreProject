@@ -30,4 +30,6 @@ public interface DeviceService {
     void confirmDevice(String token);
 
     void rejectDevice(String token);
+
+    Long getTotalDevices();
 }
