@@ -40,5 +40,7 @@ public interface UserService {
     void grantUserRole(Long id, UserRole role);
 
     void revokeUserRole(Long id, UserRole role);
+
+    Long getTotalUsers();
 }
 
