@@ -1,16 +1,14 @@
-package be.steby.CoreProject.pl.controllers;
+package be.steby.CoreProject.pl.controllers.admin;
 
 
 import be.steby.CoreProject.bll.services.AdminService;
 import be.steby.CoreProject.bll.services.security.SecurityService;
-import be.steby.CoreProject.dl.entities.Device;
+import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
 import be.steby.CoreProject.dl.enums.UserRole;
-import be.steby.CoreProject.il.device.RequiresDeviceTrustLevel;
 import be.steby.CoreProject.pl.assemblers.UserModelAssembler;
-import be.steby.CoreProject.pl.models.admin.UserRoleForm;
 import be.steby.CoreProject.pl.models.admin.UserRegisterForm;
+import be.steby.CoreProject.pl.models.admin.UserRoleForm;
 import be.steby.CoreProject.pl.models.user.UserDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +26,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
@@ -37,16 +34,17 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @RestController
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('ADMIN')")
-@RequiresDeviceTrustLevel(DeviceTrustLevel.HIGHLY_TRUSTED)
-@RequestMapping("/api/admin")
-public class AdminController {
+//@RequiresDeviceTrustLevel(DeviceTrustLevel.HIGHLY_TRUSTED)
+@RequestMapping("/api/admin/users")
+public class AdminUserController {
 
     private final AdminService adminService;
     private final SecurityService securityService;
+    private final RefreshTokenServiceImpl refreshTokenService;
     private final UserModelAssembler userAssembler;
     private final PagedResourcesAssembler<User> pagedResourcesAssembler;
 
-    @GetMapping("/users/all")
+    @GetMapping("/all")
     public ResponseEntity<PagedModel<EntityModel<UserDTO>>> getUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -58,7 +56,7 @@ public class AdminController {
         return ResponseEntity.ok(assemblePagedModel(userPage, pageable));
     }
 
-    @GetMapping("/users/search")
+    @GetMapping("/search")
     public ResponseEntity<PagedModel<EntityModel<UserDTO>>> searchUsers(
             @RequestParam String query,
             @PageableDefault(size = 20) Pageable pageable) {
@@ -68,7 +66,8 @@ public class AdminController {
         return ResponseEntity.ok(assemblePagedModel(userPage, pageable));
     }
 
-    @GetMapping("/users/searchbycriteria")
+
+    @GetMapping("/searchbycriteria")
     public ResponseEntity<PagedModel<EntityModel<UserDTO>>> searchByCriteria(
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String firstname,
@@ -82,7 +81,8 @@ public class AdminController {
         return ResponseEntity.ok(assemblePagedModel(userPage, pageable));
     }
 
-    @GetMapping("/users/{id}")
+
+    @GetMapping("/{id}")
     public ResponseEntity<EntityModel<UserDTO>> getUserById(@PathVariable Long id) {
         User user = adminService.getUserById(id);
         User authenticatedUser = securityService.getAuthenticatedUser();
@@ -94,7 +94,25 @@ public class AdminController {
     }
 
 
-    @PostMapping("/users")
+    @GetMapping("/count-total")
+    public ResponseEntity<Map<String, Long>>getTotalUsers(){
+        Map<String, Long> response = new HashMap<>();
+        Long totalUsers = adminService.getTotalUsers();
+        response.put("totalUsers", totalUsers);
+        return ResponseEntity.ok(response);
+    }
+
+
+    @GetMapping("/count-active")
+    public ResponseEntity<Map<String, Long>> countActiveUsers(){
+        Map<String, Long> response = new HashMap<>();
+        Long totalActiveUsers = refreshTokenService.countActiveUsers();
+        response.put("totalActiveUsers", totalActiveUsers);
+        return ResponseEntity.ok(response);
+    }
+
+
+    @PostMapping()
     public ResponseEntity<Map<String,String>> register(@Valid @RequestBody UserRegisterForm form) {
         User user = adminService.createUser(form.toEntity());
         String location = "/api/user/" + user.getId();
@@ -106,48 +124,41 @@ public class AdminController {
         return ResponseEntity.created(URI.create(location)).body(response);
     }
 
-    @DeleteMapping("/users/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         adminService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/users/activate/{id}")
+    @PatchMapping("/activate/{id}")
     public ResponseEntity<Void> activateUser(@PathVariable Long id) {
         adminService.activateUser(id);
         return ResponseEntity.ok().build();
     }
 
-    @PatchMapping("/users/deactivate/{id}")
+    @PatchMapping("/deactivate/{id}")
     public ResponseEntity<Void> deactivateUser(@PathVariable Long id) {
         adminService.deactivateUser(id);
         return ResponseEntity.ok().build();
     }
 
-    @PatchMapping("/users/grant-role/{id}")
+    @PatchMapping("/grant-role/{id}")
     public ResponseEntity<Void> grantUserRole(@PathVariable Long id, @Valid @RequestBody UserRoleForm form) {
         adminService.grantUserRole(id, form.userRole());
         return ResponseEntity.ok().build();
     }
 
-    @PatchMapping("/users/revoke-role/{id}")
+    @PatchMapping("/revoke-role/{id}")
     public ResponseEntity<Void> revokeUserRole(@PathVariable Long id, @Valid @RequestBody UserRoleForm form) {
         adminService.revokeUserRole(id, form.userRole());
         return ResponseEntity.ok().build();
     }
 
 
-    @PatchMapping("/users/force-reset-password/{id}")
+    @PatchMapping("/force-reset-password/{id}")
     public ResponseEntity<Void> forceResetPassword(@PathVariable Long id) {
         adminService.triggerPasswordReset(id);
         return ResponseEntity.ok().build();
-    }
-
-
-    @GetMapping("/device/list/user/{id}")
-    public ResponseEntity<List<Device>> getUserDevices(@PathVariable Long id) {
-        List<Device> devices = adminService.getUserDevices(id);
-        return ResponseEntity.ok(devices);
     }
 
 
@@ -171,11 +182,10 @@ public class AdminController {
         );
 
         // Ajouter des liens supplémentaires
-        pagedModel.add(linkTo(methodOn(AdminController.class).register(null)).withRel("create-user"));
-        pagedModel.add(linkTo(methodOn(AdminController.class).searchUsers(null, null)).withRel("search"));
-        pagedModel.add(linkTo(methodOn(AdminController.class).searchByCriteria(null, null, null, null, null, null)).withRel("advanced-search"));
+        pagedModel.add(linkTo(methodOn(AdminUserController.class).register(null)).withRel("create-user"));
+        pagedModel.add(linkTo(methodOn(AdminUserController.class).searchUsers(null, null)).withRel("search"));
+        pagedModel.add(linkTo(methodOn(AdminUserController.class).searchByCriteria(null, null, null, null, null, null)).withRel("advanced-search"));
 
         return pagedModel;
     }
 }
-
