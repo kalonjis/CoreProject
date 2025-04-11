@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.services;
 
-import aj.org.objectweb.asm.commons.Remapper;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
@@ -33,4 +32,6 @@ public interface AdminService {
     void triggerPasswordReset(Long id);
 
     List<Device> getUserDevices(Long id);
+
+    Long getTotalUsers();
 }
