@@ -53,14 +53,14 @@ security:
       name: "refresh_token"
   password-reset:
     token:
-      #expiration: 900000  # 15 minutes
-      expiration: 1000  # 1 second
+      expiration: 900000  # 15 minutes
+      #expiration: 1000  # 1 second
     max-attempts: 3
     lockout-minutes: 30
   account-confirmation:
     token:
-      #expiration: 86400000 # 24 heures
-      expiration: 1000  # 1 second
+      expiration: 86400000 # 24 heures
+      #expiration: 1000  # 1 second
     max-attempts: 5
     lockout-minutes: 60
   email-confirmation:
