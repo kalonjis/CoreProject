@@ -67,7 +67,12 @@ public class AuthController {
         addAccessTokenCookie(response, accessToken);
         addRefreshTokenCookie(response, refreshTokenCookie);
 
-        return ResponseEntity.ok().build();
+        // Renvoyer les informations sur l'appareil dans la réponse
+        Map<String, Object> responseBody = new HashMap<>();
+        responseBody.put("deviceId", device.getId());
+        responseBody.put("deviceConfirmed", device.isConfirmed());
+
+        return ResponseEntity.ok(responseBody);
     }
 
     @GetMapping("/me")
