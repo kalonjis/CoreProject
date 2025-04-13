@@ -1,5 +1,6 @@
 package be.steby.CoreProject.pl.security;
 
+import be.steby.CoreProject.bll.services.ConnectionLogService;
 import be.steby.CoreProject.bll.services.security.AuthService;
 import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
@@ -40,6 +41,7 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final DeviceService deviceService;
+    private final ConnectionLogService connectionLogService;
 
     private static final String COOKIE_PATH = "/";  // Path unifié pour tous les cookies
 
@@ -60,6 +62,9 @@ public class AuthController {
             HttpServletResponse response) {
         User user = authService.login(form.username(), form.password());
         Device device = deviceService.detectAndRegisterDevice(request, user, true);
+
+        connectionLogService.logLoginAttempt(user, device, true, null, request);
+
         String accessToken = jwtUtil.generateAccessToken(user, device);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, device);
         String refreshTokenCookie = refreshToken.getId() + "." + refreshToken.getToken();
