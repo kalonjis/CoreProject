@@ -27,7 +27,7 @@ public interface DeviceService {
 
     void saveDevice(Device device);
 
-    void confirmDevice(String token);
+    Device confirmDevice(String token);
 
     void rejectDevice(String token);
 

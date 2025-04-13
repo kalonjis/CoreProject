@@ -139,12 +139,13 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Transactional
     @Override
-    public void confirmDevice(String token) {
+    public Device confirmDevice(String token) {
         Device device = getDeviceByToken(token);
         device.setDeviceTrustLevel(DeviceTrustLevel.BASIC);
         device.setConfirmed(true);
         device.setBlacklisted(false);
         deviceRepository.save(device);
+        return device;
     }
 
     @Transactional
@@ -188,7 +189,7 @@ public class DeviceServiceImpl implements DeviceService {
     private Device updateExistingDevice(User user, Device device, String ipAddress) {
         System.out.println("Device under update");
 
-        if( ( device.isFirstDeviceUsed() && calculateTimeFromActivationInMinutes(user) > 1 && !device.isConfirmed() )
+        if( ( device.isFirstDeviceUsed() && calculateTimeFromActivationInMinutes(user) > 10 && !device.isConfirmed() )
                 || !device.isConfirmed() && !device.isBlacklisted() ){
             sendNewDeviceAlert(device);
         }
