@@ -2,8 +2,6 @@ package be.steby.CoreProject.pl.controllers;
 
 
 import be.steby.CoreProject.bll.services.DeviceService;
-import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
-import be.steby.CoreProject.il.device.RequiresDeviceTrustLevel;
 import be.steby.CoreProject.pl.models.device.DeviceDTO;
 import be.steby.CoreProject.pl.models.device.DeviceTrustLevelForm;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,7 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/device")
@@ -52,9 +52,14 @@ public class DeviceController {
 
 
     @PatchMapping("/confirm")
-    public ResponseEntity<Void> confirmDevice(@RequestParam String token){
-        deviceService.confirmDevice(token);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Map<String, Object>> confirmDevice(@RequestParam String token){
+        Long deviceId = deviceService.confirmDevice(token).getId();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Device confirmed successfully");
+        response.put("deviceId", deviceId);
+
+        return ResponseEntity.ok(response);
     }
 
 
