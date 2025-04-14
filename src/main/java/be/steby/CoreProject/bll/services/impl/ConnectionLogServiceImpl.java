@@ -1,11 +1,16 @@
 package be.steby.CoreProject.bll.services.impl;
 
+import be.steby.CoreProject.bll.exceptions.CoreProjectException;
 import be.steby.CoreProject.bll.services.ConnectionLogService;
+import be.steby.CoreProject.bll.utils.IpUtils;
 import be.steby.CoreProject.dal.repositories.ConnectionLogRepository;
 import be.steby.CoreProject.dl.entities.ConnectionLog;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.ActionLogType;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -14,107 +19,686 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.time.*;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
-
+/**
+ * Implémentation du service ConnectionLogService qui utilise une approche hybride
+ * pour la gestion des exceptions.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ConnectionLogServiceImpl implements ConnectionLogService {
     private final ConnectionLogRepository connectionLogRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * Enregistre une tentative de connexion (réussie ou échouée)
-     *
-     * @param user         L'utilisateur concerné
-     * @param device       L'appareil utilisé (peut être null)
-     * @param successful   Si la connexion a réussi
-     * @param failureReason Raison de l'échec (si applicable)
-     * @param request      La requête HTTP
-     * @return L'entité ConnectionLog enregistrée
+     * Méthode générique pour enregistrer une action utilisateur.
+     * Capture les exceptions liées au formatage JSON mais laisse remonter
+     * les exceptions métier pour être traitées par le ControllerAdvisor.
      */
+    @Override
     @Transactional
-    public ConnectionLog logLoginAttempt(User user, Device device, boolean successful,
-                                         String failureReason, HttpServletRequest request) {
+    public ConnectionLog logUserAction(
+            User user,
+            Device device,
+            ActionLogType actionType,
+            boolean successful,
+            String details,
+            String metadata,
+            HttpServletRequest request) {
+
+        String clientIp = getClientIpAddress(request);
+        String location = IpUtils.getLocationFromIp(clientIp);
+        String sessionId = getOrCreateSessionId(request);
+
+        // Évaluer le niveau de risque en fonction du type d'action et du contexte
+        int riskLevel = evaluateRiskLevel(user, device, actionType, request);
+        boolean triggeredAlert = riskLevel >= 3; // Alerte si niveau de risque élevé
+
+        if (triggeredAlert) {
+            log.warn("Action à risque détectée: {} pour l'utilisateur {}, niveau de risque {}",
+                    actionType, user.getUsername(), riskLevel);
+        }
 
         ConnectionLog connectionLog = ConnectionLog.builder()
                 .user(user)
                 .device(device)
                 .timestamp(Instant.now())
-                .ipAddress(getClientIpAddress(request))
+                .ipAddress(clientIp)
+                .location(location)
                 .successful(successful)
-                .failureReason(failureReason)
-                .actionType("LOGIN")
+                .failureReason(successful ? null : details)
+                .actionType(actionType.name())
+                .actionDetails(details)
+                .sessionId(sessionId)
+                .metadata(metadata)
+                .riskLevel(riskLevel)
+                .triggeredAlert(triggeredAlert)
                 .build();
 
-        return connectionLogRepository.save(connectionLog);
+        ConnectionLog savedLog = connectionLogRepository.save(connectionLog);
+
+        // Si l'action a déclenché une alerte, effectuer des actions supplémentaires
+        if (triggeredAlert) {
+            handleSecurityAlert(savedLog);
+        }
+
+        return savedLog;
+    }
+
+    /**
+     * Enregistre une tentative de connexion
+     */
+    @Override
+    @Transactional
+    public ConnectionLog logLogin(User user, Device device, boolean successful,
+                                  String failureReason, HttpServletRequest request) {
+
+        ActionLogType actionType = successful ? ActionLogType.AUTH_LOGIN : ActionLogType.AUTH_LOGIN_FAILED;
+        String metadataJson = null;
+
+        try {
+            // Formatage de métadonnées - gérons cette exception spécifique localement
+            // car elle n'est pas critique pour le flux principal
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("userAgent", request.getHeader("User-Agent"));
+            metadata.put("referrer", request.getHeader("Referer"));
+            metadata.put("method", "FORM"); // ou "SSO", "API", etc.
+
+            metadataJson = objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            // Exception de formatage JSON - on peut la gérer ici sans interrompre le flux
+            log.error("Erreur lors de la sérialisation des métadonnées: {}", e.getMessage());
+            metadataJson = "{}";
+        }
+
+        // Les exceptions de la méthode logUserAction remonteront naturellement
+        // pour être traitées par le ControllerAdvisor
+        return logUserAction(
+                user,
+                device,
+                actionType,
+                successful,
+                failureReason,
+                metadataJson,
+                request
+        );
     }
 
     /**
      * Enregistre une déconnexion
      */
+    @Override
     @Transactional
     public ConnectionLog logLogout(User user, Device device, HttpServletRequest request) {
-        ConnectionLog connectionLog = ConnectionLog.builder()
-                .user(user)
-                .device(device)
-                .timestamp(Instant.now())
-                .ipAddress(getClientIpAddress(request))
-                .successful(true)
-                .actionType("LOGOUT")
-                .build();
+        // Calculer la durée de la session si possible
+        Long sessionDuration = calculateSessionDuration(request);
 
-        return connectionLogRepository.save(connectionLog);
+        ConnectionLog log = logUserAction(
+                user,
+                device,
+                ActionLogType.AUTH_LOGOUT,
+                true,
+                null,
+                null,
+                request
+        );
+
+        // Mettre à jour la durée si disponible
+        if (sessionDuration != null) {
+            log.setDurationSeconds(sessionDuration);
+            connectionLogRepository.save(log);
+        }
+
+        return log;
     }
 
     /**
-     * Enregistre une action de sécurité (changement de mot de passe, reset, etc.)
+     * Enregistre un changement de mot de passe
      */
+    @Override
     @Transactional
-    public ConnectionLog logSecurityAction(User user, Device device, String actionType,
-                                           boolean successful, String details, HttpServletRequest request) {
-
-        ConnectionLog connectionLog = ConnectionLog.builder()
-                .user(user)
-                .device(device)
-                .timestamp(Instant.now())
-                .ipAddress(getClientIpAddress(request))
-                .successful(successful)
-                .failureReason(successful ? null : details)
-                .actionType(actionType)
-                .build();
-
-        return connectionLogRepository.save(connectionLog);
+    public ConnectionLog logPasswordChange(User user, Device device, boolean successful, HttpServletRequest request) {
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.PASSWORD_CHANGED,
+                successful,
+                successful ? "Mot de passe modifié avec succès" : "Échec de la modification du mot de passe",
+                null,
+                request
+        );
     }
 
     /**
-     * Obtient l'historique de connexion d'un utilisateur
+     * Enregistre une demande de réinitialisation de mot de passe
      */
+    @Override
+    @Transactional
+    public ConnectionLog logPasswordResetRequest(User user, HttpServletRequest request) {
+        return logUserAction(
+                user,
+                null, // Pas d'appareil connu à ce stade
+                ActionLogType.PASSWORD_RESET_REQUEST,
+                true,
+                "Demande de réinitialisation de mot de passe effectuée",
+                null,
+                request
+        );
+    }
+
+    /**
+     * Enregistre une réinitialisation complète de mot de passe
+     */
+    @Override
+    @Transactional
+    public ConnectionLog logPasswordResetComplete(User user, Device device, HttpServletRequest request) {
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.PASSWORD_RESET_COMPLETE,
+                true,
+                "Réinitialisation de mot de passe effectuée",
+                null,
+                request
+        );
+    }
+
+    /**
+     * Enregistre une demande de changement d'email
+     */
+    @Override
+    @Transactional
+    public ConnectionLog logEmailChangeRequest(User user, Device device, String newEmail, HttpServletRequest request) {
+        String metadataJson = null;
+
+        try {
+            // Exception non critique - on peut la gérer localement
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("newEmail", newEmail);
+            metadataJson = objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            log.error("Erreur lors de la sérialisation des métadonnées: {}", e.getMessage());
+            metadataJson = "{}";
+        }
+
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.EMAIL_CHANGE_REQUEST,
+                true,
+                "Demande de changement d'email de " + user.getEmail() + " vers " + newEmail,
+                metadataJson,
+                request
+        );
+    }
+
+    /**
+     * Enregistre la confirmation d'un changement d'email
+     */
+    @Override
+    @Transactional
+    public ConnectionLog logEmailChangeComplete(User user, Device device, String oldEmail, String newEmail, HttpServletRequest request) {
+        String metadataJson = null;
+
+        try {
+            // Exception non critique - on peut la gérer localement
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("oldEmail", oldEmail);
+            metadata.put("newEmail", newEmail);
+            metadataJson = objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            log.error("Erreur lors de la sérialisation des métadonnées: {}", e.getMessage());
+            metadataJson = "{}";
+        }
+
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.EMAIL_CHANGE_COMPLETE,
+                true,
+                "Changement d'email de " + oldEmail + " vers " + newEmail + " effectué",
+                metadataJson,
+                request
+        );
+    }
+
+    /**
+     * Enregistre la création d'un compte utilisateur
+     */
+    @Override
+    @Transactional
+    public ConnectionLog logAccountCreation(User user, Device device, HttpServletRequest request) {
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.ACCOUNT_CREATED,
+                true,
+                "Création du compte utilisateur",
+                null,
+                request
+        );
+    }
+
+    /**
+     * Enregistre l'activation d'un compte utilisateur
+     */
+    @Override
+    @Transactional
+    public ConnectionLog logAccountActivation(User user, Device device, HttpServletRequest request) {
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.ACCOUNT_ACTIVATED,
+                true,
+                "Activation du compte utilisateur",
+                null,
+                request
+        );
+    }
+
+    /**
+     * Enregistre la désactivation d'un compte utilisateur
+     */
+    @Override
+    @Transactional
+    public ConnectionLog logAccountDeactivation(User user, Long adminId, HttpServletRequest request) {
+        String metadataJson = null;
+
+        try {
+            // Exception non critique - on peut la gérer localement
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("adminId", adminId);
+            metadataJson = objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            log.error("Erreur lors de la sérialisation des métadonnées: {}", e.getMessage());
+            metadataJson = "{}";
+        }
+
+        return logUserAction(
+                user,
+                null,
+                ActionLogType.ACCOUNT_DEACTIVATED,
+                true,
+                "Désactivation du compte utilisateur par l'administrateur #" + adminId,
+                metadataJson,
+                request
+        );
+    }
+
+    /**
+     * Enregistre un changement de rôle utilisateur
+     */
+    @Override
+    @Transactional
+    public ConnectionLog logRoleChange(User user, String role, boolean granted, Long adminId, HttpServletRequest request) {
+        ActionLogType actionType = granted ? ActionLogType.ROLE_GRANTED : ActionLogType.ROLE_REVOKED;
+
+        String metadataJson = null;
+        try {
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("adminId", adminId);
+            metadata.put("role", role);
+            metadataJson = objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            log.error("Erreur lors de la sérialisation des métadonnées: {}", e.getMessage());
+            metadataJson = "{}";
+        }
+
+        String details = granted ?
+                "Attribution du rôle " + role + " par l'administrateur #" + adminId :
+                "Révocation du rôle " + role + " par l'administrateur #" + adminId;
+
+        return logUserAction(
+                user,
+                null,
+                actionType,
+                true,
+                details,
+                metadataJson,
+                request
+        );
+    }
+
+    /**
+     * Enregistre un enregistrement d'appareil
+     */
+    @Override
+    @Transactional
+    public ConnectionLog logDeviceRegistration(User user, Device device, HttpServletRequest request) {
+        String metadataJson = null;
+
+        try {
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("deviceType", device.getDeviceType());
+            metadata.put("browser", device.getBrowser());
+            metadata.put("os", device.getOperatingSystem());
+            metadataJson = objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            log.error("Erreur lors de la sérialisation des métadonnées: {}", e.getMessage());
+            metadataJson = "{}";
+        }
+
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.DEVICE_REGISTERED,
+                true,
+                "Nouvel appareil enregistré: " + device.getDeviceType() + " - " + device.getBrowser(),
+                metadataJson,
+                request
+        );
+    }
+
+    /**
+     * Enregistre une confirmation d'appareil
+     */
+    @Override
+    @Transactional
+    public ConnectionLog logDeviceConfirmation(User user, Device device, HttpServletRequest request) {
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.DEVICE_CONFIRMED,
+                true,
+                "Appareil confirmé: " + device.getDeviceType() + " - " + device.getBrowser(),
+                null,
+                request
+        );
+    }
+
+    /**
+     * Enregistre un rejet d'appareil
+     */
+    @Override
+    @Transactional
+    public ConnectionLog logDeviceRejection(User user, Device device, HttpServletRequest request) {
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.DEVICE_REJECTED,
+                true,
+                "Appareil rejeté: " + device.getDeviceType() + " - " + device.getBrowser(),
+                null,
+                request
+        );
+    }
+
+    /**
+     * Enregistre un changement de niveau de confiance d'appareil
+     */
+    @Override
+    @Transactional
+    public ConnectionLog logDeviceTrustLevelChange(User user, Device device, String oldLevel, String newLevel, HttpServletRequest request) {
+        String metadataJson = null;
+
+        try {
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("oldLevel", oldLevel);
+            metadata.put("newLevel", newLevel);
+            metadataJson = objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            log.error("Erreur lors de la sérialisation des métadonnées: {}", e.getMessage());
+            metadataJson = "{}";
+        }
+
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.DEVICE_TRUST_LEVEL_CHANGED,
+                true,
+                "Niveau de confiance de l'appareil modifié de " + oldLevel + " à " + newLevel,
+                metadataJson,
+                request
+        );
+    }
+
+    /**
+     * Enregistre une activité suspecte
+     */
+    @Override
+    @Transactional
+    public ConnectionLog logSuspiciousActivity(User user, Device device, String details, int riskLevel, HttpServletRequest request) {
+        String metadataJson = null;
+
+        try {
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("riskLevel", riskLevel);
+            metadataJson = objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            log.error("Erreur lors de la sérialisation des métadonnées: {}", e.getMessage());
+            metadataJson = "{}";
+        }
+
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.SECURITY_SUSPICIOUS_ACTIVITY,
+                true,
+                details,
+                metadataJson,
+                request
+        );
+    }
+
+    // -------- Méthodes de recherche et d'analyse --------
+    // Ces méthodes peuvent laisser remonter naturellement les exceptions
+    // pour être traitées par le ControllerAdvisor
+
+    /**
+     * Obtient l'historique des connexions d'un utilisateur
+     */
+    @Override
     @Transactional(readOnly = true)
     public Page<ConnectionLog> getUserConnectionHistory(User user, Pageable pageable) {
         return connectionLogRepository.findByUserOrderByTimestampDesc(user, pageable);
     }
 
     /**
-     * Obtient les dernières tentatives de connexion d'un utilisateur
+     * Obtient l'historique des actions d'un utilisateur
      */
+    @Override
     @Transactional(readOnly = true)
-    public List<ConnectionLog> getRecentLoginAttempts(User user) {
-        return connectionLogRepository.findTop10ByUserAndSuccessfulTrueOrderByTimestampDesc(user);
+    public Page<ConnectionLog> getUserActionHistory(User user, List<ActionLogType> actionTypes,
+                                                    Instant startDate, Instant endDate, Pageable pageable) {
+        List<String> actionTypeStrings = actionTypes != null ?
+                actionTypes.stream().map(ActionLogType::name).collect(Collectors.toList()) : null;
+
+        return connectionLogRepository.findByUserAndActionTypeInAndTimestampBetween(
+                user, actionTypeStrings, startDate, endDate, pageable);
     }
 
     /**
-     * Tâche planifiée pour supprimer les anciens logs (après 180 jours par défaut)
+     * Obtient les dernières tentatives de connexion d'un utilisateur
      */
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConnectionLog> getRecentLoginAttempts(User user) {
+        return connectionLogRepository.findTop10ByUserAndActionTypeOrderByTimestampDesc(
+                user, ActionLogType.AUTH_LOGIN.name());
+    }
+
+    /**
+     * Rechercher des activités par critères
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ConnectionLog> searchLogs(Long userId, String ipAddress, List<ActionLogType> actionTypes,
+                                          Boolean successful, Instant startDate, Instant endDate, Pageable pageable) {
+        List<String> actionTypeStrings = actionTypes != null ?
+                actionTypes.stream().map(ActionLogType::name).collect(Collectors.toList()) : null;
+
+        return connectionLogRepository.searchLogs(userId, ipAddress, actionTypeStrings,
+                successful, startDate, endDate, pageable);
+    }
+
+    /**
+     * Obtient des statistiques sur les activités utilisateur
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getUserActivityStats(User user, Instant startDate, Instant endDate) {
+        Map<String, Object> stats = new HashMap<>();
+
+        // Nombre total de connexions
+        Long totalLogins = connectionLogRepository.countByUserAndActionTypeAndSuccessfulAndTimestampBetween(
+                user, ActionLogType.AUTH_LOGIN.name(), true, startDate, endDate);
+        stats.put("totalLogins", totalLogins);
+
+        // Nombre de tentatives de connexion échouées
+        Long failedLogins = connectionLogRepository.countByUserAndActionTypeAndSuccessfulAndTimestampBetween(
+                user, ActionLogType.AUTH_LOGIN.name(), false, startDate, endDate);
+        stats.put("failedLogins", failedLogins);
+
+        // Dernière connexion réussie
+        ConnectionLog lastLogin = connectionLogRepository.findTopByUserAndActionTypeAndSuccessfulOrderByTimestampDesc(
+                user, ActionLogType.AUTH_LOGIN.name(), true);
+        stats.put("lastLoginTime", lastLogin != null ? lastLogin.getTimestamp() : null);
+        stats.put("lastLoginLocation", lastLogin != null ? lastLogin.getLocation() : null);
+
+        // Nombre de changements de mot de passe
+        Long passwordChanges = connectionLogRepository.countByUserAndActionTypeAndTimestampBetween(
+                user, ActionLogType.PASSWORD_CHANGED.name(), startDate, endDate);
+        stats.put("passwordChanges", passwordChanges);
+
+        // Nombre d'appareils distincts utilisés
+        Long distinctDevices = connectionLogRepository.countDistinctDevicesByUserAndTimestampBetween(
+                user.getId(), startDate, endDate);
+        stats.put("distinctDevices", distinctDevices);
+
+        // Liste des adresses IP utilisées
+        List<String> ipAddresses = connectionLogRepository.findDistinctIpAddressesByUserAndTimestampBetween(
+                user, startDate, endDate);
+        stats.put("ipAddresses", ipAddresses);
+
+        return stats;
+    }
+
+    /**
+     * Obtient des statistiques globales de connexion
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getSystemLoginStats(Instant startDate, Instant endDate) {
+        Map<String, Object> stats = new HashMap<>();
+
+        try {
+            // Nombre total de connexions
+            Long totalLogins = connectionLogRepository.countByActionTypeAndSuccessfulAndTimestampBetween(
+                    ActionLogType.AUTH_LOGIN.name(), true, startDate, endDate);
+            stats.put("totalLogins", totalLogins);
+
+            // Nombre total de tentatives de connexion échouées
+            Long failedLogins = connectionLogRepository.countByActionTypeAndSuccessfulAndTimestampBetween(
+                    ActionLogType.AUTH_LOGIN.name(), false, startDate, endDate);
+            stats.put("failedLogins", failedLogins);
+
+            // Nombre d'utilisateurs uniques connectés
+            Long uniqueUsers = connectionLogRepository.countDistinctUsersByActionTypeAndTimestampBetween(
+                    ActionLogType.AUTH_LOGIN.name(), startDate, endDate);
+            stats.put("uniqueUsers", uniqueUsers);
+
+            // Nombre d'adresses IP uniques
+            Long uniqueIPs = connectionLogRepository.countDistinctIpAddressesByActionTypeAndTimestampBetween(
+                    ActionLogType.AUTH_LOGIN.name(), startDate, endDate);
+            stats.put("uniqueIPs", uniqueIPs);
+        } catch (Exception e) {
+            // Cette méthode compile beaucoup de requêtes et est utilisée pour l'UI administrateur
+            // Une exception ici ne devrait pas bloquer l'application, alors on la gère localement
+            log.error("Erreur lors de la génération des statistiques système: {}", e.getMessage(), e);
+            stats.put("error", "Erreur lors de la génération des statistiques");
+
+            // On utilise une exception personnalisée pour être cohérent avec le système d'erreurs
+            throw new CoreProjectException("Erreur lors de la génération des statistiques système", 500);
+        }
+
+        return stats;
+    }
+
+    /**
+     * Obtient la répartition géographique des connexions
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> getLoginsByLocation(Instant startDate, Instant endDate) {
+        List<Object[]> results = connectionLogRepository.countLoginsByLocation(startDate, endDate);
+        Map<String, Long> locationMap = new HashMap<>();
+
+        for (Object[] result : results) {
+            String location = (String) result[0];
+            Long count = (Long) result[1];
+            locationMap.put(location != null ? location : "Unknown", count);
+        }
+
+        return locationMap;
+    }
+
+    /**
+     * Obtient le nombre de connexions par jour
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Map<LocalDate, Long> getLoginsByDay(Instant startDate, Instant endDate) {
+        List<Object[]> results = connectionLogRepository.countLoginsByDay(startDate, endDate);
+        Map<LocalDate, Long> loginsByDay = new HashMap<>();
+
+        for (Object[] result : results) {
+            java.sql.Date date = (java.sql.Date) result[0];
+            Long count = (Long) result[1];
+            LocalDate localDate = date.toLocalDate();
+            loginsByDay.put(localDate, count);
+        }
+
+        return loginsByDay;
+    }
+
+    /**
+     * Détecte les activités suspectes pour un utilisateur
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConnectionLog> detectSuspiciousActivity(User user) {
+        // Cette méthode peut générer des exceptions complexes lors de l'analyse
+        // C'est un bon candidat pour une gestion d'erreurs locale
+        try {
+            // Période à considérer pour l'analyse (les 7 derniers jours)
+            Instant startDate = Instant.now().minus(7, ChronoUnit.DAYS);
+            Instant endDate = Instant.now();
+
+            // Activités suspectes: connexions depuis des emplacements différents en peu de temps
+            return connectionLogRepository.findSuspiciousActivities(user, startDate, endDate);
+        } catch (Exception e) {
+            log.error("Erreur lors de la détection d'activités suspectes pour l'utilisateur {}: {}",
+                    user.getUsername(), e.getMessage(), e);
+
+            // On renvoie une liste vide plutôt que de faire échouer l'application
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Tâche planifiée pour supprimer les anciens logs
+     * Les exceptions sont gérées localement car cette méthode
+     * s'exécute automatiquement sans intervention utilisateur.
+     */
+    @Override
     @Transactional
     @Scheduled(cron = "0 0 0 * * ?") // Tous les jours à minuit
     public void cleanupOldLogs() {
-        // Par défaut, conserve 6 mois de logs
-        Instant cutoffDate = Instant.now().minus(180, ChronoUnit.DAYS);
-        connectionLogRepository.deleteByTimestampBefore(cutoffDate);
-        log.info("Nettoyage des logs de connexion antérieurs à {}", cutoffDate);
+        try {
+            // Par défaut, conserve 6 mois de logs
+            Instant cutoffDate = Instant.now().minus(180, ChronoUnit.DAYS);
+            long deletedCount = connectionLogRepository.deleteByTimestampBefore(cutoffDate);
+            log.info("Nettoyage des logs de connexion terminé: {} enregistrements supprimés (antérieurs à {})",
+                    deletedCount, cutoffDate);
+        } catch (Exception e) {
+            // Une tâche planifiée ne doit pas faire planter l'application
+            log.error("Erreur lors du nettoyage des anciens logs: {}", e.getMessage(), e);
+        }
     }
 
     /**
@@ -128,5 +712,82 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
         }
         return request.getRemoteAddr();
     }
-}
 
+    /**
+     * Récupère ou crée un identifiant de session
+     */
+    private String getOrCreateSessionId(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            return session.getId();
+        }
+        return UUID.randomUUID().toString();
+    }
+
+    /**
+     * Calcule la durée de la session en secondes
+     */
+    private Long calculateSessionDuration(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            long creationTime = session.getCreationTime();
+            long now = System.currentTimeMillis();
+            return (now - creationTime) / 1000; // Conversion en secondes
+        }
+        return null;
+    }
+
+    /**
+     * Évalue le niveau de risque d'une action (0-3)
+     */
+    private int evaluateRiskLevel(User user, Device device, ActionLogType actionType, HttpServletRequest request) {
+        int riskLevel = 0;
+
+        // Facteurs augmentant le risque
+
+        // 1. Si l'action est sensible
+        if (actionType == ActionLogType.PASSWORD_CHANGED ||
+                actionType == ActionLogType.PASSWORD_RESET_COMPLETE ||
+                actionType == ActionLogType.EMAIL_CHANGE_COMPLETE) {
+            riskLevel += 1;
+        }
+
+        // 2. Si l'appareil n'est pas reconnu ou n'est pas confirmé
+        if (device == null || !device.isConfirmed()) {
+            riskLevel += 1;
+        }
+
+        // 3. Si l'adresse IP est nouvelle pour cet utilisateur
+        String ipAddress = getClientIpAddress(request);
+        boolean ipKnown = connectionLogRepository.existsByUserAndIpAddressAndTimestampAfter(
+                user, ipAddress, Instant.now().minus(30, ChronoUnit.DAYS));
+        if (!ipKnown) {
+            riskLevel += 1;
+        }
+
+        // 4. Si la localisation est inhabituelle
+        String location = IpUtils.getLocationFromIp(ipAddress);
+        boolean locationKnown = connectionLogRepository.existsByUserAndLocationAndTimestampAfter(
+                user, location, Instant.now().minus(30, ChronoUnit.DAYS));
+        if (!locationKnown && location != null && !location.equals("Unknown")) {
+            riskLevel += 1;
+        }
+
+        // Limiter le niveau de risque à 3 (maximum)
+        return Math.min(riskLevel, 3);
+    }
+
+    /**
+     * Gère une alerte de sécurité
+     */
+    private void handleSecurityAlert(ConnectionLog connectionLog) {
+        // Ici, on pourrait implémenter:
+        // 1. Envoi d'email à l'utilisateur
+        // 2. Notification d'un administrateur
+        // 3. Blocage temporaire du compte
+        // 4. Journalisation dans un système de monitoring
+
+        log.info("Alerte de sécurité déclenchée: {} pour l'utilisateur {} depuis {}",
+                connectionLog.getActionType(), connectionLog.getUser().getUsername(), connectionLog.getIpAddress());
+    }
+}

@@ -63,7 +63,7 @@ public class AuthController {
         User user = authService.login(form.username(), form.password());
         Device device = deviceService.detectAndRegisterDevice(request, user, true);
 
-        connectionLogService.logLoginAttempt(user, device, true, null, request);
+        connectionLogService.logLogin(user, device, true, null, request);
 
         String accessToken = jwtUtil.generateAccessToken(user, device);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, device);
