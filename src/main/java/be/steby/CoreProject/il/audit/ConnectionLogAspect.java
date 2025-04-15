@@ -1,6 +1,7 @@
 package be.steby.CoreProject.il.audit;
 
 import be.steby.CoreProject.bll.services.ConnectionLogService;
+import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.services.security.SecurityService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
+import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.reflect.MethodSignature;
@@ -19,7 +21,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Optional;
 
 /**
  * Aspect pour journaliser automatiquement les actions des utilisateurs
@@ -33,37 +34,72 @@ public class ConnectionLogAspect {
 
     private final ConnectionLogService connectionLogService;
     private final SecurityService securityService;
+    private final UserService userService;
 
     /**
      * Journalise les connexions utilisateur
      */
+    /**
+     * Journalise les connexions utilisateur réussies
+     */
     @AfterReturning(
-            pointcut = "execution(* be.steby.CoreProject.pl.security.AuthController.login(..))",
-            returning = "result")
-    public void logLogin(JoinPoint joinPoint, Object result) {
+            pointcut = "execution(* be.steby.CoreProject.pl.security.AuthController.login(..))")
+    public void logSuccessfulLogin(JoinPoint joinPoint) {
         try {
-            // Récupérer l'utilisateur et l'appareil depuis les paramètres
-            Object[] args = joinPoint.getArgs();
-
-            // Le résultat contient l'ID de l'appareil et l'information sur la confirmation
-            if (result instanceof java.util.Map) {
-                Long deviceId = (Long) ((java.util.Map<?, ?>) result).get("deviceId");
-
-                if (securityService.isAnonymous()) {
-                    log.warn("Impossible de journaliser la connexion: utilisateur non authentifié");
-                    return;
-                }
-
+            // Une fois que login() a réussi, l'utilisateur est authentifié
+            if (!securityService.isAnonymous()) {
                 User user = securityService.getAuthenticatedUser();
                 HttpServletRequest request = getCurrentRequest();
 
-                // L'appareil est généralement créé dans le service de connexion, pas besoin de l'extraire ici
+                // Pas besoin de récupérer l'appareil, on peut passer null
                 connectionLogService.logLogin(user, null, true, null, request);
             }
         } catch (Exception e) {
             log.error("Erreur lors de la journalisation de la connexion: {}", e.getMessage(), e);
         }
     }
+
+    /**
+     * Journalise les tentatives de connexion échouées
+     */
+    @AfterThrowing(
+            pointcut = "execution(* be.steby.CoreProject.pl.security.AuthController.login(..))",
+            throwing = "ex")
+    public void logFailedLogin(JoinPoint joinPoint, Exception ex) {
+        try {
+            // Essayer de récupérer le nom d'utilisateur depuis les arguments
+            Object[] args = joinPoint.getArgs();
+            String username = null;
+
+            if (args.length > 0 && args[0] != null) {
+                // Supposons que le premier argument est le LoginForm
+                try {
+                    Method usernameMethod = args[0].getClass().getMethod("username");
+                    username = (String) usernameMethod.invoke(args[0]);
+                } catch (Exception e) {
+                    log.warn("Impossible d'extraire le nom d'utilisateur: {}", e.getMessage());
+                }
+            }
+
+            // Récupérer l'utilisateur si possible (peut être null)
+            User user = null;
+            if (username != null) {
+                try {
+                    user = userService.getUserByUsername(username);
+                } catch (Exception e) {
+                    // Ignorer, l'utilisateur peut ne pas exister
+                }
+            }
+
+            HttpServletRequest request = getCurrentRequest();
+            String failureReason = ex.getMessage();
+
+            connectionLogService.logLogin(user, null, false, failureReason, request);
+        } catch (Exception e) {
+            log.error("Erreur lors de la journalisation de l'échec de connexion: {}", e.getMessage(), e);
+        }
+    }
+
 
     /**
      * Journalise les déconnexions utilisateur
