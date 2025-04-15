@@ -8,14 +8,17 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.ActionLogType;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
 import be.steby.CoreProject.il.device.RequiresDeviceTrustLevel;
+import be.steby.CoreProject.pl.assemblers.ConnectionLogModelAssembler;
 import be.steby.CoreProject.pl.security.models.ConnectionLogDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +28,9 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
  * Contrôleur pour gérer les journaux de connexion et d'activité des utilisateurs
@@ -37,45 +43,62 @@ public class ConnectionLogController {
     private final ConnectionLogService connectionLogService;
     private final SecurityService securityService;
     private final UserService userService;
+    private final PagedResourcesAssembler<ConnectionLog> pagedResourcesAssembler;
+    private final ConnectionLogModelAssembler logAssembler;
 
     /**
      * Obtient l'historique de connexion de l'utilisateur courant
      */
     @GetMapping("/my-history")
-    public ResponseEntity<Page<ConnectionLogDTO>> getMyConnectionHistory(
-            @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
+    public ResponseEntity<PagedModel<EntityModel<ConnectionLogDTO>>> getMyConnectionHistory(
+            @PageableDefault(size = 20, sort = "timestamp", direction = org.springframework.data.domain.Sort.Direction.DESC)
+            Pageable pageable) {
 
         User currentUser = securityService.getAuthenticatedUser();
         Page<ConnectionLog> logs = connectionLogService.getUserConnectionHistory(currentUser, pageable);
-        Page<ConnectionLogDTO> dtoPage = logs.map(ConnectionLogDTO::fromEntity);
 
-        return ResponseEntity.ok(dtoPage);
+        PagedModel<EntityModel<ConnectionLogDTO>> pagedModel = pagedResourcesAssembler.toModel(
+                logs,
+                logAssembler::toModel);
+
+        // Add self link to the paged model
+        pagedModel.add(linkTo(methodOn(ConnectionLogController.class)
+                .getMyConnectionHistory(pageable)).withSelfRel());
+
+        return ResponseEntity.ok(pagedModel);
     }
 
     /**
      * Obtient les dernières connexions réussies de l'utilisateur courant
      */
     @GetMapping("/my-recent-logins")
-    public ResponseEntity<List<ConnectionLogDTO>> getMyRecentLogins() {
+    public ResponseEntity<CollectionModel<EntityModel<ConnectionLogDTO>>> getMyRecentLogins() {
         User currentUser = securityService.getAuthenticatedUser();
         List<ConnectionLog> recentLogs = connectionLogService.getRecentLoginAttempts(currentUser);
 
-        List<ConnectionLogDTO> dtoList = recentLogs.stream()
-                .map(ConnectionLogDTO::fromEntity)
+        List<EntityModel<ConnectionLogDTO>> dtoList = recentLogs.stream()
+                .map(logAssembler::toModel)
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(dtoList);
+        CollectionModel<EntityModel<ConnectionLogDTO>> collectionModel = CollectionModel.of(
+                dtoList,
+                linkTo(methodOn(ConnectionLogController.class).getMyRecentLogins()).withSelfRel(),
+                linkTo(methodOn(ConnectionLogController.class).getMyConnectionHistory(null)).withRel("history")
+        );
+
+        return ResponseEntity.ok(collectionModel);
     }
 
     /**
      * Recherche les actions de l'utilisateur courant par type
      */
     @GetMapping("/my-actions")
-    public ResponseEntity<Page<ConnectionLogDTO>> getMyActions(
+    public ResponseEntity<PagedModel<EntityModel<ConnectionLogDTO>>> getMyActions(
             @RequestParam(required = false) List<String> types,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "timestamp", direction = org.springframework.data.domain.Sort.Direction.DESC)
+            Pageable pageable) {
 
         User currentUser = securityService.getAuthenticatedUser();
         List<ActionLogType> actionTypes = parseActionTypes(types);
@@ -91,8 +114,15 @@ public class ConnectionLogController {
         Page<ConnectionLog> logs = connectionLogService.getUserActionHistory(
                 currentUser, actionTypes, startDate, endDate, pageable);
 
-        Page<ConnectionLogDTO> dtoPage = logs.map(ConnectionLogDTO::fromEntity);
-        return ResponseEntity.ok(dtoPage);
+        PagedModel<EntityModel<ConnectionLogDTO>> pagedModel = pagedResourcesAssembler.toModel(
+                logs,
+                logAssembler::toModel);
+
+        // Add self link to the paged model
+        pagedModel.add(linkTo(methodOn(ConnectionLogController.class)
+                .getMyActions(types, from, to, pageable)).withSelfRel());
+
+        return ResponseEntity.ok(pagedModel);
     }
 
     /**
@@ -123,15 +153,21 @@ public class ConnectionLogController {
      * Vérifie s'il y a des activités suspectes pour l'utilisateur courant
      */
     @GetMapping("/my-security-alerts")
-    public ResponseEntity<List<ConnectionLogDTO>> getMySecurityAlerts() {
+    public ResponseEntity<CollectionModel<EntityModel<ConnectionLogDTO>>> getMySecurityAlerts() {
         User currentUser = securityService.getAuthenticatedUser();
         List<ConnectionLog> suspiciousLogs = connectionLogService.detectSuspiciousActivity(currentUser);
 
-        List<ConnectionLogDTO> dtoList = suspiciousLogs.stream()
-                .map(ConnectionLogDTO::fromEntity)
+        List<EntityModel<ConnectionLogDTO>> dtoList = suspiciousLogs.stream()
+                .map(logAssembler::toModel)
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(dtoList);
+        CollectionModel<EntityModel<ConnectionLogDTO>> collectionModel = CollectionModel.of(
+                dtoList,
+                linkTo(methodOn(ConnectionLogController.class).getMySecurityAlerts()).withSelfRel(),
+                linkTo(methodOn(ConnectionLogController.class).getMyConnectionHistory(null)).withRel("history")
+        );
+
+        return ResponseEntity.ok(collectionModel);
     }
 
     /**
@@ -140,15 +176,23 @@ public class ConnectionLogController {
     @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPER_ADMIN')")
     @RequiresDeviceTrustLevel(DeviceTrustLevel.TRUSTED)
     @GetMapping("/user/{userId}")
-    public ResponseEntity<Page<ConnectionLogDTO>> getUserConnectionHistory(
+    public ResponseEntity<PagedModel<EntityModel<ConnectionLogDTO>>> getUserConnectionHistory(
             @PathVariable Long userId,
-            @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "timestamp", direction = org.springframework.data.domain.Sort.Direction.DESC)
+            Pageable pageable) {
 
         User user = userService.getUserById(userId);
         Page<ConnectionLog> logs = connectionLogService.getUserConnectionHistory(user, pageable);
 
-        Page<ConnectionLogDTO> dtoPage = logs.map(ConnectionLogDTO::fromEntity);
-        return ResponseEntity.ok(dtoPage);
+        PagedModel<EntityModel<ConnectionLogDTO>> pagedModel = pagedResourcesAssembler.toModel(
+                logs,
+                log -> EntityModel.of(ConnectionLogDTO.fromEntity(log)));
+
+        // Add self link to the paged model
+        pagedModel.add(linkTo(methodOn(ConnectionLogController.class)
+                .getUserConnectionHistory(userId, pageable)).withSelfRel());
+
+        return ResponseEntity.ok(pagedModel);
     }
 
     /**
@@ -157,12 +201,13 @@ public class ConnectionLogController {
     @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPER_ADMIN')")
     @RequiresDeviceTrustLevel(DeviceTrustLevel.TRUSTED)
     @GetMapping("/user/{userId}/actions")
-    public ResponseEntity<Page<ConnectionLogDTO>> getUserActions(
+    public ResponseEntity<PagedModel<EntityModel<ConnectionLogDTO>>> getUserActions(
             @PathVariable Long userId,
             @RequestParam(required = false) List<String> types,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "timestamp", direction = org.springframework.data.domain.Sort.Direction.DESC)
+            Pageable pageable) {
 
         User user = userService.getUserById(userId);
         List<ActionLogType> actionTypes = parseActionTypes(types);
@@ -178,8 +223,15 @@ public class ConnectionLogController {
         Page<ConnectionLog> logs = connectionLogService.getUserActionHistory(
                 user, actionTypes, startDate, endDate, pageable);
 
-        Page<ConnectionLogDTO> dtoPage = logs.map(ConnectionLogDTO::fromEntity);
-        return ResponseEntity.ok(dtoPage);
+        PagedModel<EntityModel<ConnectionLogDTO>> pagedModel = pagedResourcesAssembler.toModel(
+                logs,
+                log -> EntityModel.of(ConnectionLogDTO.fromEntity(log)));
+
+        // Add self link to the paged model
+        pagedModel.add(linkTo(methodOn(ConnectionLogController.class)
+                .getUserActions(userId, types, from, to, pageable)).withSelfRel());
+
+        return ResponseEntity.ok(pagedModel);
     }
 
     /**
@@ -188,14 +240,15 @@ public class ConnectionLogController {
     @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPER_ADMIN')")
     @RequiresDeviceTrustLevel(DeviceTrustLevel.HIGHLY_TRUSTED)
     @GetMapping("/search")
-    public ResponseEntity<Page<ConnectionLogDTO>> searchLogs(
+    public ResponseEntity<PagedModel<EntityModel<ConnectionLogDTO>>> searchLogs(
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) String ipAddress,
             @RequestParam(required = false) List<String> types,
             @RequestParam(required = false) Boolean successful,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "timestamp", direction = org.springframework.data.domain.Sort.Direction.DESC)
+            Pageable pageable) {
 
         List<ActionLogType> actionTypes = parseActionTypes(types);
 
@@ -210,8 +263,15 @@ public class ConnectionLogController {
         Page<ConnectionLog> logs = connectionLogService.searchLogs(
                 userId, ipAddress, actionTypes, successful, startDate, endDate, pageable);
 
-        Page<ConnectionLogDTO> dtoPage = logs.map(ConnectionLogDTO::fromEntity);
-        return ResponseEntity.ok(dtoPage);
+        PagedModel<EntityModel<ConnectionLogDTO>> pagedModel = pagedResourcesAssembler.toModel(
+                logs,
+                log -> EntityModel.of(ConnectionLogDTO.fromEntity(log)));
+
+        // Add self link to the paged model
+        pagedModel.add(linkTo(methodOn(ConnectionLogController.class)
+                .searchLogs(userId, ipAddress, types, successful, from, to, pageable)).withSelfRel());
+
+        return ResponseEntity.ok(pagedModel);
     }
 
     /**
@@ -249,18 +309,23 @@ public class ConnectionLogController {
      * Endpoint pour obtenir les informations sur les types d'actions disponibles
      */
     @GetMapping("/action-types")
-    public ResponseEntity<List<Map<String, String>>> getActionTypes() {
-        List<Map<String, String>> actionTypesList = Arrays.stream(ActionLogType.values())
+    public ResponseEntity<CollectionModel<EntityModel<Map<String, String>>>> getActionTypes() {
+        List<EntityModel<Map<String, String>>> actionTypesList = Arrays.stream(ActionLogType.values())
                 .map(type -> {
                     Map<String, String> typeInfo = new HashMap<>();
                     typeInfo.put("key", type.name());
                     typeInfo.put("category", type.getCategory());
                     typeInfo.put("description", type.getDescription());
-                    return typeInfo;
+                    return EntityModel.of(typeInfo);
                 })
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(actionTypesList);
+        CollectionModel<EntityModel<Map<String, String>>> collectionModel = CollectionModel.of(
+                actionTypesList,
+                linkTo(methodOn(ConnectionLogController.class).getActionTypes()).withSelfRel()
+        );
+
+        return ResponseEntity.ok(collectionModel);
     }
 
     /**
