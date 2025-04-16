@@ -70,9 +70,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // Définir uniquement les règles basées sur les rôles
-                        .requestMatchers("/api/admin/**").hasAnyAuthority("SUPER_ADMIN", "ADMIN")
-                        .requestMatchers("/api/security/logs/user/**").hasAnyAuthority("SUPER_ADMIN", "ADMIN")
-                        // Vous pouvez garder d'autres règles générales basées sur les rôles si nécessaire
+                        .requestMatchers(PUBLIC_ROUTES).hasAnyAuthority("SUPER_ADMIN", "ADMIN")
 
                         .anyRequest().authenticated()
                 )

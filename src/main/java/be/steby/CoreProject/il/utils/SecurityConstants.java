@@ -14,7 +14,8 @@ public class SecurityConstants {
             "/api/admin/users",
             "/api/admin/users/activate/**",
             "/api/admin/users/deactivate/**",
-            "/api/admin/users/force-reset-password/**"
+            "/api/admin/users/force-reset-password/**",
+            "/api/device/update-trust-level/**"
     };
 
     // Vous pouvez aussi définir d'autres constantes liées à la sécurité
@@ -29,6 +30,13 @@ public class SecurityConstants {
             "/api/device/**",
             "/swagger-ui/**",
             "/v3/api-docs/**"
-            // ...
     };
+
+    public static final String[] ADMIN_ROUTES = {
+            "/api/admin/**",
+            "/api/security/logs/user/**",
+            "/api/admin/device/list/user/**",
+            "/api/device/update-trust-level/**"
+    };
+
 }
