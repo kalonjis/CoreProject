@@ -5,7 +5,9 @@ import be.steby.CoreProject.bll.services.AdminService;
 import be.steby.CoreProject.bll.services.security.SecurityService;
 import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.ActionLogType;
 import be.steby.CoreProject.dl.enums.UserRole;
+import be.steby.CoreProject.il.audit.LogAdminAction;
 import be.steby.CoreProject.pl.assemblers.UserModelAssembler;
 import be.steby.CoreProject.pl.models.admin.UserRegisterForm;
 import be.steby.CoreProject.pl.models.admin.UserRoleForm;
@@ -113,6 +115,8 @@ public class AdminUserController {
 
 
     @PostMapping()
+    @LogAdminAction(actionType = ActionLogType.ADMIN_USER_CREATED,
+            description = "Création d'un utilisateur par un administrateur")
     public ResponseEntity<Map<String,String>> register(@Valid @RequestBody UserRegisterForm form) {
         User user = adminService.createUser(form.toEntity());
         String location = "/api/user/" + user.getId();
