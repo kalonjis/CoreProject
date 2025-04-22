@@ -3,7 +3,6 @@ package be.steby.CoreProject.il.configs;
 import be.steby.CoreProject.bll.services.security.AuthService;
 import be.steby.CoreProject.il.Jwt.JwtFilter;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
-import be.steby.CoreProject.bll.utils.DeviceSecurityEvaluator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -70,8 +69,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // Définir uniquement les règles basées sur les rôles
-                        .requestMatchers("/api/admin/**").hasAnyAuthority("SUPER_ADMIN", "ADMIN")
-                        // Vous pouvez garder d'autres règles générales basées sur les rôles si nécessaire
+                        .requestMatchers(PUBLIC_ROUTES).hasAnyAuthority("SUPER_ADMIN", "ADMIN")
 
                         .anyRequest().authenticated()
                 )
