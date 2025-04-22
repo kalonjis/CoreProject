@@ -41,6 +41,7 @@ public class SecurityConstants {
             "/api/device/update-trust-level/**",
             "/api/admin/users/grant-role/**",
             "/api/admin/users/revoke-role/**"
+
     };
 
 }

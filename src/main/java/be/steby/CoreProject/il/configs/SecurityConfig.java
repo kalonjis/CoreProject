@@ -3,7 +3,6 @@ package be.steby.CoreProject.il.configs;
 import be.steby.CoreProject.bll.services.security.AuthService;
 import be.steby.CoreProject.il.Jwt.JwtFilter;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
-import be.steby.CoreProject.bll.utils.DeviceSecurityEvaluator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
