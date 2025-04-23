@@ -32,4 +32,6 @@ public interface DeviceService {
     void rejectDevice(String token);
 
     Long getTotalDevices();
+
+    void requestConfirmationLink(HttpServletRequest request);
 }

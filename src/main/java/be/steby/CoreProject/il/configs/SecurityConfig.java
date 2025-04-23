@@ -25,8 +25,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-import static be.steby.CoreProject.il.utils.SecurityConstants.CSRF_IGNORE_PATHS;
-import static be.steby.CoreProject.il.utils.SecurityConstants.PUBLIC_ROUTES;
+import static be.steby.CoreProject.il.utils.SecurityConstants.*;
 
 @Configuration
 @EnableWebSecurity
@@ -69,7 +68,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // Définir uniquement les règles basées sur les rôles
-                        .requestMatchers(PUBLIC_ROUTES).hasAnyAuthority("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers(ADMIN_ROUTES).hasAnyAuthority("SUPER_ADMIN", "ADMIN")
 
                         .anyRequest().authenticated()
                 )

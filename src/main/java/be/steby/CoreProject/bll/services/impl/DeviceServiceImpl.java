@@ -35,6 +35,7 @@ import java.util.List;
 @Slf4j
 public class DeviceServiceImpl implements DeviceService {
 
+
     private final DeviceRepository deviceRepository;
     private final SecurityService securityService;
     private final UserAgentAnalyzer userAgentAnalyzer;
@@ -82,26 +83,21 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     @Transactional
-    public Device detectAndRegisterDevice(HttpServletRequest request, User user, boolean confirmDevice) {
+    public Device detectAndRegisterDevice(HttpServletRequest request, User user, boolean notifyNewDevice ) {
         String userAgentString = request.getHeader("User-Agent");
         String ipAddress = IpUtils.getClientIp(request);
         String fingerprint = DeviceDetectionUtils.generateFingerprint(request, user.getId());
         UserAgent agent = userAgentAnalyzer.parse(userAgentString);
 
         return deviceRepository.findByFingerprint(fingerprint)
-                .map(device -> updateExistingDevice(user, device, ipAddress))
-                .orElseGet(() -> createNewDevice(user, agent, request, fingerprint, ipAddress, confirmDevice));
+                .map(device -> updateExistingDevice(user, device, ipAddress, notifyNewDevice ))
+                .orElseGet(() -> createNewDevice(user, agent, request, fingerprint, ipAddress, notifyNewDevice ));
     }
 
     @Override
     public Device detectCurrentDevice(HttpServletRequest request) {
-        String userAgentString = request.getHeader("User-Agent");
-        UserAgent agent = userAgentAnalyzer.parse(userAgentString);
-
-        Device device = new Device();
-        DeviceDetectionUtils.populateDeviceInfo(device, agent, request);
-        device.setLastIpAddress(IpUtils.getClientIp(request));
-
+        User user = securityService.getAuthenticatedUser();
+        Device device = detectAndRegisterDevice(request, user, false);
         return device;
     }
 
@@ -158,6 +154,13 @@ public class DeviceServiceImpl implements DeviceService {
         deviceRepository.save(device);
     }
 
+
+    @Override
+    public void requestConfirmationLink(HttpServletRequest request) {
+        User auth = securityService.getAuthenticatedUser();
+        detectAndRegisterDevice(request, auth, true);
+    }
+
     @Override
     public Long getTotalDevices() {
         return deviceRepository.count();
@@ -186,28 +189,41 @@ public class DeviceServiceImpl implements DeviceService {
         }
     }
 
-    private Device updateExistingDevice(User user, Device device, String ipAddress) {
+    private Device updateExistingDevice(User user, Device device, String ipAddress, boolean notifyNewDevice) {
         System.out.println("Device under update");
 
-        if( ( device.isFirstDeviceUsed() && calculateTimeFromActivationInMinutes(user) > 10 && !device.isConfirmed() )
-                || !device.isConfirmed() && !device.isBlacklisted() ){
-            sendNewDeviceAlert(device);
+        // On n'envoie une notification que si explicitement demandé (notifyNewDevice=true)
+        if (notifyNewDevice) {
+            boolean shouldSendNewDeviceAlert = true; // Par défaut, on envoie si notifyNewDevice=true
+
+            // Cas 1: appareil blacklisté → pas d'alerte standard (gestion spécifique plus bas)
+            if (device.isBlacklisted()) {
+                shouldSendNewDeviceAlert = false;
+                DeviceConfirmationToken confirmationToken = deviceConfirmationTokenService.createDeviceConfirmationToken(user, device.getId());
+                mailerService.sendBlacklistedDeviceAlert(user, device, confirmationToken.getToken());
+            }
+            // Cas 2: premier appareil → vérifier le délai écoulé depuis l'activation
+            if (device.isFirstDeviceUsed() && !device.isConfirmed()) {
+                // Si moins de 10 minutes depuis l'activation, on n'envoie pas d'alerte
+                if (calculateTimeFromActivationInMinutes(user) <= 10) {
+                    shouldSendNewDeviceAlert = false;
+                }
+            }
+
+            // On n'envoie que si toutes les conditions sont satisfaites
+            if (shouldSendNewDeviceAlert) {
+                sendNewDeviceAlert(device);
+            }
         }
 
-        if(device.isBlacklisted()){
-            // Créer un token de confirmation et envoyer un email à l'utilisateur
-            DeviceConfirmationToken confirmationToken = deviceConfirmationTokenService.createDeviceConfirmationToken(
-                    user, device.getId());
-
-            mailerService.sendBlacklistedDeviceAlert(user, device, confirmationToken.getToken());
-        }
+        // Mise à jour des informations de l'appareil (inchangé)
         device.setLastSeen(Instant.now());
         device.setLastIpAddress(ipAddress);
         device.setLocation(IpUtils.getLocationFromIp(ipAddress));
         return deviceRepository.save(device);
     }
 
-    private Device createNewDevice(User user, UserAgent agent, HttpServletRequest request, String fingerprint, String ipAddress, boolean confirmDevice) {
+    private Device createNewDevice(User user, UserAgent agent, HttpServletRequest request, String fingerprint, String ipAddress, boolean notifyNewDevice ) {
         System.out.println("Device under creation");
         Device device = Device.builder()
                 .user(user)
@@ -231,7 +247,7 @@ public class DeviceServiceImpl implements DeviceService {
 
         deviceRepository.save(device);
 
-        if(confirmDevice){
+        if(notifyNewDevice ){
             sendNewDeviceAlert(device);
         }
         return device;
