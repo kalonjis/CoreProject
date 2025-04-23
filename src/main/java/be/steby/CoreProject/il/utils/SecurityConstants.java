@@ -4,8 +4,12 @@ public class SecurityConstants {
     // Liste statique des chemins à ignorer pour la protection CSRF
     public static final String[] CSRF_IGNORE_PATHS = {
             "/api/auth/**",
-            "/api/device/confirm/**",
-            "/api/device/reject/**",
+            "/api/user/device/current",
+            "/api/user/device/my-device/**",
+            "/api/user/device/my-devices-list",
+            "/api/user/device/confirm/**",
+            "/api/user/device/reject/**",
+            "api/user/device/request-confirmation",
             "/api/account-confirmation/**",
             "/api/password/request-password-reset",
             "/api/password/reset-password",
