@@ -175,7 +175,7 @@ public class DeviceServiceImpl implements DeviceService {
         deviceConfirmationTokenService.verifyTokenValidity(deviceConfirmationToken);
         deviceConfirmationTokenService.revokeToken(deviceConfirmationToken);
         Long deviceId = deviceConfirmationToken.getDeviceId();
-        return getMyDevice(deviceId);
+        return getDeviceById(deviceId);
     }
 
     private boolean authenticatedUserOwnsDevice(Device device) {
