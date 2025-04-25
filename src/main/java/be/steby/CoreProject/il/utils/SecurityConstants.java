@@ -7,6 +7,8 @@ public class SecurityConstants {
             "/api/user/device/current",
             "/api/user/device/my-device/**",
             "/api/user/device/my-devices-list",
+            "/api/user/device/confirm/**",
+            "/api/user/device/reject/**",
             "api/user/device/request-confirmation",
             "/api/account-confirmation/**",
             "/api/password/request-password-reset",
