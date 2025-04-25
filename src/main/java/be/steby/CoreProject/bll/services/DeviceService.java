@@ -23,8 +23,6 @@ public interface DeviceService {
 
     void updateTrustLevel(Long deviceId, DeviceTrustLevel level);
 
-    //Device revokeDeviceTrust(Long deviceId);
-
     void saveDevice(Device device);
 
     Device confirmDevice(String token);
@@ -34,4 +32,8 @@ public interface DeviceService {
     Long getTotalDevices();
 
     void requestConfirmationLink(HttpServletRequest request);
+
+    void disconnectDevice(Long deviceId);
+
+    void disconnectAllOtherDevices(HttpServletRequest request);
 }

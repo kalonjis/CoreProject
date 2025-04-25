@@ -10,6 +10,8 @@ public class SecurityConstants {
             "/api/user/device/confirm/**",
             "/api/user/device/reject/**",
             "api/user/device/request-confirmation",
+            "api/user/device/disconnect/**",
+            "api/user/device/disconnect-all-others",
             "/api/account-confirmation/**",
             "/api/password/request-password-reset",
             "/api/password/reset-password",

@@ -95,11 +95,13 @@ public class RefreshTokenServiceImpl extends BaseTokenServiceImpl<RefreshToken> 
 
 
     @Transactional
-    private void revokeDeviceTokens(User user, Device device) {
-        List<RefreshToken> activeTokens = refreshTokenRepository.findAllByUserAndDevice(user, device);
-        for (RefreshToken token : activeTokens) {
+    public void revokeDeviceTokens(User user, Device device) {
+        List<RefreshToken> tokens = refreshTokenRepository.findAllByUserAndDevice(user, device);
+        for (RefreshToken token : tokens) {
             token.setRevoked(true);
             refreshTokenRepository.save(token);
         }
+        log.info("Révocation de {} tokens pour l'appareil {} de l'utilisateur {}",
+                tokens.size(), device.getId(), user.getUsername());
     }
 }

@@ -1,6 +1,7 @@
 package be.steby.CoreProject.il.configs;
 
 import be.steby.CoreProject.bll.services.security.AuthService;
+import be.steby.CoreProject.bll.services.security.TokenBlacklistService;
 import be.steby.CoreProject.il.Jwt.JwtFilter;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,8 +51,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtFilter jwtFilter(AuthService authService, JwtUtil jwtUtil) {
-        return new JwtFilter(authService, jwtUtil);
+    public JwtFilter jwtFilter(AuthService authService, JwtUtil jwtUtil, TokenBlacklistService tokenBlacklistService) {
+        return new JwtFilter(authService, jwtUtil, tokenBlacklistService);
     }
 
 
