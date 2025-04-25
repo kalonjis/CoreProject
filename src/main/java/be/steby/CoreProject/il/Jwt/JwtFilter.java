@@ -1,6 +1,7 @@
 package be.steby.CoreProject.il.Jwt;
 
 import be.steby.CoreProject.bll.services.security.AuthService;
+import be.steby.CoreProject.bll.services.security.TokenBlacklistService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -23,9 +24,13 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final AuthService authService;
     private final JwtUtil jwtUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Value("${security.jwt.access-token.name}")
     private String cookieName;
+
+    @Value("${security.jwt.refresh-token.name}")
+    private String refreshCookieName;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -38,6 +43,22 @@ public class JwtFilter extends OncePerRequestFilter {
             try {
                 Claims claims = jwtUtil.validateToken(token);
                 String username = claims.get("username", String.class);
+                Long userId = claims.get("userId", Long.class);
+                Long deviceId = claims.get("deviceId", Long.class);
+
+                if(tokenBlacklistService.isDeviceBlacklisted(userId, deviceId)){
+                    // Forcer la déconnexion
+                    SecurityContextHolder.clearContext();
+                    // Supprimer les cookies
+                    deleteAccessTokenCookie(response);
+                    deleteRefreshTokenCookie(response);
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"device_disconnected\",\"message\":\"Ce périphérique a été déconnecté\"}");
+                    return;
+                }
+
+
                 UserDetails userDetails = authService.loadUserByUsername(username);
 
                 UsernamePasswordAuthenticationToken authentication =
@@ -65,5 +86,24 @@ public class JwtFilter extends OncePerRequestFilter {
             }
         }
         return null;
+    }
+
+    // Nouvelles méthodes pour supprimer les cookies
+    private void deleteAccessTokenCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie(cookieName, "");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+    }
+
+    private void deleteRefreshTokenCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie(refreshCookieName, "");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
     }
 }
