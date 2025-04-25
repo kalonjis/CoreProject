@@ -81,16 +81,20 @@ public class UserDeviceController {
     }
 
     // Déconnecter un appareil spécifique
-    @DeleteMapping("/{deviceId}")
-    public ResponseEntity<Void> disconnectDevice(@PathVariable Long deviceId) {
-        // Logique pour déconnecter un appareil spécifique
-        return ResponseEntity.noContent().build();
+    @PatchMapping("/disconnect/{deviceId}")
+    public ResponseEntity<Map<String, String>> disconnectDevice(@PathVariable Long deviceId) {
+        deviceService.disconnectDevice(deviceId);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "L'appareil a été déconnecté avec succès");
+        return ResponseEntity.ok(response);
     }
 
     // Déconnecter tous les autres appareils
     @PostMapping("/disconnect-all-others")
-    public ResponseEntity<Void> disconnectAllOtherDevices(HttpServletRequest request) {
-        // Logique pour déconnecter tous les appareils sauf celui actuel
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Map<String, String>> disconnectAllOtherDevices(HttpServletRequest request) {
+        deviceService.disconnectAllOtherDevices(request);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Tous les autres appareils ont été déconnectés avec succès");
+        return ResponseEntity.ok(response);
     }
 }
