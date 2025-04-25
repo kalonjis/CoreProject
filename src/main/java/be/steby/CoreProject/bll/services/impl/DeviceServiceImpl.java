@@ -7,7 +7,9 @@ import be.steby.CoreProject.bll.exceptions.OwnershipException;
 import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.MailerService;
 import be.steby.CoreProject.bll.services.security.SecurityService;
+import be.steby.CoreProject.bll.services.security.TokenBlacklistService;
 import be.steby.CoreProject.bll.services.security.impl.DeviceConfirmationTokenServiceImpl;
+import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.utils.DeviceDetectionUtils;
 import be.steby.CoreProject.bll.utils.IpUtils;
 import be.steby.CoreProject.dal.repositories.DeviceRepository;
@@ -42,6 +44,8 @@ public class DeviceServiceImpl implements DeviceService {
     private final MailerService mailerService;
     private final DeviceConfirmationTokenServiceImpl deviceConfirmationTokenService;
     private final ApplicationEventPublisher eventPublisher;
+    private final RefreshTokenServiceImpl refreshTokenService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Value("${security.device-confirmation.alert.threshold-minutes}")
     private long deviceConfirmationAlertThresholdMinutes;
@@ -159,6 +163,35 @@ public class DeviceServiceImpl implements DeviceService {
     public void requestConfirmationLink(HttpServletRequest request) {
         User auth = securityService.getAuthenticatedUser();
         detectAndRegisterDevice(request, auth, true);
+    }
+
+    @Override
+    public void disconnectDevice(Long deviceId) {
+        Device device = getMyDevice(deviceId);
+        User user = device.getUser();
+
+        // Révoquer tous les refresh tokens pour cet appareil
+        refreshTokenService.revokeDeviceTokens(user, device);
+
+        // Blacklister l'appareil pour les access tokens actifs
+        tokenBlacklistService.blacklistDeviceTokens(user.getId(), deviceId);
+    }
+
+    @Override
+    public void disconnectAllOtherDevices(HttpServletRequest request) {
+        Device currentDevice = detectCurrentDevice(request);
+        User currentUser = currentDevice.getUser();
+        List<Device> userDevices = getMyDeviceList();
+
+        // Ne pas déconnecter l'appareil actuel
+        for (Device device: userDevices){
+            if ( !device.getId().equals( currentDevice.getId() ) ) {
+                // Révoquer les refresh tokens
+                refreshTokenService.revokeDeviceTokens(currentUser, device);
+                // Blacklister l'appareil
+                tokenBlacklistService.blacklistDeviceTokens( currentUser.getId(), device.getId() );
+            }
+        }
     }
 
     @Override
