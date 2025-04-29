@@ -73,7 +73,17 @@ public class Device extends BaseEntity<Long> {
     @Column(nullable = false)
     private boolean blacklisted;
 
+    @Column
+    private Instant blacklistedTime;
+
+    @Column
     private boolean firstDeviceUsed;
+
+    @Column(nullable = false)
+    private boolean loggedOut = false;
+
+    @Column
+    private Instant logoutTime;
 
 
 }

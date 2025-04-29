@@ -23,7 +23,10 @@ public record DeviceDTO(
         String lastIpAddress,
         DeviceTrustLevel level,
         boolean confirmed,
-        boolean blacklisted
+        boolean blacklisted,
+        Instant blacklistedTime,
+        boolean loggedOut,
+        Instant logoutTime
 ) {
     public static DeviceDTO fromEntity(Device device){
         return new DeviceDTO(
@@ -44,7 +47,9 @@ public record DeviceDTO(
                 device.getLastIpAddress(),
                 device.getDeviceTrustLevel(),
                 device.isConfirmed(),
-                device.isBlacklisted()
+                device.isBlacklisted(),
+                device.isLoggedOut(),
+                device.getLogoutTime()
             );
     }
 }

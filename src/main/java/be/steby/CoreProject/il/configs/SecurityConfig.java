@@ -1,7 +1,7 @@
 package be.steby.CoreProject.il.configs;
 
+import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.security.AuthService;
-import be.steby.CoreProject.bll.services.security.TokenBlacklistService;
 import be.steby.CoreProject.il.Jwt.JwtFilter;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,7 +13,6 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -51,8 +50,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtFilter jwtFilter(AuthService authService, JwtUtil jwtUtil, TokenBlacklistService tokenBlacklistService) {
-        return new JwtFilter(authService, jwtUtil, tokenBlacklistService);
+    public JwtFilter jwtFilter(AuthService authService, JwtUtil jwtUtil, DeviceService deviceService) {
+        return new JwtFilter(authService, jwtUtil, deviceService);
     }
 
 

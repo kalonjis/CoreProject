@@ -1,7 +1,8 @@
 package be.steby.CoreProject.il.Jwt;
 
+import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.security.AuthService;
-import be.steby.CoreProject.bll.services.security.TokenBlacklistService;
+import be.steby.CoreProject.dl.entities.Device;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -24,7 +25,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final AuthService authService;
     private final JwtUtil jwtUtil;
-    private final TokenBlacklistService tokenBlacklistService;
+    private final DeviceService deviceService;
 
     @Value("${security.jwt.access-token.name}")
     private String cookieName;
@@ -43,18 +44,21 @@ public class JwtFilter extends OncePerRequestFilter {
             try {
                 Claims claims = jwtUtil.validateToken(token);
                 String username = claims.get("username", String.class);
-                Long userId = claims.get("userId", Long.class);
                 Long deviceId = claims.get("deviceId", Long.class);
 
-                if(tokenBlacklistService.isDeviceBlacklisted(userId, deviceId)){
-                    // Forcer la déconnexion
-                    SecurityContextHolder.clearContext();
-                    // Supprimer les cookies
-                    deleteAccessTokenCookie(response);
-                    deleteRefreshTokenCookie(response);
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.setContentType("application/json");
-                    response.getWriter().write("{\"error\":\"device_disconnected\",\"message\":\"Ce périphérique a été déconnecté\"}");
+                Device device = deviceService.getDeviceById(deviceId);
+
+                if(device.isBlacklisted()){
+                    handleRejectRequest(response);
+                    response.getWriter().write("{\"error\":\"device_disconnected\",\"message\":\"\"Ce périphérique a été blacklisté pour des raisons de sécurité.\"\"}");
+                    return;
+                }
+
+                if(device.isLoggedOut()){
+                    handleRejectRequest(response);
+                    device.setLoggedOut(false);
+                    device.setLogoutTime(null);
+                    response.getWriter().write("{\"error\":\"device_disconnected\",\"message\":\"Vous avez été déconnecté de cet appareil. Veuillez vous reconnecter.\"}");
                     return;
                 }
 
@@ -105,5 +109,15 @@ public class JwtFilter extends OncePerRequestFilter {
         cookie.setPath("/");
         cookie.setMaxAge(0);
         response.addCookie(cookie);
+    }
+
+    private void handleRejectRequest(HttpServletResponse response) {
+        // Forcer la déconnexion
+        SecurityContextHolder.clearContext();
+        // Supprimer les cookies
+        deleteAccessTokenCookie(response);
+        deleteRefreshTokenCookie(response);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
     }
 }
