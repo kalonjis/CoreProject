@@ -33,7 +33,7 @@ public interface DeviceService {
 
     void requestConfirmationLink(HttpServletRequest request);
 
-    void disconnectDevice(Long deviceId);
+    void disconnectDevice(Long deviceId, HttpServletRequest request);
 
     void disconnectAllOtherDevices(HttpServletRequest request);
 }
