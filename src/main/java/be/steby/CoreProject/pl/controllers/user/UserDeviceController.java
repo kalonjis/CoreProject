@@ -82,8 +82,8 @@ public class UserDeviceController {
 
     // Déconnecter un appareil spécifique
     @PatchMapping("/disconnect/{deviceId}")
-    public ResponseEntity<Map<String, String>> disconnectDevice(@PathVariable Long deviceId) {
-        deviceService.disconnectDevice(deviceId);
+    public ResponseEntity<Map<String, String>> disconnectDevice(@PathVariable Long deviceId, HttpServletRequest request) {
+        deviceService.disconnectDevice(deviceId, request);
         Map<String, String> response = new HashMap<>();
         response.put("message", "L'appareil a été déconnecté avec succès");
         return ResponseEntity.ok(response);
