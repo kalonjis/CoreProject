@@ -2,12 +2,12 @@ package be.steby.CoreProject.bll.services.impl;
 
 import be.steby.CoreProject.bll.events.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
+import be.steby.CoreProject.bll.exceptions.CurrentDeviceDisconnectionException;
 import be.steby.CoreProject.bll.exceptions.DoesntExistException;
 import be.steby.CoreProject.bll.exceptions.OwnershipException;
 import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.MailerService;
 import be.steby.CoreProject.bll.services.security.SecurityService;
-import be.steby.CoreProject.bll.services.security.TokenBlacklistService;
 import be.steby.CoreProject.bll.services.security.impl.DeviceConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.utils.DeviceDetectionUtils;
@@ -45,7 +45,6 @@ public class DeviceServiceImpl implements DeviceService {
     private final DeviceConfirmationTokenServiceImpl deviceConfirmationTokenService;
     private final ApplicationEventPublisher eventPublisher;
     private final RefreshTokenServiceImpl refreshTokenService;
-    private final TokenBlacklistService tokenBlacklistService;
 
     @Value("${security.device-confirmation.alert.threshold-minutes}")
     private long deviceConfirmationAlertThresholdMinutes;
@@ -143,7 +142,7 @@ public class DeviceServiceImpl implements DeviceService {
         Device device = getDeviceByToken(token);
         device.setDeviceTrustLevel(DeviceTrustLevel.BASIC);
         device.setConfirmed(true);
-        device.setBlacklisted(false);
+
         deviceRepository.save(device);
         return device;
     }
@@ -155,6 +154,11 @@ public class DeviceServiceImpl implements DeviceService {
         device.setDeviceTrustLevel(DeviceTrustLevel.UNTRUSTED);
         device.setConfirmed(false);
         device.setBlacklisted(true);
+        device.setBlacklistedTime(Instant.now());
+
+        // Forcer la déconnexion immédiate
+        User user = device.getUser();
+        refreshTokenService.revokeDeviceTokens(user, device);
         deviceRepository.save(device);
     }
 
@@ -166,15 +170,26 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public void disconnectDevice(Long deviceId) {
-        Device device = getMyDevice(deviceId);
-        User user = device.getUser();
+    public void disconnectDevice(Long deviceId, HttpServletRequest request) {
+        Device currentDevice = detectCurrentDevice(request);
+        User currentUser = currentDevice.getUser();
+        Device deviceTodisconnect = getMyDevice(deviceId);
 
-        // Révoquer tous les refresh tokens pour cet appareil
-        refreshTokenService.revokeDeviceTokens(user, device);
+        if (deviceTodisconnect.isLoggedOut()) {
+            throw new AttributeUnchangedException("Device with id : " + deviceId + " was already disconnected !");
+        }
 
-        // Blacklister l'appareil pour les access tokens actifs
-        tokenBlacklistService.blacklistDeviceTokens(user.getId(), deviceId);
+        if (currentDevice.getId().equals(deviceTodisconnect.getId())) {
+            throw new CurrentDeviceDisconnectionException("You cannot disconnect your current device remotely. Please use the logout function instead.");
+        }
+
+        refreshTokenService.revokeDeviceTokens(currentUser, deviceTodisconnect);
+        deviceTodisconnect.setLoggedOut(true);
+        deviceTodisconnect.setLogoutTime(Instant.now());
+        deviceRepository.save(deviceTodisconnect);
+
+        log.info("Appareil {} marqué comme déconnecté pour l'utilisateur {}",
+                deviceId, currentUser.getUsername());
     }
 
     @Override
@@ -183,15 +198,23 @@ public class DeviceServiceImpl implements DeviceService {
         User currentUser = currentDevice.getUser();
         List<Device> userDevices = getMyDeviceList();
 
-        // Ne pas déconnecter l'appareil actuel
-        for (Device device: userDevices){
-            if ( !device.getId().equals( currentDevice.getId() ) ) {
-                // Révoquer les refresh tokens
-                refreshTokenService.revokeDeviceTokens(currentUser, device);
-                // Blacklister l'appareil
-                tokenBlacklistService.blacklistDeviceTokens( currentUser.getId(), device.getId() );
+        log.info("Début de la déconnexion de tous les autres appareils pour l'utilisateur {}",
+                currentUser.getUsername());
+
+        int count = 0;
+        for (Device device: userDevices) {
+            if (!device.getId().equals(currentDevice.getId())) {
+                try {
+                    disconnectDevice(device.getId(), request);
+                    count++;
+                } catch (Exception e) {
+                    log.warn("Échec de déconnexion de l'appareil {} : {}", device.getId(), e.getMessage());
+                }
             }
         }
+
+        log.info("{} appareils déconnectés avec succès pour l'utilisateur {}",
+                count, currentUser.getUsername());
     }
 
     @Override
@@ -285,6 +308,7 @@ public class DeviceServiceImpl implements DeviceService {
         }
         return device;
     }
+
 
     private long calculateTimeFromActivationInMinutes(User user) {
         return Duration.between(user.getActivatedAt(), Instant.now()).toMinutes();
