@@ -48,6 +48,7 @@ public record DeviceDTO(
                 device.getDeviceTrustLevel(),
                 device.isConfirmed(),
                 device.isBlacklisted(),
+                device.getBlacklistedTime(),
                 device.isLoggedOut(),
                 device.getLogoutTime()
             );
