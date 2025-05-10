@@ -83,7 +83,7 @@ public class DeviceSecurityEvaluator {
      */
     @EventListener
     public void handleDeviceTrustLevelChangedEvent(DeviceTrustLevelChangedEvent event) {
-        deviceCache.put(event.getDeviceId(), new CachedDeviceInfo(event.getNewTrustLevel()));
+        deviceCache.put(event.deviceId(), new CachedDeviceInfo(event.newTrustLevel()));
     }
 
     @Data

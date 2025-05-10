@@ -121,9 +121,16 @@ public class DeviceServiceImpl implements DeviceService {
         device.setDeviceTrustLevel(newTrustLevel);
         deviceRepository.save(device);
 
-        eventPublisher.publishEvent(new DeviceTrustLevelChangedEvent(deviceId, newTrustLevel));
-        connectionLogService.logDeviceTrustLevelChange(device.getUser(), device, oldLevel, newTrustLevel.name(), request);
+        eventPublisher.publishEvent(new DeviceTrustLevelChangedEvent(
+                deviceId,
+                newTrustLevel,
+                oldLevel,
+                device.getUser(),
+                device,
+                request
+        ));
     }
+
 
     private void validateTrustLevelChange(Device device, DeviceTrustLevel newLevel) {
         if (device.getDeviceTrustLevel() == newLevel) {
