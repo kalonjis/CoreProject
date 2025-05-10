@@ -1,6 +1,7 @@
 package be.steby.CoreProject.pl.security;
 
-import be.steby.CoreProject.bll.services.ConnectionLogService;
+import be.steby.CoreProject.bll.events.security.UserLoggedInEvent;
+import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.services.security.AuthService;
 import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
@@ -19,6 +20,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.GrantedAuthority;
@@ -41,7 +43,8 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final DeviceService deviceService;
-    private final ConnectionLogService connectionLogService;
+    private final ApplicationEventPublisher eventPublisher;
+    private final ActivityLogService activityLogService;
 
     private static final String COOKIE_PATH = "/";  // Path unifié pour tous les cookies
 
@@ -67,8 +70,9 @@ public class AuthController {
             device.setLoggedOut(false);
             deviceService.saveDevice(device);
         }
+        eventPublisher.publishEvent(new UserLoggedInEvent( user, device, true, null, request) );
 
-        connectionLogService.logLogin(user, device, true, null, request);
+        //activityLogService.logLogin(user, device, true, null, request);
 
         String accessToken = jwtUtil.generateAccessToken(user, device);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, device);
