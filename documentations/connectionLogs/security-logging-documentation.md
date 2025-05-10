@@ -318,7 +318,7 @@ The repository layer can be extended with new query methods for specialized anal
 ```java
 // Example of a custom analytics query
 @Query("SELECT YEAR(cl.timestamp) as year, MONTH(cl.timestamp) as month, " +
-       "COUNT(*) as count FROM ConnectionLog cl " +
+       "COUNT(*) as count FROM ActivityLog cl " +
        "WHERE cl.actionType = :actionType " +
        "GROUP BY YEAR(cl.timestamp), MONTH(cl.timestamp)")
 List<Object[]> countActionsByMonth(@Param("actionType") String actionType);

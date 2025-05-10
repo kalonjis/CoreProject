@@ -123,7 +123,7 @@ sequenceDiagram
     Aspect->>Service: logLogin(user, device, success, reason, request)
     Service->>Service: Evaluate risk level
     Service->>Service: Collect context info (IP, location)
-    Service->>Repository: save(connectionLog)
+    Service->>Repository: save(activityLog)
     Repository->>DB: INSERT INTO connection_logs
     
     Note over Service: If suspicious activity detected
