@@ -21,7 +21,7 @@ public interface DeviceService {
 
     Device detectCurrentDevice(HttpServletRequest request);
 
-    void updateTrustLevel(Long deviceId, DeviceTrustLevel level);
+    void updateTrustLevel(Long deviceId, DeviceTrustLevel level, HttpServletRequest request);
 
     void saveDevice(Device device);
 

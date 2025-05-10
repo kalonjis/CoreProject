@@ -6,6 +6,7 @@ import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.pl.models.device.DeviceDTO;
 import be.steby.CoreProject.pl.models.device.DeviceTrustLevelForm;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -55,8 +56,9 @@ public class AdminDeviceController {
     @PatchMapping("/force-update-trust-level/{deviceId}")
     public ResponseEntity<Void> forceUpdateDeviceTrustLevel(
             @PathVariable Long deviceId,
-            @RequestBody DeviceTrustLevelForm form) {
-        deviceService.updateTrustLevel(deviceId, form.deviceTrustLevel());
+            @RequestBody DeviceTrustLevelForm form,
+            HttpServletRequest request) {
+        deviceService.updateTrustLevel(deviceId, form.deviceTrustLevel(), request);
         return ResponseEntity.noContent().build();
     }
 
