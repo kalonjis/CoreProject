@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
 import be.steby.CoreProject.bll.exceptions.CurrentDeviceDisconnectionException;
 import be.steby.CoreProject.bll.exceptions.DoesntExistException;
 import be.steby.CoreProject.bll.exceptions.OwnershipException;
+import be.steby.CoreProject.bll.services.ConnectionLogService;
 import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.MailerService;
 import be.steby.CoreProject.bll.services.security.SecurityService;
@@ -45,6 +46,7 @@ public class DeviceServiceImpl implements DeviceService {
     private final DeviceConfirmationTokenServiceImpl deviceConfirmationTokenService;
     private final ApplicationEventPublisher eventPublisher;
     private final RefreshTokenServiceImpl refreshTokenService;
+    private final ConnectionLogService connectionLogService;
 
     @Value("${security.device-confirmation.alert.threshold-minutes}")
     private long deviceConfirmationAlertThresholdMinutes;
@@ -110,8 +112,9 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Transactional
     @Override
-    public void updateTrustLevel(Long deviceId, DeviceTrustLevel newTrustLevel) {
+    public void updateTrustLevel(Long deviceId, DeviceTrustLevel newTrustLevel, HttpServletRequest request) {
         Device device = getDeviceById(deviceId);
+        String oldLevel = device.getDeviceTrustLevel().name() ;
         validateDeviceOwnership(device);
         validateTrustLevelChange(device, newTrustLevel);
 
@@ -119,6 +122,7 @@ public class DeviceServiceImpl implements DeviceService {
         deviceRepository.save(device);
 
         eventPublisher.publishEvent(new DeviceTrustLevelChangedEvent(deviceId, newTrustLevel));
+        connectionLogService.logDeviceTrustLevelChange(device.getUser(), device, oldLevel, newTrustLevel.name(), request);
     }
 
     private void validateTrustLevelChange(Device device, DeviceTrustLevel newLevel) {

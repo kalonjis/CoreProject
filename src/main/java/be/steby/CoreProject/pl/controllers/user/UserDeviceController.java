@@ -75,8 +75,9 @@ public class UserDeviceController {
     @PatchMapping("/update-trust-level/{deviceId}")
     public ResponseEntity<Void> updateMyDeviceTrustLevel(
             @PathVariable Long deviceId,
-            @RequestBody DeviceTrustLevelForm form) {
-        deviceService.updateTrustLevel(deviceId, form.deviceTrustLevel());
+            @RequestBody DeviceTrustLevelForm form,
+            HttpServletRequest request) {
+        deviceService.updateTrustLevel(deviceId, form.deviceTrustLevel(), request);
         return ResponseEntity.noContent().build();
     }
 

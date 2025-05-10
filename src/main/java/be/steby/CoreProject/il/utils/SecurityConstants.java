@@ -9,6 +9,7 @@ public class SecurityConstants {
             "/api/user/device/my-devices-list",
             "/api/user/device/confirm/**",
             "/api/user/device/reject/**",
+            "/api/user/device/update-trust-level/**",
             "api/user/device/request-confirmation",
             "api/user/device/disconnect/**",
             "api/user/device/disconnect-all-others",
@@ -21,7 +22,6 @@ public class SecurityConstants {
             "/api/admin/users/activate/**",
             "/api/admin/users/deactivate/**",
             "/api/admin/users/force-reset-password/**",
-            "/api/device/update-trust-level/**",
             "/api/admin/users/grant-role/**",
             "/api/admin/users/revoke-role/**"
     };
