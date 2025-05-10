@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.assemblers;
 
-import be.steby.CoreProject.dl.entities.ConnectionLog;
+import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.pl.security.ConnectionLogController;
 import be.steby.CoreProject.pl.security.models.ConnectionLogDTO;
 import org.springframework.hateoas.EntityModel;
@@ -11,14 +11,14 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
- * Assembler for converting ConnectionLog entities to EntityModel representations
+ * Assembler for converting ActivityLog entities to EntityModel representations
  * with proper HATEOAS links.
  */
 @Component
-public class ConnectionLogModelAssembler implements RepresentationModelAssembler<ConnectionLog, EntityModel<ConnectionLogDTO>> {
+public class ConnectionLogModelAssembler implements RepresentationModelAssembler<ActivityLog, EntityModel<ConnectionLogDTO>> {
 
     @Override
-    public EntityModel<ConnectionLogDTO> toModel(ConnectionLog log) {
+    public EntityModel<ConnectionLogDTO> toModel(ActivityLog log) {
         ConnectionLogDTO dto = ConnectionLogDTO.fromEntity(log);
 
         // Create an EntityModel with relevant links
@@ -53,7 +53,7 @@ public class ConnectionLogModelAssembler implements RepresentationModelAssembler
      * Creates an EntityModel with links but without certain potentially sensitive details
      * for use in public-facing APIs.
      */
-    public EntityModel<ConnectionLogDTO> toPublicModel(ConnectionLog log) {
+    public EntityModel<ConnectionLogDTO> toPublicModel(ActivityLog log) {
         ConnectionLogDTO dto = ConnectionLogDTO.fromEntity(log);
 
         // Remove sensitive information

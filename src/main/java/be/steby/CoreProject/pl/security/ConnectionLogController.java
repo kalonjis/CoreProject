@@ -1,9 +1,9 @@
 package be.steby.CoreProject.pl.security;
 
-import be.steby.CoreProject.bll.services.ConnectionLogService;
+import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.services.security.SecurityService;
-import be.steby.CoreProject.dl.entities.ConnectionLog;
+import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.ActionLogType;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
@@ -40,10 +40,10 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @RequiredArgsConstructor
 public class ConnectionLogController {
 
-    private final ConnectionLogService connectionLogService;
+    private final ActivityLogService activityLogService;
     private final SecurityService securityService;
     private final UserService userService;
-    private final PagedResourcesAssembler<ConnectionLog> pagedResourcesAssembler;
+    private final PagedResourcesAssembler<ActivityLog> pagedResourcesAssembler;
     private final ConnectionLogModelAssembler logAssembler;
 
     /**
@@ -55,7 +55,7 @@ public class ConnectionLogController {
             Pageable pageable) {
 
         User currentUser = securityService.getAuthenticatedUser();
-        Page<ConnectionLog> logs = connectionLogService.getUserConnectionHistory(currentUser, pageable);
+        Page<ActivityLog> logs = activityLogService.getUserConnectionHistory(currentUser, pageable);
 
         PagedModel<EntityModel<ConnectionLogDTO>> pagedModel = pagedResourcesAssembler.toModel(
                 logs,
@@ -74,7 +74,7 @@ public class ConnectionLogController {
     @GetMapping("/my-recent-logins")
     public ResponseEntity<CollectionModel<EntityModel<ConnectionLogDTO>>> getMyRecentLogins() {
         User currentUser = securityService.getAuthenticatedUser();
-        List<ConnectionLog> recentLogs = connectionLogService.getRecentLoginAttempts(currentUser);
+        List<ActivityLog> recentLogs = activityLogService.getRecentLoginAttempts(currentUser);
 
         List<EntityModel<ConnectionLogDTO>> dtoList = recentLogs.stream()
                 .map(logAssembler::toModel)
@@ -111,7 +111,7 @@ public class ConnectionLogController {
                 ? to.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
                 : Instant.now();
 
-        Page<ConnectionLog> logs = connectionLogService.getUserActionHistory(
+        Page<ActivityLog> logs = activityLogService.getUserActionHistory(
                 currentUser, actionTypes, startDate, endDate, pageable);
 
         PagedModel<EntityModel<ConnectionLogDTO>> pagedModel = pagedResourcesAssembler.toModel(
@@ -143,7 +143,7 @@ public class ConnectionLogController {
                 ? to.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
                 : Instant.now();
 
-        Map<String, Object> stats = connectionLogService.getUserActivityStats(
+        Map<String, Object> stats = activityLogService.getUserActivityStats(
                 currentUser, startDate, endDate);
 
         return ResponseEntity.ok(stats);
@@ -155,7 +155,7 @@ public class ConnectionLogController {
     @GetMapping("/my-security-alerts")
     public ResponseEntity<CollectionModel<EntityModel<ConnectionLogDTO>>> getMySecurityAlerts() {
         User currentUser = securityService.getAuthenticatedUser();
-        List<ConnectionLog> suspiciousLogs = connectionLogService.detectSuspiciousActivity(currentUser);
+        List<ActivityLog> suspiciousLogs = activityLogService.detectSuspiciousActivity(currentUser);
 
         List<EntityModel<ConnectionLogDTO>> dtoList = suspiciousLogs.stream()
                 .map(logAssembler::toModel)
@@ -182,7 +182,7 @@ public class ConnectionLogController {
             Pageable pageable) {
 
         User user = userService.getUserById(userId);
-        Page<ConnectionLog> logs = connectionLogService.getUserConnectionHistory(user, pageable);
+        Page<ActivityLog> logs = activityLogService.getUserConnectionHistory(user, pageable);
 
         PagedModel<EntityModel<ConnectionLogDTO>> pagedModel = pagedResourcesAssembler.toModel(
                 logs,
@@ -220,7 +220,7 @@ public class ConnectionLogController {
                 ? to.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
                 : Instant.now();
 
-        Page<ConnectionLog> logs = connectionLogService.getUserActionHistory(
+        Page<ActivityLog> logs = activityLogService.getUserActionHistory(
                 user, actionTypes, startDate, endDate, pageable);
 
         PagedModel<EntityModel<ConnectionLogDTO>> pagedModel = pagedResourcesAssembler.toModel(
@@ -260,7 +260,7 @@ public class ConnectionLogController {
                 ? to.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
                 : Instant.now();
 
-        Page<ConnectionLog> logs = connectionLogService.searchLogs(
+        Page<ActivityLog> logs = activityLogService.searchLogs(
                 userId, ipAddress, actionTypes, successful, startDate, endDate, pageable);
 
         PagedModel<EntityModel<ConnectionLogDTO>> pagedModel = pagedResourcesAssembler.toModel(
@@ -292,14 +292,14 @@ public class ConnectionLogController {
                 ? to.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
                 : Instant.now();
 
-        Map<String, Object> systemStats = connectionLogService.getSystemLoginStats(startDate, endDate);
+        Map<String, Object> systemStats = activityLogService.getSystemLoginStats(startDate, endDate);
 
         // Ajouter les statistiques géographiques
-        Map<String, Long> locationStats = connectionLogService.getLoginsByLocation(startDate, endDate);
+        Map<String, Long> locationStats = activityLogService.getLoginsByLocation(startDate, endDate);
         systemStats.put("locationStats", locationStats);
 
         // Ajouter les statistiques journalières
-        Map<LocalDate, Long> dailyStats = connectionLogService.getLoginsByDay(startDate, endDate);
+        Map<LocalDate, Long> dailyStats = activityLogService.getLoginsByDay(startDate, endDate);
         systemStats.put("dailyStats", dailyStats);
 
         return ResponseEntity.ok(systemStats);

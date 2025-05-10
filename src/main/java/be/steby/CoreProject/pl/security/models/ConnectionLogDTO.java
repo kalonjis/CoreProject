@@ -1,14 +1,12 @@
 package be.steby.CoreProject.pl.security.models;
 
-import be.steby.CoreProject.dl.entities.ConnectionLog;
+import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.enums.ActionLogType;
 
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Optional;
 
 public record ConnectionLogDTO(
         Long id,
@@ -32,7 +30,7 @@ public record ConnectionLogDTO(
         String formattedDuration,
         Object metadataObj
 ) {
-    public static ConnectionLogDTO fromEntity(ConnectionLog log) {
+    public static ConnectionLogDTO fromEntity(ActivityLog log) {
         // Extraire les informations de l'appareil
         String deviceInfo = log.getDevice() != null ?
                 String.format("%s - %s %s",

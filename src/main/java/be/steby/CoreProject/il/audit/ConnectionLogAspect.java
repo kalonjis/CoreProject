@@ -1,6 +1,6 @@
 package be.steby.CoreProject.il.audit;
 
-import be.steby.CoreProject.bll.services.ConnectionLogService;
+import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.services.security.SecurityService;
 import be.steby.CoreProject.dl.entities.Device;
@@ -32,7 +32,7 @@ import java.util.Arrays;
 @Slf4j
 public class ConnectionLogAspect {
 
-    private final ConnectionLogService connectionLogService;
+    private final ActivityLogService activityLogService;
     private final SecurityService securityService;
     private final UserService userService;
 
@@ -52,7 +52,7 @@ public class ConnectionLogAspect {
                 HttpServletRequest request = getCurrentRequest();
 
                 // Pas besoin de récupérer l'appareil, on peut passer null
-                connectionLogService.logLogin(user, null, true, null, request);
+                activityLogService.logLogin(user, null, true, null, request);
             }
         } catch (Exception e) {
             log.error("Erreur lors de la journalisation de la connexion: {}", e.getMessage(), e);
@@ -94,7 +94,7 @@ public class ConnectionLogAspect {
             HttpServletRequest request = getCurrentRequest();
             String failureReason = ex.getMessage();
 
-            connectionLogService.logLogin(user, null, false, failureReason, request);
+            activityLogService.logLogin(user, null, false, failureReason, request);
         } catch (Exception e) {
             log.error("Erreur lors de la journalisation de l'échec de connexion: {}", e.getMessage(), e);
         }
@@ -114,7 +114,7 @@ public class ConnectionLogAspect {
             User user = securityService.getAuthenticatedUser();
             HttpServletRequest request = getCurrentRequest();
 
-            connectionLogService.logLogout(user, null, request);
+            activityLogService.logLogout(user, null, request);
         } catch (Exception e) {
             log.error("Erreur lors de la journalisation de la déconnexion: {}", e.getMessage(), e);
         }
@@ -132,7 +132,7 @@ public class ConnectionLogAspect {
                 User user = device.getUser();
                 HttpServletRequest request = getCurrentRequest();
 
-                connectionLogService.logDeviceConfirmation(user, device, request);
+                activityLogService.logDeviceConfirmation(user, device, request);
             }
         } catch (Exception e) {
             log.error("Erreur lors de la journalisation de la confirmation d'appareil: {}", e.getMessage(), e);
@@ -157,7 +157,7 @@ public class ConnectionLogAspect {
                 User user = securityService.getAuthenticatedUser();
                 HttpServletRequest request = getCurrentRequest();
 
-                connectionLogService.logUserAction(
+                activityLogService.logUserAction(
                         user, null, ActionLogType.DEVICE_REJECTED,
                         true, "Appareil rejeté par l'utilisateur", null, request
                 );
@@ -180,7 +180,7 @@ public class ConnectionLogAspect {
             User user = securityService.getAuthenticatedUser();
             HttpServletRequest request = getCurrentRequest();
 
-            connectionLogService.logPasswordChange(user, null, true, request);
+            activityLogService.logPasswordChange(user, null, true, request);
         } catch (Exception e) {
             log.error("Erreur lors de la journalisation du changement de mot de passe: {}", e.getMessage(), e);
         }
@@ -213,7 +213,7 @@ public class ConnectionLogAspect {
             if (user != null) {
                 HttpServletRequest request = getCurrentRequest();
 
-                connectionLogService.logAccountActivation(user, null, request);
+                activityLogService.logAccountActivation(user, null, request);
             }
         } catch (Exception e) {
             log.error("Erreur lors de la journalisation de l'activation de compte: {}", e.getMessage(), e);
@@ -231,7 +231,7 @@ public class ConnectionLogAspect {
             if (user != null) {
                 HttpServletRequest request = getCurrentRequest();
 
-                connectionLogService.logAccountCreation(user, null, request);
+                activityLogService.logAccountCreation(user, null, request);
             }
         } catch (Exception e) {
             log.error("Erreur lors de la journalisation de la création de compte: {}", e.getMessage(), e);
@@ -264,7 +264,7 @@ public class ConnectionLogAspect {
                 }
             }
 
-            connectionLogService.logEmailChangeRequest(user, null, newEmail, request);
+            activityLogService.logEmailChangeRequest(user, null, newEmail, request);
         } catch (Exception e) {
             log.error("Erreur lors de la journalisation de la demande de changement d'email: {}", e.getMessage(), e);
         }
@@ -295,7 +295,7 @@ public class ConnectionLogAspect {
                         Arrays.toString(joinPoint.getArgs());
             }
 
-            connectionLogService.logUserAction(
+            activityLogService.logUserAction(
                     admin, null, actionType, true, description, null, request
             );
         } catch (Exception e) {
