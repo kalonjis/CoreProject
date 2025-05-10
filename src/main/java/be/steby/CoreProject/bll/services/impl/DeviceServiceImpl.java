@@ -5,7 +5,7 @@ import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
 import be.steby.CoreProject.bll.exceptions.CurrentDeviceDisconnectionException;
 import be.steby.CoreProject.bll.exceptions.DoesntExistException;
 import be.steby.CoreProject.bll.exceptions.OwnershipException;
-import be.steby.CoreProject.bll.services.ConnectionLogService;
+import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.MailerService;
 import be.steby.CoreProject.bll.services.security.SecurityService;
@@ -19,7 +19,6 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.DeviceConfirmationToken;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nl.basjes.parse.useragent.UserAgent;
@@ -27,6 +26,7 @@ import nl.basjes.parse.useragent.UserAgentAnalyzer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.Duration;
@@ -46,7 +46,7 @@ public class DeviceServiceImpl implements DeviceService {
     private final DeviceConfirmationTokenServiceImpl deviceConfirmationTokenService;
     private final ApplicationEventPublisher eventPublisher;
     private final RefreshTokenServiceImpl refreshTokenService;
-    private final ConnectionLogService connectionLogService;
+    private final ActivityLogService activityLogService;
 
     @Value("${security.device-confirmation.alert.threshold-minutes}")
     private long deviceConfirmationAlertThresholdMinutes;
