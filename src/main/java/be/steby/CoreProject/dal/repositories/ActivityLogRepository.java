@@ -1,6 +1,6 @@
 package be.steby.CoreProject.dal.repositories;
 
-import be.steby.CoreProject.dl.entities.ConnectionLog;
+import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,36 +14,36 @@ import java.time.Instant;
 import java.util.List;
 
 @Repository
-public interface ConnectionLogRepository extends JpaRepository<ConnectionLog, Long> {
+public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> {
 
     /**
      * Trouve tous les logs de connexion pour un utilisateur spécifique
      */
-    Page<ConnectionLog> findByUserOrderByTimestampDesc(User user, Pageable pageable);
+    Page<ActivityLog> findByUserOrderByTimestampDesc(User user, Pageable pageable);
 
     /**
      * Recherche les logs par type d'action
      */
-    Page<ConnectionLog> findByActionTypeOrderByTimestampDesc(String actionType, Pageable pageable);
+    Page<ActivityLog> findByActionTypeOrderByTimestampDesc(String actionType, Pageable pageable);
 
     /**
      * Recherche les logs par utilisateur et type d'action
      */
-    Page<ConnectionLog> findByUserAndActionTypeOrderByTimestampDesc(User user, String actionType, Pageable pageable);
+    Page<ActivityLog> findByUserAndActionTypeOrderByTimestampDesc(User user, String actionType, Pageable pageable);
 
     /**
      * Trouve les derniers logs d'un certain type pour un utilisateur
      */
-    List<ConnectionLog> findTop10ByUserAndActionTypeOrderByTimestampDesc(User user, String actionType);
+    List<ActivityLog> findTop10ByUserAndActionTypeOrderByTimestampDesc(User user, String actionType);
 
     /**
      * Recherche les logs d'un utilisateur selon plusieurs types d'actions et une période
      */
-    @Query("SELECT cl FROM ConnectionLog cl WHERE cl.user = :user " +
+    @Query("SELECT cl FROM ActivityLog cl WHERE cl.user = :user " +
             "AND (:actionTypes IS NULL OR cl.actionType IN :actionTypes) " +
             "AND cl.timestamp BETWEEN :startDate AND :endDate " +
             "ORDER BY cl.timestamp DESC")
-    Page<ConnectionLog> findByUserAndActionTypeInAndTimestampBetween(
+    Page<ActivityLog> findByUserAndActionTypeInAndTimestampBetween(
             @Param("user") User user,
             @Param("actionTypes") List<String> actionTypes,
             @Param("startDate") Instant startDate,
@@ -53,14 +53,14 @@ public interface ConnectionLogRepository extends JpaRepository<ConnectionLog, Lo
     /**
      * Recherche avancée de logs selon plusieurs critères
      */
-    @Query("SELECT cl FROM ConnectionLog cl WHERE " +
+    @Query("SELECT cl FROM ActivityLog cl WHERE " +
             "(:userId IS NULL OR cl.user.id = :userId) AND " +
             "(:ipAddress IS NULL OR cl.ipAddress = :ipAddress) AND " +
             "(:actionTypes IS NULL OR cl.actionType IN :actionTypes) AND " +
             "(:successful IS NULL OR cl.successful = :successful) AND " +
             "cl.timestamp BETWEEN :startDate AND :endDate " +
             "ORDER BY cl.timestamp DESC")
-    Page<ConnectionLog> searchLogs(
+    Page<ActivityLog> searchLogs(
             @Param("userId") Long userId,
             @Param("ipAddress") String ipAddress,
             @Param("actionTypes") List<String> actionTypes,
@@ -102,7 +102,7 @@ public interface ConnectionLogRepository extends JpaRepository<ConnectionLog, Lo
     /**
      * Compte le nombre d'appareils distincts utilisés par un utilisateur dans une période
      */
-    @Query("SELECT COUNT(DISTINCT cl.device.id) FROM ConnectionLog cl WHERE cl.user.id = :userId " +
+    @Query("SELECT COUNT(DISTINCT cl.device.id) FROM ActivityLog cl WHERE cl.user.id = :userId " +
             "AND cl.device IS NOT NULL AND cl.timestamp BETWEEN :startDate AND :endDate")
     Long countDistinctDevicesByUserAndTimestampBetween(
             @Param("userId") Long userId,
@@ -112,7 +112,7 @@ public interface ConnectionLogRepository extends JpaRepository<ConnectionLog, Lo
     /**
      * Trouve les adresses IP distinctes utilisées par un utilisateur dans une période
      */
-    @Query("SELECT DISTINCT cl.ipAddress FROM ConnectionLog cl WHERE cl.user = :user " +
+    @Query("SELECT DISTINCT cl.ipAddress FROM ActivityLog cl WHERE cl.user = :user " +
             "AND cl.timestamp BETWEEN :startDate AND :endDate")
     List<String> findDistinctIpAddressesByUserAndTimestampBetween(
             @Param("user") User user,
@@ -122,7 +122,7 @@ public interface ConnectionLogRepository extends JpaRepository<ConnectionLog, Lo
     /**
      * Compte le nombre d'utilisateurs uniques pour un type d'action dans une période
      */
-    @Query("SELECT COUNT(DISTINCT cl.user.id) FROM ConnectionLog cl WHERE cl.actionType = :actionType " +
+    @Query("SELECT COUNT(DISTINCT cl.user.id) FROM ActivityLog cl WHERE cl.actionType = :actionType " +
             "AND cl.timestamp BETWEEN :startDate AND :endDate")
     Long countDistinctUsersByActionTypeAndTimestampBetween(
             @Param("actionType") String actionType,
@@ -132,7 +132,7 @@ public interface ConnectionLogRepository extends JpaRepository<ConnectionLog, Lo
     /**
      * Compte le nombre d'adresses IP uniques pour un type d'action dans une période
      */
-    @Query("SELECT COUNT(DISTINCT cl.ipAddress) FROM ConnectionLog cl WHERE cl.actionType = :actionType " +
+    @Query("SELECT COUNT(DISTINCT cl.ipAddress) FROM ActivityLog cl WHERE cl.actionType = :actionType " +
             "AND cl.timestamp BETWEEN :startDate AND :endDate")
     Long countDistinctIpAddressesByActionTypeAndTimestampBetween(
             @Param("actionType") String actionType,
@@ -142,7 +142,7 @@ public interface ConnectionLogRepository extends JpaRepository<ConnectionLog, Lo
     /**
      * Compte les connexions par localisation
      */
-    @Query("SELECT cl.location, COUNT(cl.id) FROM ConnectionLog cl WHERE cl.actionType = 'AUTH_LOGIN' " +
+    @Query("SELECT cl.location, COUNT(cl.id) FROM ActivityLog cl WHERE cl.actionType = 'AUTH_LOGIN' " +
             "AND cl.successful = true AND cl.timestamp BETWEEN :startDate AND :endDate " +
             "GROUP BY cl.location ORDER BY COUNT(cl.id) DESC")
     List<Object[]> countLoginsByLocation(
@@ -166,10 +166,10 @@ public interface ConnectionLogRepository extends JpaRepository<ConnectionLog, Lo
      * Recherche des activités suspectes: connexions depuis différentes adresses IP
      * dans un court intervalle de temps
      */
-    @Query("SELECT cl FROM ConnectionLog cl WHERE cl.user = :user AND cl.actionType = 'AUTH_LOGIN' " +
+    @Query("SELECT cl FROM ActivityLog cl WHERE cl.user = :user AND cl.actionType = 'AUTH_LOGIN' " +
             "AND cl.successful = true AND cl.timestamp BETWEEN :startDate AND :endDate " +
             "ORDER BY cl.timestamp DESC")
-    List<ConnectionLog> findSuspiciousActivities(
+    List<ActivityLog> findSuspiciousActivities(
             @Param("user") User user,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate);
@@ -178,7 +178,7 @@ public interface ConnectionLogRepository extends JpaRepository<ConnectionLog, Lo
     /**
      * Trouve le dernier log d'un certain type pour un utilisateur avec un statut spécifique
      */
-    ConnectionLog findTopByUserAndActionTypeAndSuccessfulOrderByTimestampDesc(
+    ActivityLog findTopByUserAndActionTypeAndSuccessfulOrderByTimestampDesc(
             User user, String actionType, boolean successful);
 
 
@@ -186,6 +186,6 @@ public interface ConnectionLogRepository extends JpaRepository<ConnectionLog, Lo
      * Supprime les logs antérieurs à une date donnée
      */
     @Modifying
-    @Query("DELETE FROM ConnectionLog cl WHERE cl.timestamp < :cutoffDate")
+    @Query("DELETE FROM ActivityLog cl WHERE cl.timestamp < :cutoffDate")
     long deleteByTimestampBefore(@Param("cutoffDate") Instant cutoffDate);
 }

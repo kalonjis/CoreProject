@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 
 @Entity
-@Table(name = "connection_logs", indexes = {
+@Table(name = "activity_log", indexes = {
         @Index(name = "idx_log_user_timestamp", columnList = "user_id, timestamp"),
         @Index(name = "idx_log_action_type", columnList = "action_type"),
         @Index(name = "idx_log_ip_address", columnList = "ip_address")
@@ -18,7 +18,7 @@ import java.time.Instant;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ConnectionLog extends BaseEntity<Long> {
+public class ActivityLog extends BaseEntity<Long> {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

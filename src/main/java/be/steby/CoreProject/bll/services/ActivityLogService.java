@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.services;
 
-import be.steby.CoreProject.dl.entities.ConnectionLog;
+import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.ActionLogType;
@@ -13,12 +13,12 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-public interface ConnectionLogService {
+public interface ActivityLogService {
 
     /**
      * Méthode générique pour enregistrer une action utilisateur
      */
-    ConnectionLog logUserAction(
+    ActivityLog logUserAction(
             User user,
             Device device,
             ActionLogType actionType,
@@ -31,7 +31,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre une tentative de connexion
      */
-    ConnectionLog logLogin(
+    ActivityLog logLogin(
             User user,
             Device device,
             boolean successful,
@@ -42,7 +42,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre une déconnexion
      */
-    ConnectionLog logLogout(
+    ActivityLog logLogout(
             User user,
             Device device,
             HttpServletRequest request
@@ -51,7 +51,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre un changement de mot de passe
      */
-    ConnectionLog logPasswordChange(
+    ActivityLog logPasswordChange(
             User user,
             Device device,
             boolean successful,
@@ -61,7 +61,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre une demande de réinitialisation de mot de passe
      */
-    ConnectionLog logPasswordResetRequest(
+    ActivityLog logPasswordResetRequest(
             User user,
             HttpServletRequest request
     );
@@ -69,7 +69,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre une réinitialisation complète de mot de passe
      */
-    ConnectionLog logPasswordResetComplete(
+    ActivityLog logPasswordResetComplete(
             User user,
             Device device,
             HttpServletRequest request
@@ -78,7 +78,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre une demande de changement d'email
      */
-    ConnectionLog logEmailChangeRequest(
+    ActivityLog logEmailChangeRequest(
             User user,
             Device device,
             String newEmail,
@@ -88,7 +88,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre la confirmation d'un changement d'email
      */
-    ConnectionLog logEmailChangeComplete(
+    ActivityLog logEmailChangeComplete(
             User user,
             Device device,
             String oldEmail,
@@ -99,7 +99,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre la création d'un compte utilisateur
      */
-    ConnectionLog logAccountCreation(
+    ActivityLog logAccountCreation(
             User user,
             Device device,
             HttpServletRequest request
@@ -108,7 +108,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre l'activation d'un compte utilisateur
      */
-    ConnectionLog logAccountActivation(
+    ActivityLog logAccountActivation(
             User user,
             Device device,
             HttpServletRequest request
@@ -117,7 +117,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre la désactivation d'un compte utilisateur
      */
-    ConnectionLog logAccountDeactivation(
+    ActivityLog logAccountDeactivation(
             User user,
             Long adminId,
             HttpServletRequest request
@@ -126,7 +126,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre un changement de rôle utilisateur
      */
-    ConnectionLog logRoleChange(
+    ActivityLog logRoleChange(
             User user,
             String role,
             boolean granted,
@@ -137,7 +137,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre un enregistrement d'appareil
      */
-    ConnectionLog logDeviceRegistration(
+    ActivityLog logDeviceRegistration(
             User user,
             Device device,
             HttpServletRequest request
@@ -146,7 +146,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre une confirmation d'appareil
      */
-    ConnectionLog logDeviceConfirmation(
+    ActivityLog logDeviceConfirmation(
             User user,
             Device device,
             HttpServletRequest request
@@ -155,7 +155,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre un rejet d'appareil
      */
-    ConnectionLog logDeviceRejection(
+    ActivityLog logDeviceRejection(
             User user,
             Device device,
             HttpServletRequest request
@@ -164,7 +164,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre un changement de niveau de confiance d'appareil
      */
-    ConnectionLog logDeviceTrustLevelChange(
+    ActivityLog logDeviceTrustLevelChange(
             User user,
             Device device,
             String oldLevel,
@@ -175,7 +175,7 @@ public interface ConnectionLogService {
     /**
      * Enregistre une activité suspecte
      */
-    ConnectionLog logSuspiciousActivity(
+    ActivityLog logSuspiciousActivity(
             User user,
             Device device,
             String details,
@@ -186,7 +186,7 @@ public interface ConnectionLogService {
     /**
      * Obtient l'historique des connexions d'un utilisateur
      */
-    Page<ConnectionLog> getUserConnectionHistory(
+    Page<ActivityLog> getUserConnectionHistory(
             User user,
             Pageable pageable
     );
@@ -194,7 +194,7 @@ public interface ConnectionLogService {
     /**
      * Obtient l'historique des actions d'un utilisateur
      */
-    Page<ConnectionLog> getUserActionHistory(
+    Page<ActivityLog> getUserActionHistory(
             User user,
             List<ActionLogType> actionTypes,
             Instant startDate,
@@ -205,12 +205,12 @@ public interface ConnectionLogService {
     /**
      * Obtient les dernières tentatives de connexion d'un utilisateur
      */
-    List<ConnectionLog> getRecentLoginAttempts(User user);
+    List<ActivityLog> getRecentLoginAttempts(User user);
 
     /**
      * Rechercher des activités par critères
      */
-    Page<ConnectionLog> searchLogs(
+    Page<ActivityLog> searchLogs(
             Long userId,
             String ipAddress,
             List<ActionLogType> actionTypes,
@@ -256,7 +256,7 @@ public interface ConnectionLogService {
     /**
      * Détecte les activités suspectes pour un utilisateur
      */
-    List<ConnectionLog> detectSuspiciousActivity(User user);
+    List<ActivityLog> detectSuspiciousActivity(User user);
 
     /**
      * Nettoie les anciens logs

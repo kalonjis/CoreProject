@@ -1,25 +1,24 @@
 package be.steby.CoreProject.bll.listeners;
 
 import be.steby.CoreProject.bll.events.DeviceTrustLevelChangedEvent;
-import be.steby.CoreProject.bll.services.ConnectionLogService;
+import be.steby.CoreProject.bll.events.security.UserLoggedInEvent;
+import be.steby.CoreProject.bll.services.ActivityLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 @RequiredArgsConstructor
 @Component
 @Order(10) // Priorité élevée pour la journalisation
-public class LoggingEventListener {
-    private final ConnectionLogService connectionLogService;
+public class ActivityLogEventListener {
+    private final ActivityLogService activityLogService;
 
 
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @EventListener
     public void handleTrustLevelChange(DeviceTrustLevelChangedEvent event) {
-        connectionLogService.logDeviceTrustLevelChange(
+        activityLogService.logDeviceTrustLevelChange(
                 event.user(),
                 event.device(),
                 event.oldLevel(),
@@ -28,14 +27,26 @@ public class LoggingEventListener {
         );
     }
 
+
+    @EventListener
+    public  void handleLogin(UserLoggedInEvent event){
+        activityLogService.logLogin(
+                event.user(),
+                event.device(),
+                event.successful(),
+                event.failureReason(),
+                event.request()
+        );
+    }
+
     // Autres méthodes de journalisation pour différents types d'événements...
 //    @EventListener
 //    public void handleUserLogin(UserLoginEvent event) {
-//        connectionLogService.logLogin(/*...*/);
+//        activityLogService.logLogin(/*...*/);
 //    }
 //
 //    @EventListener
 //    public void handleDeviceRegistration(DeviceRegisteredEvent event) {
-//        connectionLogService.logDeviceRegistration(/*...*/);
+//        activityLogService.logDeviceRegistration(/*...*/);
 //    }
 }

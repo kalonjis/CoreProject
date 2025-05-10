@@ -1,10 +1,10 @@
 package be.steby.CoreProject.bll.services.impl;
 
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
-import be.steby.CoreProject.bll.services.ConnectionLogService;
+import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.utils.IpUtils;
-import be.steby.CoreProject.dal.repositories.ConnectionLogRepository;
-import be.steby.CoreProject.dl.entities.ConnectionLog;
+import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
+import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.ActionLogType;
@@ -25,14 +25,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Implémentation du service ConnectionLogService qui utilise une approche hybride
+ * Implémentation du service ActivityLogService qui utilise une approche hybride
  * pour la gestion des exceptions.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ConnectionLogServiceImpl implements ConnectionLogService {
-    private final ConnectionLogRepository connectionLogRepository;
+public class ActivityLogServiceImpl implements ActivityLogService {
+    private final ActivityLogRepository activityLogRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -42,7 +42,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logUserAction(
+    public ActivityLog logUserAction(
             User user,
             Device device,
             ActionLogType actionType,
@@ -64,7 +64,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
                     actionType, user.getUsername(), riskLevel);
         }
 
-        ConnectionLog connectionLog = ConnectionLog.builder()
+        ActivityLog activityLog = ActivityLog.builder()
                 .user(user)
                 .device(device)
                 .timestamp(Instant.now())
@@ -80,7 +80,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
                 .triggeredAlert(triggeredAlert)
                 .build();
 
-        ConnectionLog savedLog = connectionLogRepository.save(connectionLog);
+        ActivityLog savedLog = activityLogRepository.save(activityLog);
 
         // Si l'action a déclenché une alerte, effectuer des actions supplémentaires
         if (triggeredAlert) {
@@ -95,8 +95,8 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logLogin(User user, Device device, boolean successful,
-                                  String failureReason, HttpServletRequest request) {
+    public ActivityLog logLogin(User user, Device device, boolean successful,
+                                String failureReason, HttpServletRequest request) {
 
         ActionLogType actionType = successful ? ActionLogType.AUTH_LOGIN : ActionLogType.AUTH_LOGIN_FAILED;
         String metadataJson = null;
@@ -134,11 +134,11 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logLogout(User user, Device device, HttpServletRequest request) {
+    public ActivityLog logLogout(User user, Device device, HttpServletRequest request) {
         // Calculer la durée de la session si possible
         Long sessionDuration = calculateSessionDuration(request);
 
-        ConnectionLog log = logUserAction(
+        ActivityLog log = logUserAction(
                 user,
                 device,
                 ActionLogType.AUTH_LOGOUT,
@@ -151,7 +151,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
         // Mettre à jour la durée si disponible
         if (sessionDuration != null) {
             log.setDurationSeconds(sessionDuration);
-            connectionLogRepository.save(log);
+            activityLogRepository.save(log);
         }
 
         return log;
@@ -162,7 +162,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logPasswordChange(User user, Device device, boolean successful, HttpServletRequest request) {
+    public ActivityLog logPasswordChange(User user, Device device, boolean successful, HttpServletRequest request) {
         return logUserAction(
                 user,
                 device,
@@ -179,7 +179,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logPasswordResetRequest(User user, HttpServletRequest request) {
+    public ActivityLog logPasswordResetRequest(User user, HttpServletRequest request) {
         return logUserAction(
                 user,
                 null, // Pas d'appareil connu à ce stade
@@ -196,7 +196,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logPasswordResetComplete(User user, Device device, HttpServletRequest request) {
+    public ActivityLog logPasswordResetComplete(User user, Device device, HttpServletRequest request) {
         return logUserAction(
                 user,
                 device,
@@ -213,7 +213,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logEmailChangeRequest(User user, Device device, String newEmail, HttpServletRequest request) {
+    public ActivityLog logEmailChangeRequest(User user, Device device, String newEmail, HttpServletRequest request) {
         String metadataJson = null;
 
         try {
@@ -242,7 +242,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logEmailChangeComplete(User user, Device device, String oldEmail, String newEmail, HttpServletRequest request) {
+    public ActivityLog logEmailChangeComplete(User user, Device device, String oldEmail, String newEmail, HttpServletRequest request) {
         String metadataJson = null;
 
         try {
@@ -272,7 +272,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logAccountCreation(User user, Device device, HttpServletRequest request) {
+    public ActivityLog logAccountCreation(User user, Device device, HttpServletRequest request) {
         return logUserAction(
                 user,
                 device,
@@ -289,7 +289,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logAccountActivation(User user, Device device, HttpServletRequest request) {
+    public ActivityLog logAccountActivation(User user, Device device, HttpServletRequest request) {
         return logUserAction(
                 user,
                 device,
@@ -306,7 +306,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logAccountDeactivation(User user, Long adminId, HttpServletRequest request) {
+    public ActivityLog logAccountDeactivation(User user, Long adminId, HttpServletRequest request) {
         String metadataJson = null;
 
         try {
@@ -335,7 +335,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logRoleChange(User user, String role, boolean granted, Long adminId, HttpServletRequest request) {
+    public ActivityLog logRoleChange(User user, String role, boolean granted, Long adminId, HttpServletRequest request) {
         ActionLogType actionType = granted ? ActionLogType.ROLE_GRANTED : ActionLogType.ROLE_REVOKED;
 
         String metadataJson = null;
@@ -369,7 +369,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logDeviceRegistration(User user, Device device, HttpServletRequest request) {
+    public ActivityLog logDeviceRegistration(User user, Device device, HttpServletRequest request) {
         String metadataJson = null;
 
         try {
@@ -399,7 +399,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logDeviceConfirmation(User user, Device device, HttpServletRequest request) {
+    public ActivityLog logDeviceConfirmation(User user, Device device, HttpServletRequest request) {
         return logUserAction(
                 user,
                 device,
@@ -416,7 +416,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logDeviceRejection(User user, Device device, HttpServletRequest request) {
+    public ActivityLog logDeviceRejection(User user, Device device, HttpServletRequest request) {
         return logUserAction(
                 user,
                 device,
@@ -433,7 +433,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logDeviceTrustLevelChange(User user, Device device, String oldLevel, String newLevel, HttpServletRequest request) {
+    public ActivityLog logDeviceTrustLevelChange(User user, Device device, String oldLevel, String newLevel, HttpServletRequest request) {
         String metadataJson = null;
 
         try {
@@ -462,7 +462,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional
-    public ConnectionLog logSuspiciousActivity(User user, Device device, String details, int riskLevel, HttpServletRequest request) {
+    public ActivityLog logSuspiciousActivity(User user, Device device, String details, int riskLevel, HttpServletRequest request) {
         String metadataJson = null;
 
         try {
@@ -494,8 +494,8 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<ConnectionLog> getUserConnectionHistory(User user, Pageable pageable) {
-        return connectionLogRepository.findByUserOrderByTimestampDesc(user, pageable);
+    public Page<ActivityLog> getUserConnectionHistory(User user, Pageable pageable) {
+        return activityLogRepository.findByUserOrderByTimestampDesc(user, pageable);
     }
 
     /**
@@ -503,12 +503,12 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<ConnectionLog> getUserActionHistory(User user, List<ActionLogType> actionTypes,
-                                                    Instant startDate, Instant endDate, Pageable pageable) {
+    public Page<ActivityLog> getUserActionHistory(User user, List<ActionLogType> actionTypes,
+                                                  Instant startDate, Instant endDate, Pageable pageable) {
         List<String> actionTypeStrings = actionTypes != null ?
                 actionTypes.stream().map(ActionLogType::name).collect(Collectors.toList()) : null;
 
-        return connectionLogRepository.findByUserAndActionTypeInAndTimestampBetween(
+        return activityLogRepository.findByUserAndActionTypeInAndTimestampBetween(
                 user, actionTypeStrings, startDate, endDate, pageable);
     }
 
@@ -517,8 +517,8 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<ConnectionLog> getRecentLoginAttempts(User user) {
-        return connectionLogRepository.findTop10ByUserAndActionTypeOrderByTimestampDesc(
+    public List<ActivityLog> getRecentLoginAttempts(User user) {
+        return activityLogRepository.findTop10ByUserAndActionTypeOrderByTimestampDesc(
                 user, ActionLogType.AUTH_LOGIN.name());
     }
 
@@ -527,12 +527,12 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<ConnectionLog> searchLogs(Long userId, String ipAddress, List<ActionLogType> actionTypes,
-                                          Boolean successful, Instant startDate, Instant endDate, Pageable pageable) {
+    public Page<ActivityLog> searchLogs(Long userId, String ipAddress, List<ActionLogType> actionTypes,
+                                        Boolean successful, Instant startDate, Instant endDate, Pageable pageable) {
         List<String> actionTypeStrings = actionTypes != null ?
                 actionTypes.stream().map(ActionLogType::name).collect(Collectors.toList()) : null;
 
-        return connectionLogRepository.searchLogs(userId, ipAddress, actionTypeStrings,
+        return activityLogRepository.searchLogs(userId, ipAddress, actionTypeStrings,
                 successful, startDate, endDate, pageable);
     }
 
@@ -545,33 +545,33 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
         Map<String, Object> stats = new HashMap<>();
 
         // Nombre total de connexions
-        Long totalLogins = connectionLogRepository.countByUserAndActionTypeAndSuccessfulAndTimestampBetween(
+        Long totalLogins = activityLogRepository.countByUserAndActionTypeAndSuccessfulAndTimestampBetween(
                 user, ActionLogType.AUTH_LOGIN.name(), true, startDate, endDate);
         stats.put("totalLogins", totalLogins);
 
         // Nombre de tentatives de connexion échouées
-        Long failedLogins = connectionLogRepository.countByUserAndActionTypeAndSuccessfulAndTimestampBetween(
+        Long failedLogins = activityLogRepository.countByUserAndActionTypeAndSuccessfulAndTimestampBetween(
                 user, ActionLogType.AUTH_LOGIN.name(), false, startDate, endDate);
         stats.put("failedLogins", failedLogins);
 
         // Dernière connexion réussie
-        ConnectionLog lastLogin = connectionLogRepository.findTopByUserAndActionTypeAndSuccessfulOrderByTimestampDesc(
+        ActivityLog lastLogin = activityLogRepository.findTopByUserAndActionTypeAndSuccessfulOrderByTimestampDesc(
                 user, ActionLogType.AUTH_LOGIN.name(), true);
         stats.put("lastLoginTime", lastLogin != null ? lastLogin.getTimestamp() : null);
         stats.put("lastLoginLocation", lastLogin != null ? lastLogin.getLocation() : null);
 
         // Nombre de changements de mot de passe
-        Long passwordChanges = connectionLogRepository.countByUserAndActionTypeAndTimestampBetween(
+        Long passwordChanges = activityLogRepository.countByUserAndActionTypeAndTimestampBetween(
                 user, ActionLogType.PASSWORD_CHANGED.name(), startDate, endDate);
         stats.put("passwordChanges", passwordChanges);
 
         // Nombre d'appareils distincts utilisés
-        Long distinctDevices = connectionLogRepository.countDistinctDevicesByUserAndTimestampBetween(
+        Long distinctDevices = activityLogRepository.countDistinctDevicesByUserAndTimestampBetween(
                 user.getId(), startDate, endDate);
         stats.put("distinctDevices", distinctDevices);
 
         // Liste des adresses IP utilisées
-        List<String> ipAddresses = connectionLogRepository.findDistinctIpAddressesByUserAndTimestampBetween(
+        List<String> ipAddresses = activityLogRepository.findDistinctIpAddressesByUserAndTimestampBetween(
                 user, startDate, endDate);
         stats.put("ipAddresses", ipAddresses);
 
@@ -588,22 +588,22 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
 
         try {
             // Nombre total de connexions
-            Long totalLogins = connectionLogRepository.countByActionTypeAndSuccessfulAndTimestampBetween(
+            Long totalLogins = activityLogRepository.countByActionTypeAndSuccessfulAndTimestampBetween(
                     ActionLogType.AUTH_LOGIN.name(), true, startDate, endDate);
             stats.put("totalLogins", totalLogins);
 
             // Nombre total de tentatives de connexion échouées
-            Long failedLogins = connectionLogRepository.countByActionTypeAndSuccessfulAndTimestampBetween(
+            Long failedLogins = activityLogRepository.countByActionTypeAndSuccessfulAndTimestampBetween(
                     ActionLogType.AUTH_LOGIN.name(), false, startDate, endDate);
             stats.put("failedLogins", failedLogins);
 
             // Nombre d'utilisateurs uniques connectés
-            Long uniqueUsers = connectionLogRepository.countDistinctUsersByActionTypeAndTimestampBetween(
+            Long uniqueUsers = activityLogRepository.countDistinctUsersByActionTypeAndTimestampBetween(
                     ActionLogType.AUTH_LOGIN.name(), startDate, endDate);
             stats.put("uniqueUsers", uniqueUsers);
 
             // Nombre d'adresses IP uniques
-            Long uniqueIPs = connectionLogRepository.countDistinctIpAddressesByActionTypeAndTimestampBetween(
+            Long uniqueIPs = activityLogRepository.countDistinctIpAddressesByActionTypeAndTimestampBetween(
                     ActionLogType.AUTH_LOGIN.name(), startDate, endDate);
             stats.put("uniqueIPs", uniqueIPs);
         } catch (Exception e) {
@@ -625,7 +625,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
     @Override
     @Transactional(readOnly = true)
     public Map<String, Long> getLoginsByLocation(Instant startDate, Instant endDate) {
-        List<Object[]> results = connectionLogRepository.countLoginsByLocation(startDate, endDate);
+        List<Object[]> results = activityLogRepository.countLoginsByLocation(startDate, endDate);
         Map<String, Long> locationMap = new HashMap<>();
 
         for (Object[] result : results) {
@@ -643,7 +643,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
     @Override
     @Transactional(readOnly = true)
     public Map<LocalDate, Long> getLoginsByDay(Instant startDate, Instant endDate) {
-        List<Object[]> results = connectionLogRepository.countLoginsByDay(startDate, endDate);
+        List<Object[]> results = activityLogRepository.countLoginsByDay(startDate, endDate);
         Map<LocalDate, Long> loginsByDay = new HashMap<>();
 
         for (Object[] result : results) {
@@ -661,7 +661,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<ConnectionLog> detectSuspiciousActivity(User user) {
+    public List<ActivityLog> detectSuspiciousActivity(User user) {
         // Cette méthode peut générer des exceptions complexes lors de l'analyse
         // C'est un bon candidat pour une gestion d'erreurs locale
         try {
@@ -670,7 +670,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
             Instant endDate = Instant.now();
 
             // Activités suspectes: connexions depuis des emplacements différents en peu de temps
-            return connectionLogRepository.findSuspiciousActivities(user, startDate, endDate);
+            return activityLogRepository.findSuspiciousActivities(user, startDate, endDate);
         } catch (Exception e) {
             log.error("Erreur lors de la détection d'activités suspectes pour l'utilisateur {}: {}",
                     user.getUsername(), e.getMessage(), e);
@@ -692,7 +692,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
         try {
             // Par défaut, conserve 6 mois de logs
             Instant cutoffDate = Instant.now().minus(180, ChronoUnit.DAYS);
-            long deletedCount = connectionLogRepository.deleteByTimestampBefore(cutoffDate);
+            long deletedCount = activityLogRepository.deleteByTimestampBefore(cutoffDate);
             log.info("Nettoyage des logs de connexion terminé: {} enregistrements supprimés (antérieurs à {})",
                     deletedCount, cutoffDate);
         } catch (Exception e) {
@@ -759,7 +759,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
 
         // 3. Si l'adresse IP est nouvelle pour cet utilisateur
         String ipAddress = getClientIpAddress(request);
-        boolean ipKnown = connectionLogRepository.existsByUserAndIpAddressAndTimestampAfter(
+        boolean ipKnown = activityLogRepository.existsByUserAndIpAddressAndTimestampAfter(
                 user, ipAddress, Instant.now().minus(30, ChronoUnit.DAYS));
         if (!ipKnown) {
             riskLevel += 1;
@@ -767,7 +767,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
 
         // 4. Si la localisation est inhabituelle
         String location = IpUtils.getLocationFromIp(ipAddress);
-        boolean locationKnown = connectionLogRepository.existsByUserAndLocationAndTimestampAfter(
+        boolean locationKnown = activityLogRepository.existsByUserAndLocationAndTimestampAfter(
                 user, location, Instant.now().minus(30, ChronoUnit.DAYS));
         if (!locationKnown && location != null && !location.equals("Unknown")) {
             riskLevel += 1;
@@ -780,7 +780,7 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
     /**
      * Gère une alerte de sécurité
      */
-    private void handleSecurityAlert(ConnectionLog connectionLog) {
+    private void handleSecurityAlert(ActivityLog activityLog) {
         // Ici, on pourrait implémenter:
         // 1. Envoi d'email à l'utilisateur
         // 2. Notification d'un administrateur
@@ -788,6 +788,6 @@ public class ConnectionLogServiceImpl implements ConnectionLogService {
         // 4. Journalisation dans un système de monitoring
 
         log.info("Alerte de sécurité déclenchée: {} pour l'utilisateur {} depuis {}",
-                connectionLog.getActionType(), connectionLog.getUser().getUsername(), connectionLog.getIpAddress());
+                activityLog.getActionType(), activityLog.getUser().getUsername(), activityLog.getIpAddress());
     }
 }
