@@ -196,7 +196,7 @@ public class AuthController {
         if (refreshTokenCookie != null) {
             try {
                 user = authService.getAuthenticatedUser();
-                device = deviceService.detectAndRegisterDevice(request, user, false);
+                device = deviceService.detectCurrentDevice(request);
 
                 // Séparer l'ID et le token
                 String[] parts = refreshTokenCookie.split("\\.");
