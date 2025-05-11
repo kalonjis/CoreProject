@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.services.impl;
 
-import be.steby.CoreProject.bll.events.DeviceTrustLevelChangedEvent;
+import be.steby.CoreProject.bll.events.device.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
 import be.steby.CoreProject.bll.exceptions.CurrentDeviceDisconnectionException;
 import be.steby.CoreProject.bll.exceptions.DoesntExistException;

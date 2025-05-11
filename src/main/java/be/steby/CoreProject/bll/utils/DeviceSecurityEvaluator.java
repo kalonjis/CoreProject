@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.utils;
 
-import be.steby.CoreProject.bll.events.DeviceTrustLevelChangedEvent;
+import be.steby.CoreProject.bll.events.device.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;

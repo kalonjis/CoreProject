@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.listeners;
 
-import be.steby.CoreProject.bll.events.DeviceTrustLevelChangedEvent;
+import be.steby.CoreProject.bll.events.device.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.events.security.UserLoggedInEvent;
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import lombok.RequiredArgsConstructor;
