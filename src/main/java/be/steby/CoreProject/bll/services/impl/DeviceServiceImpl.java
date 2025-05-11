@@ -276,6 +276,10 @@ public class DeviceServiceImpl implements DeviceService {
                 }
             }
 
+            if(device.isConfirmed()){
+                shouldSendNewDeviceAlert = false;
+            }
+
             // On n'envoie que si toutes les conditions sont satisfaites
             if (shouldSendNewDeviceAlert) {
                 sendNewDeviceAlert(device);
