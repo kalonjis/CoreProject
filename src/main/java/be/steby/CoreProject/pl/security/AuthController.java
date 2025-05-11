@@ -1,7 +1,7 @@
 package be.steby.CoreProject.pl.security;
 
 import be.steby.CoreProject.bll.events.security.UserLoggedInEvent;
-import be.steby.CoreProject.bll.services.ActivityLogService;
+import be.steby.CoreProject.bll.events.security.UserLogoutEvent;
 import be.steby.CoreProject.bll.services.security.AuthService;
 import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
@@ -44,7 +44,6 @@ public class AuthController {
     private final RefreshTokenServiceImpl refreshTokenService;
     private final DeviceService deviceService;
     private final ApplicationEventPublisher eventPublisher;
-    private final ActivityLogService activityLogService;
 
     private static final String COOKIE_PATH = "/";  // Path unifié pour tous les cookies
 
@@ -188,10 +187,17 @@ public class AuthController {
     @Transactional
     public ResponseEntity<?> logout(
             @CookieValue(name = "refresh_token", required = false) String refreshTokenCookie,
-            HttpServletResponse response) {
+            HttpServletResponse response,
+            HttpServletRequest request
+    ) {
+        User user = null;
+        Device device = null;
 
         if (refreshTokenCookie != null) {
             try {
+                user = authService.getAuthenticatedUser();
+                device = deviceService.detectAndRegisterDevice(request, user, false);
+
                 // Séparer l'ID et le token
                 String[] parts = refreshTokenCookie.split("\\.");
                 if (parts.length == 2) {
@@ -208,6 +214,8 @@ public class AuthController {
                 }
             } catch (NumberFormatException e) {
                 log.warn("Format invalide du refresh token cookie: {}", refreshTokenCookie);
+            } finally {
+                eventPublisher.publishEvent(new UserLogoutEvent( user, device, request));
             }
         }
 
