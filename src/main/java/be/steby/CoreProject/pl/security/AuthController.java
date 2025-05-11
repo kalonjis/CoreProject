@@ -59,34 +59,64 @@ public class AuthController {
 
     @PreAuthorize("isAnonymous()")
     @PostMapping("/login")
-    public ResponseEntity<?> login(
-            @RequestBody @Valid LoginForm form,
-            HttpServletRequest request,
-            HttpServletResponse response) {
-        User user = authService.login(form.username(), form.password());
-        Device device = deviceService.detectAndRegisterDevice(request, user, true);
+    public ResponseEntity<?> login(@RequestBody @Valid LoginForm form, HttpServletRequest request, HttpServletResponse response) {
+        User user = null;
+        Device device = null;
+        boolean successful = false;
+        String failureReason = null;
 
-        if(device.isLoggedOut()) {
-            device.setLoggedOut(false);
-            deviceService.saveDevice(device);
+        try {
+            // Tentative de connexion
+            user = authService.login(form.username(), form.password());
+            device = deviceService.detectAndRegisterDevice(request, user, true);
+
+            // Si on arrive ici, c'est un succès
+            successful = true;
+
+            if(device.isLoggedOut()) {
+                device.setLoggedOut(false);
+                deviceService.saveDevice(device);
+            }
+
+            // Génération des tokens
+            String accessToken = jwtUtil.generateAccessToken(user, device);
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, device);
+            String refreshTokenCookie = refreshToken.getId() + "." + refreshToken.getToken();
+
+            // Configuration des cookies
+            addAccessTokenCookie(response, accessToken);
+            addRefreshTokenCookie(response, refreshTokenCookie);
+
+            // Préparation de la réponse
+            Map<String, Object> responseBody = new HashMap<>();
+            responseBody.put("deviceId", device.getId());
+            responseBody.put("deviceConfirmed", device.isConfirmed());
+
+            return ResponseEntity.ok(responseBody);
+
+        } catch (Exception ex) {
+            // Capture de la raison de l'échec
+            failureReason = ex.getMessage();
+
+            // Relancer pour un traitement correct de l'erreur
+            throw ex;
+
+        } finally {
+            // Publication de l'événement, que ce soit un succès ou un échec
+            // Important: envelopper dans un try-catch pour éviter de masquer l'exception originale
+            try {
+                eventPublisher.publishEvent(new UserLoggedInEvent(
+                        user,
+                        device,
+                        successful,
+                        failureReason,
+                        request
+                ));
+            } catch (Exception e) {
+                // Simple journalisation, ne pas interférer avec le flux principal
+                log.error("Erreur lors de la publication de l'événement de connexion: {}", e.getMessage(), e);
+            }
         }
-        eventPublisher.publishEvent(new UserLoggedInEvent( user, device, true, null, request) );
-
-        //activityLogService.logLogin(user, device, true, null, request);
-
-        String accessToken = jwtUtil.generateAccessToken(user, device);
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, device);
-        String refreshTokenCookie = refreshToken.getId() + "." + refreshToken.getToken();
-
-        addAccessTokenCookie(response, accessToken);
-        addRefreshTokenCookie(response, refreshTokenCookie);
-
-        // Renvoyer les informations sur l'appareil dans la réponse
-        Map<String, Object> responseBody = new HashMap<>();
-        responseBody.put("deviceId", device.getId());
-        responseBody.put("deviceConfirmed", device.isConfirmed());
-
-        return ResponseEntity.ok(responseBody);
     }
 
     @GetMapping("/me")
