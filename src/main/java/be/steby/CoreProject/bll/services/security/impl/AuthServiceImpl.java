@@ -38,7 +38,6 @@ public class AuthServiceImpl implements AuthService {
     private final AccountConfirmationTokenServiceImpl accountConfirmationTokenService;
     private final AccountConfirmationAttemptServiceImpl accountConfirmationAttemptService;
     private final EmailConfirmationTokenServiceImpl emailConfirmationTokenService;
-    private final DeviceService deviceService;
 
 
     @Value("${url.front_server}")
