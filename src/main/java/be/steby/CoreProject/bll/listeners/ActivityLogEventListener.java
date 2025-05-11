@@ -48,6 +48,7 @@ public class ActivityLogEventListener {
                 event.device(),
                 event.request()
         );
+
     }
 
     // Autres méthodes de journalisation pour différents types d'événements...
