@@ -2,7 +2,6 @@ package be.steby.CoreProject.pl.security;
 
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.services.UserService;
-import be.steby.CoreProject.bll.services.security.SecurityService;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.ActionLogType;
@@ -41,7 +40,6 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class ConnectionLogController {
 
     private final ActivityLogService activityLogService;
-    private final SecurityService securityService;
     private final UserService userService;
     private final PagedResourcesAssembler<ActivityLog> pagedResourcesAssembler;
     private final ConnectionLogModelAssembler logAssembler;
@@ -54,7 +52,7 @@ public class ConnectionLogController {
             @PageableDefault(size = 20, sort = "timestamp", direction = org.springframework.data.domain.Sort.Direction.DESC)
             Pageable pageable) {
 
-        User currentUser = securityService.getAuthenticatedUser();
+        User currentUser = userService.getAuthenticatedUser();
         Page<ActivityLog> logs = activityLogService.getUserConnectionHistory(currentUser, pageable);
 
         PagedModel<EntityModel<ConnectionLogDTO>> pagedModel = pagedResourcesAssembler.toModel(
@@ -73,7 +71,7 @@ public class ConnectionLogController {
      */
     @GetMapping("/my-recent-logins")
     public ResponseEntity<CollectionModel<EntityModel<ConnectionLogDTO>>> getMyRecentLogins() {
-        User currentUser = securityService.getAuthenticatedUser();
+        User currentUser = userService.getAuthenticatedUser();
         List<ActivityLog> recentLogs = activityLogService.getRecentLoginAttempts(currentUser);
 
         List<EntityModel<ConnectionLogDTO>> dtoList = recentLogs.stream()
@@ -100,7 +98,7 @@ public class ConnectionLogController {
             @PageableDefault(size = 20, sort = "timestamp", direction = org.springframework.data.domain.Sort.Direction.DESC)
             Pageable pageable) {
 
-        User currentUser = securityService.getAuthenticatedUser();
+        User currentUser = userService.getAuthenticatedUser();
         List<ActionLogType> actionTypes = parseActionTypes(types);
 
         Instant startDate = from != null
@@ -133,7 +131,7 @@ public class ConnectionLogController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
 
-        User currentUser = securityService.getAuthenticatedUser();
+        User currentUser = userService.getAuthenticatedUser();
 
         Instant startDate = from != null
                 ? from.atStartOfDay(ZoneId.systemDefault()).toInstant()
@@ -154,7 +152,7 @@ public class ConnectionLogController {
      */
     @GetMapping("/my-security-alerts")
     public ResponseEntity<CollectionModel<EntityModel<ConnectionLogDTO>>> getMySecurityAlerts() {
-        User currentUser = securityService.getAuthenticatedUser();
+        User currentUser = userService.getAuthenticatedUser();
         List<ActivityLog> suspiciousLogs = activityLogService.detectSuspiciousActivity(currentUser);
 
         List<EntityModel<ConnectionLogDTO>> dtoList = suspiciousLogs.stream()

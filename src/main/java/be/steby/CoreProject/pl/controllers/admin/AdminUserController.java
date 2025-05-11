@@ -2,7 +2,7 @@ package be.steby.CoreProject.pl.controllers.admin;
 
 
 import be.steby.CoreProject.bll.services.AdminService;
-import be.steby.CoreProject.bll.services.security.SecurityService;
+import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.ActionLogType;
@@ -41,7 +41,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class AdminUserController {
 
     private final AdminService adminService;
-    private final SecurityService securityService;
+    private final UserService userService;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final UserModelAssembler userAssembler;
     private final PagedResourcesAssembler<User> pagedResourcesAssembler;
@@ -87,8 +87,8 @@ public class AdminUserController {
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<UserDTO>> getUserById(@PathVariable Long id) {
         User user = adminService.getUserById(id);
-        User authenticatedUser = securityService.getAuthenticatedUser();
-        boolean isSuperAdmin = securityService.authenticatedHasRole(UserRole.SUPER_ADMIN);
+        User authenticatedUser = userService.getAuthenticatedUser();
+        boolean isSuperAdmin = userService.authenticatedHasRole(UserRole.SUPER_ADMIN);
 
         EntityModel<UserDTO> userModel = userAssembler.toModelWithPermissions(user, authenticatedUser, isSuperAdmin);
 
@@ -176,8 +176,8 @@ public class AdminUserController {
     }
 
     private PagedModel<EntityModel<UserDTO>> assemblePagedModel(Page<User> userPage, Pageable pageable) {
-        User authenticatedUser = securityService.getAuthenticatedUser();
-        boolean isSuperAdmin = securityService.authenticatedHasRole(UserRole.SUPER_ADMIN);
+        User authenticatedUser = userService.getAuthenticatedUser();
+        boolean isSuperAdmin = userService.authenticatedHasRole(UserRole.SUPER_ADMIN);
 
         // Utiliser un assembleur personnalisé pour convertir les utilisateurs en EntityModel<UserDTO>
         PagedModel<EntityModel<UserDTO>> pagedModel = pagedResourcesAssembler.toModel(

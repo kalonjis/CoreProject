@@ -1,11 +1,9 @@
 package be.steby.CoreProject.bll.services.security.impl;
 
 import be.steby.CoreProject.bll.exceptions.*;
-import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.MailerService;
 import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.services.security.AuthService;
-import be.steby.CoreProject.bll.services.security.SecurityService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.EmailConfirmationToken;
@@ -30,7 +28,6 @@ import java.util.regex.Pattern;
 public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
-    private final SecurityService securityService;
     private final MailerService mailerService;
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
@@ -150,7 +147,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void changePassword(ChangePasswordForm form) {
-        User authenticatedUser = securityService.getAuthenticatedUser();
+        User authenticatedUser = userService.getAuthenticatedUser();
         if(!passwordEncoder.matches( form.currentPassword(), authenticatedUser.getPassword() ) ){
             throw new InvalidPasswordException("The current password is not correct", 400);
         }
@@ -191,7 +188,7 @@ public class AuthServiceImpl implements AuthService {
     // region changeEmail
     @Override
     public void changeEmailRequest(ChangeEmailForm form) {
-        User user = securityService.getAuthenticatedUser();
+        User user = userService.getAuthenticatedUser();
         String email = form.email();
         checkEmailValidity(email);
         if( !email.equals( form.confirmEmail() ) ){
@@ -271,7 +268,7 @@ public class AuthServiceImpl implements AuthService {
 
 
     private void checkIsNotAnonymous(){
-        if(!securityService.isAnonymous()) {
+        if(!userService.isAnonymous()) {
             String url = FRONT_URL + "/password/change-password";
             String message = "You are logged in. Please use the change password feature instead: ";
             throw new UserAuthenticationStateException(message + url, 403);

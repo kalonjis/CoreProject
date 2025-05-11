@@ -2,7 +2,6 @@ package be.steby.CoreProject.il.audit;
 
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.services.UserService;
-import be.steby.CoreProject.bll.services.security.SecurityService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.ActionLogType;
@@ -33,7 +32,6 @@ import java.util.Arrays;
 public class ConnectionLogAspect {
 
     private final ActivityLogService activityLogService;
-    private final SecurityService securityService;
     private final UserService userService;
 
     /**
@@ -47,8 +45,8 @@ public class ConnectionLogAspect {
     public void logSuccessfulLogin(JoinPoint joinPoint) {
         try {
             // Une fois que login() a réussi, l'utilisateur est authentifié
-            if (!securityService.isAnonymous()) {
-                User user = securityService.getAuthenticatedUser();
+            if (!userService.isAnonymous()) {
+                User user = userService.getAuthenticatedUser();
                 HttpServletRequest request = getCurrentRequest();
 
                 // Pas besoin de récupérer l'appareil, on peut passer null
@@ -104,21 +102,21 @@ public class ConnectionLogAspect {
     /**
      * Journalise les déconnexions utilisateur
      */
-    @Before("execution(* be.steby.CoreProject.pl.security.AuthController.logout(..))")
-    public void logLogout(JoinPoint joinPoint) {
-        try {
-            if (securityService.isAnonymous()) {
-                return;
-            }
-
-            User user = securityService.getAuthenticatedUser();
-            HttpServletRequest request = getCurrentRequest();
-
-            activityLogService.logLogout(user, null, request);
-        } catch (Exception e) {
-            log.error("Erreur lors de la journalisation de la déconnexion: {}", e.getMessage(), e);
-        }
-    }
+//    @Before("execution(* be.steby.CoreProject.pl.security.AuthController.logout(..))")
+//    public void logLogout(JoinPoint joinPoint) {
+//        try {
+//            if (userService.isAnonymous()) {
+//                return;
+//            }
+//
+//            User user = userService.getAuthenticatedUser();
+//            HttpServletRequest request = getCurrentRequest();
+//
+//            activityLogService.logLogout(user, null, request);
+//        } catch (Exception e) {
+//            log.error("Erreur lors de la journalisation de la déconnexion: {}", e.getMessage(), e);
+//        }
+//    }
 
     /**
      * Journalise les confirmations d'appareil
@@ -153,8 +151,8 @@ public class ConnectionLogAspect {
             // car il est récupéré à l'intérieur de la méthode rejectDevice.
             // Une alternative serait de modifier le service pour qu'il retourne l'appareil rejeté.
 
-            if (!securityService.isAnonymous()) {
-                User user = securityService.getAuthenticatedUser();
+            if (!userService.isAnonymous()) {
+                User user = userService.getAuthenticatedUser();
                 HttpServletRequest request = getCurrentRequest();
 
                 activityLogService.logUserAction(
@@ -173,11 +171,11 @@ public class ConnectionLogAspect {
     @AfterReturning("execution(* be.steby.CoreProject.bll.services.security.AuthService.changePassword(..))")
     public void logPasswordChange(JoinPoint joinPoint) {
         try {
-            if (securityService.isAnonymous()) {
+            if (userService.isAnonymous()) {
                 return;
             }
 
-            User user = securityService.getAuthenticatedUser();
+            User user = userService.getAuthenticatedUser();
             HttpServletRequest request = getCurrentRequest();
 
             activityLogService.logPasswordChange(user, null, true, request);
@@ -244,11 +242,11 @@ public class ConnectionLogAspect {
     @AfterReturning("execution(* be.steby.CoreProject.bll.services.security.AuthService.changeEmailRequest(..))")
     public void logEmailChangeRequest(JoinPoint joinPoint) {
         try {
-            if (securityService.isAnonymous()) {
+            if (userService.isAnonymous()) {
                 return;
             }
 
-            User user = securityService.getAuthenticatedUser();
+            User user = userService.getAuthenticatedUser();
             HttpServletRequest request = getCurrentRequest();
 
             // Extraire le nouvel email des arguments
@@ -276,11 +274,11 @@ public class ConnectionLogAspect {
     @AfterReturning("@annotation(be.steby.CoreProject.il.audit.LogAdminAction)")
     public void logAdminAction(JoinPoint joinPoint) {
         try {
-            if (securityService.isAnonymous()) {
+            if (userService.isAnonymous()) {
                 return;
             }
 
-            User admin = securityService.getAuthenticatedUser();
+            User admin = userService.getAuthenticatedUser();
             HttpServletRequest request = getCurrentRequest();
 
             MethodSignature signature = (MethodSignature) joinPoint.getSignature();

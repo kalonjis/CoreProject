@@ -8,7 +8,7 @@ import be.steby.CoreProject.bll.exceptions.OwnershipException;
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.MailerService;
-import be.steby.CoreProject.bll.services.security.SecurityService;
+import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.services.security.impl.DeviceConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.utils.DeviceDetectionUtils;
@@ -40,13 +40,12 @@ public class DeviceServiceImpl implements DeviceService {
 
 
     private final DeviceRepository deviceRepository;
-    private final SecurityService securityService;
     private final UserAgentAnalyzer userAgentAnalyzer;
     private final MailerService mailerService;
     private final DeviceConfirmationTokenServiceImpl deviceConfirmationTokenService;
     private final ApplicationEventPublisher eventPublisher;
     private final RefreshTokenServiceImpl refreshTokenService;
-    private final ActivityLogService activityLogService;
+    private final UserService userService;
 
     @Value("${security.device-confirmation.alert.threshold-minutes}")
     private long deviceConfirmationAlertThresholdMinutes;
@@ -73,7 +72,7 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     public List<Device> getMyDeviceList() {
-        User user = securityService.getAuthenticatedUser();
+        User user = userService.getAuthenticatedUser();
         return deviceRepository.findAllByUser(user);
     }
 
@@ -101,7 +100,7 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     public Device detectCurrentDevice(HttpServletRequest request) {
-        User user = securityService.getAuthenticatedUser();
+        User user = userService.getAuthenticatedUser();
         Device device = detectAndRegisterDevice(request, user, false);
         return device;
     }
@@ -176,7 +175,7 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     public void requestConfirmationLink(HttpServletRequest request) {
-        User auth = securityService.getAuthenticatedUser();
+        User auth = userService.getAuthenticatedUser();
         detectAndRegisterDevice(request, auth, true);
     }
 
@@ -246,7 +245,7 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     private boolean authenticatedUserOwnsDevice(Device device) {
-        User auth = securityService.getAuthenticatedUser();
+        User auth = userService.getAuthenticatedUser();
         return device.getUser().getId().equals(auth.getId());
     }
 
