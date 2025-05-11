@@ -73,6 +73,10 @@ public class AuthServiceImpl implements AuthService {
 
     }
 
+    @Override
+    public User getAuthenticatedUser() {
+        return userService.getAuthenticatedUser();
+    }
 
     @Override
     public UserDetails loadUserByUsername(String username){

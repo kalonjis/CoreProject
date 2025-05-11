@@ -74,5 +74,7 @@ public interface AuthService extends UserDetailsService {
 
     User signup(User user);
 
+    User getAuthenticatedUser();
+
 }
 
