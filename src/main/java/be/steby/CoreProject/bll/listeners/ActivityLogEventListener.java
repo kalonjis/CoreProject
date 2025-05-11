@@ -2,6 +2,7 @@ package be.steby.CoreProject.bll.listeners;
 
 import be.steby.CoreProject.bll.events.device.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.events.security.UserLoggedInEvent;
+import be.steby.CoreProject.bll.events.security.UserLogoutEvent;
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
@@ -35,6 +36,16 @@ public class ActivityLogEventListener {
                 event.device(),
                 event.successful(),
                 event.failureReason(),
+                event.request()
+        );
+    }
+
+
+    @EventListener
+    public void handleLogout(UserLogoutEvent event){
+        activityLogService.logLogout(
+                event.user(),
+                event.device(),
                 event.request()
         );
     }
