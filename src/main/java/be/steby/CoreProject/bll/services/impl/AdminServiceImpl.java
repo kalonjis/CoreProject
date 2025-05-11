@@ -6,7 +6,6 @@ import be.steby.CoreProject.bll.services.MailerService;
 import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.services.AdminService;
 import be.steby.CoreProject.bll.services.DeviceService;
-import be.steby.CoreProject.bll.services.security.SecurityService;
 import be.steby.CoreProject.bll.services.security.impl.AccountConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.services.security.impl.PasswordResetTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.Device;
@@ -30,7 +29,6 @@ public class AdminServiceImpl implements AdminService    {
 
     private final UserService userService;
     private final DeviceService deviceService;
-    private final SecurityService securityService;
     private final MailerService mailerService;
     private final PasswordEncoder passwordEncoder;
     private final AccountConfirmationTokenServiceImpl accountConfirmationTokenService;
@@ -42,7 +40,7 @@ public class AdminServiceImpl implements AdminService    {
     public User createUser(User user) {
         userService.checkIfUserExists(user);
 
-        if (!securityService.authenticatedHasRole(UserRole.SUPER_ADMIN)
+        if (!userService.authenticatedHasRole(UserRole.SUPER_ADMIN)
                 && hasRole(user, UserRole.SUPER_ADMIN)) {
             throw new NotEnoughAuthoritiesException("Not enough authorities to create a user with SUPER_ADMIN role");
         }
@@ -57,7 +55,7 @@ public class AdminServiceImpl implements AdminService    {
 
     @Override
     public void deleteUser(Long id) {
-        if (!securityService.authenticatedHasRole(UserRole.ADMIN)){
+        if (!userService.authenticatedHasRole(UserRole.ADMIN)){
             throw new NotEnoughAuthoritiesException("Not enough authorities to delete a user.");
         }
         userService.deleteUser(id);
@@ -65,10 +63,10 @@ public class AdminServiceImpl implements AdminService    {
 
     @Override
     public void activateUser(Long id) {
-        if (!securityService.authenticatedHasRole(UserRole.ADMIN)){
+        if (!userService.authenticatedHasRole(UserRole.ADMIN)){
             throw new NotEnoughAuthoritiesException("Not enough authorities to activate a user.");
         }
-        Long authenticatedUserId = securityService.getAuthenticatedUser().getId();
+        Long authenticatedUserId = userService.getAuthenticatedUser().getId();
 
         if(authenticatedUserId == id){
             throw new SelfActivationException("You are not allowed to activate your own account.");
@@ -81,10 +79,10 @@ public class AdminServiceImpl implements AdminService    {
 
     @Override
     public void deactivateUser(Long id) {
-        if (!securityService.authenticatedHasRole(UserRole.ADMIN)){
+        if (!userService.authenticatedHasRole(UserRole.ADMIN)){
             throw new NotEnoughAuthoritiesException("Not enough authorities to deactivate a user.");
         }
-        Long authenticatedUserId = securityService.getAuthenticatedUser().getId();
+        Long authenticatedUserId = userService.getAuthenticatedUser().getId();
 
         if(authenticatedUserId == id){
             throw new SelfActivationException("You are not allowed to deactivate your own account.");
@@ -96,11 +94,11 @@ public class AdminServiceImpl implements AdminService    {
 
     @Override
     public void grantUserRole(Long id, UserRole role) {
-        if (!securityService.authenticatedHasRole(UserRole.ADMIN)){
+        if (!userService.authenticatedHasRole(UserRole.ADMIN)){
             throw new NotEnoughAuthoritiesException("Not enough authorities to grant new role to a user.");
         }
 
-        if (!securityService.authenticatedHasRole(UserRole.SUPER_ADMIN)
+        if (!userService.authenticatedHasRole(UserRole.SUPER_ADMIN)
                 && role == UserRole.SUPER_ADMIN) {
             throw new NotEnoughAuthoritiesException("Not enough authorities to grant a user with SUPER_ADMIN role");
         }
@@ -110,7 +108,7 @@ public class AdminServiceImpl implements AdminService    {
 
     @Override
     public void revokeUserRole(Long id, UserRole role) {
-        if (!securityService.authenticatedHasRole(UserRole.ADMIN)){
+        if (!userService.authenticatedHasRole(UserRole.ADMIN)){
             throw new NotEnoughAuthoritiesException("Not enough authorities to revoke a user's role.");
         }
 
@@ -120,7 +118,7 @@ public class AdminServiceImpl implements AdminService    {
 
     @Override
     public Page<User> searchUsers(String query, Pageable pageable) {
-        if (!securityService.authenticatedHasRole(UserRole.ADMIN)){
+        if (!userService.authenticatedHasRole(UserRole.ADMIN)){
             throw new NotEnoughAuthoritiesException("Not enough authorities to search a user.");
         }
         return userService.searchUsers(query, pageable);
@@ -128,7 +126,7 @@ public class AdminServiceImpl implements AdminService    {
 
     @Override
     public Page<User> searchUsersByCriteria(String username, String firstname, String lastname, String email, String phoneNumber, Pageable pageable) {
-        if (!securityService.authenticatedHasRole(UserRole.ADMIN)){
+        if (!userService.authenticatedHasRole(UserRole.ADMIN)){
             throw new NotEnoughAuthoritiesException("Not enough authorities to search a user.");
         }
         return userService.searchUsersByCriteria(username, firstname, lastname, email, phoneNumber, pageable);
@@ -136,7 +134,7 @@ public class AdminServiceImpl implements AdminService    {
 
     @Override
     public User getUserById(Long id) {
-        if (!securityService.authenticatedHasRole(UserRole.ADMIN)){
+        if (!userService.authenticatedHasRole(UserRole.ADMIN)){
             throw new NotEnoughAuthoritiesException("Not enough authorities to search a user.");
         }
         return userService.getUserById(id);
@@ -144,7 +142,7 @@ public class AdminServiceImpl implements AdminService    {
 
     @Override
     public void triggerPasswordReset(Long id) {
-        if (!securityService.authenticatedHasRole(UserRole.ADMIN)){
+        if (!userService.authenticatedHasRole(UserRole.ADMIN)){
             throw new NotEnoughAuthoritiesException("Not enough authorities to trigger a user's password reset.");
         }
 

@@ -1,9 +1,6 @@
 package be.steby.CoreProject.bll.services.impl;
 
-import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
-import be.steby.CoreProject.bll.exceptions.DoesntExistException;
-import be.steby.CoreProject.bll.exceptions.EmailAlreadyTakenException;
-import be.steby.CoreProject.bll.exceptions.UsernameAlreadyTakenException;
+import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.specifications.UserSpecification;
 import be.steby.CoreProject.dal.repositories.UserRepository;
@@ -13,6 +10,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -149,6 +149,34 @@ public class UserServiceImpl implements UserService {
     public Long getTotalUsers() {
         return userRepository.count();
     }
+
+
+    @Override
+    public User getAuthenticatedUser() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        if (principal instanceof User) {
+            return (User) principal;
+        } else {
+            throw new UserAuthenticationStateException("No user connected", 401);
+        }
+    }
+
+
+    @Override
+    public boolean isAnonymous() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication instanceof AnonymousAuthenticationToken;
+    }
+
+
+    @Override
+    public boolean authenticatedHasRole(UserRole role) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals(role.name()));
+    }
+
 
 
 }

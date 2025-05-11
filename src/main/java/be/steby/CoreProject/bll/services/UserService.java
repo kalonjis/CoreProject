@@ -42,5 +42,11 @@ public interface UserService {
     void revokeUserRole(Long id, UserRole role);
 
     Long getTotalUsers();
+
+    User getAuthenticatedUser();
+
+    boolean isAnonymous();
+
+    boolean authenticatedHasRole(UserRole role);
 }
 
