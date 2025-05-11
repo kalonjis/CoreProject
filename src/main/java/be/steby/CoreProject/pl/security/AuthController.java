@@ -211,6 +211,7 @@ public class AuthController {
             }
         }
 
+
         // Supprimer les cookies côté client
         deleteAccessTokenCookie(response);
         deleteRefreshTokenCookie(response);
