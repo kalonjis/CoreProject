@@ -286,6 +286,5 @@ public class AuthServiceImpl implements AuthService {
         mailerService.sendPasswordChangeConfirmation(user);
     }
 
-
 }
 
