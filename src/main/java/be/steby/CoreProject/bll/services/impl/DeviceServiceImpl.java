@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.services.impl;
 
+import be.steby.CoreProject.bll.events.device.DeviceDetectedEvent;
 import be.steby.CoreProject.bll.events.device.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
 import be.steby.CoreProject.bll.exceptions.CurrentDeviceDisconnectionException;
@@ -93,9 +94,23 @@ public class DeviceServiceImpl implements DeviceService {
         String fingerprint = DeviceDetectionUtils.generateFingerprint(request, user.getId());
         UserAgent agent = userAgentAnalyzer.parse(userAgentString);
 
-        return deviceRepository.findByFingerprint(fingerprint)
-                .map(device -> updateExistingDevice(user, device, ipAddress, notifyNewDevice ))
+        Device device = deviceRepository.findByFingerprint(fingerprint)
+                .map(existingDevice -> updateExistingDevice(user, existingDevice, ipAddress, notifyNewDevice ))
                 .orElseGet(() -> createNewDevice(user, agent, request, fingerprint, ipAddress, notifyNewDevice ));
+
+        if (notifyNewDevice){
+            eventPublisher.publishEvent(new DeviceDetectedEvent(
+                    device,
+                    user,
+                    device.getFirstSeen().equals(device.getLastSeen()), // isNewDevice,
+                    device.isBlacklisted(),
+                    device.isConfirmed(),
+                    device.isFirstDeviceUsed(),
+                    request
+            ));
+        }
+
+        return device;
     }
 
     @Override
@@ -259,32 +274,32 @@ public class DeviceServiceImpl implements DeviceService {
         System.out.println("Device under update");
 
         // On n'envoie une notification que si explicitement demandé (notifyNewDevice=true)
-        if (notifyNewDevice) {
-            boolean shouldSendNewDeviceAlert = true; // Par défaut, on envoie si notifyNewDevice=true
-
-            // Cas 1: appareil blacklisté → pas d'alerte standard (gestion spécifique plus bas)
-            if (device.isBlacklisted()) {
-                shouldSendNewDeviceAlert = false;
-                DeviceConfirmationToken confirmationToken = deviceConfirmationTokenService.createDeviceConfirmationToken(user, device.getId());
-                mailerService.sendBlacklistedDeviceAlert(user, device, confirmationToken.getToken());
-            }
-            // Cas 2: premier appareil → vérifier le délai écoulé depuis l'activation
-            if (device.isFirstDeviceUsed() && !device.isConfirmed()) {
-                // Si moins de 10 minutes depuis l'activation, on n'envoie pas d'alerte
-                if (calculateTimeFromActivationInMinutes(user) <= 10) {
-                    shouldSendNewDeviceAlert = false;
-                }
-            }
-
-            if(device.isConfirmed()){
-                shouldSendNewDeviceAlert = false;
-            }
-
-            // On n'envoie que si toutes les conditions sont satisfaites
-            if (shouldSendNewDeviceAlert) {
-                sendNewDeviceAlert(device);
-            }
-        }
+//        if (notifyNewDevice) {
+//            boolean shouldSendNewDeviceAlert = true; // Par défaut, on envoie si notifyNewDevice=true
+//
+//            // Cas 1: appareil blacklisté → pas d'alerte standard (gestion spécifique plus bas)
+//            if (device.isBlacklisted()) {
+//                shouldSendNewDeviceAlert = false;
+//                DeviceConfirmationToken confirmationToken = deviceConfirmationTokenService.createDeviceConfirmationToken(user, device.getId());
+//                mailerService.sendBlacklistedDeviceAlert(user, device, confirmationToken.getToken());
+//            }
+//            // Cas 2: premier appareil → vérifier le délai écoulé depuis l'activation
+//            if (device.isFirstDeviceUsed() && !device.isConfirmed()) {
+//                // Si moins de 10 minutes depuis l'activation, on n'envoie pas d'alerte
+//                if (calculateTimeFromActivationInMinutes(user) <= 10) {
+//                    shouldSendNewDeviceAlert = false;
+//                }
+//            }
+//
+//            if(device.isConfirmed()){
+//                shouldSendNewDeviceAlert = false;
+//            }
+//
+//            // On n'envoie que si toutes les conditions sont satisfaites
+//            if (shouldSendNewDeviceAlert) {
+//                sendNewDeviceAlert(device);
+//            }
+//        }
 
         // Mise à jour des informations de l'appareil (inchangé)
         device.setLastSeen(Instant.now());
@@ -317,24 +332,24 @@ public class DeviceServiceImpl implements DeviceService {
 
         deviceRepository.save(device);
 
-        if(notifyNewDevice ){
-            sendNewDeviceAlert(device);
-        }
+//        if(notifyNewDevice ){
+//            sendNewDeviceAlert(device);
+//        }
         return device;
     }
 
 
-    private long calculateTimeFromActivationInMinutes(User user) {
-        return Duration.between(user.getActivatedAt(), Instant.now()).toMinutes();
-    }
+//    private long calculateTimeFromActivationInMinutes(User user) {
+//        return Duration.between(user.getActivatedAt(), Instant.now()).toMinutes();
+//    }
 
-    private void sendNewDeviceAlert(Device device){
-        User user = device.getUser();
-        DeviceConfirmationToken confirmationToken = deviceConfirmationTokenService.createDeviceConfirmationToken(
-                user, device.getId());
-
-        mailerService.sendNewDeviceAlert(user, device, confirmationToken.getToken());
-    }
+//    private void sendNewDeviceAlert(Device device){
+//        User user = device.getUser();
+//        DeviceConfirmationToken confirmationToken = deviceConfirmationTokenService.createDeviceConfirmationToken(
+//                user, device.getId());
+//
+//        mailerService.sendNewDeviceAlert(user, device, confirmationToken.getToken());
+//    }
 
     private boolean isFirstDevice(User user){
         List<Device> devices = getUserDevice(user);
