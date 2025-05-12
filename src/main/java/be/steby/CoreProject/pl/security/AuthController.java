@@ -97,15 +97,10 @@ public class AuthController {
             return ResponseEntity.ok(responseBody);
 
         } catch (Exception ex) {
-            // Capture de la raison de l'échec
             failureReason = ex.getMessage();
-
-            // Relancer pour un traitement correct de l'erreur
             throw ex;
 
         } finally {
-            // Publication de l'événement, que ce soit un succès ou un échec
-            // Important: envelopper dans un try-catch pour éviter de masquer l'exception originale
             try {
                 RequestContext requestContext = requestContextService.captureRequestContext(request);
 
@@ -117,7 +112,6 @@ public class AuthController {
                         requestContext
                 ));
             } catch (Exception e) {
-                // Simple journalisation, ne pas interférer avec le flux principal
                 log.error("Erreur lors de la publication de l'événement de connexion: {}", e.getMessage(), e);
             }
         }
