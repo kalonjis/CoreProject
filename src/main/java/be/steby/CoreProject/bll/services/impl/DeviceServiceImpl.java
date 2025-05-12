@@ -167,6 +167,9 @@ public class DeviceServiceImpl implements DeviceService {
         Device device = getDeviceByToken(token);
         device.setDeviceTrustLevel(DeviceTrustLevel.BASIC);
         device.setConfirmed(true);
+        if (device.isBlacklisted()){
+            device.setBlacklisted(false);
+        }
 
         deviceRepository.save(device);
         return device;

@@ -3,16 +3,19 @@ package be.steby.CoreProject.bll.listeners;
 import be.steby.CoreProject.bll.events.device.DeviceDetectedEvent;
 import be.steby.CoreProject.bll.services.MailerService;
 import be.steby.CoreProject.bll.services.security.impl.DeviceConfirmationTokenServiceImpl;
-import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.DeviceConfirmationToken;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
 
+
+@Component
 @Order(10)
 @RequiredArgsConstructor
 @Slf4j

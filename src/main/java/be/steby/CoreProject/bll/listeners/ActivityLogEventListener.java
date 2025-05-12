@@ -7,6 +7,7 @@ import be.steby.CoreProject.bll.services.ActivityLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @RequiredArgsConstructor
@@ -18,6 +19,7 @@ public class ActivityLogEventListener {
 
 
     @EventListener
+    @Async("activityLogExecutor")
     public void handleTrustLevelChange(DeviceTrustLevelChangedEvent event) {
         activityLogService.logDeviceTrustLevelChange(
                 event.user(),
@@ -30,6 +32,7 @@ public class ActivityLogEventListener {
 
 
     @EventListener
+    @Async("activityLogExecutor")
     public  void handleLogin(UserLoggedInEvent event){
         activityLogService.logLogin(
                 event.user(),
@@ -42,6 +45,7 @@ public class ActivityLogEventListener {
 
 
     @EventListener
+    @Async("activityLogExecutor")
     public void handleLogout(UserLogoutEvent event){
         activityLogService.logLogout(
                 event.user(),
