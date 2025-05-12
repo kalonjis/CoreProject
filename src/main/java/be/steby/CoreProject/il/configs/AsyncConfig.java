@@ -1,45 +1,117 @@
 package be.steby.CoreProject.il.configs;
 
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executor;
 
 /**
- * Configuration class for enabling asynchronous execution support in Spring
+ * Configuration pour l'exécution asynchrone avec pools de threads séparés
  */
 @Configuration
 @EnableAsync
 public class AsyncConfig implements AsyncConfigurer {
 
+    /**
+     * Executor par défaut - utilisé si aucun autre n'est spécifié
+     */
     @Override
     public Executor getAsyncExecutor() {
+        return generalPurposeExecutor();
+    }
+
+    /**
+     * Pool de threads pour les tâches générales
+     */
+    @Bean(name = "generalPurposeExecutor")
+    public Executor generalPurposeExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-
-        // Configuration minimale et adaptée
-        executor.setCorePoolSize(2);     // 2 threads de base
-        executor.setMaxPoolSize(5);      // Maximum 5 threads
-        executor.setQueueCapacity(100);  // Capacité de file d'attente réduite
-
-        executor.setThreadNamePrefix("AsyncMailTask-");
-
-        // Configuration par défaut
+        executor.setCorePoolSize(4);
+        executor.setMaxPoolSize(8);
+        executor.setQueueCapacity(200);
+        executor.setThreadNamePrefix("General-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(30);
-
         executor.initialize();
         return executor;
     }
 
-    // Optionnel : Gestion des exceptions
+    /**
+     * Pool de threads dédié aux envois d'emails
+     */
+    @Bean(name = "emailExecutor")
+    public Executor emailExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(5);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("Email-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
+        executor.initialize();
+        return executor;
+    }
+
+    /**
+     * Pool de threads dédié aux logs d'activité (écriture en DB)
+     */
+    @Bean(name = "activityLogExecutor")
+    public Executor activityLogExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(3);
+        executor.setMaxPoolSize(6);
+        executor.setQueueCapacity(500);
+        executor.setThreadNamePrefix("ActivityLog-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(60);
+        executor.initialize();
+        return executor;
+    }
+
+    /**
+     * Pool de threads pour les listeners d'événements
+     */
+    @Bean(name = "eventListenerExecutor")
+    public Executor eventListenerExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("EventListener-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
+        executor.initialize();
+        return executor;
+    }
+
+    /**
+     * Bean qui expose tous les executors pour le monitoring
+     */
+    @Bean
+    public Map<String, ThreadPoolTaskExecutor> executors(
+            @Qualifier("emailExecutor") ThreadPoolTaskExecutor emailExecutor,
+            @Qualifier("activityLogExecutor") ThreadPoolTaskExecutor activityLogExecutor,
+            @Qualifier("eventListenerExecutor") ThreadPoolTaskExecutor eventListenerExecutor,
+            @Qualifier("generalPurposeExecutor") ThreadPoolTaskExecutor generalPurposeExecutor) {
+
+        Map<String, ThreadPoolTaskExecutor> executors = new HashMap<>();
+        executors.put("email", emailExecutor);
+        executors.put("activityLog", activityLogExecutor);
+        executors.put("eventListener", eventListenerExecutor);
+        executors.put("general", generalPurposeExecutor);
+        return executors;
+    }
+
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
-        return (throwable, method, params) -> {
-            System.err.println("Async method " + method.getName()
-                    + " threw exception: " + throwable.getMessage());
-        };
+        return new CustomAsyncExceptionHandler();
     }
+
 }

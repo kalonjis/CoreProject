@@ -34,7 +34,7 @@ public class MailerServiceImpl implements MailerService {
    *
    * @param token the token used for resetting the password.
    */
-  @Async
+  @Async("emailExecutor")
   @Override
   public void sendPasswordReset(String token, User user) {
     String resetUrl = FRONT_URL + "/auth/reset-password?token=" + token;
@@ -48,7 +48,7 @@ public class MailerServiceImpl implements MailerService {
     mailerUtil.sendMail("Password Reset", "passwords/NewPasswordRequest", context, user.getEmail());
   }
 
-  @Async
+  @Async("emailExecutor")
   @Override
   public void sendPasswordResetRefresh(String newToken, User user) {
     String resetUrl = FRONT_URL + "/auth/reset-password?token=" + newToken;
@@ -63,7 +63,7 @@ public class MailerServiceImpl implements MailerService {
   }
 
 
-  @Async
+  @Async("emailExecutor")
   @Override
   public void sendPasswordChangeConfirmation(User user) {
     String username = defineUsername(user);
@@ -77,7 +77,7 @@ public class MailerServiceImpl implements MailerService {
 
   // region AccountConfirmation
 
-  @Async
+  @Async("emailExecutor")
   @Override
   public void sendSignUpConfirmation(String token, User user) {
     String confirmationUrl = FRONT_URL + "/auth/account-confirmation?token=" + token;
@@ -91,7 +91,7 @@ public class MailerServiceImpl implements MailerService {
   }
 
 
-  @Async
+  @Async("emailExecutor")
   @Override
   public void sendAccountConfirmation(String token, User user, String temporaryPassword) {
     String confirmationUrl = FRONT_URL + "/auth/account-confirmation?token=" + token;
@@ -104,7 +104,7 @@ public class MailerServiceImpl implements MailerService {
     mailerUtil.sendMail("Account confirmation", "accounts/accountConfirmation", context, user.getEmail());
   }
 
-  @Async
+  @Async("emailExecutor")
   @Override
   public void sendNewAccountConfirmation(String token, User user) {
     String confirmationUrl = FRONT_URL + "/auth/account-confirmation?token=" + token;
@@ -116,7 +116,7 @@ public class MailerServiceImpl implements MailerService {
     mailerUtil.sendMail("Account confirmation", "accounts/newAccountConfirmationRequest", context, user.getEmail());
   }
 
-  @Async
+  @Async("emailExecutor")
   @Override
   public void sendWelcome(User user) {
     String username = defineUsername(user);
@@ -129,7 +129,7 @@ public class MailerServiceImpl implements MailerService {
 
   // region EmailAddress
 
-  @Async
+  @Async("emailExecutor")
   @Override
   public void sendChangeEmailRequest(String token, User user) {
     String oldEmailConfirmationUrl = FRONT_URL  + "/auth/verify-email?token=" + token + "&action=verify";
@@ -143,7 +143,7 @@ public class MailerServiceImpl implements MailerService {
     mailerUtil.sendMail("Email confirmation", "emailAddresses/changeEmailRequest", context, user.getEmail());
   }
 
-  @Async
+  @Async("emailExecutor")
   @Override
   public void sendChangeEmailVerification(String token, User user, String newEmail) {
     String newEmailConfirmationUrl = FRONT_URL  + "/auth/verify-email?token=" + token + "&action=confirm";
@@ -157,7 +157,7 @@ public class MailerServiceImpl implements MailerService {
     mailerUtil.sendMail("Email confirmation", "emailAddresses/changeEmailVerification", context, newEmail);
   }
 
-  @Async
+  @Async("emailExecutor")
   @Override
   public void sendChangeEmailConfirmation(String token, User user, String oldEmail, String newEmail) {
     String newEmailConfirmationUrl = FRONT_URL  + "/email-confirmation?token=" + token;
@@ -175,7 +175,7 @@ public class MailerServiceImpl implements MailerService {
 
   // region Device
 
-  @Async
+  @Async("emailExecutor")
   @Override
   public void sendNewDeviceAlert(User user, Device device, String token) {
     String confirmDeviceUrl = FRONT_URL + "/auth/device-confirmation?token=" + token + "&action=confirm";
@@ -196,7 +196,7 @@ public class MailerServiceImpl implements MailerService {
     mailerUtil.sendMail("Security Alert: New Device Login", "devices/newDeviceAlert", context, user.getEmail());
   }
 
-  @Async
+  @Async("emailExecutor")
   @Override
   public void sendBlacklistedDeviceAlert(User user, Device device, String token) {
     String whitelistDeviceUrl = FRONT_URL + "/auth/device-confirmation?token=" + token + "&action=confirm";

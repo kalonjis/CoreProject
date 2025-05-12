@@ -77,3 +77,26 @@ security:
     lockout-minutes: 30
     alert:
       threshold-minutes: 10
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,threadpools
+  endpoint:
+    metrics:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# Configuration personnalisée pour les alertes
+async:
+  monitoring:
+    alert-threshold:
+      email-queue: 80        # Alerte si la file email > 80%
+      log-queue: 90          # Alerte si la file logs > 90%
+      general-queue: 70      # Alerte si la file générale > 70%
+    metrics:
+      enabled: true
+      export-interval: 60s   # Export des métriques toutes les 60 secondes
