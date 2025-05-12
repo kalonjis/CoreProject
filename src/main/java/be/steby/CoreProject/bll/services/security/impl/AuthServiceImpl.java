@@ -1,5 +1,7 @@
 package be.steby.CoreProject.bll.services.security.impl;
 
+import be.steby.CoreProject.bll.events.security.password_events.PasswordChangedEvent;
+import be.steby.CoreProject.bll.events.security.password_events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.services.MailerService;
 import be.steby.CoreProject.bll.services.UserService;
@@ -8,18 +10,17 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.EmailConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
-import be.steby.CoreProject.dl.enums.UserRole;
 import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
 import be.steby.CoreProject.pl.security.models.ChangePasswordForm;
 import be.steby.CoreProject.pl.security.models.PasswordResetForm;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.security.SecureRandom;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -29,6 +30,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
     private final MailerService mailerService;
+    private final ApplicationEventPublisher eventPublisher;
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
     private final PasswordResetAttemptServiceImpl PasswordResetAttemptService;
@@ -167,8 +169,7 @@ public class AuthServiceImpl implements AuthService {
     public void requestPasswordReset(String email) {
         checkIsNotAnonymous();
         User user = userService.getUserByEmail(email);
-        PasswordResetToken token = passwordResetTokenService.createPasswordResetToken(user);
-        mailerService.sendPasswordReset(token.getToken(), user);
+        eventPublisher.publishEvent(new RequestPasswordResetEvent(user));
     }
 
 
@@ -287,7 +288,8 @@ public class AuthServiceImpl implements AuthService {
             user.setMustChangePassword(false);
         }
         userService.saveUser(user);
-        mailerService.sendPasswordChangeConfirmation(user);
+
+        eventPublisher.publishEvent(new PasswordChangedEvent(user));
     }
 
 }
