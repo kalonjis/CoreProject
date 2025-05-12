@@ -2,6 +2,8 @@ package be.steby.CoreProject.pl.security;
 
 import be.steby.CoreProject.bll.events.security.UserLoggedInEvent;
 import be.steby.CoreProject.bll.events.security.UserLogoutEvent;
+import be.steby.CoreProject.bll.models.RequestContext;
+import be.steby.CoreProject.bll.services.RequestContextService;
 import be.steby.CoreProject.bll.services.security.AuthService;
 import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
@@ -44,6 +46,7 @@ public class AuthController {
     private final RefreshTokenServiceImpl refreshTokenService;
     private final DeviceService deviceService;
     private final ApplicationEventPublisher eventPublisher;
+    private final RequestContextService requestContextService;
 
     private static final String COOKIE_PATH = "/";  // Path unifié pour tous les cookies
 
@@ -104,12 +107,14 @@ public class AuthController {
             // Publication de l'événement, que ce soit un succès ou un échec
             // Important: envelopper dans un try-catch pour éviter de masquer l'exception originale
             try {
+                RequestContext requestContext = requestContextService.captureRequestContext(request);
+
                 eventPublisher.publishEvent(new UserLoggedInEvent(
                         user,
                         device,
                         successful,
                         failureReason,
-                        request
+                        requestContext
                 ));
             } catch (Exception e) {
                 // Simple journalisation, ne pas interférer avec le flux principal
@@ -215,7 +220,8 @@ public class AuthController {
             } catch (NumberFormatException e) {
                 log.warn("Format invalide du refresh token cookie: {}", refreshTokenCookie);
             } finally {
-                eventPublisher.publishEvent(new UserLogoutEvent( user, device, request));
+                RequestContext requestContext = requestContextService.captureRequestContext(request);
+                eventPublisher.publishEvent(new UserLogoutEvent( user, device, requestContext));
             }
         }
 

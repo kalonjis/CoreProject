@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.services;
 
+import be.steby.CoreProject.bll.models.RequestContext;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
@@ -25,7 +26,7 @@ public interface ActivityLogService {
             boolean successful,
             String details,
             String metadata,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -36,7 +37,7 @@ public interface ActivityLogService {
             Device device,
             boolean successful,
             String failureReason,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -45,7 +46,7 @@ public interface ActivityLogService {
     ActivityLog logLogout(
             User user,
             Device device,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -55,7 +56,7 @@ public interface ActivityLogService {
             User user,
             Device device,
             boolean successful,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -63,7 +64,7 @@ public interface ActivityLogService {
      */
     ActivityLog logPasswordResetRequest(
             User user,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -72,7 +73,7 @@ public interface ActivityLogService {
     ActivityLog logPasswordResetComplete(
             User user,
             Device device,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -82,7 +83,7 @@ public interface ActivityLogService {
             User user,
             Device device,
             String newEmail,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -93,7 +94,7 @@ public interface ActivityLogService {
             Device device,
             String oldEmail,
             String newEmail,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -102,7 +103,7 @@ public interface ActivityLogService {
     ActivityLog logAccountCreation(
             User user,
             Device device,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -111,7 +112,7 @@ public interface ActivityLogService {
     ActivityLog logAccountActivation(
             User user,
             Device device,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -120,7 +121,7 @@ public interface ActivityLogService {
     ActivityLog logAccountDeactivation(
             User user,
             Long adminId,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -131,7 +132,7 @@ public interface ActivityLogService {
             String role,
             boolean granted,
             Long adminId,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -140,7 +141,7 @@ public interface ActivityLogService {
     ActivityLog logDeviceRegistration(
             User user,
             Device device,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -149,7 +150,7 @@ public interface ActivityLogService {
     ActivityLog logDeviceConfirmation(
             User user,
             Device device,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -158,7 +159,7 @@ public interface ActivityLogService {
     ActivityLog logDeviceRejection(
             User user,
             Device device,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -169,7 +170,7 @@ public interface ActivityLogService {
             Device device,
             String oldLevel,
             String newLevel,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**
@@ -180,7 +181,7 @@ public interface ActivityLogService {
             Device device,
             String details,
             int riskLevel,
-            HttpServletRequest request
+            RequestContext requestContext
     );
 
     /**

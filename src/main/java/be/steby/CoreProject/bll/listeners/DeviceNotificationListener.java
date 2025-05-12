@@ -56,6 +56,11 @@ public class DeviceNotificationListener {
 
     private boolean determineNotificationNeeded(DeviceDetectedEvent event) {
 
+        if (event.isConfirmed() && !event.isBlacklisted()) {
+            log.debug("Pas de notification car device {} est déjà confirmé", event.device().getId());
+            return false;
+        }
+
         if (event.isBlacklisted()){
             log.info("notification true car device est blacklisté");
             return true;
