@@ -1,9 +1,9 @@
 package be.steby.CoreProject.bll.events.device;
 
+import be.steby.CoreProject.bll.models.RequestContext;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
-import jakarta.servlet.http.HttpServletRequest;
 
 
 /**
@@ -16,6 +16,6 @@ public record DeviceTrustLevelChangedEvent (
     String oldLevel,
     User user,
     Device device,
-    HttpServletRequest request){}
+    RequestContext request){}
 
 

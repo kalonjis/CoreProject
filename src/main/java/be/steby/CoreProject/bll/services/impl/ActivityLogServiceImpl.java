@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.services.impl;
 
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
+import be.steby.CoreProject.bll.models.RequestContext;
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.utils.IpUtils;
 import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
@@ -49,14 +50,14 @@ public class ActivityLogServiceImpl implements ActivityLogService {
             boolean successful,
             String details,
             String metadata,
-            HttpServletRequest request) {
+            RequestContext requestContext) {
 
-        String clientIp = getClientIpAddress(request);
+        String clientIp = getClientIpAddress(requestContext);
         String location = IpUtils.getLocationFromIp(clientIp);
-        String sessionId = getOrCreateSessionId(request);
+        String sessionId = getOrCreateSessionId(requestContext);
 
         // Évaluer le niveau de risque en fonction du type d'action et du contexte
-        int riskLevel = evaluateRiskLevel(user, device, actionType, request);
+        int riskLevel = evaluateRiskLevel(user, device, actionType, requestContext);
         boolean triggeredAlert = riskLevel >= 3; // Alerte si niveau de risque élevé
 
         if (triggeredAlert) {
@@ -96,7 +97,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     @Override
     @Transactional
     public ActivityLog logLogin(User user, Device device, boolean successful,
-                                String failureReason, HttpServletRequest request) {
+                                String failureReason, RequestContext requestContext) {
 
         ActionLogType actionType = successful ? ActionLogType.AUTH_LOGIN : ActionLogType.AUTH_LOGIN_FAILED;
         String metadataJson = null;
@@ -105,8 +106,8 @@ public class ActivityLogServiceImpl implements ActivityLogService {
             // Formatage de métadonnées - gérons cette exception spécifique localement
             // car elle n'est pas critique pour le flux principal
             Map<String, Object> metadata = new HashMap<>();
-            metadata.put("userAgent", request.getHeader("User-Agent"));
-            metadata.put("referrer", request.getHeader("Referer"));
+            metadata.put("userAgent", requestContext.getUserAgent());
+            metadata.put("referrer", requestContext.getHeaders().getReferer());
             metadata.put("method", "FORM"); // ou "SSO", "API", etc.
 
             metadataJson = objectMapper.writeValueAsString(metadata);
@@ -125,7 +126,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 successful,
                 failureReason,
                 metadataJson,
-                request
+                requestContext
         );
     }
 
@@ -134,9 +135,9 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logLogout(User user, Device device, HttpServletRequest request) {
+    public ActivityLog logLogout(User user, Device device, RequestContext requestContext) {
         // Calculer la durée de la session si possible
-        Long sessionDuration = calculateSessionDuration(request);
+//        Long sessionDuration = calculateSessionDuration(requestContext);
 
         ActivityLog log = logUserAction(
                 user,
@@ -145,12 +146,12 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 true,
                 null,
                 null,
-                request
+                requestContext
         );
 
         // Mettre à jour la durée si disponible
-        if (sessionDuration != null) {
-            log.setDurationSeconds(sessionDuration);
+        if (requestContext.getSessionDurationSeconds() != null) {
+            log.setDurationSeconds(requestContext.getSessionDurationSeconds());
             activityLogRepository.save(log);
         }
 
@@ -162,7 +163,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logPasswordChange(User user, Device device, boolean successful, HttpServletRequest request) {
+    public ActivityLog logPasswordChange(User user, Device device, boolean successful, RequestContext requestContext) {
         return logUserAction(
                 user,
                 device,
@@ -170,7 +171,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 successful,
                 successful ? "Mot de passe modifié avec succès" : "Échec de la modification du mot de passe",
                 null,
-                request
+                requestContext
         );
     }
 
@@ -179,7 +180,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logPasswordResetRequest(User user, HttpServletRequest request) {
+    public ActivityLog logPasswordResetRequest(User user, RequestContext requestContext) {
         return logUserAction(
                 user,
                 null, // Pas d'appareil connu à ce stade
@@ -187,7 +188,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 true,
                 "Demande de réinitialisation de mot de passe effectuée",
                 null,
-                request
+                requestContext
         );
     }
 
@@ -196,7 +197,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logPasswordResetComplete(User user, Device device, HttpServletRequest request) {
+    public ActivityLog logPasswordResetComplete(User user, Device device, RequestContext requestContext) {
         return logUserAction(
                 user,
                 device,
@@ -204,7 +205,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 true,
                 "Réinitialisation de mot de passe effectuée",
                 null,
-                request
+                requestContext
         );
     }
 
@@ -213,7 +214,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logEmailChangeRequest(User user, Device device, String newEmail, HttpServletRequest request) {
+    public ActivityLog logEmailChangeRequest(User user, Device device, String newEmail, RequestContext requestContext) {
         String metadataJson = null;
 
         try {
@@ -233,7 +234,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 true,
                 "Demande de changement d'email de " + user.getEmail() + " vers " + newEmail,
                 metadataJson,
-                request
+                requestContext
         );
     }
 
@@ -242,7 +243,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logEmailChangeComplete(User user, Device device, String oldEmail, String newEmail, HttpServletRequest request) {
+    public ActivityLog logEmailChangeComplete(User user, Device device, String oldEmail, String newEmail, RequestContext requestContext) {
         String metadataJson = null;
 
         try {
@@ -263,7 +264,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 true,
                 "Changement d'email de " + oldEmail + " vers " + newEmail + " effectué",
                 metadataJson,
-                request
+                requestContext
         );
     }
 
@@ -272,7 +273,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logAccountCreation(User user, Device device, HttpServletRequest request) {
+    public ActivityLog logAccountCreation(User user, Device device, RequestContext requestContext) {
         return logUserAction(
                 user,
                 device,
@@ -280,7 +281,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 true,
                 "Création du compte utilisateur",
                 null,
-                request
+                requestContext
         );
     }
 
@@ -289,7 +290,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logAccountActivation(User user, Device device, HttpServletRequest request) {
+    public ActivityLog logAccountActivation(User user, Device device, RequestContext requestContext) {
         return logUserAction(
                 user,
                 device,
@@ -297,7 +298,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 true,
                 "Activation du compte utilisateur",
                 null,
-                request
+                requestContext
         );
     }
 
@@ -306,7 +307,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logAccountDeactivation(User user, Long adminId, HttpServletRequest request) {
+    public ActivityLog logAccountDeactivation(User user, Long adminId, RequestContext requestContext) {
         String metadataJson = null;
 
         try {
@@ -326,7 +327,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 true,
                 "Désactivation du compte utilisateur par l'administrateur #" + adminId,
                 metadataJson,
-                request
+                requestContext
         );
     }
 
@@ -335,7 +336,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logRoleChange(User user, String role, boolean granted, Long adminId, HttpServletRequest request) {
+    public ActivityLog logRoleChange(User user, String role, boolean granted, Long adminId, RequestContext requestContext) {
         ActionLogType actionType = granted ? ActionLogType.ROLE_GRANTED : ActionLogType.ROLE_REVOKED;
 
         String metadataJson = null;
@@ -360,7 +361,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 true,
                 details,
                 metadataJson,
-                request
+                requestContext
         );
     }
 
@@ -369,7 +370,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logDeviceRegistration(User user, Device device, HttpServletRequest request) {
+    public ActivityLog logDeviceRegistration(User user, Device device, RequestContext requestContext) {
         String metadataJson = null;
 
         try {
@@ -390,7 +391,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 true,
                 "Nouvel appareil enregistré: " + device.getDeviceType() + " - " + device.getBrowser(),
                 metadataJson,
-                request
+                requestContext
         );
     }
 
@@ -399,7 +400,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logDeviceConfirmation(User user, Device device, HttpServletRequest request) {
+    public ActivityLog logDeviceConfirmation(User user, Device device, RequestContext requestContext) {
         return logUserAction(
                 user,
                 device,
@@ -407,7 +408,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 true,
                 "Appareil confirmé: " + device.getDeviceType() + " - " + device.getBrowser(),
                 null,
-                request
+                requestContext
         );
     }
 
@@ -416,7 +417,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logDeviceRejection(User user, Device device, HttpServletRequest request) {
+    public ActivityLog logDeviceRejection(User user, Device device, RequestContext requestContext) {
         return logUserAction(
                 user,
                 device,
@@ -424,7 +425,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 true,
                 "Appareil rejeté: " + device.getDeviceType() + " - " + device.getBrowser(),
                 null,
-                request
+                requestContext
         );
     }
 
@@ -433,7 +434,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logDeviceTrustLevelChange(User user, Device device, String oldLevel, String newLevel, HttpServletRequest request) {
+    public ActivityLog logDeviceTrustLevelChange(User user, Device device, String oldLevel, String newLevel, RequestContext requestContext) {
         String metadataJson = null;
 
         try {
@@ -453,7 +454,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 true,
                 "Niveau de confiance de l'appareil modifié de " + oldLevel + " à " + newLevel,
                 metadataJson,
-                request
+                requestContext
         );
     }
 
@@ -462,7 +463,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logSuspiciousActivity(User user, Device device, String details, int riskLevel, HttpServletRequest request) {
+    public ActivityLog logSuspiciousActivity(User user, Device device, String details, int riskLevel, RequestContext requestContext) {
         String metadataJson = null;
 
         try {
@@ -481,7 +482,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 true,
                 details,
                 metadataJson,
-                request
+                requestContext
         );
     }
 
@@ -704,22 +705,21 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     /**
      * Détermine l'adresse IP du client à partir de la requête HTTP
      */
-    private String getClientIpAddress(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
+    private String getClientIpAddress(RequestContext requestContext) {
+        String xForwardedFor = requestContext.getHeaders().getXForwardedFor();
         if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
             // En cas de plusieurs proxies, la première IP est celle du client
             return xForwardedFor.split(",")[0].trim();
         }
-        return request.getRemoteAddr();
+        return requestContext.getClientIp();
     }
 
     /**
      * Récupère ou crée un identifiant de session
      */
-    private String getOrCreateSessionId(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            return session.getId();
+    private String getOrCreateSessionId(RequestContext requestContext) {
+        if (requestContext.getSessionId() != null) {
+            return requestContext.getSessionId();
         }
         return UUID.randomUUID().toString();
     }
@@ -727,20 +727,20 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     /**
      * Calcule la durée de la session en secondes
      */
-    private Long calculateSessionDuration(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            long creationTime = session.getCreationTime();
-            long now = System.currentTimeMillis();
-            return (now - creationTime) / 1000; // Conversion en secondes
-        }
-        return null;
-    }
+//    private Long calculateSessionDuration(RequestContext requestContext) {
+//        HttpSession session = requestContext.getSession(false);
+//        if (session != null) {
+//            long creationTime = session.getCreationTime();
+//            long now = System.currentTimeMillis();
+//            return (now - creationTime) / 1000; // Conversion en secondes
+//        }
+//        return null;
+//    }
 
     /**
      * Évalue le niveau de risque d'une action (0-3)
      */
-    private int evaluateRiskLevel(User user, Device device, ActionLogType actionType, HttpServletRequest request) {
+    private int evaluateRiskLevel(User user, Device device, ActionLogType actionType, RequestContext requestContext) {
         int riskLevel = 0;
 
         // Facteurs augmentant le risque
@@ -758,7 +758,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         }
 
         // 3. Si l'adresse IP est nouvelle pour cet utilisateur
-        String ipAddress = getClientIpAddress(request);
+        String ipAddress = getClientIpAddress(requestContext);
         boolean ipKnown = activityLogRepository.existsByUserAndIpAddressAndTimestampAfter(
                 user, ipAddress, Instant.now().minus(30, ChronoUnit.DAYS));
         if (!ipKnown) {

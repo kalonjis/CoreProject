@@ -6,10 +6,8 @@ import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
 import be.steby.CoreProject.bll.exceptions.CurrentDeviceDisconnectionException;
 import be.steby.CoreProject.bll.exceptions.DoesntExistException;
 import be.steby.CoreProject.bll.exceptions.OwnershipException;
-import be.steby.CoreProject.bll.services.ActivityLogService;
-import be.steby.CoreProject.bll.services.DeviceService;
-import be.steby.CoreProject.bll.services.MailerService;
-import be.steby.CoreProject.bll.services.UserService;
+import be.steby.CoreProject.bll.models.RequestContext;
+import be.steby.CoreProject.bll.services.*;
 import be.steby.CoreProject.bll.services.security.impl.DeviceConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.utils.DeviceDetectionUtils;
@@ -42,7 +40,7 @@ public class DeviceServiceImpl implements DeviceService {
 
     private final DeviceRepository deviceRepository;
     private final UserAgentAnalyzer userAgentAnalyzer;
-    private final MailerService mailerService;
+    private final RequestContextService requestContextService;
     private final DeviceConfirmationTokenServiceImpl deviceConfirmationTokenService;
     private final ApplicationEventPublisher eventPublisher;
     private final RefreshTokenServiceImpl refreshTokenService;
@@ -99,6 +97,8 @@ public class DeviceServiceImpl implements DeviceService {
                 .orElseGet(() -> createNewDevice(user, agent, request, fingerprint, ipAddress, notifyNewDevice ));
 
         if (notifyNewDevice){
+            RequestContext requestContext = requestContextService.captureRequestContext(request);
+
             eventPublisher.publishEvent(new DeviceDetectedEvent(
                     device,
                     user,
@@ -106,7 +106,7 @@ public class DeviceServiceImpl implements DeviceService {
                     device.isBlacklisted(),
                     device.isConfirmed(),
                     device.isFirstDeviceUsed(),
-                    request
+                    requestContext
             ));
         }
 
@@ -135,13 +135,15 @@ public class DeviceServiceImpl implements DeviceService {
         device.setDeviceTrustLevel(newTrustLevel);
         deviceRepository.save(device);
 
+        RequestContext requestContext = requestContextService.captureRequestContext(request);
+
         eventPublisher.publishEvent(new DeviceTrustLevelChangedEvent(
                 deviceId,
                 newTrustLevel,
                 oldLevel,
                 device.getUser(),
                 device,
-                request
+                requestContext
         ));
     }
 
