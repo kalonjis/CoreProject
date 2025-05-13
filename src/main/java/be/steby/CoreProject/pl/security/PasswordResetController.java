@@ -12,6 +12,7 @@ import be.steby.CoreProject.il.device.RequiresDeviceTrustLevel;
 import be.steby.CoreProject.pl.security.models.ChangePasswordForm;
 import be.steby.CoreProject.pl.security.models.PasswordResetForm;
 import be.steby.CoreProject.pl.security.models.RequestPasswordForm;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -38,8 +39,8 @@ public class PasswordResetController {
    */
 
   @PostMapping("/request-password-reset")
-  public ResponseEntity<Map<String, String>> requestPassword(@Valid @RequestBody RequestPasswordForm form) {
-    authService.requestPasswordReset(form.email());
+  public ResponseEntity<Map<String, String>> requestPassword(@Valid @RequestBody RequestPasswordForm form, HttpServletRequest request) {
+    authService.requestPasswordReset(form.email(), request);
     Map<String, String> response = new HashMap<>();
     response.put("message", "Check your inbox. If your e-mail address matches our database, you will receive an e-mail asking you to reset your password.");
     return ResponseEntity.ok(response);
@@ -53,8 +54,8 @@ public class PasswordResetController {
    * @return ResponseEntity with a message about the result of the operation.
    */
   @PutMapping("/reset-password")
-  public ResponseEntity<Map<String, String>> resetPassword(@RequestParam String token, @Valid @RequestBody PasswordResetForm form) {
-    authService.resetPassword(form, token);
+  public ResponseEntity<Map<String, String>> resetPassword(@RequestParam String token, @Valid @RequestBody PasswordResetForm form, HttpServletRequest request) {
+    authService.resetPassword(form, token, request);
     Map<String, String> response = new HashMap<>();
     response.put("message", "Thank you. Your password has been successfully modified. You can now use it to connect to your favorite app.");
     return ResponseEntity.ok(response);
@@ -83,8 +84,8 @@ public class PasswordResetController {
    * @return ResponseEntity with a success or error message.
    */
     @PutMapping("/change-password")
-    public ResponseEntity<Map<String, String>> changePassword(@Valid @RequestBody ChangePasswordForm form) {
-      authService.changePassword(form);
+    public ResponseEntity<Map<String, String>> changePassword(@Valid @RequestBody ChangePasswordForm form, HttpServletRequest request) {
+      authService.changePassword(form, request );
       Map<String, String> response = new HashMap<>();
       response.put("message", "Thank you. Your password changed successfully.");
       return ResponseEntity.ok()
