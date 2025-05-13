@@ -9,5 +9,5 @@ public record UserLoggedInEvent(
         Device device,
         boolean successful,
         String failureReason,
-        RequestContext request
+        RequestContext requestContext
         ) {}

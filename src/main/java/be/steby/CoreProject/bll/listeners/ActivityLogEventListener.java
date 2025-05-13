@@ -3,6 +3,8 @@ package be.steby.CoreProject.bll.listeners;
 import be.steby.CoreProject.bll.events.device.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.events.security.UserLoggedInEvent;
 import be.steby.CoreProject.bll.events.security.UserLogoutEvent;
+import be.steby.CoreProject.bll.events.security.password_events.PasswordChangedEvent;
+import be.steby.CoreProject.bll.events.security.password_events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
@@ -39,7 +41,7 @@ public class ActivityLogEventListener {
                 event.device(),
                 event.successful(),
                 event.failureReason(),
-                event.request()
+                event.requestContext()
         );
     }
 
@@ -50,9 +52,31 @@ public class ActivityLogEventListener {
         activityLogService.logLogout(
                 event.user(),
                 event.device(),
-                event.request()
+                event.requestContext()
         );
 
+    }
+
+
+    @EventListener
+    @Async("activityLogExecutor")
+    public void handleRequestPasswordReset(RequestPasswordResetEvent event){
+        activityLogService.logPasswordResetRequest(
+                event.user(),
+                event.requestContext()
+        );
+    }
+
+
+    @EventListener
+    @Async("activityLogExecutor")
+    public void handlePasswordChangedEvent(PasswordChangedEvent event){
+        activityLogService.logPasswordChange(
+                event.user(),
+                null,
+                true,
+                event.requestContext()
+        );
     }
 
     // Autres méthodes de journalisation pour différents types d'événements...

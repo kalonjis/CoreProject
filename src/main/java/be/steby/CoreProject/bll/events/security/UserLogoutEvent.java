@@ -7,6 +7,6 @@ import be.steby.CoreProject.dl.entities.User;
 public record UserLogoutEvent(
         User user,
         Device device,
-        RequestContext request
+        RequestContext requestContext
 ) {
 }
