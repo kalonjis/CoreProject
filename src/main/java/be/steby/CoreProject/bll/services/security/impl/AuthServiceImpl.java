@@ -4,6 +4,7 @@ import be.steby.CoreProject.bll.events.security.password_events.PasswordChangedE
 import be.steby.CoreProject.bll.events.security.password_events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.models.RequestContext;
+import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.MailerService;
 import be.steby.CoreProject.bll.services.RequestContextService;
 import be.steby.CoreProject.bll.services.UserService;
@@ -34,11 +35,11 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
     private final MailerService mailerService;
+    private final DeviceService deviceService;
     private final RequestContextService requestContextService;
     private final ApplicationEventPublisher eventPublisher;
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
-    private final PasswordResetAttemptServiceImpl PasswordResetAttemptService;
     private final AccountConfirmationTokenServiceImpl accountConfirmationTokenService;
     private final AccountConfirmationAttemptServiceImpl accountConfirmationAttemptService;
     private final EmailConfirmationTokenServiceImpl emailConfirmationTokenService;
@@ -151,10 +152,12 @@ public class AuthServiceImpl implements AuthService {
         PasswordResetToken passwordResetToken = passwordResetTokenService.getToken(token);
         passwordResetTokenService.verifyTokenValidity(passwordResetToken);
         passwordResetTokenService.revokeToken(passwordResetToken);
-        User user = passwordResetToken.getUser();
 
+        User user = passwordResetToken.getUser();
+        Device device = deviceService.detectCurrentDevice(request);
         RequestContext requestContext = requestContextService.captureRequestContext(request);
-        savePassword(form.password(), user, requestContext);
+
+        savePassword(form.password(), user, device, requestContext);
     }
 
 
@@ -166,8 +169,10 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidPasswordException("The current password is not correct", 400);
         }
 
+        Device device = deviceService.detectCurrentDevice(request);
         RequestContext requestContext = requestContextService.captureRequestContext(request);
-        savePassword(form.password(), authenticatedUser, requestContext);
+
+        savePassword(form.password(), authenticatedUser, device, requestContext);
     }
 
 
@@ -175,10 +180,12 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void requestPasswordReset(String email, HttpServletRequest request) {
         checkIsNotAnonymous();
+
         User user = userService.getUserByEmail(email);
 
         RequestContext requestContext = requestContextService.captureRequestContext(request);
-        eventPublisher.publishEvent(new RequestPasswordResetEvent(user, requestContext));
+        Device device = deviceService.detectFromRequestContext(requestContext, user);
+        eventPublisher.publishEvent(new RequestPasswordResetEvent(user, device, requestContext));
     }
 
 
@@ -291,14 +298,14 @@ public class AuthServiceImpl implements AuthService {
 
 
 
-    private void savePassword(String password, User user, RequestContext requestContext){
+    private void savePassword(String password, User user, Device device, RequestContext requestContext){
         user.setPassword( passwordEncoder.encode(password) );
         if(user.isMustChangePassword()){
             user.setMustChangePassword(false);
         }
         userService.saveUser(user);
 
-        eventPublisher.publishEvent(new PasswordChangedEvent(user, requestContext));
+        eventPublisher.publishEvent(new PasswordChangedEvent(user, device, requestContext));
     }
 
 }

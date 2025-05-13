@@ -181,7 +181,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     public ActivityLog logPasswordResetRequest(User user, Device device, RequestContext requestContext) {
         return logUserAction(
                 user,
-                device, // Pas d'appareil connu à ce stade
+                device,
                 ActionLogType.PASSWORD_RESET_REQUEST,
                 true,
                 "Demande de réinitialisation de mot de passe effectuée",

@@ -20,7 +20,7 @@ public class RequestContextDeviceUtils {
         fingerprint.append("_").append(headers.getAcceptLanguage() != null ? headers.getAcceptLanguage() : "");
         fingerprint.append("_").append(userId);
 
-        return generateSecureHash(fingerprint.toString());
+        return fingerprint.toString();
     }
 
     public static void populateDeviceInfo(Device device, UserAgent agent, RequestContext context) {

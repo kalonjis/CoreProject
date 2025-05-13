@@ -66,50 +66,23 @@ public class ActivityLogEventListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleRequestPasswordReset(RequestPasswordResetEvent event) {
-        Device device = null;
-        if (event.user() != null) {
-            try {
-                device = deviceService.detectFromRequestContext(event.requestContext(), event.user());
-            } catch (Exception e) {
-                log.warn("Impossible de détecter le device: {}", e.getMessage());
-            }
-        }
-
-        activityLogService.logPasswordResetRequest(
-                event.user(),
-                device,  // Maintenant on peut passer un device
-                event.requestContext()
-        );
+       activityLogService.logPasswordResetRequest(
+               event.user(),
+               event.device(),
+               event.requestContext()
+       );
     }
 
     @EventListener
     @Async("activityLogExecutor")
     public void handlePasswordChangedEvent(PasswordChangedEvent event) {
-        Device device = null;
-        if (event.user() != null) {
-            try {
-                device = deviceService.detectFromRequestContext(event.requestContext(), event.user());
-            } catch (Exception e) {
-                log.warn("Impossible de détecter le device: {}", e.getMessage());
-            }
-        }
-
         activityLogService.logPasswordChange(
                 event.user(),
-                device,  // Maintenant on peut passer un device
+                event.device(),
                 true,
                 event.requestContext()
         );
     }
 
-    // Autres méthodes de journalisation pour différents types d'événements...
-//    @EventListener
-//    public void handleUserLogin(UserLoginEvent event) {
-//        activityLogService.logLogin(/*...*/);
-//    }
-//
-//    @EventListener
-//    public void handleDeviceRegistration(DeviceRegisteredEvent event) {
-//        activityLogService.logDeviceRegistration(/*...*/);
-//    }
+
 }
