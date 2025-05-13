@@ -64,6 +64,7 @@ public interface ActivityLogService {
      */
     ActivityLog logPasswordResetRequest(
             User user,
+            Device device,
             RequestContext requestContext
     );
 

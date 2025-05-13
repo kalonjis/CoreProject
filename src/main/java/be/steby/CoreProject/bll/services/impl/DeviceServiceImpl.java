@@ -10,8 +10,9 @@ import be.steby.CoreProject.bll.models.RequestContext;
 import be.steby.CoreProject.bll.services.*;
 import be.steby.CoreProject.bll.services.security.impl.DeviceConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
-import be.steby.CoreProject.bll.utils.DeviceDetectionUtils;
-import be.steby.CoreProject.bll.utils.IpUtils;
+import be.steby.CoreProject.bll.utils.device.DeviceDetectionUtils;
+import be.steby.CoreProject.bll.utils.device.IpUtils;
+import be.steby.CoreProject.bll.utils.device.RequestContextDeviceUtils;
 import be.steby.CoreProject.dal.repositories.DeviceRepository;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
@@ -116,6 +117,52 @@ public class DeviceServiceImpl implements DeviceService {
     public Device detectCurrentDevice(HttpServletRequest request) {
         User user = userService.getAuthenticatedUser();
         Device device = detectAndRegisterDevice(request, user, false);
+        return device;
+    }
+
+
+    @Override
+    @Transactional
+    public Device detectFromRequestContext(RequestContext requestContext, User user) {
+        String userAgentString = requestContext.getUserAgent();
+        String ipAddress = requestContext.getClientIp();
+
+        // Utiliser la nouvelle méthode Utils
+        String fingerprint = RequestContextDeviceUtils.generateFingerprint(requestContext, user.getId());
+        // Ou si vous avez choisi l'option 1:
+        // String fingerprint = DeviceDetectionUtils.generateFingerprint(requestContext, user.getId());
+
+        UserAgent agent = userAgentAnalyzer.parse(userAgentString);
+
+        Device device = deviceRepository.findByFingerprint(fingerprint)
+                .map(existingDevice -> updateExistingDevice(user, existingDevice, ipAddress, false))
+                .orElseGet(() -> createNewDeviceFromContext(user, agent, requestContext, fingerprint, ipAddress));
+
+        return device;
+    }
+
+    private Device createNewDeviceFromContext(User user, UserAgent agent, RequestContext requestContext,
+                                              String fingerprint, String ipAddress) {
+        Device device = Device.builder()
+                .user(user)
+                .fingerprint(fingerprint)
+                .firstSeen(Instant.now())
+                .lastSeen(Instant.now())
+                .lastIpAddress(ipAddress)
+                .location(IpUtils.getLocationFromIp(ipAddress))
+                .deviceTrustLevel(DeviceTrustLevel.UNTRUSTED)
+                .confirmed(false)
+                .blacklisted(false)
+                .build();
+
+        // Utiliser la nouvelle méthode Utils
+        RequestContextDeviceUtils.populateDeviceInfo(device, agent, requestContext);
+
+        if(isFirstDevice(user)){
+            device.setFirstDeviceUsed(true);
+        }
+
+        deviceRepository.save(device);
         return device;
     }
 
