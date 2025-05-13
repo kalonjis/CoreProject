@@ -3,7 +3,7 @@ package be.steby.CoreProject.bll.services.impl;
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
 import be.steby.CoreProject.bll.models.RequestContext;
 import be.steby.CoreProject.bll.services.ActivityLogService;
-import be.steby.CoreProject.bll.utils.IpUtils;
+import be.steby.CoreProject.bll.utils.device.IpUtils;
 import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
@@ -178,7 +178,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional
-    public ActivityLog logPasswordResetRequest(User user, RequestContext requestContext) {
+    public ActivityLog logPasswordResetRequest(User user, Device device, RequestContext requestContext) {
         return logUserAction(
                 user,
                 null, // Pas d'appareil connu à ce stade

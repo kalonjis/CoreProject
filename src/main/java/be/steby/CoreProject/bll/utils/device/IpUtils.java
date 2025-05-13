@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.utils;
+package be.steby.CoreProject.bll.utils.device;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.client.RestTemplate;

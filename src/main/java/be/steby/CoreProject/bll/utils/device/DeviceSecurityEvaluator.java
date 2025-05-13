@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.utils;
+package be.steby.CoreProject.bll.utils.device;
 
 import be.steby.CoreProject.bll.events.device.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.services.DeviceService;

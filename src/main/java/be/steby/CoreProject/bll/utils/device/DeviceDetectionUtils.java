@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.utils;
+package be.steby.CoreProject.bll.utils.device;
 
 import be.steby.CoreProject.dl.entities.Device;
 import jakarta.servlet.http.HttpServletRequest;

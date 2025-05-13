@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.services;
 
+import be.steby.CoreProject.bll.models.RequestContext;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
@@ -20,6 +21,8 @@ public interface DeviceService {
     Device detectAndRegisterDevice(HttpServletRequest request, User user, boolean confirmDevice);
 
     Device detectCurrentDevice(HttpServletRequest request);
+
+    Device detectFromRequestContext(RequestContext requestContext, User user);
 
     void updateTrustLevel(Long deviceId, DeviceTrustLevel level, HttpServletRequest request);
 
