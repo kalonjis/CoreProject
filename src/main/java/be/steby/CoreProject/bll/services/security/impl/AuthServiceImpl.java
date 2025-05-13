@@ -3,9 +3,12 @@ package be.steby.CoreProject.bll.services.security.impl;
 import be.steby.CoreProject.bll.events.security.password_events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.events.security.password_events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.exceptions.*;
+import be.steby.CoreProject.bll.models.RequestContext;
 import be.steby.CoreProject.bll.services.MailerService;
+import be.steby.CoreProject.bll.services.RequestContextService;
 import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.services.security.AuthService;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.EmailConfirmationToken;
@@ -13,6 +16,7 @@ import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
 import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
 import be.steby.CoreProject.pl.security.models.ChangePasswordForm;
 import be.steby.CoreProject.pl.security.models.PasswordResetForm;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,6 +34,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
     private final MailerService mailerService;
+    private final RequestContextService requestContextService;
     private final ApplicationEventPublisher eventPublisher;
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
@@ -140,36 +145,40 @@ public class AuthServiceImpl implements AuthService {
 
     // region password
     @Override
-    public void resetPassword(PasswordResetForm form, String token){
+    public void resetPassword(PasswordResetForm form, String token, HttpServletRequest request) {
         checkIsNotAnonymous();
+
         PasswordResetToken passwordResetToken = passwordResetTokenService.getToken(token);
         passwordResetTokenService.verifyTokenValidity(passwordResetToken);
         passwordResetTokenService.revokeToken(passwordResetToken);
         User user = passwordResetToken.getUser();
-        PasswordResetAttemptService.clearAttempts(user);
-        savePassword(form.password(), user);
+
+        RequestContext requestContext = requestContextService.captureRequestContext(request);
+        savePassword(form.password(), user, requestContext);
     }
 
 
     @Override
-    public void changePassword(ChangePasswordForm form) {
+    public void changePassword(ChangePasswordForm form, HttpServletRequest request) {
         User authenticatedUser = userService.getAuthenticatedUser();
-        if(!passwordEncoder.matches( form.currentPassword(), authenticatedUser.getPassword() ) ){
+
+        if(!passwordEncoder.matches(form.currentPassword(), authenticatedUser.getPassword())){
             throw new InvalidPasswordException("The current password is not correct", 400);
         }
-        String newPassword = form.password();
-        if(!newPassword.equals(form.confirmPassword())){
-            throw new InvalidPasswordException("Les mots de passe doivent être identiques", 400);
-        }
-        savePassword(newPassword, authenticatedUser);
+
+        RequestContext requestContext = requestContextService.captureRequestContext(request);
+        savePassword(form.password(), authenticatedUser, requestContext);
     }
 
 
+
     @Override
-    public void requestPasswordReset(String email) {
+    public void requestPasswordReset(String email, HttpServletRequest request) {
         checkIsNotAnonymous();
         User user = userService.getUserByEmail(email);
-        eventPublisher.publishEvent(new RequestPasswordResetEvent(user));
+
+        RequestContext requestContext = requestContextService.captureRequestContext(request);
+        eventPublisher.publishEvent(new RequestPasswordResetEvent(user, requestContext));
     }
 
 
@@ -282,14 +291,14 @@ public class AuthServiceImpl implements AuthService {
 
 
 
-    private void savePassword(String password, User user){
+    private void savePassword(String password, User user, RequestContext requestContext){
         user.setPassword( passwordEncoder.encode(password) );
         if(user.isMustChangePassword()){
             user.setMustChangePassword(false);
         }
         userService.saveUser(user);
 
-        eventPublisher.publishEvent(new PasswordChangedEvent(user));
+        eventPublisher.publishEvent(new PasswordChangedEvent(user, requestContext));
     }
 
 }

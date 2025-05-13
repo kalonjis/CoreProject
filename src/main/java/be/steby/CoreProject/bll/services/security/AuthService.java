@@ -4,6 +4,7 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
 import be.steby.CoreProject.pl.security.models.ChangePasswordForm;
 import be.steby.CoreProject.pl.security.models.PasswordResetForm;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -50,11 +51,11 @@ public interface AuthService extends UserDetailsService {
      * @param form
      * @param password The new password to set for the user.
      */
-    void resetPassword(PasswordResetForm form, String password);
+    void resetPassword(PasswordResetForm form, String password, HttpServletRequest request);
 
-    void changePassword(ChangePasswordForm form);
+    void changePassword(ChangePasswordForm form, HttpServletRequest request);
 
-    void requestPasswordReset(String email);
+    void requestPasswordReset(String email, HttpServletRequest request);
 
     void requestPasswordToken(String token);
 
