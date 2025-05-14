@@ -15,15 +15,15 @@ public class RequestContextDeviceUtils {
      * Génère exactement le même fingerprint que DeviceDetectionUtils
      * mais à partir d'un RequestContext (pour usage asynchrone)
      */
-    public static String generateFingerprint(RequestContext context, Long userId) {
+    public static String generateFingerprint(RequestContext context, Long userId, UserAgentAnalyzer analyzer) {
         StringBuilder fingerprint = new StringBuilder();
 
         // 1. User Agent - utiliser exactement la même logique que DeviceDetectionUtils
         String userAgent = context.getUserAgent();
         if (userAgent != null) {
-            UserAgentAnalyzer analyzer = UserAgentAnalyzer.newBuilder()
-                    .withCache(1000)
-                    .build();
+//            UserAgentAnalyzer analyzer = UserAgentAnalyzer.newBuilder()
+//                    .withCache(1000)
+//                    .build();
             UserAgent agent = analyzer.parse(userAgent);
 
             // Extraire exactement les mêmes éléments que DeviceDetectionUtils

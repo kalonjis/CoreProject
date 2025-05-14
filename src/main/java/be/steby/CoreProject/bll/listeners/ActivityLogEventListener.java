@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.listeners;
 
 import be.steby.CoreProject.bll.events.account.ConfirmNewUserAccountEvent;
+import be.steby.CoreProject.bll.events.account.SignupEvent;
 import be.steby.CoreProject.bll.events.device.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.events.security.UserLoggedInEvent;
 import be.steby.CoreProject.bll.events.security.UserLogoutEvent;
@@ -9,6 +10,7 @@ import be.steby.CoreProject.bll.events.security.password_events.RequestPasswordR
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.dl.entities.Device;
+import be.steby.CoreProject.dl.entities.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -67,38 +69,80 @@ public class ActivityLogEventListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleRequestPasswordReset(RequestPasswordResetEvent event) {
-       activityLogService.logPasswordResetRequest(
-               event.user(),
-               event.device(),
-               event.requestContext()
-       );
-    }
+        Device device = null;
+        try{
+            device = deviceService.detectFromRequestContext(event.requestContext(), event.user());
 
-    @EventListener
-    @Async("activityLogExecutor")
-    public void handlePasswordChangedEvent(PasswordChangedEvent event) {
-        activityLogService.logPasswordChange(
+        } catch(Exception e){
+            warnDeviceNotDetected(event.user(), e);
+        }
+
+        activityLogService.logPasswordResetRequest(
                 event.user(),
-                event.device(),
-                true,
+                device,
                 event.requestContext()
         );
     }
 
     @EventListener
     @Async("activityLogExecutor")
-    public void handleConfirmNewUserAccountEvent (ConfirmNewUserAccountEvent event){
+    public void handlePasswordChangedEvent(PasswordChangedEvent event) {
+        Device device = null;
         try{
-            Device device = deviceService.detectFromRequestContext(event.requestContext(), event.user());
-            activityLogService.logNewAccountActivation(
-                    event.user(),
-                    device,
-                    event.requestContext()
-            );
+            device = deviceService.detectFromRequestContext(event.requestContext(), event.user());
 
         } catch(Exception e){
-            log.info("impossile de détecter le device");
+            warnDeviceNotDetected(event.user(), e);
         }
+        activityLogService.logPasswordChange(
+                event.user(),
+                device,
+                true,
+                event.requestContext()
+        );
+    }
+
+
+    @EventListener
+    @Async("activityLogExecutor")
+    public void handleSignupEvent(SignupEvent event) {
+        Device device = null;
+
+        try {
+            device = deviceService.detectFromRequestContext(event.requestContext(), event.user());
+        } catch (Exception e) {
+            warnDeviceNotDetected(event.user(), e);
+        }
+
+        activityLogService.logAccountCreation(
+                event.user(),
+                device,
+                event.requestContext()
+        );
+    }
+
+
+    @EventListener
+    @Async("activityLogExecutor")
+    public void handleConfirmNewUserAccountEvent (ConfirmNewUserAccountEvent event){
+        Device device = null;
+        try{
+            device = deviceService.detectFromRequestContext(event.requestContext(), event.user());
+
+        } catch(Exception e){
+            warnDeviceNotDetected(event.user(), e);
+        }
+
+        activityLogService.logNewAccountActivation(
+            event.user(),
+            device,
+            event.requestContext()
+        );
+    }
+
+    private void warnDeviceNotDetected(User user, Exception e){
+        log.warn("Impossible de détecter le device pour {}: {}",
+                user.getUsername(), e.getMessage());
     }
 
 

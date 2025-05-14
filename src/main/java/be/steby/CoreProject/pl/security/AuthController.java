@@ -52,8 +52,8 @@ public class AuthController {
 
 
     @PostMapping("signup")
-    public ResponseEntity<UserShortDTO>signup(@Valid @RequestBody UserSignupForm form){
-       User user = authService.signup(form.toEntity());
+    public ResponseEntity<UserShortDTO>signup(@Valid @RequestBody UserSignupForm form, HttpServletRequest request){
+       User user = authService.signup(form.toEntity(), request);
        String location = "/api/user/" + user.getId();
        return ResponseEntity.created(URI.create(location)).build();
     }

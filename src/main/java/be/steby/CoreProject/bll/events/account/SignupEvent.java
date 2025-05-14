@@ -1,10 +1,10 @@
-package be.steby.CoreProject.bll.events.security.password_events;
+package be.steby.CoreProject.bll.events.account;
 
 import be.steby.CoreProject.bll.models.RequestContext;
-import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 
-public record PasswordChangedEvent(
+public record SignupEvent(
         User user,
         RequestContext requestContext
-    ) { }
+) {
+}
