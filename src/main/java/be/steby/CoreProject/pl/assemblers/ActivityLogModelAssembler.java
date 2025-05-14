@@ -1,8 +1,8 @@
 package be.steby.CoreProject.pl.assemblers;
 
 import be.steby.CoreProject.dl.entities.ActivityLog;
-import be.steby.CoreProject.pl.security.ConnectionLogController;
-import be.steby.CoreProject.pl.security.models.ConnectionLogDTO;
+import be.steby.CoreProject.pl.security.ActivityLogController;
+import be.steby.CoreProject.pl.security.models.ActivityLogDTO;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
@@ -15,25 +15,25 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
  * with proper HATEOAS links.
  */
 @Component
-public class ConnectionLogModelAssembler implements RepresentationModelAssembler<ActivityLog, EntityModel<ConnectionLogDTO>> {
+public class ActivityLogModelAssembler implements RepresentationModelAssembler<ActivityLog, EntityModel<ActivityLogDTO>> {
 
     @Override
-    public EntityModel<ConnectionLogDTO> toModel(ActivityLog log) {
-        ConnectionLogDTO dto = ConnectionLogDTO.fromEntity(log);
+    public EntityModel<ActivityLogDTO> toModel(ActivityLog log) {
+        ActivityLogDTO dto = ActivityLogDTO.fromEntity(log);
 
         // Create an EntityModel with relevant links
-        EntityModel<ConnectionLogDTO> model = EntityModel.of(dto);
+        EntityModel<ActivityLogDTO> model = EntityModel.of(dto);
 
         // Add link to user's connection history if this is not anonymous access
         if (log.getUser() != null && log.getUser().getId() != null) {
-            model.add(linkTo(methodOn(ConnectionLogController.class)
+            model.add(linkTo(methodOn(ActivityLogController.class)
                     .getUserConnectionHistory(log.getUser().getId(), null))
                     .withRel("userHistory"));
         }
 
         // Add device-specific link if a device is associated
         if (log.getDevice() != null && log.getDevice().getId() != null) {
-            model.add(linkTo(methodOn(ConnectionLogController.class)
+            model.add(linkTo(methodOn(ActivityLogController.class)
                     .searchLogs(log.getUser().getId(), null, null, null, null, null, null))
                     .withRel("deviceActivity")
                     .expand(log.getDevice().getId()));
@@ -41,7 +41,7 @@ public class ConnectionLogModelAssembler implements RepresentationModelAssembler
 
         // Add action-type link to find similar actions
         if (log.getActionType() != null) {
-            model.add(linkTo(methodOn(ConnectionLogController.class)
+            model.add(linkTo(methodOn(ActivityLogController.class)
                     .searchLogs(null, null, java.util.Collections.singletonList(log.getActionType()), null, null, null, null))
                     .withRel("similarActions"));
         }
@@ -53,14 +53,14 @@ public class ConnectionLogModelAssembler implements RepresentationModelAssembler
      * Creates an EntityModel with links but without certain potentially sensitive details
      * for use in public-facing APIs.
      */
-    public EntityModel<ConnectionLogDTO> toPublicModel(ActivityLog log) {
-        ConnectionLogDTO dto = ConnectionLogDTO.fromEntity(log);
+    public EntityModel<ActivityLogDTO> toPublicModel(ActivityLog log) {
+        ActivityLogDTO dto = ActivityLogDTO.fromEntity(log);
 
         // Remove sensitive information
         // In a real application, you might create a separate DTO for public view
 
         return EntityModel.of(dto,
-                linkTo(methodOn(ConnectionLogController.class).getActionTypes())
+                linkTo(methodOn(ActivityLogController.class).getActionTypes())
                         .withRel("actionTypes"));
     }
 }

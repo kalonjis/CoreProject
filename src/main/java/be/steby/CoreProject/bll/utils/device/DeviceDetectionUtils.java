@@ -3,32 +3,171 @@ package be.steby.CoreProject.bll.utils.device;
 import be.steby.CoreProject.dl.entities.Device;
 import jakarta.servlet.http.HttpServletRequest;
 import nl.basjes.parse.useragent.UserAgent;
+import nl.basjes.parse.useragent.UserAgentAnalyzer;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Enumeration;
 
 public class DeviceDetectionUtils {
+
+    /**
+     * Génère une empreinte unique pour l'appareil SANS utiliser l'adresse IP
+     * pour éviter de créer de nouveaux devices à chaque changement d'IP
+     *
+     * Cette méthode utilise uniquement les headers HTTP standard disponibles
+     * pour fonctionner avec n'importe quel client (Angular, Postman, etc.)
+     */
+    public static String generateFingerprint(HttpServletRequest request, Long userId) {
+        StringBuilder fingerprint = new StringBuilder();
+
+        // 1. User Agent - l'information la plus stable et toujours disponible
+        String userAgent = request.getHeader("User-Agent");
+        if (userAgent != null) {
+            UserAgentAnalyzer analyzer = UserAgentAnalyzer.newBuilder()
+                    .withCache(1000)
+                    .build();
+            UserAgent agent = analyzer.parse(userAgent);
+
+            // Extraire des éléments spécifiques qui sont stables
+            String osName = agent.getValue(UserAgent.OPERATING_SYSTEM_NAME);
+            String osVersionMajor = agent.getValue(UserAgent.OPERATING_SYSTEM_VERSION_MAJOR);
+            String browserName = agent.getValue(UserAgent.AGENT_NAME);
+            String browserVersionMajor = agent.getValue(UserAgent.AGENT_VERSION_MAJOR);
+            String deviceClass = agent.getValue(UserAgent.DEVICE_CLASS);
+            String deviceName = agent.getValue(UserAgent.DEVICE_NAME);
+            String deviceBrand = agent.getValue(UserAgent.DEVICE_BRAND);
+
+            // Ajouter seulement les valeurs non-null et valides
+            appendIfValid(fingerprint, "OS", osName);
+
+            // Ne pas utiliser la version OS si elle est UNDEFINED
+            if (osVersionMajor != null && !"UNDEFINED".equals(osVersionMajor)) {
+                appendIfValid(fingerprint, "OSVer", osVersionMajor);
+            }
+
+            appendIfValid(fingerprint, "Browser", browserName);
+
+            // Ne pas utiliser la version du navigateur dans le fingerprint
+            // car elle peut ne pas être disponible lors de certaines requêtes
+            // appendIfValid(fingerprint, "BrowserVer", browserVersionMajor);
+
+            appendIfValid(fingerprint, "DeviceClass", deviceClass);
+            appendIfValid(fingerprint, "DeviceName", deviceName);
+            appendIfValid(fingerprint, "DeviceBrand", deviceBrand);
+        } else {
+            fingerprint.append("UserAgent:unknown");
+        }
+
+        // 2. En-têtes HTTP stables (souvent constants pour un même appareil)
+        String acceptLanguage = normalizeAcceptLanguage(request.getHeader("Accept-Language"));
+        String acceptEncoding = request.getHeader("Accept-Encoding");
+
+        appendIfValid(fingerprint, "Lang", acceptLanguage);
+        appendIfValid(fingerprint, "Encoding", acceptEncoding);
+
+        // 3. Headers additionnels s'ils sont disponibles (pour clients avancés comme Angular)
+        String screenResolution = request.getHeader("X-Screen-Resolution");
+        String timezone = request.getHeader("X-Timezone");
+        String platform = request.getHeader("X-Platform");
+
+        if (screenResolution != null) {
+            appendIfValid(fingerprint, "Screen", screenResolution);
+        }
+        if (timezone != null) {
+            appendIfValid(fingerprint, "TZ", timezone);
+        }
+        if (platform != null) {
+            appendIfValid(fingerprint, "Platform", platform);
+        }
+
+        // 4. ID utilisateur pour éviter les collisions entre utilisateurs
+        fingerprint.append("_User:").append(userId);
+
+        // Debug log
+        System.out.println("Generated fingerprint components: " + fingerprint.toString());
+
+        // 5. Générer un hash SHA-256 de l'empreinte
+        return generateSecureHash(fingerprint.toString());
+    }
+
+    /**
+     * Ajoute une valeur au fingerprint seulement si elle est valide
+     */
+    private static void appendIfValid(StringBuilder fingerprint, String key, String value) {
+        if (value != null && !value.isEmpty() && !value.equals("??") && !value.equals("Unknown") && !value.equals("UNDEFINED")) {
+            fingerprint.append("_").append(key).append(":").append(value);
+        }
+    }
+
+    /**
+     * Normalise Accept-Language pour une comparaison stable
+     */
+    private static String normalizeAcceptLanguage(String acceptLanguage) {
+        if (acceptLanguage == null || acceptLanguage.isEmpty()) {
+            return "unknown";
+        }
+
+        // Prendre seulement la langue principale (avant la virgule)
+        if (acceptLanguage.contains(",")) {
+            acceptLanguage = acceptLanguage.split(",")[0];
+        }
+
+        // Retirer la qualité (q=0.9)
+        if (acceptLanguage.contains(";")) {
+            acceptLanguage = acceptLanguage.split(";")[0];
+        }
+
+        return acceptLanguage.trim().toLowerCase();
+    }
+
+    /**
+     * Génère un hash SHA-256 sécurisé de la chaîne d'empreinte
+     */
+    private static String generateSecureHash(String data) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = md.digest(data.getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            // Fallback si SHA-256 n'est pas disponible
+            return String.valueOf(data.hashCode()) + "_" + System.currentTimeMillis();
+        }
+    }
 
     /**
      * Détermine le type d'appareil à partir des données d'analyse
      */
     public static String determineDeviceType(UserAgent agent) {
         // Vérifier le champ DeviceClass qui indique spécifiquement le type d'appareil
-        String deviceClass = agent.getValue("DeviceClass");
+        String deviceClass = agent.getValue(UserAgent.DEVICE_CLASS);
         if (deviceClass != null && !deviceClass.isEmpty()) {
-            if (deviceClass.equalsIgnoreCase("Phone")) {
-                return "MOBILE";
-            } else if (deviceClass.equalsIgnoreCase("Tablet")) {
-                return "TABLET";
-            } else if (deviceClass.equalsIgnoreCase("Desktop")) {
-                return "DESKTOP";
+            switch (deviceClass.toLowerCase()) {
+                case "phone":
+                    return "MOBILE";
+                case "tablet":
+                    return "TABLET";
+                case "desktop":
+                    return "DESKTOP";
+                case "watch":
+                    return "WEARABLE";
+                case "tv":
+                case "set-top box":
+                    return "TV";
+                case "game console":
+                    return "GAME_CONSOLE";
             }
         }
 
-        // Si DeviceClass n'est pas disponible ou ne correspond pas à nos catégories,
-        // utiliser le champ DeviceType pour plus de précision
+        // Si DeviceClass n'est pas disponible, utiliser DeviceType
         String deviceType = agent.getValue("DeviceType");
         if (deviceType != null && !deviceType.isEmpty()) {
             switch (deviceType.toLowerCase()) {
@@ -54,30 +193,17 @@ public class DeviceDetectionUtils {
             }
         }
 
-        // Utiliser la forme du facteur comme fallback
-        String formFactor = agent.getValue("DeviceFormFactor");
-        if (formFactor != null && !formFactor.isEmpty()) {
-            if (formFactor.contains("Smartphone") || formFactor.contains("Phone")) {
-                return "MOBILE";
-            } else if (formFactor.contains("Tablet")) {
-                return "TABLET";
-            } else if (formFactor.contains("Desktop")) {
-                return "DESKTOP";
-            }
-        }
-
-        // En dernier recours, vérifier le système d'exploitation
+        // En dernier recours, analyser le système d'exploitation
         String os = agent.getValue(UserAgent.OPERATING_SYSTEM_NAME);
         if (os != null) {
             if (os.contains("Android") || os.contains("iOS") || os.contains("iPhone OS")) {
-                // Vérifier si c'est une tablette Android ou un iPad
+                // Vérifier si c'est une tablette
                 String deviceName = agent.getValue(UserAgent.DEVICE_NAME);
-                if ((os.contains("Android") && (deviceName != null && deviceName.contains("Tablet"))) ||
-                        (os.contains("iOS") && deviceName != null && deviceName.contains("iPad"))) {
+                if (deviceName != null && (deviceName.contains("iPad") || deviceName.contains("Tablet"))) {
                     return "TABLET";
                 }
                 return "MOBILE";
-            } else if (os.contains("Windows") || os.contains("Mac OS X") || os.contains("Linux")) {
+            } else if (os.contains("Windows") || os.contains("Mac OS X") || os.contains("Linux") || os.contains("Ubuntu")) {
                 return "DESKTOP";
             }
         }
@@ -93,7 +219,7 @@ public class DeviceDetectionUtils {
 
         // Si la version est "??" ou vide, essayer d'autres méthodes d'extraction
         if (osVersion == null || osVersion.isEmpty() || "??".equals(osVersion)) {
-            // Essayer d'extraire depuis des champs alternatifs de YAUAA
+            // Essayer d'extraire depuis des champs alternatifs
             osVersion = agent.getValue("OperatingSystemVersionBuild");
 
             if (osVersion == null || osVersion.isEmpty()) {
@@ -102,149 +228,39 @@ public class DeviceDetectionUtils {
                     // Tenter d'extraire juste la partie version
                     String[] parts = osVersion.split(" ");
                     if (parts.length > 1) {
-                        // Prendre le dernier élément comme version potentielle
                         osVersion = parts[parts.length - 1];
-                    }
-                }
-            }
-
-            // En dernier recours, essayer d'extraire manuellement depuis le User-Agent brut
-            if (osVersion == null || osVersion.isEmpty() || "??".equals(osVersion)) {
-                String ua = agent.getUserAgentString();
-                if (ua != null) {
-                    // Pour Windows
-                    if (ua.contains("Windows NT")) {
-                        int start = ua.indexOf("Windows NT") + 11;
-                        int end = ua.indexOf(")", start);
-                        if (start > 0 && end > start) {
-                            osVersion = ua.substring(start, end).trim();
-                            // Convertir les versions NT en noms conviviaux
-                            switch (osVersion) {
-                                case "10.0": return "10";
-                                case "6.3": return "8.1";
-                                case "6.2": return "8";
-                                case "6.1": return "7";
-                                case "6.0": return "Vista";
-                                case "5.2": return "XP 64-bit";
-                                case "5.1": return "XP";
-                            }
-                        }
-                    }
-                    // Pour macOS
-                    else if (ua.contains("Mac OS X")) {
-                        int start = ua.indexOf("Mac OS X") + 9;
-                        int end = ua.indexOf(")", start);
-                        if (end == -1) end = ua.indexOf(";", start);
-                        if (start > 0 && end > start) {
-                            osVersion = ua.substring(start, end).trim();
-                            // Nettoyer la version
-                            osVersion = osVersion.replace("_", ".");
-                        }
-                    }
-                    // Pour Android
-                    else if (ua.contains("Android")) {
-                        int start = ua.indexOf("Android") + 8;
-                        int end = ua.indexOf(";", start);
-                        if (end == -1) end = ua.indexOf(" ", start);
-                        if (start > 0 && end > start) {
-                            osVersion = ua.substring(start, end).trim();
-                        }
                     }
                 }
             }
         }
 
-        return osVersion == null ? "Unknown" : osVersion;
+        // Retourner "Unknown" au lieu de "UNDEFINED" pour la cohérence
+        return osVersion != null && !osVersion.isEmpty() && !"??".equals(osVersion) ? osVersion : "Unknown";
     }
 
     /**
      * Récupère la langue préférée de l'utilisateur à partir de la requête HTTP
      */
     public static String getAcceptedLanguage(HttpServletRequest request) {
-        String language = "Unknown";
-        Enumeration<String> headerNames = request.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
-            String headerName = headerNames.nextElement();
-            if ("accept-language".equalsIgnoreCase(headerName)) {
-                String acceptLanguage = request.getHeader(headerName);
-                if (acceptLanguage != null && !acceptLanguage.isEmpty()) {
-                    String[] languages = acceptLanguage.split(",");
-                    if (languages.length > 0) {
-                        language = languages[0];
-                        break;
-                    }
-                }
-            }
-        }
-        return language;
-    }
-
-    /**
-     * Génère une empreinte unique pour l'appareil
-     */
-    public static String generateFingerprint(HttpServletRequest request, Long userId) {
-        StringBuilder fingerprint = new StringBuilder();
-
-        // Informations de base
-        String userAgent = request.getHeader("User-Agent");
-        fingerprint.append(userAgent != null ? userAgent : "unknown");
-
-        // Ajout de l'IP (même si l'IP peut changer, elle reste utile)
-        String ip = IpUtils.getClientIp(request);
-        fingerprint.append("_").append(ip);
-
-        // En-têtes HTTP additionnels
-        String acceptHeader = request.getHeader("Accept");
         String acceptLanguage = request.getHeader("Accept-Language");
-        String acceptEncoding = request.getHeader("Accept-Encoding");
-
-        fingerprint.append("_").append(acceptHeader != null ? acceptHeader : "")
-                .append("_").append(acceptLanguage != null ? acceptLanguage : "")
-                .append("_").append(acceptEncoding != null ? acceptEncoding : "");
-
-        // Inclure le fuseau horaire et la résolution d'écran si disponibles
-        // (ces informations pourraient être envoyées par le client via des en-têtes personnalisés)
-        String timezone = request.getHeader("X-Timezone");
-        String screenInfo = request.getHeader("X-Screen-Info");
-
-        if (timezone != null) {
-            fingerprint.append("_").append(timezone);
+        if (acceptLanguage != null && !acceptLanguage.isEmpty()) {
+            return normalizeAcceptLanguage(acceptLanguage);
         }
-
-        if (screenInfo != null) {
-            fingerprint.append("_").append(screenInfo);
-        }
-
-        // Inclure l'ID de l'utilisateur
-        fingerprint.append("_").append(userId);
-
-        // Générer un hash pour réduire la taille et masquer les informations brutes
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = md.digest(fingerprint.toString().getBytes(StandardCharsets.UTF_8));
-
-            // Convertir le hash en hexadécimal
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hashBytes) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
-            }
-
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            // Fallback si SHA-256 n'est pas disponible
-            return fingerprint.toString().hashCode() + "_" + userId;
-        }
+        return "Unknown";
     }
 
     /**
      * Extrait les informations d'appareil à partir de l'agent utilisateur
+     * et remplit l'objet Device avec toutes les informations disponibles
      */
     public static void populateDeviceInfo(Device device, UserAgent agent, HttpServletRequest request) {
         device.setDeviceType(determineDeviceType(agent));
         device.setBrowser(agent.getValue(UserAgent.AGENT_NAME));
-        device.setBrowserVersion(agent.getValue(UserAgent.AGENT_VERSION));
+
+        // Stocker la version du navigateur seulement si elle est disponible
+        String browserVersion = agent.getValue(UserAgent.AGENT_VERSION);
+        device.setBrowserVersion(browserVersion != null && !browserVersion.isEmpty() ? browserVersion : null);
+
         device.setOperatingSystem(agent.getValue(UserAgent.OPERATING_SYSTEM_NAME));
         device.setOsVersion(getOsVersion(agent));
         device.setDevice_cpu(agent.getValue(UserAgent.DEVICE_CPU));

@@ -8,7 +8,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
-public record ConnectionLogDTO(
+public record ActivityLogDTO(
         Long id,
         Long userId,
         String username,
@@ -30,7 +30,7 @@ public record ConnectionLogDTO(
         String formattedDuration,
         Object metadataObj
 ) {
-    public static ConnectionLogDTO fromEntity(ActivityLog log) {
+    public static ActivityLogDTO fromEntity(ActivityLog log) {
         // Extraire les informations de l'appareil
         String deviceInfo = log.getDevice() != null ?
                 String.format("%s - %s %s",
@@ -71,7 +71,7 @@ public record ConnectionLogDTO(
             }
         }
 
-        return new ConnectionLogDTO(
+        return new ActivityLogDTO(
                 log.getId(),
                 log.getUser().getId(),
                 log.getUser().getUsername(),

@@ -107,8 +107,14 @@ public interface ActivityLogService {
             RequestContext requestContext
     );
 
+
     /**
-     * Enregistre l'activation d'un compte utilisateur
+     * Enregistre l'activation d'un compte d'un nouvel utilisateur (1ere activation)
+     */
+    ActivityLog logNewAccountActivation(User user, Device device, RequestContext requestContext);
+
+    /**
+     * Enregistre l'activation d'un compte utilisateur (après une désactivation)
      */
     ActivityLog logAccountActivation(
             User user,

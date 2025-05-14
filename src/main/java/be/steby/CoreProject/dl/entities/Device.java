@@ -37,10 +37,10 @@ public class Device extends BaseEntity<Long> {
     private String device_cpu;
 
 
-    @Column(length = 10)
+    @Column(length = 50)
     private String device_cpu_bits;
 
-    @Column(length = 20)
+    @Column(length = 50)
     private String language;
 
     @Column(length = 100)

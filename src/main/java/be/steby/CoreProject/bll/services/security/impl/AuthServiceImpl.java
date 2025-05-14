@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.services.security.impl;
 
+import be.steby.CoreProject.bll.events.account.ConfirmNewUserAccountEvent;
 import be.steby.CoreProject.bll.events.security.password_events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.events.security.password_events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.exceptions.*;
@@ -97,15 +98,23 @@ public class AuthServiceImpl implements AuthService {
     // region AccountConfirmation
 
     @Override
-    public User confirmNewUserAccount(String token) {
+    public User confirmNewUserAccount(String token, HttpServletRequest request) {
         AccountConfirmationToken accountConfirmationToken = accountConfirmationTokenService.getToken(token);
         accountConfirmationTokenService.verifyTokenValidity(accountConfirmationToken);
-        accountConfirmationTokenService.revokeToken(accountConfirmationToken);
+
         User user = accountConfirmationToken.getUser();
-        accountConfirmationAttemptService.clearAttempts(user);
+
         userService.activateUser(user.getId());
         userService.setUserMailVerified(user);
-        mailerService.sendWelcome(user);
+
+        accountConfirmationTokenService.revokeToken(accountConfirmationToken);
+        accountConfirmationAttemptService.clearAttempts(user);
+
+        RequestContext requestContext = requestContextService.captureRequestContext(request);
+        Device device = deviceService.detectFromRequestContext(requestContext, user);
+
+        eventPublisher.publishEvent( new ConfirmNewUserAccountEvent(user, device, requestContext) );
+
         return user;
 
     }
@@ -154,8 +163,9 @@ public class AuthServiceImpl implements AuthService {
         passwordResetTokenService.revokeToken(passwordResetToken);
 
         User user = passwordResetToken.getUser();
-        Device device = deviceService.detectCurrentDevice(request);
+
         RequestContext requestContext = requestContextService.captureRequestContext(request);
+        Device device = deviceService.detectFromRequestContext(requestContext, user);
 
         savePassword(form.password(), user, device, requestContext);
     }
