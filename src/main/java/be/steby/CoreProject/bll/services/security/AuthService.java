@@ -59,7 +59,7 @@ public interface AuthService extends UserDetailsService {
 
     void requestPasswordToken(String token);
 
-    User confirmNewUserAccount(String token);
+    User confirmNewUserAccount(String token, HttpServletRequest request);
 
     void requestActivation(String token);
 

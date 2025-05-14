@@ -31,8 +31,8 @@ public class AccountConfirmationTokenController {
    */
   @GetMapping("/activation")
   public ResponseEntity<Map<String, String>> confirmAccount(@RequestParam String token, HttpServletRequest request) {
-      User user = authService.confirmNewUserAccount(token);
-      deviceService.detectAndRegisterDevice(request, user, false);
+      User user = authService.confirmNewUserAccount(token, request);
+      //deviceService.detectAndRegisterDevice(request, user, false);
       Map<String, String> response = new HashMap<>();
       response.put("message", "Thank you. Your account has been successfully activated. You can now use it to connect to your favorite app.");
       return ResponseEntity.ok()

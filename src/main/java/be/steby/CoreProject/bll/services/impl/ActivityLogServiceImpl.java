@@ -89,6 +89,8 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return savedLog;
     }
 
+    // region Connexion
+
     /**
      * Enregistre une tentative de connexion
      */
@@ -156,6 +158,10 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return log;
     }
 
+    // endregion
+
+    // region Password
+
     /**
      * Enregistre un changement de mot de passe
      */
@@ -206,6 +212,11 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 requestContext
         );
     }
+
+    // endregion
+
+    // region Email
+
 
     /**
      * Enregistre une demande de changement d'email
@@ -266,6 +277,10 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         );
     }
 
+    // endregion
+
+    // region Account
+
     /**
      * Enregistre la création d'un compte utilisateur
      */
@@ -283,8 +298,27 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         );
     }
 
+
     /**
-     * Enregistre l'activation d'un compte utilisateur
+     * Enregistre l'activation d'un nouveau compte utilisateur (1ere activation)
+     */
+    @Override
+    @Transactional
+    public ActivityLog logNewAccountActivation(User user, Device device, RequestContext requestContext) {
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.ACCOUNT_ACTIVATED,
+                true,
+                "Activation du nouveau compte utilisateur",
+                null,
+                requestContext
+        );
+    }
+
+
+    /**
+     * Enregistre l'activation d'un compte utilisateur (apres une désactivation)
      */
     @Override
     @Transactional
@@ -294,7 +328,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 device,
                 ActionLogType.ACCOUNT_ACTIVATED,
                 true,
-                "Activation du compte utilisateur",
+                "Réactivation du compte utilisateur",
                 null,
                 requestContext
         );
@@ -328,6 +362,8 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 requestContext
         );
     }
+
+    // endregion
 
     /**
      * Enregistre un changement de rôle utilisateur
