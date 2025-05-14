@@ -18,49 +18,38 @@ public class RequestContextDeviceUtils {
     public static String generateFingerprint(RequestContext context, Long userId) {
         StringBuilder fingerprint = new StringBuilder();
 
-        // 1. Utiliser les infos device déjà parsées si disponibles
-        RequestContext.CapturedDeviceInfo deviceInfo = context.getDeviceInfo();
-        if (deviceInfo != null) {
-            // Utiliser exactement la même logique que DeviceDetectionUtils
-            appendIfValid(fingerprint, "OS", deviceInfo.getOsName());
-
-            // Ne pas utiliser la version OS si elle est UNDEFINED
-            if (deviceInfo.getOsVersionMajor() != null && !"UNDEFINED".equals(deviceInfo.getOsVersionMajor())) {
-                appendIfValid(fingerprint, "OSVer", deviceInfo.getOsVersionMajor());
-            }
-
-            appendIfValid(fingerprint, "Browser", deviceInfo.getBrowserName());
-
-            // NE PAS utiliser la version du navigateur dans le fingerprint
-            // car elle peut être null ou non disponible
-            // appendIfValid(fingerprint, "BrowserVer", deviceInfo.getBrowserVersionMajor());
-
-            appendIfValid(fingerprint, "DeviceClass", deviceInfo.getDeviceClass());
-            appendIfValid(fingerprint, "DeviceName", deviceInfo.getDeviceName());
-            appendIfValid(fingerprint, "DeviceBrand", deviceInfo.getDeviceBrand());
-        } else if (context.getUserAgent() != null) {
-            // Si les infos n'ont pas été pré-parsées, parser maintenant
+        // 1. User Agent - utiliser exactement la même logique que DeviceDetectionUtils
+        String userAgent = context.getUserAgent();
+        if (userAgent != null) {
             UserAgentAnalyzer analyzer = UserAgentAnalyzer.newBuilder()
                     .withCache(1000)
                     .build();
-            UserAgent agent = analyzer.parse(context.getUserAgent());
+            UserAgent agent = analyzer.parse(userAgent);
 
-            appendIfValid(fingerprint, "OS", agent.getValue(UserAgent.OPERATING_SYSTEM_NAME));
+            // Extraire exactement les mêmes éléments que DeviceDetectionUtils
+            String osName = agent.getValue(UserAgent.OPERATING_SYSTEM_NAME);
+            String osVersionMajor = agent.getValue(UserAgent.OPERATING_SYSTEM_VERSION_MAJOR);
+            String browserName = agent.getValue(UserAgent.AGENT_NAME);
+            String deviceClass = agent.getValue(UserAgent.DEVICE_CLASS);
+            String deviceName = agent.getValue(UserAgent.DEVICE_NAME);
+            String deviceBrand = agent.getValue(UserAgent.DEVICE_BRAND);
+
+            // Ajouter seulement les valeurs non-null et valides
+            appendIfValid(fingerprint, "OS", osName);
 
             // Ne pas utiliser la version OS si elle est UNDEFINED
-            String osVersionMajor = agent.getValue(UserAgent.OPERATING_SYSTEM_VERSION_MAJOR);
             if (osVersionMajor != null && !"UNDEFINED".equals(osVersionMajor)) {
                 appendIfValid(fingerprint, "OSVer", osVersionMajor);
             }
 
-            appendIfValid(fingerprint, "Browser", agent.getValue(UserAgent.AGENT_NAME));
+            appendIfValid(fingerprint, "Browser", browserName);
 
-            // NE PAS utiliser la version du navigateur
-            // appendIfValid(fingerprint, "BrowserVer", agent.getValue(UserAgent.AGENT_VERSION_MAJOR));
+            // NE PAS utiliser la version du navigateur dans le fingerprint
+            // car DeviceDetectionUtils ne l'utilise pas
 
-            appendIfValid(fingerprint, "DeviceClass", agent.getValue(UserAgent.DEVICE_CLASS));
-            appendIfValid(fingerprint, "DeviceName", agent.getValue(UserAgent.DEVICE_NAME));
-            appendIfValid(fingerprint, "DeviceBrand", agent.getValue(UserAgent.DEVICE_BRAND));
+            appendIfValid(fingerprint, "DeviceClass", deviceClass);
+            appendIfValid(fingerprint, "DeviceName", deviceName);
+            appendIfValid(fingerprint, "DeviceBrand", deviceBrand);
         } else {
             fingerprint.append("UserAgent:unknown");
         }
@@ -96,7 +85,7 @@ public class RequestContextDeviceUtils {
 
     /**
      * Ajoute une valeur au fingerprint seulement si elle est valide
-     * (copie exacte de DeviceDetectionUtils avec ajout de UNDEFINED)
+     * (copie exacte de DeviceDetectionUtils)
      */
     private static void appendIfValid(StringBuilder fingerprint, String key, String value) {
         if (value != null && !value.isEmpty() && !value.equals("??") && !value.equals("Unknown") && !value.equals("UNDEFINED")) {
@@ -113,10 +102,12 @@ public class RequestContextDeviceUtils {
             return "unknown";
         }
 
+        // Prendre seulement la langue principale (avant la virgule)
         if (acceptLanguage.contains(",")) {
             acceptLanguage = acceptLanguage.split(",")[0];
         }
 
+        // Retirer la qualité (q=0.9)
         if (acceptLanguage.contains(";")) {
             acceptLanguage = acceptLanguage.split(";")[0];
         }
@@ -142,6 +133,7 @@ public class RequestContextDeviceUtils {
 
             return hexString.toString();
         } catch (NoSuchAlgorithmException e) {
+            // Fallback si SHA-256 n'est pas disponible
             return String.valueOf(data.hashCode()) + "_" + System.currentTimeMillis();
         }
     }
@@ -167,7 +159,7 @@ public class RequestContextDeviceUtils {
             device.setDeviceBrand(deviceInfo.getDeviceBrand());
         } else {
             // Utiliser l'agent si fourni
-            device.setDeviceType(determineDeviceType(agent));
+            device.setDeviceType(DeviceDetectionUtils.determineDeviceType(agent));
             device.setBrowser(agent.getValue(UserAgent.AGENT_NAME));
 
             // Stocker la version du navigateur seulement si elle est disponible
@@ -227,38 +219,6 @@ public class RequestContextDeviceUtils {
                     return "DESKTOP";
                 default:
                     break;
-            }
-        }
-
-        return "UNKNOWN";
-    }
-
-    private static String determineDeviceType(UserAgent agent) {
-        // Même logique que DeviceDetectionUtils
-        String deviceClass = agent.getValue(UserAgent.DEVICE_CLASS);
-        if (deviceClass != null && !deviceClass.isEmpty()) {
-            switch (deviceClass.toLowerCase()) {
-                case "phone":
-                    return "MOBILE";
-                case "tablet":
-                    return "TABLET";
-                case "desktop":
-                    return "DESKTOP";
-                default:
-                    break;
-            }
-        }
-
-        String os = agent.getValue(UserAgent.OPERATING_SYSTEM_NAME);
-        if (os != null) {
-            if (os.contains("Android") || os.contains("iOS") || os.contains("iPhone OS")) {
-                String deviceName = agent.getValue(UserAgent.DEVICE_NAME);
-                if (deviceName != null && (deviceName.contains("iPad") || deviceName.contains("Tablet"))) {
-                    return "TABLET";
-                }
-                return "MOBILE";
-            } else if (os.contains("Windows") || os.contains("Mac OS X") || os.contains("Linux")) {
-                return "DESKTOP";
             }
         }
 
