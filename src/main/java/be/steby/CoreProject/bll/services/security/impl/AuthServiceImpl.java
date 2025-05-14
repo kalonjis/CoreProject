@@ -111,9 +111,8 @@ public class AuthServiceImpl implements AuthService {
         accountConfirmationAttemptService.clearAttempts(user);
 
         RequestContext requestContext = requestContextService.captureRequestContext(request);
-        Device device = deviceService.detectFromRequestContext(requestContext, user);
 
-        eventPublisher.publishEvent( new ConfirmNewUserAccountEvent(user, device, requestContext) );
+        eventPublisher.publishEvent( new ConfirmNewUserAccountEvent(user, requestContext) );
 
         return user;
 

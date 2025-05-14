@@ -88,11 +88,17 @@ public class ActivityLogEventListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleConfirmNewUserAccountEvent (ConfirmNewUserAccountEvent event){
-        activityLogService.logNewAccountActivation(
-                event.user(),
-                event.device(),
-                event.requestContext()
-        );
+        try{
+            Device device = deviceService.detectFromRequestContext(event.requestContext(), event.user());
+            activityLogService.logNewAccountActivation(
+                    event.user(),
+                    device,
+                    event.requestContext()
+            );
+
+        } catch(Exception e){
+            log.info("impossile de détecter le device");
+        }
     }
 
 
