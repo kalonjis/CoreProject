@@ -89,7 +89,7 @@ public class DeviceServiceImpl implements DeviceService {
     public Device detectAndRegisterDevice(HttpServletRequest request, User user, boolean notifyNewDevice ) {
         String userAgentString = request.getHeader("User-Agent");
         String ipAddress = IpUtils.getClientIp(request);
-        String fingerprint = DeviceDetectionUtils.generateFingerprint(request, user.getId());
+        String fingerprint = DeviceDetectionUtils.generateFingerprint(request, user.getId(), userAgentAnalyzer);
         UserAgent agent = userAgentAnalyzer.parse(userAgentString);
 
         Device device = deviceRepository.findByFingerprint(fingerprint)
@@ -128,7 +128,7 @@ public class DeviceServiceImpl implements DeviceService {
         String ipAddress = requestContext.getClientIp();
 
         // Utiliser la nouvelle méthode Utils
-        String fingerprint = RequestContextDeviceUtils.generateFingerprint(requestContext, user.getId());
+        String fingerprint = RequestContextDeviceUtils.generateFingerprint(requestContext, user.getId(), userAgentAnalyzer);
         // Ou si vous avez choisi l'option 1:
         // String fingerprint = DeviceDetectionUtils.generateFingerprint(requestContext, user.getId());
 

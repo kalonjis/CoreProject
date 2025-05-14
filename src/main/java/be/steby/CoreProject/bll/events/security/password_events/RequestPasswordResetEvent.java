@@ -6,6 +6,5 @@ import be.steby.CoreProject.dl.entities.User;
 
 public record RequestPasswordResetEvent(
         User user,
-        Device device,
         RequestContext requestContext) {
 }

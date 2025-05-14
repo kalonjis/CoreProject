@@ -8,6 +8,7 @@ import be.steby.CoreProject.bll.services.security.impl.PasswordResetTokenService
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,6 +20,7 @@ public class PasswordNotificationListener {
 
 
     @EventListener
+    @Async("emailExecutor")
     public void handleRequestPasswordReset(RequestPasswordResetEvent event){
         PasswordResetToken token = passwordResetTokenService.createPasswordResetToken(event.user());
         mailerService.sendPasswordReset(token.getToken(), event.user());
@@ -26,6 +28,7 @@ public class PasswordNotificationListener {
 
 
     @EventListener
+    @Async("emailExecutor")
     public void handlePasswordChanged(PasswordChangedEvent event){
         mailerService.sendPasswordChangeConfirmation(event.user());
     }

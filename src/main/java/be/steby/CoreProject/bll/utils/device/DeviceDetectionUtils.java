@@ -18,15 +18,15 @@ public class DeviceDetectionUtils {
      * Cette méthode utilise uniquement les headers HTTP standard disponibles
      * pour fonctionner avec n'importe quel client (Angular, Postman, etc.)
      */
-    public static String generateFingerprint(HttpServletRequest request, Long userId) {
+    public static String generateFingerprint(HttpServletRequest request, Long userId, UserAgentAnalyzer analyzer) {
         StringBuilder fingerprint = new StringBuilder();
 
         // 1. User Agent - l'information la plus stable et toujours disponible
         String userAgent = request.getHeader("User-Agent");
         if (userAgent != null) {
-            UserAgentAnalyzer analyzer = UserAgentAnalyzer.newBuilder()
-                    .withCache(1000)
-                    .build();
+//            UserAgentAnalyzer analyzer = UserAgentAnalyzer.newBuilder()
+//                    .withCache(1000)
+//                    .build();
             UserAgent agent = analyzer.parse(userAgent);
 
             // Extraire des éléments spécifiques qui sont stables

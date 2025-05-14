@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.services.security.impl;
 
 import be.steby.CoreProject.bll.events.account.ConfirmNewUserAccountEvent;
+import be.steby.CoreProject.bll.events.account.SignupEvent;
 import be.steby.CoreProject.bll.events.security.password_events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.events.security.password_events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.exceptions.*;
@@ -52,12 +53,14 @@ public class AuthServiceImpl implements AuthService {
 
 
     @Override
-    public User signup(User user) {
+    public User signup(User user, HttpServletRequest request) {
         userService.checkIfUserExists(user);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userService.saveUser(user);
-        AccountConfirmationToken token = accountConfirmationTokenService.createAccountConfirmationToken(user);
-        mailerService.sendSignUpConfirmation(token.getToken(), user);
+
+        RequestContext requestContext = requestContextService.captureRequestContext(request);
+        eventPublisher.publishEvent( new SignupEvent( user, requestContext ));
+
         return user;
     }
 
@@ -164,9 +167,8 @@ public class AuthServiceImpl implements AuthService {
         User user = passwordResetToken.getUser();
 
         RequestContext requestContext = requestContextService.captureRequestContext(request);
-        Device device = deviceService.detectFromRequestContext(requestContext, user);
 
-        savePassword(form.password(), user, device, requestContext);
+        savePassword(form.password(), user, requestContext);
     }
 
 
@@ -178,10 +180,9 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidPasswordException("The current password is not correct", 400);
         }
 
-        Device device = deviceService.detectCurrentDevice(request);
         RequestContext requestContext = requestContextService.captureRequestContext(request);
 
-        savePassword(form.password(), authenticatedUser, device, requestContext);
+        savePassword(form.password(), authenticatedUser,requestContext);
     }
 
 
@@ -193,8 +194,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userService.getUserByEmail(email);
 
         RequestContext requestContext = requestContextService.captureRequestContext(request);
-        Device device = deviceService.detectFromRequestContext(requestContext, user);
-        eventPublisher.publishEvent(new RequestPasswordResetEvent(user, device, requestContext));
+        eventPublisher.publishEvent(new RequestPasswordResetEvent(user, requestContext));
     }
 
 
@@ -307,14 +307,14 @@ public class AuthServiceImpl implements AuthService {
 
 
 
-    private void savePassword(String password, User user, Device device, RequestContext requestContext){
+    private void savePassword(String password, User user, RequestContext requestContext){
         user.setPassword( passwordEncoder.encode(password) );
         if(user.isMustChangePassword()){
             user.setMustChangePassword(false);
         }
         userService.saveUser(user);
 
-        eventPublisher.publishEvent(new PasswordChangedEvent(user, device, requestContext));
+        eventPublisher.publishEvent(new PasswordChangedEvent(user, requestContext));
     }
 
 }

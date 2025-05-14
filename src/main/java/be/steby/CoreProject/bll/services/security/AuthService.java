@@ -73,7 +73,7 @@ public interface AuthService extends UserDetailsService {
 
     void changeEmailVerification(String token);
 
-    User signup(User user);
+    User signup(User user, HttpServletRequest request);
 
     User getAuthenticatedUser();
 
