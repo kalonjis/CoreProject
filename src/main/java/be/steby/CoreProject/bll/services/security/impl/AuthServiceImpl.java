@@ -2,6 +2,8 @@ package be.steby.CoreProject.bll.services.security.impl;
 
 import be.steby.CoreProject.bll.events.account.ConfirmNewUserAccountEvent;
 import be.steby.CoreProject.bll.events.account.SignupEvent;
+import be.steby.CoreProject.bll.events.security.email_events.ChangeEmailRequestEvent;
+import be.steby.CoreProject.bll.events.security.email_events.ChangeEmailVerificationEvent;
 import be.steby.CoreProject.bll.events.security.password_events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.events.security.password_events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.exceptions.*;
@@ -217,7 +219,7 @@ public class AuthServiceImpl implements AuthService {
 
     // region changeEmail
     @Override
-    public void changeEmailRequest(ChangeEmailForm form) {
+    public void changeEmailRequest(ChangeEmailForm form, HttpServletRequest request ) {
         User user = userService.getAuthenticatedUser();
         String email = form.email();
         checkEmailValidity(email);
@@ -225,10 +227,15 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidEmailException("Les adresses email doivent être identiques");
         }
         checkEmailAvailability(email);
-        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.createEmailConfirmationToken(user);
-        emailConfirmationToken.setNewEmailAddress(email);
-        emailConfirmationTokenService.saveToken(emailConfirmationToken);
-        mailerService.sendChangeEmailRequest(emailConfirmationToken.getToken(),user);
+
+        EmailConfirmationToken token = emailConfirmationTokenService.createEmailConfirmationToken(user);
+        token.setNewEmailAddress(email);
+        emailConfirmationTokenService.saveToken(token);
+
+        RequestContext requestContext = requestContextService.captureRequestContext(request);
+
+        eventPublisher.publishEvent(new ChangeEmailRequestEvent(user, email, token.getToken(), requestContext));
+        
     }
 
 
@@ -241,20 +248,22 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void changeEmailVerification(String token) {
+    public void changeEmailVerification(String token, HttpServletRequest request) {
         EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getToken(token);
-        checkEmailAvailability(emailConfirmationToken.getNewEmailAddress());
+
         emailConfirmationTokenService.verifyTokenValidity(emailConfirmationToken);
+        checkEmailAvailability(emailConfirmationToken.getNewEmailAddress());
+
         if( emailConfirmationToken.isConfirmed() ){
             throw new TokenConfirmationStatusException("The request is already confirmed, please check " + emailConfirmationToken.getNewEmailAddress() + " mail box for the next step");
         }
         emailConfirmationToken.setConfirmed(true);
         emailConfirmationTokenService.saveToken(emailConfirmationToken);
-        mailerService.sendChangeEmailVerification(
-                token,
-                emailConfirmationToken.getUser(),
-                emailConfirmationToken.getNewEmailAddress()
-        );
+
+        RequestContext requestContext = requestContextService.captureRequestContext(request);
+
+        eventPublisher.publishEvent(new ChangeEmailVerificationEvent(emailConfirmationToken.getUser(), requestContext, emailConfirmationToken.getToken(), emailConfirmationToken.getNewEmailAddress() ) );
+        
 
     }
 
