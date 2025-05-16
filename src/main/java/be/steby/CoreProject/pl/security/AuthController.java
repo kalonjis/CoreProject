@@ -230,8 +230,8 @@ public class AuthController {
     // region Change-Email
 
     @PostMapping("change-email-request")
-    public ResponseEntity<Void>changeEmailRequest(@Valid @RequestBody ChangeEmailForm form){
-        authService.changeEmailRequest(form);
+    public ResponseEntity<Void>changeEmailRequest(@Valid @RequestBody ChangeEmailForm form, HttpServletRequest request){
+        authService.changeEmailRequest(form, request);
         return ResponseEntity.noContent().build();
     }
 
@@ -244,8 +244,8 @@ public class AuthController {
 
 
     @PatchMapping("change-email-verification")
-    public ResponseEntity<Void>changeEmailVerification(@RequestParam String token){
-        authService.changeEmailVerification(token);
+    public ResponseEntity<Void>changeEmailVerification(@RequestParam String token, HttpServletRequest request){
+        authService.changeEmailVerification(token, request);
         return ResponseEntity.noContent().build();
     }
 

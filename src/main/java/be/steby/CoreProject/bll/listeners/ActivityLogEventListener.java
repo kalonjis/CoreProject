@@ -5,8 +5,10 @@ import be.steby.CoreProject.bll.events.account.SignupEvent;
 import be.steby.CoreProject.bll.events.device.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.events.security.UserLoggedInEvent;
 import be.steby.CoreProject.bll.events.security.UserLogoutEvent;
+import be.steby.CoreProject.bll.events.security.email_events.ChangeEmailRequestEvent;
 import be.steby.CoreProject.bll.events.security.password_events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.events.security.password_events.RequestPasswordResetEvent;
+import be.steby.CoreProject.bll.models.RequestContext;
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.dl.entities.Device;
@@ -18,15 +20,22 @@ import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import java.util.function.Consumer;
+
+/**
+ * Listener pour enregistrer les événements dans les logs d'activité.
+ * Utilise un executeur asynchrone dédié pour ne pas bloquer le thread principal.
+ */
 @RequiredArgsConstructor
 @Component
 @Order(10) // Priorité élevée pour la journalisation
 @Slf4j
 public class ActivityLogEventListener {
+
     private final ActivityLogService activityLogService;
     private final DeviceService deviceService;
 
-
+    // =============== ÉVÉNEMENTS AVEC DEVICE FOURNI ===============
 
     @EventListener
     @Async("activityLogExecutor")
@@ -40,10 +49,9 @@ public class ActivityLogEventListener {
         );
     }
 
-
     @EventListener
     @Async("activityLogExecutor")
-    public  void handleLogin(UserLoggedInEvent event){
+    public void handleLogin(UserLoggedInEvent event) {
         activityLogService.logLogin(
                 event.user(),
                 event.device(),
@@ -53,97 +61,98 @@ public class ActivityLogEventListener {
         );
     }
 
-
     @EventListener
     @Async("activityLogExecutor")
-    public void handleLogout(UserLogoutEvent event){
+    public void handleLogout(UserLogoutEvent event) {
         activityLogService.logLogout(
                 event.user(),
                 event.device(),
                 event.requestContext()
         );
-
     }
 
+    // =============== ÉVÉNEMENTS NÉCESSITANT DÉTECTION DU DEVICE ===============
 
     @EventListener
     @Async("activityLogExecutor")
     public void handleRequestPasswordReset(RequestPasswordResetEvent event) {
-        Device device = null;
-        try{
-            device = deviceService.detectFromRequestContext(event.requestContext(), event.user());
-
-        } catch(Exception e){
-            warnDeviceNotDetected(event.user(), e);
-        }
-
-        activityLogService.logPasswordResetRequest(
+        executeWithDeviceDetection(
                 event.user(),
-                device,
-                event.requestContext()
+                event.requestContext(),
+                device -> activityLogService.logPasswordResetRequest(
+                        event.user(), device, event.requestContext())
         );
     }
 
     @EventListener
     @Async("activityLogExecutor")
     public void handlePasswordChangedEvent(PasswordChangedEvent event) {
-        Device device = null;
-        try{
-            device = deviceService.detectFromRequestContext(event.requestContext(), event.user());
-
-        } catch(Exception e){
-            warnDeviceNotDetected(event.user(), e);
-        }
-        activityLogService.logPasswordChange(
+        executeWithDeviceDetection(
                 event.user(),
-                device,
-                true,
-                event.requestContext()
+                event.requestContext(),
+                device -> activityLogService.logPasswordChange(
+                        event.user(), device, true, event.requestContext())
         );
     }
-
 
     @EventListener
     @Async("activityLogExecutor")
     public void handleSignupEvent(SignupEvent event) {
-        Device device = null;
-
-        try {
-            device = deviceService.detectFromRequestContext(event.requestContext(), event.user());
-        } catch (Exception e) {
-            warnDeviceNotDetected(event.user(), e);
-        }
-
-        activityLogService.logAccountCreation(
+        executeWithDeviceDetection(
                 event.user(),
-                device,
-                event.requestContext()
+                event.requestContext(),
+                device -> activityLogService.logAccountCreation(
+                        event.user(), device, event.requestContext())
+        );
+    }
+
+    @EventListener
+    @Async("activityLogExecutor")
+    public void handleConfirmNewUserAccountEvent(ConfirmNewUserAccountEvent event) {
+        executeWithDeviceDetection(
+                event.user(),
+                event.requestContext(),
+                device -> activityLogService.logNewAccountActivation(
+                        event.user(), device, event.requestContext())
         );
     }
 
 
     @EventListener
     @Async("activityLogExecutor")
-    public void handleConfirmNewUserAccountEvent (ConfirmNewUserAccountEvent event){
-        Device device = null;
-        try{
-            device = deviceService.detectFromRequestContext(event.requestContext(), event.user());
-
-        } catch(Exception e){
-            warnDeviceNotDetected(event.user(), e);
-        }
-
-        activityLogService.logNewAccountActivation(
-            event.user(),
-            device,
-            event.requestContext()
+    public void handleChangeEmailRequestEvent(ChangeEmailRequestEvent event) {
+        executeWithDeviceDetection(
+                event.user(),
+                event.requestContext(),
+                device -> activityLogService.logEmailChangeRequest(
+                        event.user(), device, event.email(), event.requestContext())
         );
     }
 
-    private void warnDeviceNotDetected(User user, Exception e){
-        log.warn("Impossible de détecter le device pour {}: {}",
-                user.getUsername(), e.getMessage());
+    // =============== MÉTHODES UTILITAIRES ===============
+
+    /**
+     * Exécute une action de logging après avoir tenté de détecter le device.
+     * Si la détection échoue, l'action est quand même exécutée avec un device null.
+     *
+     * @param user L'utilisateur concerné
+     * @param requestContext Le contexte de la requête pour la détection du device
+     * @param loggingAction L'action de logging à exécuter avec le device (peut être null)
+     */
+    private void executeWithDeviceDetection(User user,
+                                            RequestContext requestContext,
+                                            Consumer<Device> loggingAction) {
+        Device device = null;
+
+        try {
+            device = deviceService.detectFromRequestContext(requestContext, user);
+        } catch (Exception e) {
+            log.warn("Impossible de détecter le device pour l'utilisateur {} : {}",
+                    user.getUsername(), e.getMessage());
+            // On continue avec un device null
+        }
+
+        // Exécute l'action de logging avec le device (qui peut être null)
+        loggingAction.accept(device);
     }
-
-
 }
