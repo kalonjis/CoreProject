@@ -1,14 +1,8 @@
 package be.steby.CoreProject.pl.security;
 
 
-import be.steby.CoreProject.bll.services.MailerService;
-import be.steby.CoreProject.bll.services.UserService;
+import be.steby.CoreProject.bll.domain.password.services.PasswordService;
 import be.steby.CoreProject.bll.services.security.AuthService;
-import be.steby.CoreProject.bll.services.security.impl.PasswordResetTokenServiceImpl;
-import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
-import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
-import be.steby.CoreProject.il.device.RequiresDeviceTrustLevel;
 import be.steby.CoreProject.pl.security.models.ChangePasswordForm;
 import be.steby.CoreProject.pl.security.models.PasswordResetForm;
 import be.steby.CoreProject.pl.security.models.RequestPasswordForm;
@@ -16,7 +10,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -25,11 +18,10 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/password")
 @RequiredArgsConstructor
-public class PasswordResetController {
+public class PasswordController {
 
   // Required dependencies for password reset functionality
-  public final AuthService authService;
-
+  private final PasswordService passwordService;
 
   /**
    * Endpoint to request a password reset email if the user has forgotten their password.
@@ -40,7 +32,7 @@ public class PasswordResetController {
 
   @PostMapping("/request-password-reset")
   public ResponseEntity<Map<String, String>> requestPassword(@Valid @RequestBody RequestPasswordForm form, HttpServletRequest request) {
-    authService.requestPasswordReset(form.email(), request);
+    passwordService.requestPasswordReset(form.email(), request);
     Map<String, String> response = new HashMap<>();
     response.put("message", "Check your inbox. If your e-mail address matches our database, you will receive an e-mail asking you to reset your password.");
     return ResponseEntity.ok(response);
@@ -55,7 +47,7 @@ public class PasswordResetController {
    */
   @PutMapping("/reset-password")
   public ResponseEntity<Map<String, String>> resetPassword(@RequestParam String token, @Valid @RequestBody PasswordResetForm form, HttpServletRequest request) {
-    authService.resetPassword(form, token, request);
+    passwordService.resetPassword(form, token, request);
     Map<String, String> response = new HashMap<>();
     response.put("message", "Thank you. Your password has been successfully modified. You can now use it to connect to your favorite app.");
     return ResponseEntity.ok(response);
@@ -70,7 +62,7 @@ public class PasswordResetController {
    */
   @GetMapping("/request-password-token")
   public ResponseEntity<Map<String, String>> requestNewToken(@RequestParam String token) {
-    authService.requestPasswordToken(token);
+    passwordService.requestPasswordToken(token);
     Map<String, String> response = new HashMap<>();
     response.put("message", "A new email with instructions for password resetting has been sent to your email box.");
     return ResponseEntity.ok(response);
@@ -85,7 +77,7 @@ public class PasswordResetController {
    */
     @PutMapping("/change-password")
     public ResponseEntity<Map<String, String>> changePassword(@Valid @RequestBody ChangePasswordForm form, HttpServletRequest request) {
-      authService.changePassword(form, request );
+      passwordService.changePassword(form, request );
       Map<String, String> response = new HashMap<>();
       response.put("message", "Thank you. Your password changed successfully.");
       return ResponseEntity.ok()
