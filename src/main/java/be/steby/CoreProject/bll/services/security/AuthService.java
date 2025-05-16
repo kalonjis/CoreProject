@@ -43,22 +43,6 @@ public interface AuthService extends UserDetailsService {
     void logout();
 
 
-    /**
-     * Resets the password of the specified user.
-     *
-     * <p>This method allows a user to reset their password, typically triggered by a password reset request.</p>
-     *
-     * @param form
-     * @param password The new password to set for the user.
-     */
-    void resetPassword(PasswordResetForm form, String password, HttpServletRequest request);
-
-    void changePassword(ChangePasswordForm form, HttpServletRequest request);
-
-    void requestPasswordReset(String email, HttpServletRequest request);
-
-    void requestPasswordToken(String token);
-
     User confirmNewUserAccount(String token, HttpServletRequest request);
 
     void requestActivation(String token);

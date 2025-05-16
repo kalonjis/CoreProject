@@ -1,5 +1,7 @@
-package be.steby.CoreProject.bll.exceptions;
+package be.steby.CoreProject.bll.domain.password.exceptions;
 
+
+import be.steby.CoreProject.bll.exceptions.CoreProjectException;
 
 public class InvalidPasswordException extends CoreProjectException {
     /**

@@ -1,11 +1,10 @@
 package be.steby.CoreProject.bll.services.security.impl;
 
+import be.steby.CoreProject.bll.domain.password.exceptions.InvalidPasswordException;
 import be.steby.CoreProject.bll.events.account.ConfirmNewUserAccountEvent;
 import be.steby.CoreProject.bll.events.account.SignupEvent;
 import be.steby.CoreProject.bll.events.security.email_events.ChangeEmailRequestEvent;
 import be.steby.CoreProject.bll.events.security.email_events.ChangeEmailVerificationEvent;
-import be.steby.CoreProject.bll.events.security.password_events.PasswordChangedEvent;
-import be.steby.CoreProject.bll.events.security.password_events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.models.RequestContext;
 import be.steby.CoreProject.bll.services.DeviceService;
@@ -13,14 +12,10 @@ import be.steby.CoreProject.bll.services.MailerService;
 import be.steby.CoreProject.bll.services.RequestContextService;
 import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.services.security.AuthService;
-import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.EmailConfirmationToken;
-import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
 import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
-import be.steby.CoreProject.pl.security.models.ChangePasswordForm;
-import be.steby.CoreProject.pl.security.models.PasswordResetForm;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -157,66 +152,6 @@ public class AuthServiceImpl implements AuthService {
     // endregion
 
 
-    // region password
-    @Override
-    public void resetPassword(PasswordResetForm form, String token, HttpServletRequest request) {
-        checkIsNotAnonymous();
-
-        PasswordResetToken passwordResetToken = passwordResetTokenService.getToken(token);
-        passwordResetTokenService.verifyTokenValidity(passwordResetToken);
-        passwordResetTokenService.revokeToken(passwordResetToken);
-
-        User user = passwordResetToken.getUser();
-
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
-
-        savePassword(form.password(), user, requestContext);
-    }
-
-
-    @Override
-    public void changePassword(ChangePasswordForm form, HttpServletRequest request) {
-        User authenticatedUser = userService.getAuthenticatedUser();
-
-        if(!passwordEncoder.matches(form.currentPassword(), authenticatedUser.getPassword())){
-            throw new InvalidPasswordException("The current password is not correct", 400);
-        }
-
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
-
-        savePassword(form.password(), authenticatedUser,requestContext);
-    }
-
-
-
-    @Override
-    public void requestPasswordReset(String email, HttpServletRequest request) {
-        checkIsNotAnonymous();
-
-        User user = userService.getUserByEmail(email);
-
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
-        eventPublisher.publishEvent(new RequestPasswordResetEvent(user, requestContext));
-    }
-
-
-    @Override
-    public void requestPasswordToken(String token){
-        checkIsNotAnonymous();
-        PasswordResetToken passwordResetToken = passwordResetTokenService.getToken(token);
-        if(passwordResetToken.isValid()) {
-            String url = FRONT_URL + "/api/password/reset-password?token=" + token ;
-            throw new TokenValidityException("This token, is still valid. Please follow this link: " + url);
-        }
-        passwordResetTokenService.revokeToken(passwordResetToken);
-        User user = passwordResetToken.getUser();
-        PasswordResetToken newToken = passwordResetTokenService.createPasswordResetToken(user);
-        mailerService.sendPasswordResetRefresh(newToken.getToken(), user);
-    }
-
-    // endregion
-
-
     // region changeEmail
     @Override
     public void changeEmailRequest(ChangeEmailForm form, HttpServletRequest request ) {
@@ -301,29 +236,6 @@ public class AuthServiceImpl implements AuthService {
             throw new AlreadyExistException("The email address " + email + " is already used by another user");
         }
 
-    }
-
-
-
-
-    private void checkIsNotAnonymous(){
-        if(!userService.isAnonymous()) {
-            String url = FRONT_URL + "/password/change-password";
-            String message = "You are logged in. Please use the change password feature instead: ";
-            throw new UserAuthenticationStateException(message + url, 403);
-        }
-    }
-
-
-
-    private void savePassword(String password, User user, RequestContext requestContext){
-        user.setPassword( passwordEncoder.encode(password) );
-        if(user.isMustChangePassword()){
-            user.setMustChangePassword(false);
-        }
-        userService.saveUser(user);
-
-        eventPublisher.publishEvent(new PasswordChangedEvent(user, requestContext));
     }
 
 }
