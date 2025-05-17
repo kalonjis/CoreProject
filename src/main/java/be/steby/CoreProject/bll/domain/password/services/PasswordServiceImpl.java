@@ -4,6 +4,7 @@ import be.steby.CoreProject.bll.domain.password.events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.domain.password.events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.domain.password.exceptions.InvalidPasswordException;
 import be.steby.CoreProject.bll.domain.password.models.PasswordChangeRequest;
+import be.steby.CoreProject.bll.domain.password.models.PasswordValidationResult;
 import be.steby.CoreProject.bll.exceptions.TokenValidityException;
 import be.steby.CoreProject.bll.exceptions.UserAuthenticationStateException;
 import be.steby.CoreProject.bll.models.RequestContext;
@@ -28,6 +29,7 @@ public class PasswordServiceImpl implements PasswordService {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
+    private final PasswordPolicyService passwordPolicyService;
     private final RequestContextService requestContextService;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -58,6 +60,11 @@ public class PasswordServiceImpl implements PasswordService {
 
         if(!passwordEncoder.matches(request.currentPassword(), authenticatedUser.getPassword())){
             throw new InvalidPasswordException("The current password is not correct", 400);
+        }
+        PasswordValidationResult result = passwordPolicyService.validatePassword(request.newPassword());
+        if (!result.isValid()) {
+            throw new InvalidPasswordException("Password doesn't meet security requirements: "
+                    + String.join(", ", result.errors()));
         }
 
         RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);

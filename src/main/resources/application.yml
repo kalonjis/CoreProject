@@ -77,6 +77,14 @@ security:
     lockout-minutes: 30
     alert:
       threshold-minutes: 10
+  password:
+    min-length: 8
+    max-length: 55
+    require-uppercase: true
+    require-lowercase: true
+    require-digit: true
+    require-special-char: true
+    special-chars: "!@#$%^&*()_+-=[]{}\\;':\"\\|,.<>/?"
 
 management:
   endpoints:
