@@ -3,6 +3,7 @@ package be.steby.CoreProject.bll.domain.password.services;
 import be.steby.CoreProject.bll.domain.password.events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.domain.password.events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.domain.password.exceptions.InvalidPasswordException;
+import be.steby.CoreProject.bll.domain.password.models.PasswordChangeRequest;
 import be.steby.CoreProject.bll.exceptions.TokenValidityException;
 import be.steby.CoreProject.bll.exceptions.UserAuthenticationStateException;
 import be.steby.CoreProject.bll.models.RequestContext;
@@ -36,7 +37,7 @@ public class PasswordServiceImpl implements PasswordService {
 
 
     @Override
-    public void resetPassword(PasswordResetForm form, String token, HttpServletRequest request) {
+    public void resetPassword(PasswordResetForm form, String token, HttpServletRequest httpRequest) {
         checkIsAnonymous();
 
         PasswordResetToken passwordResetToken = passwordResetTokenService.getToken(token);
@@ -45,23 +46,23 @@ public class PasswordServiceImpl implements PasswordService {
 
         User user = passwordResetToken.getUser();
 
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
+        RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
 
         savePassword(form.password(), user, requestContext);
     }
 
 
     @Override
-    public void changePassword(ChangePasswordForm form, HttpServletRequest request) {
+    public void changePassword(PasswordChangeRequest request, HttpServletRequest httpRequest) {
         User authenticatedUser = userService.getAuthenticatedUser();
 
-        if(!passwordEncoder.matches(form.currentPassword(), authenticatedUser.getPassword())){
+        if(!passwordEncoder.matches(request.currentPassword(), authenticatedUser.getPassword())){
             throw new InvalidPasswordException("The current password is not correct", 400);
         }
 
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
+        RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
 
-        savePassword(form.password(), authenticatedUser,requestContext);
+        savePassword(request.newPassword(), authenticatedUser,requestContext);
     }
 
 
