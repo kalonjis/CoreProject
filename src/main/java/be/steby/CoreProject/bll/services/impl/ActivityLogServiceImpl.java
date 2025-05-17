@@ -197,6 +197,23 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     }
 
     /**
+     * Enregistre une demande de réinitialisation de mot de passe
+     */
+    @Override
+    @Transactional
+    public ActivityLog logRequestPasswordToken(User user, Device device, RequestContext requestContext) {
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.PASSWORD_REQUEST_TOKEN,
+                true,
+                "Nouvelle demande de réinitialisation de mot de passe effectuée",
+                null,
+                requestContext
+        );
+    }
+
+    /**
      * Enregistre une réinitialisation complète de mot de passe
      */
     @Override

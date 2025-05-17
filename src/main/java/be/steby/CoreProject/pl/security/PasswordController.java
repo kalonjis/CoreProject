@@ -2,6 +2,7 @@ package be.steby.CoreProject.pl.security;
 
 
 import be.steby.CoreProject.bll.domain.password.models.PasswordChangeRequest;
+import be.steby.CoreProject.bll.domain.password.models.PasswordResetRequest;
 import be.steby.CoreProject.bll.domain.password.services.PasswordService;
 import be.steby.CoreProject.bll.services.security.AuthService;
 import be.steby.CoreProject.pl.security.models.ChangePasswordForm;
@@ -33,7 +34,9 @@ public class PasswordController {
 
   @PostMapping("/request-password-reset")
   public ResponseEntity<Map<String, String>> requestPassword(@Valid @RequestBody RequestPasswordForm form, HttpServletRequest request) {
+
     passwordService.requestPasswordReset(form.email(), request);
+
     Map<String, String> response = new HashMap<>();
     response.put("message", "Check your inbox. If your e-mail address matches our database, you will receive an e-mail asking you to reset your password.");
     return ResponseEntity.ok(response);
@@ -48,7 +51,9 @@ public class PasswordController {
    */
   @PutMapping("/reset-password")
   public ResponseEntity<Map<String, String>> resetPassword(@RequestParam String token, @Valid @RequestBody PasswordResetForm form, HttpServletRequest request) {
-    passwordService.resetPassword(form, token, request);
+
+    passwordService.resetPassword(PasswordResetRequest.fromForm(form), token, request);
+
     Map<String, String> response = new HashMap<>();
     response.put("message", "Thank you. Your password has been successfully modified. You can now use it to connect to your favorite app.");
     return ResponseEntity.ok(response);
@@ -62,8 +67,8 @@ public class PasswordController {
    * @return ResponseEntity with a message indicating that a new token has been sent.
    */
   @GetMapping("/request-password-token")
-  public ResponseEntity<Map<String, String>> requestNewToken(@RequestParam String token) {
-    passwordService.requestPasswordToken(token);
+  public ResponseEntity<Map<String, String>> requestNewToken(@RequestParam String token, HttpServletRequest httpRequest) {
+    passwordService.requestPasswordToken(token, httpRequest);
     Map<String, String> response = new HashMap<>();
     response.put("message", "A new email with instructions for password resetting has been sent to your email box.");
     return ResponseEntity.ok(response);

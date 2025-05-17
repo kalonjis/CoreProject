@@ -23,6 +23,7 @@ public enum ActionLogType {
 
     // PASSWORD
     PASSWORD_RESET_REQUEST("Demande de réinitialisation de mot de passe"),
+    PASSWORD_REQUEST_TOKEN("Nouvelle demande de réinitialisation de mot de passe"),
     PASSWORD_RESET_COMPLETE("Réinitialisation de mot de passe effectuée"),
     PASSWORD_CHANGED("Modification du mot de passe"),
     PASSWORD_EXPIRED("Expiration du mot de passe"),

@@ -2,8 +2,10 @@ package be.steby.CoreProject.bll.domain.password.services;
 
 import be.steby.CoreProject.bll.domain.password.events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.domain.password.events.RequestPasswordResetEvent;
+import be.steby.CoreProject.bll.domain.password.events.RequestPasswordTokenEvent;
 import be.steby.CoreProject.bll.domain.password.exceptions.InvalidPasswordException;
 import be.steby.CoreProject.bll.domain.password.models.PasswordChangeRequest;
+import be.steby.CoreProject.bll.domain.password.models.PasswordResetRequest;
 import be.steby.CoreProject.bll.domain.password.models.PasswordValidationResult;
 import be.steby.CoreProject.bll.exceptions.TokenValidityException;
 import be.steby.CoreProject.bll.exceptions.UserAuthenticationStateException;
@@ -13,14 +15,13 @@ import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.services.security.impl.PasswordResetTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
-import be.steby.CoreProject.pl.security.models.ChangePasswordForm;
-import be.steby.CoreProject.pl.security.models.PasswordResetForm;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -38,19 +39,27 @@ public class PasswordServiceImpl implements PasswordService {
 
 
 
+    @Transactional
     @Override
-    public void resetPassword(PasswordResetForm form, String token, HttpServletRequest httpRequest) {
+    public void resetPassword(PasswordResetRequest request, String token, HttpServletRequest httpRequest) {
         checkIsAnonymous();
 
         PasswordResetToken passwordResetToken = passwordResetTokenService.getToken(token);
         passwordResetTokenService.verifyTokenValidity(passwordResetToken);
-        passwordResetTokenService.revokeToken(passwordResetToken);
 
         User user = passwordResetToken.getUser();
 
+        PasswordValidationResult result = passwordPolicyService.validatePassword(request.password());
+        if (!result.isValid()) {
+            throw new InvalidPasswordException("Password doesn't meet security requirements: "
+                    + String.join(", ", result.errors()));
+        }
+
         RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
 
-        savePassword(form.password(), user, requestContext);
+        savePassword(request.password(), user, requestContext);
+
+        passwordResetTokenService.revokeToken(passwordResetToken);
     }
 
 
@@ -91,17 +100,26 @@ public class PasswordServiceImpl implements PasswordService {
 
 
     @Override
-    public void requestPasswordToken(String token){
+    public void requestPasswordToken(String token, HttpServletRequest httpRequest){
         checkIsAnonymous();
+
         PasswordResetToken passwordResetToken = passwordResetTokenService.getToken(token);
         if(passwordResetToken.isValid()) {
             String url = FRONT_URL + "/api/password/reset-password?token=" + token ;
             throw new TokenValidityException("This token, is still valid. Please follow this link: " + url);
         }
-        passwordResetTokenService.revokeToken(passwordResetToken);
         User user = passwordResetToken.getUser();
         PasswordResetToken newToken = passwordResetTokenService.createPasswordResetToken(user);
-        //mailerService.sendPasswordResetRefresh(newToken.getToken(), user);
+
+        RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
+
+        eventPublisher.publishEvent(new RequestPasswordTokenEvent(
+                user,
+                newToken.getToken(),
+                requestContext)
+        );
+
+        passwordResetTokenService.revokeToken(passwordResetToken);
     }
 
 
