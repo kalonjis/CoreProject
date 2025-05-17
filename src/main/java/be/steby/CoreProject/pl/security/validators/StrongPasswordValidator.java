@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class StrongPasswordValidator implements ConstraintValidator<StrongPassword, String> {
+
     private final PasswordPolicyService policyService;
 
 
