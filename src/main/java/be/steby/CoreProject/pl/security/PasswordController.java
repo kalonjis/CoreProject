@@ -1,6 +1,7 @@
 package be.steby.CoreProject.pl.security;
 
 
+import be.steby.CoreProject.bll.domain.password.models.PasswordChangeRequest;
 import be.steby.CoreProject.bll.domain.password.services.PasswordService;
 import be.steby.CoreProject.bll.services.security.AuthService;
 import be.steby.CoreProject.pl.security.models.ChangePasswordForm;
@@ -77,7 +78,9 @@ public class PasswordController {
    */
     @PutMapping("/change-password")
     public ResponseEntity<Map<String, String>> changePassword(@Valid @RequestBody ChangePasswordForm form, HttpServletRequest request) {
-      passwordService.changePassword(form, request );
+
+      passwordService.changePassword(PasswordChangeRequest.fromForm(form), request );
+
       Map<String, String> response = new HashMap<>();
       response.put("message", "Thank you. Your password changed successfully.");
       return ResponseEntity.ok()

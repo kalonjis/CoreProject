@@ -1,27 +1,25 @@
 package be.steby.CoreProject.bll.domain.password.exceptions;
 
+/**
+ * Exception lancée lorsqu'un mot de passe ne respecte pas les critères de sécurité
+ * ou les règles métier définies.
+ */
+public class InvalidPasswordException extends PasswordDomainException {
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
-
-public class InvalidPasswordException extends CoreProjectException {
     /**
-     * Constructs a new {@code AuthenticationException} with the specified {@code detail message}.
-     * The {@code status code} is set to {@code 403 (Unauthorized)} by default.
+     * Crée une nouvelle exception avec un message spécifique.
      *
-     * @param message the detail message (which is saved for later retrieval
-     *                by the {@link #getMessage()} method).
+     * @param message Message décrivant pourquoi le mot de passe est invalide
      */
     public InvalidPasswordException(String message) {
-        super(message, 403);
+        super(message);
     }
 
     /**
-     * Constructs a new {@code AuthenticationException} with the specified {@code detail message} and {@code status code}.
+     * Crée une nouvelle exception avec un message et un statut spécifique.
      *
-     * @param message the {@code detail message} (which is saved for later retrieval
-     *                by the {@link #getMessage()} method).
-     * @param status  the {@code HTTP status code} (which is saved for later retrieval
-     *                by the {@link #getStatus()} method).
+     * @param message Message décrivant pourquoi le mot de passe est invalide
+     * @param status Code de statut HTTP
      */
     public InvalidPasswordException(String message, int status) {
         super(message, status);
