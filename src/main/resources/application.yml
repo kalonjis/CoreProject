@@ -53,8 +53,8 @@ security:
       name: "refresh_token"
   password-reset:
     token:
-      expiration: 900000  # 15 minutes
-      #expiration: 1000  # 1 second
+      #expiration: 900000  # 15 minutes
+      expiration: 10000  # 1 second
     max-attempts: 3
     lockout-minutes: 30
   account-confirmation:

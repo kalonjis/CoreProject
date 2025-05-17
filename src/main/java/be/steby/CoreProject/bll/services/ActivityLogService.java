@@ -68,6 +68,9 @@ public interface ActivityLogService {
             RequestContext requestContext
     );
 
+
+    ActivityLog logRequestPasswordToken(User user, Device device, RequestContext requestContext);
+
     /**
      * Enregistre une réinitialisation complète de mot de passe
      */

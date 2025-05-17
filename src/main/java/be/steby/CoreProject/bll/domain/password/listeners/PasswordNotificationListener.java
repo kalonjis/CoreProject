@@ -2,6 +2,7 @@ package be.steby.CoreProject.bll.domain.password.listeners;
 
 import be.steby.CoreProject.bll.domain.password.events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.domain.password.events.RequestPasswordResetEvent;
+import be.steby.CoreProject.bll.domain.password.events.RequestPasswordTokenEvent;
 import be.steby.CoreProject.bll.services.MailerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
@@ -26,5 +27,12 @@ public class PasswordNotificationListener {
     @Async("emailExecutor")
     public void handlePasswordChanged(PasswordChangedEvent event){
         mailerService.sendPasswordChangeConfirmation(event.user());
+    }
+
+
+    @EventListener
+    @Async("emailExecutor")
+    public void handleRequestPasswordToken(RequestPasswordTokenEvent event){
+        mailerService.sendPasswordResetRefresh(event.newToken(), event.user());
     }
 }

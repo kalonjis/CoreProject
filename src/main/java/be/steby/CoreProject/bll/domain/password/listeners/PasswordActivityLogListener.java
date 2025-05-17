@@ -3,6 +3,7 @@ package be.steby.CoreProject.bll.domain.password.listeners;
 
 import be.steby.CoreProject.bll.domain.password.events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.domain.password.events.RequestPasswordResetEvent;
+import be.steby.CoreProject.bll.domain.password.events.RequestPasswordTokenEvent;
 import be.steby.CoreProject.bll.models.RequestContext;
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.services.DeviceService;
@@ -50,6 +51,17 @@ public class PasswordActivityLogListener {
                 event.requestContext(),
                 device -> activityLogService.logPasswordChange(
                         event.user(), device, true, event.requestContext())
+        );
+    }
+
+    @EventListener
+    @Async("activityLogExecutor")
+    public void handleRequestPasswordToken(RequestPasswordTokenEvent event) {
+        executeWithDeviceDetection(
+                event.user(),
+                event.requestContext(),
+                device -> activityLogService.logRequestPasswordToken(
+                        event.user(), device, event.requestContext())
         );
     }
 
