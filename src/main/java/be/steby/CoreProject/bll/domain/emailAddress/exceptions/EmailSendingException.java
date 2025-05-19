@@ -1,4 +1,6 @@
-package be.steby.CoreProject.bll.exceptions;
+package be.steby.CoreProject.bll.domain.emailAddress.exceptions;
+
+import be.steby.CoreProject.bll.exceptions.CoreProjectException;
 
 public class EmailSendingException extends CoreProjectException {
 

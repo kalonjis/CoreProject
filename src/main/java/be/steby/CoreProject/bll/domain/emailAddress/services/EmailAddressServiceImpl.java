@@ -5,7 +5,7 @@ import be.steby.CoreProject.bll.domain.emailAddress.events.EmailChangeConfirmati
 import be.steby.CoreProject.bll.domain.emailAddress.events.EmailChangeRequestEvent;
 import be.steby.CoreProject.bll.domain.emailAddress.events.EmailChangeVerificationEvent;
 import be.steby.CoreProject.bll.exceptions.AlreadyExistException;
-import be.steby.CoreProject.bll.exceptions.InvalidEmailException;
+import be.steby.CoreProject.bll.domain.emailAddress.exceptions.InvalidEmailException;
 import be.steby.CoreProject.bll.exceptions.TokenConfirmationStatusException;
 import be.steby.CoreProject.bll.models.RequestContext;
 import be.steby.CoreProject.bll.services.RequestContextService;
