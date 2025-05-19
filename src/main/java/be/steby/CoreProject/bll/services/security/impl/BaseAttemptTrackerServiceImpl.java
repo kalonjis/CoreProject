@@ -58,7 +58,7 @@ public abstract class BaseAttemptTrackerServiceImpl implements AttemptTrackerSer
     }
 
     @Transactional
-    protected void clearAttempts(User user) {
+    public void clearAttempts(User user) {
         userAttemptRepository.findByUserAndAttemptType(user, attemptType)
                 .ifPresent(attempt -> {
                     attempt.setAttemptCount(0);

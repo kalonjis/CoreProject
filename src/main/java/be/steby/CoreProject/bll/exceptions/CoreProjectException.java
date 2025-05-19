@@ -3,7 +3,7 @@ package be.steby.CoreProject.bll.exceptions;
 import lombok.Getter;
 
 @Getter
-public abstract class CoreProjectException extends RuntimeException {
+public class CoreProjectException extends RuntimeException {
     /**
      * The {@code detailed message} or object associated with the {@link Exception}.
      */

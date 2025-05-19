@@ -1,10 +1,9 @@
 package be.steby.CoreProject.pl.security;
 
 
-import be.steby.CoreProject.bll.domain.password.models.PasswordChangeRequest;
-import be.steby.CoreProject.bll.domain.password.models.PasswordResetRequest;
-import be.steby.CoreProject.bll.domain.password.services.PasswordService;
-import be.steby.CoreProject.bll.services.security.AuthService;
+import be.steby.CoreProject.bll.domains.password.models.PasswordChangeRequest;
+import be.steby.CoreProject.bll.domains.password.models.PasswordResetRequest;
+import be.steby.CoreProject.bll.domains.password.services.PasswordService;
 import be.steby.CoreProject.pl.security.models.ChangePasswordForm;
 import be.steby.CoreProject.pl.security.models.PasswordResetForm;
 import be.steby.CoreProject.pl.security.models.RequestPasswordForm;
