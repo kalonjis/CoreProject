@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.services.impl;
 
-import be.steby.CoreProject.bll.domain.emailAddress.exceptions.EmailAlreadyUsedException;
+import be.steby.CoreProject.bll.domains.emailAddress.exceptions.EmailAlreadyUsedException;
 import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.specifications.UserSpecification;

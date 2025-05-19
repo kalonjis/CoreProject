@@ -43,11 +43,7 @@ public interface AuthService extends UserDetailsService {
     void logout();
 
 
-    User confirmNewUserAccount(String token, HttpServletRequest request);
 
-    void requestActivation(String token);
-
-    void requestConfirmationLinkByUsername(String username);
 
     User signup(User user, HttpServletRequest request);
 

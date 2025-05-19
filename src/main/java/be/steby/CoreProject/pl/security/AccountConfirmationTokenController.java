@@ -1,6 +1,7 @@
 package be.steby.CoreProject.pl.security;
 
 
+import be.steby.CoreProject.bll.domains.account.services.AccountConfirmationService;
 import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.security.AuthService;
 import be.steby.CoreProject.dl.entities.User;
@@ -20,7 +21,7 @@ import java.util.Map;
 public class AccountConfirmationTokenController {
 
   // Required dependencies injected via constructor
-  private final AuthService authService;
+  private final AccountConfirmationService accountConfirmationService;
   private final DeviceService deviceService;
 
   /**
@@ -31,7 +32,7 @@ public class AccountConfirmationTokenController {
    */
   @GetMapping("/activation")
   public ResponseEntity<Map<String, String>> confirmAccount(@RequestParam String token, HttpServletRequest request) {
-      User user = authService.confirmNewUserAccount(token, request);
+      User user = accountConfirmationService.confirmNewUserAccount(token, request);
       //deviceService.detectAndRegisterDevice(request, user, false);
       Map<String, String> response = new HashMap<>();
       response.put("message", "Thank you. Your account has been successfully activated. You can now use it to connect to your favorite app.");
@@ -49,7 +50,7 @@ public class AccountConfirmationTokenController {
    */
   @GetMapping("/request-activation")
   public ResponseEntity<Map<String, String>> requestActivation(@RequestParam String token) {
-      authService.requestActivation(token);
+      accountConfirmationService.requestActivation(token);
       Map<String, String> response = new HashMap<>();
       response.put("message", "A new confirmation email has been sent.");
       return ResponseEntity.ok()
@@ -67,7 +68,7 @@ public class AccountConfirmationTokenController {
      */
     @GetMapping("/request-confirmation-by-username")
     public ResponseEntity<Map<String, String>> requestConfirmationByUsername(@RequestParam String username) {
-        authService.requestConfirmationLinkByUsername(username);
+        accountConfirmationService.requestConfirmationLinkByUsername(username);
         Map<String, String> response = new HashMap<>();
         response.put("message", "A new confirmation email has been sent to your registered email address.");
         return ResponseEntity.ok()

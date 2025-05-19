@@ -1,10 +1,9 @@
-package be.steby.CoreProject.bll.listeners;
+package be.steby.CoreProject.bll.domains.password.listeners;
 
-import be.steby.CoreProject.bll.domains.account.events.ConfirmNewUserAccountEvent;
-import be.steby.CoreProject.bll.events.account.SignupEvent;
-import be.steby.CoreProject.bll.events.device.DeviceTrustLevelChangedEvent;
-import be.steby.CoreProject.bll.events.security.UserLoggedInEvent;
-import be.steby.CoreProject.bll.events.security.UserLogoutEvent;
+
+import be.steby.CoreProject.bll.domains.password.events.PasswordChangedEvent;
+import be.steby.CoreProject.bll.domains.password.events.RequestPasswordResetEvent;
+import be.steby.CoreProject.bll.domains.password.events.RequestPasswordTokenEvent;
 import be.steby.CoreProject.bll.models.RequestContext;
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.services.DeviceService;
@@ -27,74 +26,48 @@ import java.util.function.Consumer;
 @Component
 @Order(10) // Priorité élevée pour la journalisation
 @Slf4j
-public class ActivityLogEventListener {
+public class PasswordActivityLogListener {
 
     private final ActivityLogService activityLogService;
     private final DeviceService deviceService;
 
-    // =============== ÉVÉNEMENTS AVEC DEVICE FOURNI ===============
 
     @EventListener
     @Async("activityLogExecutor")
-    public void handleTrustLevelChange(DeviceTrustLevelChangedEvent event) {
-        activityLogService.logDeviceTrustLevelChange(
-                event.user(),
-                event.device(),
-                event.oldLevel(),
-                event.newTrustLevel().name(),
-                event.request()
-        );
-    }
-
-    @EventListener
-    @Async("activityLogExecutor")
-    public void handleLogin(UserLoggedInEvent event) {
-        activityLogService.logLogin(
-                event.user(),
-                event.device(),
-                event.successful(),
-                event.failureReason(),
-                event.requestContext()
-        );
-    }
-
-    @EventListener
-    @Async("activityLogExecutor")
-    public void handleLogout(UserLogoutEvent event) {
-        activityLogService.logLogout(
-                event.user(),
-                event.device(),
-                event.requestContext()
-        );
-    }
-
-    // =============== ÉVÉNEMENTS NÉCESSITANT DÉTECTION DU DEVICE ===============
-
-
-    @EventListener
-    @Async("activityLogExecutor")
-    public void handleSignupEvent(SignupEvent event) {
+    public void handleRequestPasswordReset(RequestPasswordResetEvent event) {
         executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
-                device -> activityLogService.logAccountCreation(
+                device -> activityLogService.logPasswordResetRequest(
                         event.user(), device, event.requestContext())
         );
     }
 
     @EventListener
     @Async("activityLogExecutor")
-    public void handleConfirmNewUserAccountEvent(ConfirmNewUserAccountEvent event) {
+    public void handlePasswordChangedEvent(PasswordChangedEvent event) {
         executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
-                device -> activityLogService.logNewAccountActivation(
+                device -> activityLogService.logPasswordChange(
+                        event.user(), device, true, event.requestContext())
+        );
+    }
+
+    @EventListener
+    @Async("activityLogExecutor")
+    public void handleRequestPasswordToken(RequestPasswordTokenEvent event) {
+        executeWithDeviceDetection(
+                event.user(),
+                event.requestContext(),
+                device -> activityLogService.logRequestPasswordToken(
                         event.user(), device, event.requestContext())
         );
     }
 
 
-     // =============== MÉTHODES UTILITAIRES ===============
+
+    // =============== MÉTHODES UTILITAIRES ===============
 
     /**
      * Exécute une action de logging après avoir tenté de détecter le device.
