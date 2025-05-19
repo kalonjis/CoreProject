@@ -1,18 +1,9 @@
 security:
   jwt:
-    # La clé secrète utilisée pour signer les tokens JWT
     secret: ${JWT_SECRET}
-
-    # Configuration du token d'accès
     access-token:
-      # Durée de validité du token d'accès en millisecondes (15 minutes)
-      expiration: 900000
-      # Nom du cookie contenant le token d'accès
+      expiration: 900000  # 15 minutes
       name: "access_token"
-
-    # Configuration du token de rafraîchissement
     refresh-token:
-      # Durée de validité du token de rafraîchissement en millisecondes (7 jours)
-      expiration: 604800000
-      # Nom du cookie contenant le token de rafraîchissement
+      expiration: 604800000  # 7 jours
       name: "refresh_token"

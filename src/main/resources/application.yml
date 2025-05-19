@@ -7,6 +7,7 @@ spring:
       - classpath:config/security/jwt.yml
       - classpath:config/security/tokens.yml
       - classpath:config/security/password.yml
+
 url:
   back_server: ${URL_BACK_SERVER}
   front_server: ${URL_FRONT_SERVER}
