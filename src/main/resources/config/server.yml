@@ -1,12 +1,11 @@
-spring:
-  server:
-    port: ${APP_SERVER_SECURE_PORT} #HTTPS
-    ssl:
-      key-store: classpath:keystore.p12
-      key-store-password: ${APP_SSL_PASSWORD}
-      key-store-type: PKCS12
-      key-alias: ${APP_SSL_KEY_ALIAS}
+server:
+  port: ${APP_SERVER_SECURE_PORT} #HTTPS
+  ssl:
+    key-store: classpath:keystore.p12
+    key-store-password: ${APP_SSL_PASSWORD}
+    key-store-type: PKCS12
+    key-alias: ${APP_SSL_KEY_ALIAS}
 
-    # Configuration pour écouter sur le port 8080 aussi
-    http:
-      port: ${APP_SERVER_HTTP_PORT}
+  # Configuration pour écouter sur le port 8080 aussi
+  http:
+    port: ${APP_SERVER_HTTP_PORT}
