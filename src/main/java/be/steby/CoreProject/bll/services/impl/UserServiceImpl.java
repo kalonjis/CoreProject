@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.services.impl;
 
+import be.steby.CoreProject.bll.domain.emailAddress.exceptions.EmailAlreadyUsedException;
 import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.specifications.UserSpecification;
@@ -108,7 +109,7 @@ public class UserServiceImpl implements UserService {
             throw new UsernameAlreadyTakenException("User account with username: " + user.getUsername() + " already exists");
         }
         if ( existsByEmail(user.getEmail()) ) {
-            throw new EmailAlreadyTakenException("User account with email address: " + user.getEmail() + " already exists");
+            throw new EmailAlreadyUsedException("User account with email address: " + user.getEmail() + " already exists");
         }
     }
 
