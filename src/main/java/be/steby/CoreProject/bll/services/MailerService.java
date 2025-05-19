@@ -24,6 +24,8 @@ public interface MailerService {
 
   void sendChangeEmailVerification(String token, User user, String newEmail);
 
+  void sendChangeEmailCancellation(User user);
+
   void sendChangeEmailConfirmation(String token, User user, String newEmail, String email);
 
   void sendSignUpConfirmation(String token, User user);

@@ -1,10 +1,10 @@
-package be.steby.CoreProject.bll.listeners;
+package be.steby.CoreProject.bll.domain.emailAddress.listeners;
 
-import be.steby.CoreProject.bll.events.account.ConfirmNewUserAccountEvent;
-import be.steby.CoreProject.bll.events.account.SignupEvent;
-import be.steby.CoreProject.bll.events.device.DeviceTrustLevelChangedEvent;
-import be.steby.CoreProject.bll.events.security.UserLoggedInEvent;
-import be.steby.CoreProject.bll.events.security.UserLogoutEvent;
+
+import be.steby.CoreProject.bll.domain.emailAddress.events.EmailChangeCancellationEvent;
+import be.steby.CoreProject.bll.domain.emailAddress.events.EmailChangeConfirmationEvent;
+import be.steby.CoreProject.bll.domain.emailAddress.events.EmailChangeRequestEvent;
+import be.steby.CoreProject.bll.domain.emailAddress.events.EmailChangeVerificationEvent;
 import be.steby.CoreProject.bll.models.RequestContext;
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.services.DeviceService;
@@ -27,74 +27,63 @@ import java.util.function.Consumer;
 @Component
 @Order(10) // Priorité élevée pour la journalisation
 @Slf4j
-public class ActivityLogEventListener {
+public class LogEmailChangeListener {
 
     private final ActivityLogService activityLogService;
     private final DeviceService deviceService;
 
-    // =============== ÉVÉNEMENTS AVEC DEVICE FOURNI ===============
 
     @EventListener
     @Async("activityLogExecutor")
-    public void handleTrustLevelChange(DeviceTrustLevelChangedEvent event) {
-        activityLogService.logDeviceTrustLevelChange(
-                event.user(),
-                event.device(),
-                event.oldLevel(),
-                event.newTrustLevel().name(),
-                event.request()
-        );
-    }
-
-    @EventListener
-    @Async("activityLogExecutor")
-    public void handleLogin(UserLoggedInEvent event) {
-        activityLogService.logLogin(
-                event.user(),
-                event.device(),
-                event.successful(),
-                event.failureReason(),
-                event.requestContext()
-        );
-    }
-
-    @EventListener
-    @Async("activityLogExecutor")
-    public void handleLogout(UserLogoutEvent event) {
-        activityLogService.logLogout(
-                event.user(),
-                event.device(),
-                event.requestContext()
-        );
-    }
-
-    // =============== ÉVÉNEMENTS NÉCESSITANT DÉTECTION DU DEVICE ===============
-
-
-    @EventListener
-    @Async("activityLogExecutor")
-    public void handleSignupEvent(SignupEvent event) {
+    public void handleChangeEmailRequestEvent(EmailChangeRequestEvent event) {
         executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
-                device -> activityLogService.logAccountCreation(
-                        event.user(), device, event.requestContext())
+                device -> activityLogService.logEmailChangeRequest(
+                        event.user(), device, event.email(), event.requestContext())
         );
     }
+
+
 
     @EventListener
     @Async("activityLogExecutor")
-    public void handleConfirmNewUserAccountEvent(ConfirmNewUserAccountEvent event) {
+    public void handleEmailChangeCancellationEvent(EmailChangeCancellationEvent event) {
         executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
-                device -> activityLogService.logNewAccountActivation(
-                        event.user(), device, event.requestContext())
+                device -> activityLogService.logEmailChangeCancellation(
+                        event.user(), device, event.newEmailAddress(), event.requestContext())
         );
     }
 
 
-     // =============== MÉTHODES UTILITAIRES ===============
+    @EventListener
+    @Async("activityLogExecutor")
+    public void handleChangeEmailVerificationEvent(EmailChangeVerificationEvent event) {
+        executeWithDeviceDetection(
+                event.user(),
+                event.requestContext(),
+                device -> activityLogService.logEmailChangeVerification(
+                        event.user(), device, event.email(), event.requestContext())
+        );
+    }
+
+
+    @EventListener
+    @Async("activityLogExecutor")
+    public void handleEmailAddressConfirmation(EmailChangeConfirmationEvent event) {
+        executeWithDeviceDetection(
+                event.user(),
+                event.requestContext(),
+                device -> activityLogService.logEmailChangeComplete(
+                        event.user(), device, event.oldAddress(), event.newAddress(), event.requestContext())
+        );
+    }
+
+
+
+    // =============== MÉTHODES UTILITAIRES ===============
 
     /**
      * Exécute une action de logging après avoir tenté de détecter le device.

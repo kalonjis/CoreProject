@@ -90,6 +90,15 @@ public interface ActivityLogService {
             RequestContext requestContext
     );
 
+    ActivityLog logEmailChangeCancellation(
+            User user,
+            Device device,
+            String newEmail,
+            RequestContext requestContext
+    );
+
+    ActivityLog logEmailChangeVerification(User user, Device device, String newEmail, RequestContext requestContext);
+
     /**
      * Enregistre la confirmation d'un changement d'email
      */

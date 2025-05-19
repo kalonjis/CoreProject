@@ -229,32 +229,7 @@ public class AuthController {
 
     // region Change-Email
 
-    @PostMapping("change-email-request")
-    public ResponseEntity<Void>changeEmailRequest(@Valid @RequestBody ChangeEmailForm form, HttpServletRequest request){
-        authService.changeEmailRequest(form, request);
-        return ResponseEntity.noContent().build();
-    }
 
-
-    @PatchMapping("cancel-email-change")
-    public ResponseEntity<Void>cancelEmailChange(@RequestParam String token){
-        authService.cancelEmailChange(token);
-        return ResponseEntity.noContent().build();
-    }
-
-
-    @PatchMapping("change-email-verification")
-    public ResponseEntity<Void>changeEmailVerification(@RequestParam String token, HttpServletRequest request){
-        authService.changeEmailVerification(token, request);
-        return ResponseEntity.noContent().build();
-    }
-
-
-    @PutMapping("change-email-confirmation")
-    public ResponseEntity<Void>changeEmailConfirmation(@RequestParam String token){
-        authService.confirmEmail(token);
-        return ResponseEntity.noContent().build();
-    }
 
 
     //endregion

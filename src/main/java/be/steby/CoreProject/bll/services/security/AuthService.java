@@ -49,14 +49,6 @@ public interface AuthService extends UserDetailsService {
 
     void requestConfirmationLinkByUsername(String username);
 
-    void changeEmailRequest(ChangeEmailForm form, HttpServletRequest request);
-
-    void confirmEmail(String token);
-
-    void cancelEmailChange(String token);
-
-    void changeEmailVerification(String token, HttpServletRequest request);
-
     User signup(User user, HttpServletRequest request);
 
     User getAuthenticatedUser();
