@@ -140,7 +140,7 @@ public class MailerServiceImpl implements MailerService {
     context.setVariable("username", username);
     context.setVariable("oldEmailConfirmationUrl", oldEmailConfirmationUrl);
     context.setVariable("cancelChangeUrl", cancelChangeUrl);
-    mailerUtil.sendMail("Email confirmation", "emailAddresses/changeEmailRequest", context, user.getEmail());
+    mailerUtil.sendMail("Email change request", "emailAddresses/changeEmailRequest", context, user.getEmail());
   }
 
   @Async("emailExecutor")
@@ -154,7 +154,18 @@ public class MailerServiceImpl implements MailerService {
     context.setVariable("username", username);
     context.setVariable("newEmailConfirmationUrl", newEmailConfirmationUrl);
     context.setVariable("cancelChangeUrl", cancelChangeUrl);
-    mailerUtil.sendMail("Email confirmation", "emailAddresses/changeEmailVerification", context, newEmail);
+    mailerUtil.sendMail("Email change confirmation", "emailAddresses/changeEmailVerification", context, newEmail);
+  }
+
+
+  @Async("emailExecutor")
+  @Override
+  public void sendChangeEmailCancellation(User user) {
+    String username = defineUsername(user);
+
+    Context context = new Context();
+    context.setVariable("username", username);
+    mailerUtil.sendMail("Email change cancellation", "emailAddresses/changeEmailCancellation", context, user.getEmail());
   }
 
   @Async("emailExecutor")
@@ -167,8 +178,8 @@ public class MailerServiceImpl implements MailerService {
     context.setVariable("username", username);
     context.setVariable("oldEmail", oldEmail);
     context.setVariable("newEmail", newEmail);
-    mailerUtil.sendMail("Email confirmation", "emailAddresses/changeEmailConfirmation", context, oldEmail);
-    mailerUtil.sendMail("Email confirmation", "emailAddresses/changeEmailConfirmation", context, newEmail);
+    mailerUtil.sendMail("Email change success", "emailAddresses/changeEmailConfirmation", context, oldEmail);
+    mailerUtil.sendMail("Email change success", "emailAddresses/changeEmailConfirmation", context, newEmail);
   }
 
   //endregion

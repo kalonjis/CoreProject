@@ -3,19 +3,14 @@ package be.steby.CoreProject.bll.services.security.impl;
 import be.steby.CoreProject.bll.domain.password.exceptions.InvalidPasswordException;
 import be.steby.CoreProject.bll.events.account.ConfirmNewUserAccountEvent;
 import be.steby.CoreProject.bll.events.account.SignupEvent;
-import be.steby.CoreProject.bll.events.security.email_events.ChangeEmailRequestEvent;
-import be.steby.CoreProject.bll.events.security.email_events.ChangeEmailVerificationEvent;
 import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.models.RequestContext;
-import be.steby.CoreProject.bll.services.DeviceService;
 import be.steby.CoreProject.bll.services.MailerService;
 import be.steby.CoreProject.bll.services.RequestContextService;
 import be.steby.CoreProject.bll.services.UserService;
 import be.steby.CoreProject.bll.services.security.AuthService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
-import be.steby.CoreProject.dl.entities.tokens.EmailConfirmationToken;
-import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,8 +20,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.regex.Pattern;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -34,14 +27,11 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
     private final MailerService mailerService;
-    private final DeviceService deviceService;
     private final RequestContextService requestContextService;
     private final ApplicationEventPublisher eventPublisher;
     private final PasswordEncoder passwordEncoder;
-    private final PasswordResetTokenServiceImpl passwordResetTokenService;
     private final AccountConfirmationTokenServiceImpl accountConfirmationTokenService;
     private final AccountConfirmationAttemptServiceImpl accountConfirmationAttemptService;
-    private final EmailConfirmationTokenServiceImpl emailConfirmationTokenService;
 
 
     @Value("${url.front_server}")
@@ -152,91 +142,11 @@ public class AuthServiceImpl implements AuthService {
     // endregion
 
 
-    // region changeEmail
-    @Override
-    public void changeEmailRequest(ChangeEmailForm form, HttpServletRequest request ) {
-        User user = userService.getAuthenticatedUser();
-        String email = form.email();
-        checkEmailValidity(email);
-        if( !email.equals( form.confirmEmail() ) ){
-            throw new InvalidEmailException("Les adresses email doivent être identiques");
-        }
-        checkEmailAvailability(email);
-
-        EmailConfirmationToken token = emailConfirmationTokenService.createEmailConfirmationToken(user);
-        token.setNewEmailAddress(email);
-        emailConfirmationTokenService.saveToken(token);
-
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
-
-        eventPublisher.publishEvent(new ChangeEmailRequestEvent(user, email, token.getToken(), requestContext));
-        
-    }
-
-
-    @Override
-    public void cancelEmailChange(String token) {
-        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getToken(token);
-        if (!emailConfirmationToken.isRevoked()){
-            emailConfirmationTokenService.revokeToken(emailConfirmationToken);
-        }
-    }
-
-    @Override
-    public void changeEmailVerification(String token, HttpServletRequest request) {
-        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getToken(token);
-
-        emailConfirmationTokenService.verifyTokenValidity(emailConfirmationToken);
-        checkEmailAvailability(emailConfirmationToken.getNewEmailAddress());
-
-        if( emailConfirmationToken.isConfirmed() ){
-            throw new TokenConfirmationStatusException("The request is already confirmed, please check " + emailConfirmationToken.getNewEmailAddress() + " mail box for the next step");
-        }
-        emailConfirmationToken.setConfirmed(true);
-        emailConfirmationTokenService.saveToken(emailConfirmationToken);
-
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
-
-        eventPublisher.publishEvent(new ChangeEmailVerificationEvent(emailConfirmationToken.getUser(), requestContext, emailConfirmationToken.getToken(), emailConfirmationToken.getNewEmailAddress() ) );
-        
-
-    }
-
-
-
-    @Override
-    public void confirmEmail(String token) {
-        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getToken(token);
-        emailConfirmationTokenService.verifyTokenValidity(emailConfirmationToken);
-        emailConfirmationTokenService.revokeToken(emailConfirmationToken);
-        User user = emailConfirmationToken.getUser();
-        String oldEmail = user.getEmail();
-        String newEmail = emailConfirmationToken.getNewEmailAddress();
-        checkEmailAvailability(newEmail);
-        mailerService.sendChangeEmailConfirmation(token, user, oldEmail, newEmail );
-        user.setEmail(newEmail);
-        userService.saveUser(user);
-    }
-
-    // endregion
 
 
 
 
-    private void checkEmailValidity(String email) {
-        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
-        if(!Pattern.compile(emailRegex).matcher(email).matches()){
-            throw new InvalidEmailException("Email address " + email + " is not in a valid format");
-        }
-    }
 
-
-    private void checkEmailAvailability(String email){
-        if( userService.existsByEmail(email) ) {
-            throw new AlreadyExistException("The email address " + email + " is already used by another user");
-        }
-
-    }
 
 }
 

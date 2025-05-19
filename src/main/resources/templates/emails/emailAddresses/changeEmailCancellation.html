@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Email Change Request Cancelled</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+
+<h1 style="color: #2c3e50; text-align: center;">❌ Email Change Request Cancelled</h1>
+
+<p>
+    Hello <span th:text="${username}"></span>,<br/><br/>
+    We wanted to let you know that the recent request to change your email address has been <b>successfully cancelled</b>.<br/>
+</p>
+
+<p>
+    If you were not expecting this, or if you believe this was done in error, please contact our support team immediately.
+</p>
+
+<p>
+    ⚠️ No changes have been made to your account. Your current email address remains the same.
+</p>
+
+<p>
+    Thank you for helping us keep your account secure.<br/><br/>
+</p>
+
+<p>
+    Best regards, <br/>
+    <b>The MyFavApp Security Team</b>
+</p>
+
+</body>
+</html>

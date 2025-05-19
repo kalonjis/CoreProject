@@ -264,6 +264,63 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         );
     }
 
+
+    @Override
+    @Transactional
+    public ActivityLog logEmailChangeCancellation(User user, Device device, String newEmail, RequestContext requestContext) {
+        String metadataJson = null;
+
+        try {
+            // Exception non critique - on peut la gérer localement
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("newEmail", newEmail);
+            metadataJson = objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            log.error("Erreur lors de la sérialisation des métadonnées: {}", e.getMessage());
+            metadataJson = "{}";
+        }
+
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.EMAIL_CHANGE_CANCELLED,
+                true,
+                "annulation du changement de l' adresse  email vers " + newEmail + " effectué",
+                metadataJson,
+                requestContext
+        );
+    }
+
+
+    /**
+     * Enregistre la confirmation d'un changement d'email
+     */
+    @Override
+    @Transactional
+    public ActivityLog logEmailChangeVerification(User user, Device device, String newEmail, RequestContext requestContext) {
+        String metadataJson = null;
+
+        try {
+            // Exception non critique - on peut la gérer localement
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("newEmail", newEmail);
+            metadataJson = objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            log.error("Erreur lors de la sérialisation des métadonnées: {}", e.getMessage());
+            metadataJson = "{}";
+        }
+
+        return logUserAction(
+                user,
+                device,
+                ActionLogType.EMAIL_VERIFIED,
+                true,
+                "verification de l' adresse  email de " + newEmail + " effectué",
+                metadataJson,
+                requestContext
+        );
+    }
+
     /**
      * Enregistre la confirmation d'un changement d'email
      */
