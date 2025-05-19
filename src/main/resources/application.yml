@@ -4,53 +4,12 @@ spring:
       - classpath:config/database.yml
       - classpath:config/mail.yml
       - classpath:config/server.yml
+      - classpath:config/security/jwt.yml
+      - classpath:config/security/tokens.yml
+      - classpath:config/security/password.yml
 url:
   back_server: ${URL_BACK_SERVER}
   front_server: ${URL_FRONT_SERVER}
-
-security:
-  jwt:
-    secret: ${JWT_SECRET}
-    access-token:
-      expiration: 900000  # 15 minutes
-      name: "access_token"
-    refresh-token:
-      expiration: 604800000  # 7 jours
-      name: "refresh_token"
-  password-reset:
-    token:
-      expiration: 900000  # 15 minutes
-      #expiration: 10000  # 1 second
-    max-attempts: 3
-    lockout-minutes: 30
-  account-confirmation:
-    token:
-      expiration: 86400000 # 24 heures
-      #expiration: 1000  # 1 second
-    max-attempts: 5
-    lockout-minutes: 60
-  email-confirmation:
-    token:
-      expiration: 900000  # 15 minutes
-      #expiration: 1000  # 1 second
-    max-attempts: 3
-    lockout-minutes: 30
-  device-confirmation:
-    token:
-      expiration: 900000  # 15 minutes
-      #expiration: 1000  # 1 second
-    max-attempts: 3
-    lockout-minutes: 30
-    alert:
-      threshold-minutes: 10
-  password:
-    min-length: 8
-    max-length: 55
-    require-uppercase: true
-    require-lowercase: true
-    require-digit: true
-    require-special-char: true
-    special-chars: "!@#$%^&*()_+-=[]{}\\;':\"\\|,.<>/?"
 
 management:
   endpoints:

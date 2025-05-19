@@ -21,20 +21,16 @@ public class JwtUtil {
 
     private final SecretKey key;
     private final long accessTokenExpiration;
-    private final String accessTokenCookieName; // renommé de cookieName
+    private final String accessTokenCookieName;
     private final String refreshTokenCookieName;
 
-    public JwtUtil(
-            @Value("${security.jwt.secret}") String secretKey,
-            @Value("${security.jwt.access-token.expiration}") long accessTokenExpiration,
-            @Value("${security.jwt.access-token.name}") String accessTokenCookieName,
-            @Value("${security.jwt.refresh-token.name}") String refreshTokenCookieName)
-    {
-        this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
-        this.accessTokenExpiration = accessTokenExpiration;
-        this.accessTokenCookieName = accessTokenCookieName;
-        this.refreshTokenCookieName = refreshTokenCookieName;
+    public JwtUtil(JwtProperties jwtProperties) {
+        this.key = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes());
+        this.accessTokenExpiration = jwtProperties.getAccessToken().getExpiration();
+        this.accessTokenCookieName = jwtProperties.getAccessToken().getName();
+        this.refreshTokenCookieName = jwtProperties.getRefreshToken().getName();
     }
+
 
     public String generateAccessToken(User user, Device device) {
         return generateToken(user, device, accessTokenExpiration);
