@@ -1,7 +1,7 @@
 package be.steby.CoreProject.il.configs;
 
-import be.steby.CoreProject.bll.services.DeviceService;
-import be.steby.CoreProject.bll.services.security.AuthService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
+import be.steby.CoreProject.bll.domains.auth.services.AuthService;
 import be.steby.CoreProject.il.Jwt.JwtFilter;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
 import org.springframework.beans.factory.annotation.Value;

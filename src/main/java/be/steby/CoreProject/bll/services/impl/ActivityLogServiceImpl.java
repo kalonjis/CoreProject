@@ -1,9 +1,9 @@
 package be.steby.CoreProject.bll.services.impl;
 
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
-import be.steby.CoreProject.bll.models.RequestContext;
+import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.services.ActivityLogService;
-import be.steby.CoreProject.bll.utils.device.IpUtils;
+import be.steby.CoreProject.bll.domains.device.utils.IpUtils;
 import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
@@ -156,78 +156,6 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         }
 
         return log;
-    }
-
-    // endregion
-
-    // region Password
-
-    /**
-     * Enregistre un changement de mot de passe
-     */
-    @Override
-    @Transactional
-    public ActivityLog logPasswordChange(User user, Device device, boolean successful, RequestContext requestContext) {
-        return logUserAction(
-                user,
-                device,
-                ActionLogType.PASSWORD_CHANGED,
-                successful,
-                successful ? "Mot de passe modifié avec succès" : "Échec de la modification du mot de passe",
-                null,
-                requestContext
-        );
-    }
-
-    /**
-     * Enregistre une demande de réinitialisation de mot de passe
-     */
-    @Override
-    @Transactional
-    public ActivityLog logPasswordResetRequest(User user, Device device, RequestContext requestContext) {
-        return logUserAction(
-                user,
-                device,
-                ActionLogType.PASSWORD_RESET_REQUEST,
-                true,
-                "Demande de réinitialisation de mot de passe effectuée",
-                null,
-                requestContext
-        );
-    }
-
-    /**
-     * Enregistre une demande de réinitialisation de mot de passe
-     */
-    @Override
-    @Transactional
-    public ActivityLog logRequestPasswordToken(User user, Device device, RequestContext requestContext) {
-        return logUserAction(
-                user,
-                device,
-                ActionLogType.PASSWORD_REQUEST_TOKEN,
-                true,
-                "Nouvelle demande de réinitialisation de mot de passe effectuée",
-                null,
-                requestContext
-        );
-    }
-
-    /**
-     * Enregistre une réinitialisation complète de mot de passe
-     */
-    @Override
-    @Transactional
-    public ActivityLog logPasswordResetComplete(User user, Device device, RequestContext requestContext) {
-        return logUserAction(
-                user,
-                device,
-                ActionLogType.PASSWORD_RESET_COMPLETE,
-                true,
-                "Réinitialisation de mot de passe effectuée",
-                null,
-                requestContext
-        );
     }
 
     // endregion

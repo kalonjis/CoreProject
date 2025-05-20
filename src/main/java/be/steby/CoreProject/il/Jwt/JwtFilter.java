@@ -1,7 +1,7 @@
 package be.steby.CoreProject.il.Jwt;
 
-import be.steby.CoreProject.bll.services.DeviceService;
-import be.steby.CoreProject.bll.services.security.AuthService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
+import be.steby.CoreProject.bll.domains.auth.services.AuthService;
 import be.steby.CoreProject.dl.entities.Device;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;

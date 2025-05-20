@@ -1,22 +1,17 @@
 package be.steby.CoreProject.bll.domains.password.listeners;
 
 
+import be.steby.CoreProject.bll.common.utils.DeviceDetectionHelper;
 import be.steby.CoreProject.bll.domains.password.events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.domains.password.events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.domains.password.events.RequestPasswordTokenEvent;
-import be.steby.CoreProject.bll.models.RequestContext;
-import be.steby.CoreProject.bll.services.ActivityLogService;
-import be.steby.CoreProject.bll.services.DeviceService;
-import be.steby.CoreProject.dl.entities.Device;
-import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.bll.domains.password.logs.PasswordActivityLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-
-import java.util.function.Consumer;
 
 /**
  * Listener pour enregistrer les événements dans les logs d'activité.
@@ -28,17 +23,17 @@ import java.util.function.Consumer;
 @Slf4j
 public class PasswordActivityLogListener {
 
-    private final ActivityLogService activityLogService;
-    private final DeviceService deviceService;
+    private final PasswordActivityLogService passwordActivityLogService;
+    private final DeviceDetectionHelper deviceDetectionHelper;
 
 
     @EventListener
     @Async("activityLogExecutor")
     public void handleRequestPasswordReset(RequestPasswordResetEvent event) {
-        executeWithDeviceDetection(
+        deviceDetectionHelper.executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
-                device -> activityLogService.logPasswordResetRequest(
+                device -> passwordActivityLogService.logPasswordResetRequest(
                         event.user(), device, event.requestContext())
         );
     }
@@ -46,10 +41,10 @@ public class PasswordActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handlePasswordChangedEvent(PasswordChangedEvent event) {
-        executeWithDeviceDetection(
+        deviceDetectionHelper.executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
-                device -> activityLogService.logPasswordChange(
+                device -> passwordActivityLogService.logPasswordChange(
                         event.user(), device, true, event.requestContext())
         );
     }
@@ -57,40 +52,12 @@ public class PasswordActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleRequestPasswordToken(RequestPasswordTokenEvent event) {
-        executeWithDeviceDetection(
+        deviceDetectionHelper.executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
-                device -> activityLogService.logRequestPasswordToken(
+                device -> passwordActivityLogService.logRequestPasswordToken(
                         event.user(), device, event.requestContext())
         );
     }
 
-
-
-    // =============== MÉTHODES UTILITAIRES ===============
-
-    /**
-     * Exécute une action de logging après avoir tenté de détecter le device.
-     * Si la détection échoue, l'action est quand même exécutée avec un device null.
-     *
-     * @param user L'utilisateur concerné
-     * @param requestContext Le contexte de la requête pour la détection du device
-     * @param loggingAction L'action de logging à exécuter avec le device (peut être null)
-     */
-    private void executeWithDeviceDetection(User user,
-                                            RequestContext requestContext,
-                                            Consumer<Device> loggingAction) {
-        Device device = null;
-
-        try {
-            device = deviceService.detectFromRequestContext(requestContext, user);
-        } catch (Exception e) {
-            log.warn("Impossible de détecter le device pour l'utilisateur {} : {}",
-                    user.getUsername(), e.getMessage());
-            // On continue avec un device null
-        }
-
-        // Exécute l'action de logging avec le device (qui peut être null)
-        loggingAction.accept(device);
-    }
 }

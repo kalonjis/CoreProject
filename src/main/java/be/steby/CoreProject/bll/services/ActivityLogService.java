@@ -1,11 +1,10 @@
 package be.steby.CoreProject.bll.services;
 
-import be.steby.CoreProject.bll.models.RequestContext;
+import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.ActionLogType;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -44,37 +43,6 @@ public interface ActivityLogService {
      * Enregistre une déconnexion
      */
     ActivityLog logLogout(
-            User user,
-            Device device,
-            RequestContext requestContext
-    );
-
-    /**
-     * Enregistre un changement de mot de passe
-     */
-    ActivityLog logPasswordChange(
-            User user,
-            Device device,
-            boolean successful,
-            RequestContext requestContext
-    );
-
-    /**
-     * Enregistre une demande de réinitialisation de mot de passe
-     */
-    ActivityLog logPasswordResetRequest(
-            User user,
-            Device device,
-            RequestContext requestContext
-    );
-
-
-    ActivityLog logRequestPasswordToken(User user, Device device, RequestContext requestContext);
-
-    /**
-     * Enregistre une réinitialisation complète de mot de passe
-     */
-    ActivityLog logPasswordResetComplete(
             User user,
             Device device,
             RequestContext requestContext

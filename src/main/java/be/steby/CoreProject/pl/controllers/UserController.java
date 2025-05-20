@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.controllers;
 
-import be.steby.CoreProject.bll.services.UserService;
+import be.steby.CoreProject.bll.domains.user.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 

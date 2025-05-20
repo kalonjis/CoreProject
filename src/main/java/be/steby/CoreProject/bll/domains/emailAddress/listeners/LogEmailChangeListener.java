@@ -5,9 +5,9 @@ import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeCancellat
 import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeConfirmationEvent;
 import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeRequestEvent;
 import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeVerificationEvent;
-import be.steby.CoreProject.bll.models.RequestContext;
+import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.services.ActivityLogService;
-import be.steby.CoreProject.bll.services.DeviceService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import lombok.RequiredArgsConstructor;

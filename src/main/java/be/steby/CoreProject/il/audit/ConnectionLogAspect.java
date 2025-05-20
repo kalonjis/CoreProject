@@ -1,7 +1,7 @@
 //package be.steby.CoreProject.il.audit;
 //
 //import be.steby.CoreProject.bll.services.ActivityLogService;
-//import be.steby.CoreProject.bll.services.UserService;
+//import be.steby.CoreProject.bll.domains.user.services.UserService;
 //import be.steby.CoreProject.dl.entities.Device;
 //import be.steby.CoreProject.dl.entities.User;
 //import be.steby.CoreProject.dl.enums.ActionLogType;
@@ -122,7 +122,7 @@
 //     * Journalise les confirmations d'appareil
 //     */
 //    @AfterReturning(
-//            pointcut = "execution(* be.steby.CoreProject.bll.services.DeviceService.confirmDevice(..))",
+//            pointcut = "execution(* be.steby.CoreProject.bll.domains.device.services.DeviceService.confirmDevice(..))",
 //            returning = "device")
 //    public void logDeviceConfirmation(JoinPoint joinPoint, Device device) {
 //        try {
@@ -140,7 +140,7 @@
 //    /**
 //     * Journalise les rejets d'appareil
 //     */
-//    @AfterReturning("execution(* be.steby.CoreProject.bll.services.DeviceService.rejectDevice(..))")
+//    @AfterReturning("execution(* be.steby.CoreProject.bll.domains.device.services.DeviceService.rejectDevice(..))")
 //    public void logDeviceRejection(JoinPoint joinPoint) {
 //        try {
 //            // Le token est le premier argument
@@ -168,7 +168,7 @@
 //    /**
 //     * Journalise les changements de mot de passe
 //     */
-//    @AfterReturning("execution(* be.steby.CoreProject.bll.services.security.AuthService.changePassword(..))")
+//    @AfterReturning("execution(* be.steby.CoreProject.bll.domains.auth.services.AuthService.changePassword(..))")
 //    public void logPasswordChange(JoinPoint joinPoint) {
 //        try {
 //            if (userService.isAnonymous()) {
@@ -187,7 +187,7 @@
 //    /**
 //     * Journalise les réinitialisations de mot de passe
 //     */
-//    @AfterReturning("execution(* be.steby.CoreProject.bll.services.security.AuthService.resetPassword(..))")
+//    @AfterReturning("execution(* be.steby.CoreProject.bll.domains.auth.services.AuthService.resetPassword(..))")
 //    public void logPasswordReset(JoinPoint joinPoint) {
 //        try {
 //            // Nous ne pouvons pas accéder à l'utilisateur directement ici,
@@ -204,7 +204,7 @@
 //     * Journalise les confirmations d'inscription
 //     */
 //    @AfterReturning(
-//            pointcut = "execution(* be.steby.CoreProject.bll.services.security.AuthService.confirmNewUserAccount(..))",
+//            pointcut = "execution(* be.steby.CoreProject.bll.domains.auth.services.AuthService.confirmNewUserAccount(..))",
 //            returning = "user")
 //    public void logAccountConfirmation(JoinPoint joinPoint, User user) {
 //        try {
@@ -222,7 +222,7 @@
 //     * Journalise les inscriptions utilisateur
 //     */
 //    @AfterReturning(
-//            pointcut = "execution(* be.steby.CoreProject.bll.services.security.AuthService.signup(..))",
+//            pointcut = "execution(* be.steby.CoreProject.bll.domains.auth.services.AuthService.signup(..))",
 //            returning = "user")
 //    public void logSignup(JoinPoint joinPoint, User user) {
 //        try {
@@ -239,7 +239,7 @@
 //    /**
 //     * Journalise les demandes de changement d'email
 //     */
-//    @AfterReturning("execution(* be.steby.CoreProject.bll.services.security.AuthService.changeEmailRequest(..))")
+//    @AfterReturning("execution(* be.steby.CoreProject.bll.domains.auth.services.AuthService.changeEmailRequest(..))")
 //    public void logEmailChangeRequest(JoinPoint joinPoint) {
 //        try {
 //            if (userService.isAnonymous()) {

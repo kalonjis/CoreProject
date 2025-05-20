@@ -3,7 +3,7 @@ package be.steby.CoreProject.bll.domains.password.listeners;
 import be.steby.CoreProject.bll.domains.password.events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.domains.password.events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.domains.password.events.RequestPasswordTokenEvent;
-import be.steby.CoreProject.bll.services.MailerService;
+import be.steby.CoreProject.bll.common.services.mailer.MailerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;

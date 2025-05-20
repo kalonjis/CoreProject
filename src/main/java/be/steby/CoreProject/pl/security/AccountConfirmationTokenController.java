@@ -2,8 +2,7 @@ package be.steby.CoreProject.pl.security;
 
 
 import be.steby.CoreProject.bll.domains.account.services.AccountConfirmationService;
-import be.steby.CoreProject.bll.services.DeviceService;
-import be.steby.CoreProject.bll.services.security.AuthService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.dl.entities.User;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

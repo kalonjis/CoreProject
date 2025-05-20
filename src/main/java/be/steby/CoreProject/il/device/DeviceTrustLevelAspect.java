@@ -1,7 +1,7 @@
 package be.steby.CoreProject.il.device;
 
 import be.steby.CoreProject.bll.exceptions.DeviceTrustLevelException;
-import be.steby.CoreProject.bll.utils.device.DeviceSecurityEvaluator;
+import be.steby.CoreProject.bll.domains.device.utils.DeviceSecurityEvaluator;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
