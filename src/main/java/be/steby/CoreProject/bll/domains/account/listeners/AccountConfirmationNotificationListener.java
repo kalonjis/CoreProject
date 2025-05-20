@@ -2,8 +2,8 @@ package be.steby.CoreProject.bll.domains.account.listeners;
 
 import be.steby.CoreProject.bll.domains.account.events.ConfirmNewUserAccountEvent;
 import be.steby.CoreProject.bll.events.account.SignupEvent;
-import be.steby.CoreProject.bll.services.MailerService;
-import be.steby.CoreProject.bll.services.security.impl.AccountConfirmationTokenServiceImpl;
+import be.steby.CoreProject.bll.common.services.mailer.MailerService;
+import be.steby.CoreProject.bll.domains.account.services.tokens.AccountConfirmationTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

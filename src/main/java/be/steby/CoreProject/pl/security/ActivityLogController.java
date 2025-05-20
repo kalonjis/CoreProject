@@ -1,7 +1,7 @@
 package be.steby.CoreProject.pl.security;
 
 import be.steby.CoreProject.bll.services.ActivityLogService;
-import be.steby.CoreProject.bll.services.UserService;
+import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.ActionLogType;

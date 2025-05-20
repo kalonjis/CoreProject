@@ -4,11 +4,11 @@ import be.steby.CoreProject.bll.domains.account.events.ConfirmNewUserAccountEven
 import be.steby.CoreProject.bll.exceptions.AccountActivationException;
 import be.steby.CoreProject.bll.exceptions.TokenValidityException;
 import be.steby.CoreProject.bll.exceptions.UserEnabledStatusException;
-import be.steby.CoreProject.bll.models.RequestContext;
-import be.steby.CoreProject.bll.services.RequestContextService;
-import be.steby.CoreProject.bll.services.UserService;
-import be.steby.CoreProject.bll.services.security.impl.AccountConfirmationAttemptServiceImpl;
-import be.steby.CoreProject.bll.services.security.impl.AccountConfirmationTokenServiceImpl;
+import be.steby.CoreProject.bll.common.models.RequestContext;
+import be.steby.CoreProject.bll.common.services.context.RequestContextService;
+import be.steby.CoreProject.bll.domains.user.services.UserService;
+import be.steby.CoreProject.bll.domains.account.services.tokens.AccountConfirmationAttemptServiceImpl;
+import be.steby.CoreProject.bll.domains.account.services.tokens.AccountConfirmationTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import jakarta.servlet.http.HttpServletRequest;

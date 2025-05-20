@@ -1,8 +1,8 @@
 package be.steby.CoreProject.bll.listeners;
 
 import be.steby.CoreProject.bll.events.device.DeviceDetectedEvent;
-import be.steby.CoreProject.bll.services.MailerService;
-import be.steby.CoreProject.bll.services.security.impl.DeviceConfirmationTokenServiceImpl;
+import be.steby.CoreProject.bll.common.services.mailer.MailerService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceConfirmationTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.tokens.DeviceConfirmationToken;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

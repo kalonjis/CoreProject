@@ -1,8 +1,8 @@
 package be.steby.CoreProject.pl.controllers.admin;
 
 
-import be.steby.CoreProject.bll.services.AdminService;
-import be.steby.CoreProject.bll.services.DeviceService;
+import be.steby.CoreProject.bll.domains.admin.services.AdminService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.pl.models.device.DeviceDTO;
 import be.steby.CoreProject.pl.models.device.DeviceTrustLevelForm;

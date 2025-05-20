@@ -7,10 +7,10 @@ import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeVerificat
 import be.steby.CoreProject.bll.exceptions.AlreadyExistException;
 import be.steby.CoreProject.bll.domains.emailAddress.exceptions.InvalidEmailException;
 import be.steby.CoreProject.bll.exceptions.TokenConfirmationStatusException;
-import be.steby.CoreProject.bll.models.RequestContext;
-import be.steby.CoreProject.bll.services.RequestContextService;
-import be.steby.CoreProject.bll.services.UserService;
-import be.steby.CoreProject.bll.services.security.impl.EmailConfirmationTokenServiceImpl;
+import be.steby.CoreProject.bll.common.models.RequestContext;
+import be.steby.CoreProject.bll.common.services.context.RequestContextService;
+import be.steby.CoreProject.bll.domains.user.services.UserService;
+import be.steby.CoreProject.bll.domains.emailAddress.services.tokens.EmailConfirmationTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.EmailConfirmationToken;
 import be.steby.CoreProject.pl.models.user.ChangeEmailForm;

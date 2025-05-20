@@ -1,9 +1,9 @@
 package be.steby.CoreProject.pl.controllers.admin;
 
 
-import be.steby.CoreProject.bll.services.AdminService;
-import be.steby.CoreProject.bll.services.UserService;
-import be.steby.CoreProject.bll.services.security.impl.RefreshTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.admin.services.AdminService;
+import be.steby.CoreProject.bll.domains.user.services.UserService;
+import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.ActionLogType;
 import be.steby.CoreProject.dl.enums.UserRole;
