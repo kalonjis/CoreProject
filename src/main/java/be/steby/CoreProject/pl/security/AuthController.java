@@ -1,12 +1,13 @@
 package be.steby.CoreProject.pl.security;
 
-import be.steby.CoreProject.bll.events.security.UserLoggedInEvent;
-import be.steby.CoreProject.bll.events.security.UserLogoutEvent;
+import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
+import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
 import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.domains.auth.services.AuthService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.userRegistration.services.UserRegistrationService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.dl.entities.User;
@@ -41,6 +42,7 @@ import java.util.stream.Collectors;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserRegistrationService userRegistrationService;
     private final JwtUtil jwtUtil;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final DeviceService deviceService;
@@ -52,7 +54,7 @@ public class AuthController {
 
     @PostMapping("signup")
     public ResponseEntity<UserShortDTO>signup(@Valid @RequestBody UserSignupForm form, HttpServletRequest request){
-       User user = authService.signup(form.toEntity(), request);
+       User user = userRegistrationService.signup(form.toEntity(), request);
        String location = "/api/user/" + user.getId();
        return ResponseEntity.created(URI.create(location)).build();
     }
@@ -181,6 +183,7 @@ public class AuthController {
         }
     }
 
+
     @PostMapping("/logout")
     @Transactional
     public ResponseEntity<?> logout(
@@ -226,12 +229,6 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-    // region Change-Email
-
-
-
-
-    //endregion
 
 
     private void addAccessTokenCookie(HttpServletResponse response, String token) {

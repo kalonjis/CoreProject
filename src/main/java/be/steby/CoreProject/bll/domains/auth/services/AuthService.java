@@ -37,10 +37,6 @@ public interface AuthService extends UserDetailsService {
     void logout();
 
 
-
-
-    User signup(User user, HttpServletRequest request);
-
     User getAuthenticatedUser();
 
 }

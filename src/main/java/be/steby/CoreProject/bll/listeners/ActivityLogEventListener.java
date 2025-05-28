@@ -2,9 +2,9 @@ package be.steby.CoreProject.bll.listeners;
 
 import be.steby.CoreProject.bll.domains.account.events.ConfirmNewUserAccountEvent;
 import be.steby.CoreProject.bll.events.account.SignupEvent;
-import be.steby.CoreProject.bll.events.device.DeviceTrustLevelChangedEvent;
-import be.steby.CoreProject.bll.events.security.UserLoggedInEvent;
-import be.steby.CoreProject.bll.events.security.UserLogoutEvent;
+import be.steby.CoreProject.bll.domains.device.events.DeviceTrustLevelChangedEvent;
+import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
+import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
 import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;

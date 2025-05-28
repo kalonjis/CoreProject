@@ -33,17 +33,7 @@ public class AuthServiceImpl implements AuthService {
 
 
 
-    @Override
-    public User signup(User user, HttpServletRequest request) {
-        userService.checkIfUserExists(user);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        userService.saveUser(user);
 
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
-        eventPublisher.publishEvent( new SignupEvent( user, requestContext ));
-
-        return user;
-    }
 
     @Override
     public User login(String username, String password) {

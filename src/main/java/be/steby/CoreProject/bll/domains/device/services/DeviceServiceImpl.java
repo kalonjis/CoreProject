@@ -2,8 +2,8 @@ package be.steby.CoreProject.bll.domains.device.services;
 
 import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
-import be.steby.CoreProject.bll.events.device.DeviceDetectedEvent;
-import be.steby.CoreProject.bll.events.device.DeviceTrustLevelChangedEvent;
+import be.steby.CoreProject.bll.domains.device.events.DeviceDetectedEvent;
+import be.steby.CoreProject.bll.domains.device.events.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
 import be.steby.CoreProject.bll.exceptions.CurrentDeviceDisconnectionException;
 import be.steby.CoreProject.bll.exceptions.DoesntExistException;
