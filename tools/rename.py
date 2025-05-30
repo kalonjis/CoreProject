@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
 """
 Script universel pour renommer CoreProject vers n'importe quel nouveau nom.
-Usage: python rename.py NouveauNomProjet [--dry-run]
+Usage: python rename.py NouveauNomProjet
+
+IMPORTANT: Ce script doit être placé au même niveau que le dossier "CoreProject"
+Structure requise:
+  votre_dossier/
+  ├── rename.py          (ce script)
+  └── CoreProject/       (le projet à renommer)
+
+Le script exécute automatiquement un dry-run, affiche le résumé, puis demande confirmation.
 """
 
 import os
@@ -19,6 +27,8 @@ class ProjectRenamer:
         self.keep_git = keep_git
         self.files_modified = 0
         self.occurrences_replaced = 0
+        self.directories_renamed = 0
+        self.main_directory_renamed = False
         self.errors = []
 
         # Extensions de fichiers à traiter
@@ -34,34 +44,40 @@ class ProjectRenamer:
             '__pycache__', '.pyc', '.jar', '.war', '.DS_Store'
         }
 
-    def detect_project_root(self, current_path: Path) -> Path:
-        """Détecte automatiquement la racine du projet CoreProject"""
-        original_path = current_path
+    def detect_and_validate_project(self) -> Path:
+        """Détecte et valide le projet CoreProject dans le répertoire du script"""
+        # Utiliser le répertoire où se trouve le script, pas le répertoire courant d'exécution
+        script_dir = Path(__file__).parent.resolve()
+        project_path = script_dir / self.old_name
 
-        # Chercher pom.xml et src/ pour identifier un projet Maven
-        while current_path != current_path.parent:  # Pas encore à la racine système
-            pom_file = current_path / "pom.xml"
-            src_dir = current_path / "src"
+        print(f"🔍 Recherche du projet {self.old_name} dans: {script_dir}")
+        print(f"📂 Chemin attendu: {project_path}")
 
-            if pom_file.exists() and src_dir.exists():
-                # Vérifier si c'est bien un projet CoreProject
-                try:
-                    with open(pom_file, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        if self.old_name in content:
-                            print(f"✅ Projet {self.old_name} détecté dans: {current_path}")
-                            return current_path
-                except Exception:
-                    pass
+        # Vérifier que le dossier CoreProject existe
+        if not project_path.exists():
+            print(f"❌ Dossier '{self.old_name}' non trouvé dans le répertoire du script")
+            print(f"💡 Structure attendue:")
+            print(f"   {script_dir}/")
+            print(f"   ├── rename.py          (ce script)")
+            print(f"   └── {self.old_name}/       (le projet à renommer)")
+            raise FileNotFoundError(f"Dossier {self.old_name} non trouvé")
 
-            current_path = current_path.parent
+        if not project_path.is_dir():
+            print(f"❌ '{self.old_name}' existe mais n'est pas un dossier")
+            raise NotADirectoryError(f"{self.old_name} n'est pas un dossier")
 
-        # Si pas trouvé, utiliser le chemin original
-        print(f"⚠️  Projet {self.old_name} non détecté automatiquement, utilisation de: {original_path}")
-        return original_path
+        print(f"✅ Dossier '{self.old_name}' trouvé")
+
+        # Valider que c'est bien un projet CoreProject
+        if not self.validate_project(project_path):
+            raise ValueError(f"Le dossier {self.old_name} ne semble pas être un projet valide")
+
+        return project_path
 
     def validate_project(self, project_path: Path) -> bool:
         """Valide que c'est bien un projet CoreProject"""
+        print(f"🔍 Validation du projet dans: {project_path}")
+
         # Vérifier pom.xml
         pom_file = project_path / "pom.xml"
         if not pom_file.exists():
@@ -80,6 +96,8 @@ class ProjectRenamer:
                 content = f.read()
                 if self.old_name not in content:
                     print(f"❌ '{self.old_name}' non trouvé dans pom.xml")
+                    print(f"💡 Contenu du pom.xml (100 premiers caractères):")
+                    print(f"   {content[:100]}...")
                     return False
         except Exception as e:
             print(f"❌ Erreur lors de la lecture de pom.xml: {e}")
@@ -163,15 +181,33 @@ class ProjectRenamer:
                 if modified:
                     self.files_modified += 1
                     self.occurrences_replaced += occurrences
-                    status = "🔄 [DRY RUN]" if self.dry_run else "✅ Modifié"
-                    print(f"  {status} {file_path.relative_to(directory)} ({occurrences} occurrences)")
+                    if not self.dry_run:  # Afficher le détail seulement lors de l'exécution réelle
+                        status = "✅ Modifié"
+                        print(f"  {status} {file_path.relative_to(directory)} ({occurrences} occurrences)")
+
+    def rename_project_directory(self, project_path: Path) -> Path:
+        """Renomme le dossier principal du projet"""
+        parent_dir = project_path.parent
+        new_project_path = parent_dir / self.new_name
+
+        # Marquer que le dossier principal sera renommé
+        self.main_directory_renamed = True
+
+        if not self.dry_run:
+            print(f"\n📁 Renommage du dossier principal...")
+            try:
+                project_path.rename(new_project_path)
+                print(f"  ✅ {self.old_name}/ → {self.new_name}/")
+            except Exception as e:
+                self.errors.append(f"Erreur lors du renommage du dossier principal: {str(e)}")
+                return project_path
+
+        return new_project_path
 
     def rename_directories_and_files(self, base_path: Path) -> None:
         """Renomme les dossiers et fichiers contenant l'ancien nom"""
-        if self.dry_run:
-            print(f"\n🔄 [DRY RUN] Recherche des dossiers/fichiers à renommer...")
-        else:
-            print(f"\n📁 Renommage des dossiers et fichiers...")
+        if not self.dry_run:
+            print(f"\n📁 Renommage des dossiers et fichiers internes...")
 
         items_to_rename = []
 
@@ -198,27 +234,30 @@ class ProjectRenamer:
         # Effectuer les renommages
         for item_type, old_path, new_path in items_to_rename:
             try:
-                if self.dry_run:
-                    print(f"  🔄 [DRY RUN] {item_type}: {old_path} → {new_path}")
-                else:
+                if not self.dry_run:
                     old_path.rename(new_path)
                     print(f"  ✅ {item_type}: {old_path.name} → {new_path.name}")
+
+                # Compter les dossiers renommés
+                if item_type == 'dir':
+                    self.directories_renamed += 1
+
             except Exception as e:
                 self.errors.append(f"Erreur lors du renommage de {old_path}: {str(e)}")
 
     def clean_git_history(self, project_path: Path) -> None:
         """Supprime l'historique Git pour éviter les push accidentels vers l'ancien repo"""
         if self.keep_git:
-            print(f"\n⚠️  Historique Git conservé (--keep-git activé)")
-            print(f"  🚨 ATTENTION: Vous devez changer l'origine Git manuellement !")
-            print(f"  💡 Commandes suggérées:")
-            print(f"     git remote remove origin")
-            print(f"     git remote add origin https://github.com/USER/{self.new_name}.git")
+            if not self.dry_run:
+                print(f"\n⚠️  Historique Git conservé (--keep-git activé)")
+                print(f"  🚨 ATTENTION: Vous devez changer l'origine Git manuellement !")
+                print(f"  💡 Commandes suggérées:")
+                print(f"     cd {self.new_name}")
+                print(f"     git remote remove origin")
+                print(f"     git remote add origin https://github.com/USER/{self.new_name}.git")
             return
 
-        if self.dry_run:
-            print(f"\n🔄 [DRY RUN] Nettoyage de l'historique Git...")
-        else:
+        if not self.dry_run:
             print(f"\n🧹 Nettoyage de l'historique Git...")
 
         git_folder = project_path / '.git'
@@ -227,9 +266,7 @@ class ProjectRenamer:
         # Supprimer le dossier .git
         if git_folder.exists():
             try:
-                if self.dry_run:
-                    print(f"  🔄 [DRY RUN] Suppression du dossier .git/")
-                else:
+                if not self.dry_run:
                     shutil.rmtree(git_folder)
                     print(f"  ✅ Dossier .git/ supprimé")
             except Exception as e:
@@ -238,9 +275,7 @@ class ProjectRenamer:
         # Supprimer .gitattributes s'il existe
         if gitattributes_file.exists():
             try:
-                if self.dry_run:
-                    print(f"  🔄 [DRY RUN] Suppression de .gitattributes")
-                else:
+                if not self.dry_run:
                     gitattributes_file.unlink()
                     print(f"  ✅ Fichier .gitattributes supprimé")
             except Exception as e:
@@ -248,30 +283,22 @@ class ProjectRenamer:
 
         # Vérifier si .gitignore existe (on le garde)
         gitignore_file = project_path / '.gitignore'
-        if gitignore_file.exists():
+        if gitignore_file.exists() and not self.dry_run:
             print(f"  ℹ️  Fichier .gitignore conservé pour le nouveau projet")
 
-    def run(self, project_path: Path = None) -> None:
+    def run(self) -> bool:
         """Exécute le processus complet de renommage"""
-        if project_path is None:
-            project_path = self.detect_project_root(Path.cwd())
+        try:
+            # Détecter et valider le projet dans le répertoire courant
+            project_path = self.detect_and_validate_project()
+        except (FileNotFoundError, NotADirectoryError, ValueError) as e:
+            print(f"❌ {str(e)}")
+            return False
 
-        if not project_path.exists():
-            print(f"❌ Le chemin {project_path} n'existe pas")
-            return
-
-        if not project_path.is_dir():
-            print(f"❌ {project_path} n'est pas un dossier")
-            return
-
-        # Valider que c'est bien un projet CoreProject
-        if not self.validate_project(project_path):
-            print(f"❌ Ce ne semble pas être un projet {self.old_name} valide")
-            return
-
-        print(f"🚀 {'[DRY RUN] ' if self.dry_run else ''}Remplacement de '{self.old_name}' par '{self.new_name}'")
-        print(f"📂 Dossier: {project_path.absolute()}")
-        print("-" * 60)
+        if not self.dry_run:
+            print(f"🚀 Remplacement de '{self.old_name}' par '{self.new_name}'")
+            print(f"📂 Dossier: {project_path.absolute()}")
+            print("-" * 60)
 
         # Nettoyer l'historique Git en premier (sécurité)
         self.clean_git_history(project_path)
@@ -279,49 +306,70 @@ class ProjectRenamer:
         # Traiter les fichiers
         self.process_directory(project_path)
 
-        # Renommer les dossiers et fichiers
+        # Renommer les dossiers et fichiers internes
         self.rename_directories_and_files(project_path)
 
-        # Afficher le résumé
-        self.show_summary()
+        # Renommer le dossier principal
+        new_project_path = self.rename_project_directory(project_path)
 
-    def show_summary(self) -> None:
+        return True
+
+    def show_summary(self, is_dry_run_summary: bool = False) -> None:
         """Affiche un résumé des modifications"""
         print("\n" + "=" * 60)
-        print("📊 RÉSUMÉ")
+        if is_dry_run_summary:
+            print("🔍 APERÇU DES MODIFICATIONS")
+        else:
+            print("📊 RÉSUMÉ FINAL")
         print("=" * 60)
 
-        if self.dry_run:
-            print("🔄 MODE DRY RUN - Aucune modification effectuée")
+        if self.dry_run and is_dry_run_summary:
+            print("🔄 Simulation - Aucune modification effectuée")
 
-        print(f"📄 Fichiers traités: {self.files_modified}")
-        print(f"🔄 Occurrences remplacées: {self.occurrences_replaced}")
+        print(f"📄 Fichiers à traiter: {self.files_modified}")
+        print(f"🔄 Occurrences à remplacer: {self.occurrences_replaced}")
+        if self.directories_renamed > 0:
+            print(f"📁 Dossiers internes à renommer: {self.directories_renamed}")
+        if self.main_directory_renamed:
+            print(f"📂 Dossier principal: {self.old_name}/ → {self.new_name}/")
 
         if self.errors:
-            print(f"\n❌ Erreurs ({len(self.errors)}):")
-            for error in self.errors[:10]:  # Limiter à 10 erreurs
+            print(f"\n❌ Erreurs détectées ({len(self.errors)}):")
+            for error in self.errors[:5]:  # Limiter à 5 erreurs pour l'aperçu
                 print(f"  • {error}")
-            if len(self.errors) > 10:
-                print(f"  • ... et {len(self.errors) - 10} autres erreurs")
+            if len(self.errors) > 5:
+                print(f"  • ... et {len(self.errors) - 5} autres erreurs")
 
-        if not self.dry_run and self.files_modified > 0:
-            print(f"\n✅ Remplacement terminé avec succès!")
-            print(f"🎉 Le projet '{self.old_name}' est maintenant '{self.new_name}'")
-            print(f"\n🎯 PROCHAINES ÉTAPES pour {self.new_name}:")
-            print("1. 📝 Adaptez votre fichier .env")
-            print("2. 📝 Mettez à jour README.md")
-            print("3. ⚡ Testez la compilation: mvn clean compile")
-            print("4. 🚀 Créez le repo GitHub et poussez le code:")
-            print(f"   git init")
-            print(f"   git add .")
-            print(f"   git commit -m 'Initial commit - {self.new_name}'")
-            print(f"   git remote add origin https://github.com/USER/{self.new_name}.git")
-            print(f"   git push -u origin main")
-        elif self.dry_run:
-            print(f"\n💡 Exécutez sans --dry-run pour appliquer les modifications")
-        elif self.files_modified == 0:
-            print(f"\n⚠️  Aucune occurrence de '{self.old_name}' trouvée!")
-            print(f"   Vérifiez que vous êtes dans le bon répertoire")
+        if is_dry_run_summary:
+            if self.files_modified > 0 or self.main_directory_renamed:
+                print(f"\n📋 Résumé des changements prévus:")
+                if self.files_modified > 0:
+                    print(f"   • {self.files_modified} fichiers seront modifiés")
+                    print(f"   • {self.occurrences_replaced} occurrences de '{self.old_name}' seront remplacées par '{self.new_name}'")
+                if self.directories_renamed > 0:
+                    print(f"   • {self.directories_renamed} dossiers internes seront renommés")
+                if self.main_directory_renamed:
+                    print(f"   • Le dossier principal '{self.old_name}/' sera renommé en '{self.new_name}/'")
+                if not self.keep_git:
+                    print(f"   • L'historique Git sera supprimé (sécurité)")
+            else:
+                print(f"\n⚠️  Aucune occurrence de '{self.old_name}' trouvée!")
+                print(f"   Vérifiez que le projet contient bien du code {self.old_name}")
+        else:
+            if self.files_modified > 0:
+                print(f"\n✅ Remplacement terminé avec succès!")
+                print(f"🎉 Le projet '{self.old_name}' est maintenant '{self.new_name}'")
+                print(f"\n🎯 PROCHAINES ÉTAPES pour {self.new_name}:")
+                print(f"1. 📂 Entrez dans le nouveau dossier: cd {self.new_name}")
+                print("2. 📝 Adaptez votre fichier .env")
+                print("3. 📝 Mettez à jour README.md")
+                print("4. ⚡ Testez la compilation: mvn clean compile")
+                print("5. 🚀 Créez le repo GitHub et poussez le code:")
+                print(f"   git init")
+                print(f"   git add .")
+                print(f"   git commit -m 'Initial commit - {self.new_name}'")
+                print(f"   git remote add origin https://github.com/USER/{self.new_name}.git")
+                print(f"   git push -u origin main")
 
 def validate_project_name(name: str) -> bool:
     """Valide le nom du projet selon les bonnes pratiques Java"""
@@ -340,12 +388,18 @@ def validate_project_name(name: str) -> bool:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Renomme CoreProject vers un nouveau nom de projet",
+        description="Renomme CoreProject vers un nouveau nom de projet.\n"
+                    "IMPORTANT: Ce script doit être placé au même niveau que le dossier 'CoreProject'\n"
+                    "Le script exécute automatiquement un aperçu puis demande confirmation.",
         epilog="Exemples:\n"
-               "  python rename.py TaskManager --dry-run\n"
+               "  python rename.py TaskManager\n"
                "  python rename.py EcommerceApp\n"
-               "  python rename.py BlogEngine --path /autre/chemin\n"
-               "  python rename.py NewProject --keep-git",
+               "  python rename.py BlogEngine\n"
+               "  python rename.py NewProject --keep-git\n\n"
+               "Structure requise:\n"
+               "  votre_dossier/\n"
+               "  ├── rename.py          (ce script)\n"
+               "  └── CoreProject/       (le projet à renommer)",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
@@ -353,17 +407,6 @@ def main():
         'new_name',
         nargs='?',  # Optionnel pour compatibilité
         help="Nouveau nom du projet (ex: TaskManager, BlogEngine, etc.)"
-    )
-    parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help="Affiche les modifications sans les appliquer"
-    )
-    parser.add_argument(
-        '--path',
-        type=str,
-        default=None,  # Changé de '.' à None pour auto-détection
-        help="Chemin vers le dossier du projet (défaut: auto-détection)"
     )
     parser.add_argument(
         '--old-name',
@@ -383,6 +426,8 @@ def main():
     if not args.new_name:
         print("🏷️  Renommage de projet CoreProject")
         print("-" * 40)
+        print("IMPORTANT: Ce script doit être au même niveau que le dossier 'CoreProject'")
+        print("")
         while True:
             new_name = input("📝 Nouveau nom du projet: ").strip()
             if validate_project_name(new_name):
@@ -400,56 +445,71 @@ def main():
         print("Le nom doit commencer par une lettre et contenir uniquement lettres, chiffres, _ et -")
         return
 
-    # Gestion du chemin
-    if args.path:
-        project_path = Path(args.path).resolve()
-    else:
-        project_path = None  # Auto-détection
+    print("🔍 ÉTAPE 1: Analyse et aperçu des modifications")
+    print("=" * 60)
 
-    # FORCER le dry-run par défaut pour la sécurité
-    if not args.dry_run and not args.keep_git:
-        print("🛡️  SÉCURITÉ: Exécution en mode dry-run par défaut")
-        print(f"   Pour voir ce qui sera modifié...")
-        args.dry_run = True
-
-        # Indiquer comment faire l'exécution réelle
-        print(f"\n💡 Pour exécuter réellement les modifications:")
-        if project_path:
-            print(f"   python {Path(__file__).name} {args.new_name} --path {args.path}")
-        else:
-            print(f"   python {Path(__file__).name} {args.new_name}")
-
-    # Avertissement si --keep-git est utilisé
-    if args.keep_git and not args.dry_run:
-        print("⚠️  ATTENTION: --keep-git activé!")
-        print("Vous devrez manuellement changer l'origine Git pour éviter les push accidentels")
-        response = input("Continuer? (oui/non): ").strip().lower()
-        if response not in ['oui', 'o', 'yes', 'y']:
-            print("❌ Opération annulée")
-            return
-
-    # Confirmation si ce n'est pas un dry run
-    if not args.dry_run:
-        print("⚠️  ATTENTION: Cette opération va modifier tous les fichiers du projet!")
-        if project_path:
-            print(f"📂 Dossier: {project_path}")
-        print(f"🔄 {args.old_name} → {args.new_name}")
-        if not args.keep_git:
-            print("🧹 L'historique Git sera supprimé (sécurité)")
-
-        response = input("\n❓ Continuer? (oui/non): ").strip().lower()
-        if response not in ['oui', 'o', 'yes', 'y']:
-            print("❌ Opération annulée")
-            return
-
-    # Exécuter le renommage
-    renamer = ProjectRenamer(
+    # ÉTAPE 1: Exécuter un dry-run automatique
+    dry_renamer = ProjectRenamer(
         old_name=args.old_name,
         new_name=args.new_name,
-        dry_run=args.dry_run,
+        dry_run=True,
         keep_git=args.keep_git
     )
-    renamer.run(project_path)
+
+    success = dry_renamer.run()
+    if not success:
+        print("\n❌ Impossible de continuer à cause des erreurs ci-dessus.")
+        return
+
+    # Afficher l'aperçu
+    dry_renamer.show_summary(is_dry_run_summary=True)
+
+    # Si aucune modification à faire, arrêter ici
+    if dry_renamer.files_modified == 0 and not dry_renamer.main_directory_renamed:
+        return
+
+    # ÉTAPE 2: Demander confirmation
+    print("\n" + "⚠️ " * 20)
+    print("CONFIRMATION REQUISE")
+    print("⚠️ " * 20)
+
+    if args.keep_git:
+        print("🚨 ATTENTION: --keep-git activé!")
+        print("   Vous devrez manuellement changer l'origine Git pour éviter les push accidentels")
+
+    print(f"📂 Dossier: {Path(__file__).parent.resolve() / args.old_name}")
+    print(f"🔄 {args.old_name} → {args.new_name}")
+    if not args.keep_git:
+        print("🧹 L'historique Git sera supprimé (sécurité)")
+
+    print(f"\n✨ {dry_renamer.files_modified} fichiers vont être modifiés")
+    print(f"✨ {dry_renamer.occurrences_replaced} occurrences vont être remplacées")
+    if dry_renamer.directories_renamed > 0:
+        print(f"✨ {dry_renamer.directories_renamed} dossiers internes vont être renommés")
+    if dry_renamer.main_directory_renamed:
+        print(f"✨ Le dossier principal '{args.old_name}/' sera renommé en '{args.new_name}/'")
+
+    print("\n❓ Voulez-vous appliquer ces modifications?")
+    response = input("   Tapez 'oui' pour continuer, ou 'non' pour annuler: ").strip().lower()
+
+    if response not in ['oui', 'o', 'yes', 'y']:
+        print("❌ Opération annulée par l'utilisateur")
+        return
+
+    # ÉTAPE 3: Exécution réelle
+    print("\n🚀 ÉTAPE 2: Application des modifications")
+    print("=" * 60)
+
+    real_renamer = ProjectRenamer(
+        old_name=args.old_name,
+        new_name=args.new_name,
+        dry_run=False,
+        keep_git=args.keep_git
+    )
+
+    success = real_renamer.run()
+    if success:
+        real_renamer.show_summary(is_dry_run_summary=False)
 
 if __name__ == "__main__":
     main()
