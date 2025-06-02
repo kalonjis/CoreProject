@@ -1,5 +1,12 @@
 
 security:
+  email-confirmation:
+    token:
+      expiration: 900000  # 15 minutes
+      #expiration: 1000  # 1 second
+    max-attempts: 3
+    lockout-minutes: 30
+
   email:
     # Politique de validation des emails
     require-domain-whitelist: false
@@ -12,9 +19,9 @@ security:
       - yopmail.com
 
     # Limitation des changements d'email
-    max-changes-per-day: 3
-    max-changes-per-month: 10
+    #max-changes-per-day: 3
+    #max-changes-per-month: 10
 
     # Limitation des demandes de changement
-    max-change-requests: 5
-    lockout-minutes: 30
+    #max-change-requests: 5
+    #lockout-minutes: 30
