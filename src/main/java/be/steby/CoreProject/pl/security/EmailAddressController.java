@@ -17,7 +17,7 @@ public class EmailAddressController {
     private final EmailAddressService emailAddressService;
 
     @PostMapping("request")
-    public ResponseEntity<Void> changeEmailRequest( @RequestBody ChangeEmailForm form, HttpServletRequest request){
+    public ResponseEntity<Void> changeEmailRequest(@Valid @RequestBody ChangeEmailForm form, HttpServletRequest request){
         emailAddressService.changeEmailRequest(form, request);
         return ResponseEntity.noContent().build();
     }
