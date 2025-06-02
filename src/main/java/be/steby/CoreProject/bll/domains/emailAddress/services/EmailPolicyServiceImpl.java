@@ -2,8 +2,9 @@ package be.steby.CoreProject.bll.domains.emailAddress.services;
 
 import be.steby.CoreProject.bll.domains.emailAddress.models.EmailValidationResult;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
+import be.steby.CoreProject.il.configs.EmailSecurityProperties;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -13,18 +14,11 @@ import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmailPolicyServiceImpl implements EmailPolicyService {
 
     private final UserService userService;
-
-    @Value("${security.email.allowed-domains:}")
-    private Set<String> allowedDomains;
-
-    @Value("${security.email.blacklisted-domains:}")
-    private Set<String> blacklistedDomains;
-
-    @Value("${security.email.require-domain-whitelist:false}")
-    private boolean requireDomainWhitelist;
+    private final EmailSecurityProperties emailSecurityProperties;
 
     // Pattern regex pour la validation d'email (RFC 5322 simplifié)
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
@@ -52,13 +46,17 @@ public class EmailPolicyServiceImpl implements EmailPolicyService {
         // Validation du domaine
         String domain = extractDomain(email);
         if (domain != null) {
+            log.debug("Validation de l'email '{}' avec domaine '{}'", email, domain);
+            log.debug("Domaines blacklistés configurés: {}", emailSecurityProperties.getBlacklistedDomains());
+
             // Vérifier si le domaine est dans la liste noire
             if (isEmailDomainBlacklisted(email)) {
                 validationErrors.add("Le domaine " + domain + " n'est pas autorisé");
+                log.warn("Domaine blacklisté détecté: {} pour l'email {}", domain, email);
             }
 
             // Vérifier si le domaine est autorisé (si la whitelist est activée)
-            if (requireDomainWhitelist && !isEmailDomainAllowed(email)) {
+            if (emailSecurityProperties.isRequireDomainWhitelist() && !isEmailDomainAllowed(email)) {
                 validationErrors.add("Le domaine " + domain + " n'est pas dans la liste des domaines autorisés");
             }
         }
@@ -67,6 +65,9 @@ public class EmailPolicyServiceImpl implements EmailPolicyService {
         if (validationErrors.isEmpty() && !isEmailAvailable(email)) {
             validationErrors.add("Cette adresse email est déjà utilisée par un autre utilisateur");
         }
+
+        log.debug("Résultat de validation pour '{}': valide={}, erreurs={}",
+                email, validationErrors.isEmpty(), validationErrors);
 
         return new EmailValidationResult(validationErrors.isEmpty(), validationErrors);
     }
@@ -78,22 +79,30 @@ public class EmailPolicyServiceImpl implements EmailPolicyService {
 
     @Override
     public boolean isEmailDomainAllowed(String email) {
+        Set<String> allowedDomains = emailSecurityProperties.getAllowedDomains();
         if (allowedDomains == null || allowedDomains.isEmpty()) {
             return true; // Pas de whitelist configurée
         }
 
         String domain = extractDomain(email);
-        return domain != null && allowedDomains.contains(domain.toLowerCase());
+        boolean isAllowed = domain != null && allowedDomains.contains(domain.toLowerCase());
+        log.debug("Vérification whitelist pour domaine '{}': autorisé={}", domain, isAllowed);
+        return isAllowed;
     }
 
     @Override
     public boolean isEmailDomainBlacklisted(String email) {
+        Set<String> blacklistedDomains = emailSecurityProperties.getBlacklistedDomains();
         if (blacklistedDomains == null || blacklistedDomains.isEmpty()) {
+            log.debug("Aucun domaine blacklisté configuré");
             return false; // Pas de blacklist configurée
         }
 
         String domain = extractDomain(email);
-        return domain != null && blacklistedDomains.contains(domain.toLowerCase());
+        boolean isBlacklisted = domain != null && blacklistedDomains.contains(domain.toLowerCase());
+        log.debug("Vérification blacklist pour domaine '{}': blacklisté={}, liste={}",
+                domain, isBlacklisted, blacklistedDomains);
+        return isBlacklisted;
     }
 
     /**

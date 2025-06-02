@@ -1,13 +1,8 @@
 package be.steby.CoreProject.bll.domains.emailAddress.services;
 
-import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeCancellationEvent;
-import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeConfirmationEvent;
-import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeRequestEvent;
-import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeVerificationEvent;
-import be.steby.CoreProject.bll.domains.emailAddress.models.EmailChangeRequest;
-import be.steby.CoreProject.bll.domains.emailAddress.models.EmailValidationResult;
-import be.steby.CoreProject.bll.exceptions.AlreadyExistException;
+import be.steby.CoreProject.bll.domains.emailAddress.events.*;
 import be.steby.CoreProject.bll.domains.emailAddress.exceptions.InvalidEmailException;
+import be.steby.CoreProject.bll.domains.emailAddress.models.EmailValidationResult;
 import be.steby.CoreProject.bll.exceptions.TokenConfirmationStatusException;
 import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.common.services.context.RequestContextService;
@@ -18,20 +13,19 @@ import be.steby.CoreProject.dl.entities.tokens.EmailConfirmationToken;
 import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.regex.Pattern;
-
-
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmailAddressServiceImpl implements EmailAddressService {
 
     private final UserService userService;
     private final EmailConfirmationTokenServiceImpl emailConfirmationTokenService;
-    private final EmailPolicyService emailPolicyService;
+    private final EmailPolicyService emailPolicyService; // ← Pour validation défensive
     private final RequestContextService requestContextService;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -39,26 +33,18 @@ public class EmailAddressServiceImpl implements EmailAddressService {
     public void changeEmailRequest(ChangeEmailForm form, HttpServletRequest request) {
         User user = userService.getAuthenticatedUser();
 
-        // Utiliser le nouveau modèle pour valider les données
-        EmailChangeRequest emailChangeRequest = EmailChangeRequest.fromForm(form);
+        // ===== VALIDATION DÉFENSIVE (Defense in Depth) =====
+        validateEmailChangeRequestSecurely(form, user);
 
-        // Valider l'email avec le service de politique
-        EmailValidationResult validationResult = emailPolicyService.validateEmail(emailChangeRequest.newEmail());
-        if (!validationResult.isValid()) {
-            throw new InvalidEmailException("Email invalide: " + String.join(", ", validationResult.errors()));
-        }
-
+        // Logique métier sécurisée
         EmailConfirmationToken token = emailConfirmationTokenService.createEmailConfirmationToken(user);
-        token.setNewEmailAddress(emailChangeRequest.newEmail());
+        token.setNewEmailAddress(form.email());
         emailConfirmationTokenService.saveToken(token);
 
         RequestContext requestContext = requestContextService.captureRequestContext(request);
 
         eventPublisher.publishEvent(new EmailChangeRequestEvent(
-                user,
-                emailChangeRequest.newEmail(),
-                token.getToken(),
-                requestContext
+                user, form.email(), token.getToken(), requestContext
         ));
     }
 
@@ -82,12 +68,6 @@ public class EmailAddressServiceImpl implements EmailAddressService {
     public void changeEmailVerification(String token, HttpServletRequest request) {
         EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getToken(token);
         emailConfirmationTokenService.verifyTokenValidity(emailConfirmationToken);
-
-        // Re-valider l'email au moment de la vérification
-        EmailValidationResult validationResult = emailPolicyService.validateEmail(emailConfirmationToken.getNewEmailAddress());
-        if (!validationResult.isValid()) {
-            throw new InvalidEmailException("Email invalide: " + String.join(", ", validationResult.errors()));
-        }
 
         if (emailConfirmationToken.isConfirmed()) {
             throw new TokenConfirmationStatusException(
@@ -119,10 +99,15 @@ public class EmailAddressServiceImpl implements EmailAddressService {
         String oldEmail = user.getEmail();
         String newEmail = emailConfirmationToken.getNewEmailAddress();
 
-        // Validation finale avant confirmation
-        EmailValidationResult validationResult = emailPolicyService.validateEmail(newEmail);
-        if (!validationResult.isValid()) {
-            throw new InvalidEmailException("Email invalide: " + String.join(", ", validationResult.errors()));
+        // ===== VALIDATION DÉFENSIVE FINALE =====
+        // Au cas où l'email serait devenu invalide entre temps
+        EmailValidationResult result = emailPolicyService.validateEmail(newEmail);
+        if (!result.isValid()) {
+            log.warn("Email devenu invalide lors de la confirmation: {} pour user {}",
+                    newEmail, user.getUsername());
+            throw new InvalidEmailException(
+                    "Email no longer valid: " + String.join(", ", result.errors())
+            );
         }
 
         user.setEmail(newEmail);
@@ -131,13 +116,55 @@ public class EmailAddressServiceImpl implements EmailAddressService {
         RequestContext requestContext = requestContextService.captureRequestContext(request);
 
         eventPublisher.publishEvent(new EmailChangeConfirmationEvent(
-                user,
-                token,
-                oldEmail,
-                newEmail,
-                requestContext
+                user, token, oldEmail, newEmail, requestContext
         ));
 
         emailConfirmationTokenService.revokeToken(emailConfirmationToken);
+    }
+
+    /**
+     * Validation défensive pour sécuriser le service.
+     * Protège contre le contournement de la validation PL.
+     *
+     * @param form Le formulaire à valider
+     * @param user L'utilisateur authentifié
+     * @throws IllegalArgumentException Pour les erreurs de structure
+     * @throws InvalidEmailException Pour les erreurs métier
+     */
+    private void validateEmailChangeRequestSecurely(ChangeEmailForm form, User user) {
+        log.debug("Validation défensive pour changement email - user: {}", user.getUsername());
+
+        // 1. Validation structurelle (protection contre null/vide)
+        if (form == null) {
+            throw new IllegalArgumentException("Email change form cannot be null");
+        }
+        if (form.email() == null || form.email().isBlank()) {
+            throw new IllegalArgumentException("Email cannot be null or blank");
+        }
+        if (form.confirmEmail() == null || form.confirmEmail().isBlank()) {
+            throw new IllegalArgumentException("Confirm email cannot be null or blank");
+        }
+
+        // 2. Validation de cohérence
+        if (!form.email().equals(form.confirmEmail())) {
+            throw new IllegalArgumentException("Email and confirm email must match");
+        }
+
+        // 3. Validation métier critique (réutilise le même service que la PL)
+        EmailValidationResult result = emailPolicyService.validateEmail(form.email());
+        if (!result.isValid()) {
+            log.warn("Validation métier échouée pour email: {} - errors: {}",
+                    form.email(), result.errors());
+            throw new InvalidEmailException(
+                    "Email validation failed: " + String.join(", ", result.errors())
+            );
+        }
+
+        // 4. Validation spécifique au contexte utilisateur
+        if (form.email().equalsIgnoreCase(user.getEmail())) {
+            throw new InvalidEmailException("New email must be different from current email");
+        }
+
+        log.debug("Validation défensive réussie pour email: {}", form.email());
     }
 }
