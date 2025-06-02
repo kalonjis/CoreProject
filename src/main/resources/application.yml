@@ -5,6 +5,7 @@ spring:
       - classpath:config/mail.yml
       - classpath:config/server.yml
       - classpath:config/security/jwt.yml
+      - classpath:config/security/email.yml
       - classpath:config/security/tokens.yml
       - classpath:config/security/password.yml
 
