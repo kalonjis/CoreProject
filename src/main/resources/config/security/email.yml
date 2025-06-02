@@ -1,0 +1,20 @@
+
+security:
+  email:
+    # Politique de validation des emails
+    require-domain-whitelist: false
+    allowed-domains: []  # Liste des domaines autorisés (si whitelist activée)
+    blacklisted-domains:  # Liste des domaines interdits
+      - 10minutemail.com
+      - tempmail.org
+      - guerrillamail.com
+      - mailinator.com
+      - yopmail.com
+
+    # Limitation des changements d'email
+    max-changes-per-day: 3
+    max-changes-per-month: 10
+
+    # Limitation des demandes de changement
+    max-change-requests: 5
+    lockout-minutes: 30

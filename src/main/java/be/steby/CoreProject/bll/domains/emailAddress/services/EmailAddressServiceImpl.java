@@ -4,6 +4,8 @@ import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeCancellat
 import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeConfirmationEvent;
 import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeRequestEvent;
 import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeVerificationEvent;
+import be.steby.CoreProject.bll.domains.emailAddress.models.EmailChangeRequest;
+import be.steby.CoreProject.bll.domains.emailAddress.models.EmailValidationResult;
 import be.steby.CoreProject.bll.exceptions.AlreadyExistException;
 import be.steby.CoreProject.bll.domains.emailAddress.exceptions.InvalidEmailException;
 import be.steby.CoreProject.bll.exceptions.TokenConfirmationStatusException;
@@ -29,53 +31,69 @@ public class EmailAddressServiceImpl implements EmailAddressService {
 
     private final UserService userService;
     private final EmailConfirmationTokenServiceImpl emailConfirmationTokenService;
+    private final EmailPolicyService emailPolicyService;
     private final RequestContextService requestContextService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
-    public void changeEmailRequest(ChangeEmailForm form, HttpServletRequest request ) {
+    public void changeEmailRequest(ChangeEmailForm form, HttpServletRequest request) {
         User user = userService.getAuthenticatedUser();
-        String email = form.email();
-        checkEmailValidity(email);
-        if( !email.equals( form.confirmEmail() ) ){
-            throw new InvalidEmailException("Les adresses email doivent être identiques");
+
+        // Utiliser le nouveau modèle pour valider les données
+        EmailChangeRequest emailChangeRequest = EmailChangeRequest.fromForm(form);
+
+        // Valider l'email avec le service de politique
+        EmailValidationResult validationResult = emailPolicyService.validateEmail(emailChangeRequest.newEmail());
+        if (!validationResult.isValid()) {
+            throw new InvalidEmailException("Email invalide: " + String.join(", ", validationResult.errors()));
         }
-        checkEmailAvailability(email);
 
         EmailConfirmationToken token = emailConfirmationTokenService.createEmailConfirmationToken(user);
-        token.setNewEmailAddress(email);
+        token.setNewEmailAddress(emailChangeRequest.newEmail());
         emailConfirmationTokenService.saveToken(token);
 
         RequestContext requestContext = requestContextService.captureRequestContext(request);
 
-        eventPublisher.publishEvent(new EmailChangeRequestEvent(user, email, token.getToken(), requestContext));
-
+        eventPublisher.publishEvent(new EmailChangeRequestEvent(
+                user,
+                emailChangeRequest.newEmail(),
+                token.getToken(),
+                requestContext
+        ));
     }
-
 
     @Override
     public void cancelEmailChange(String token, HttpServletRequest request) {
         EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getToken(token);
-        if (!emailConfirmationToken.isRevoked()){
+        if (!emailConfirmationToken.isRevoked()) {
             emailConfirmationTokenService.revokeToken(emailConfirmationToken);
         }
 
         RequestContext requestContext = requestContextService.captureRequestContext(request);
 
         eventPublisher.publishEvent(new EmailChangeCancellationEvent(
-                emailConfirmationToken.getUser(), emailConfirmationToken.getNewEmailAddress(), requestContext));
-
+                emailConfirmationToken.getUser(),
+                emailConfirmationToken.getNewEmailAddress(),
+                requestContext
+        ));
     }
 
     @Override
     public void changeEmailVerification(String token, HttpServletRequest request) {
-
         EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getToken(token);
         emailConfirmationTokenService.verifyTokenValidity(emailConfirmationToken);
-        checkEmailAvailability(emailConfirmationToken.getNewEmailAddress());
 
-        if( emailConfirmationToken.isConfirmed() ){
-            throw new TokenConfirmationStatusException("The request is already confirmed, please check " + emailConfirmationToken.getNewEmailAddress() + " mail box for the next step");
+        // Re-valider l'email au moment de la vérification
+        EmailValidationResult validationResult = emailPolicyService.validateEmail(emailConfirmationToken.getNewEmailAddress());
+        if (!validationResult.isValid()) {
+            throw new InvalidEmailException("Email invalide: " + String.join(", ", validationResult.errors()));
+        }
+
+        if (emailConfirmationToken.isConfirmed()) {
+            throw new TokenConfirmationStatusException(
+                    "The request is already confirmed, please check " +
+                            emailConfirmationToken.getNewEmailAddress() + " mail box for the next step"
+            );
         }
 
         emailConfirmationToken.setConfirmed(true);
@@ -83,17 +101,17 @@ public class EmailAddressServiceImpl implements EmailAddressService {
 
         RequestContext requestContext = requestContextService.captureRequestContext(request);
 
-        eventPublisher.publishEvent(new EmailChangeVerificationEvent(emailConfirmationToken.getUser(), requestContext, emailConfirmationToken.getToken(), emailConfirmationToken.getNewEmailAddress() ) );
-
-
+        eventPublisher.publishEvent(new EmailChangeVerificationEvent(
+                emailConfirmationToken.getUser(),
+                requestContext,
+                emailConfirmationToken.getToken(),
+                emailConfirmationToken.getNewEmailAddress()
+        ));
     }
-
-
 
     @Transactional
     @Override
     public void confirmEmail(String token, HttpServletRequest request) {
-
         EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getToken(token);
         emailConfirmationTokenService.verifyTokenValidity(emailConfirmationToken);
 
@@ -101,7 +119,11 @@ public class EmailAddressServiceImpl implements EmailAddressService {
         String oldEmail = user.getEmail();
         String newEmail = emailConfirmationToken.getNewEmailAddress();
 
-        checkEmailAvailability(newEmail);
+        // Validation finale avant confirmation
+        EmailValidationResult validationResult = emailPolicyService.validateEmail(newEmail);
+        if (!validationResult.isValid()) {
+            throw new InvalidEmailException("Email invalide: " + String.join(", ", validationResult.errors()));
+        }
 
         user.setEmail(newEmail);
         userService.saveUser(user);
@@ -118,22 +140,4 @@ public class EmailAddressServiceImpl implements EmailAddressService {
 
         emailConfirmationTokenService.revokeToken(emailConfirmationToken);
     }
-
-
-    private void checkEmailValidity(String email) {
-        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
-        if(!Pattern.compile(emailRegex).matcher(email).matches()){
-            throw new InvalidEmailException("Email address " + email + " is not in a valid format");
-        }
-    }
-
-
-    private void checkEmailAvailability(String email){
-        if( userService.existsByEmail(email) ) {
-            throw new AlreadyExistException("The email address " + email + " is already used by another user");
-        }
-
-    }
-
-
 }
