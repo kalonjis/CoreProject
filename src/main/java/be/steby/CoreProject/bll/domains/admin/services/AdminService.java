@@ -3,6 +3,7 @@ package be.steby.CoreProject.bll.domains.admin.services;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -10,7 +11,7 @@ import java.util.List;
 
 public interface AdminService {
 
-    User createUser(User user);
+    User createUser(User user, HttpServletRequest request);
 
     void deleteUser(Long id);
 

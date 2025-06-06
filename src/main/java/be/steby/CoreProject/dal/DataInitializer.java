@@ -33,7 +33,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Doofenshmirtz",
                 "leader@gmail.com",
                 "0417/89 62 32",
-                passwordEncoder.encode("GrosseBertha"),
+                "GrosseBertha",
                 UserRole.setRoles(UserRole.SUPER_ADMIN)
         );
         User user2 = new User(
@@ -42,7 +42,7 @@ public class DataInitializer implements CommandLineRunner {
                 "ScrumMaster",
                 "kalonj1981@hotmail.com",
                 "0498/56 78 90",
-                passwordEncoder.encode("test123"),
+                "test123",
                 UserRole.setRoles(UserRole.ADMIN)
         );
 
@@ -52,7 +52,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Wakabayashi",
                 "quentin@fake.com",
                 "0467/45 12 34",
-                passwordEncoder.encode("test123"),
+                "test123",
                 UserRole.setRoles(UserRole.MODERATOR)
         );
 
@@ -62,7 +62,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Hongo",
                 "hongo@fake.com",
                 "0467/45 12 34",
-                passwordEncoder.encode("test123"),
+                "test123",
                 UserRole.setRoles(UserRole.USER)
         );
 
@@ -72,10 +72,11 @@ public class DataInitializer implements CommandLineRunner {
                 "En Short",
                 "benja@fake.com",
                 "0467/45 12 34",
-                passwordEncoder.encode("test123"),
+                "test123",
                 UserRole.setRoles(UserRole.GUEST)
         );
         List<User> users = List.of(user1, user2, user3, user4, user5);
+        
         users.forEach(
                 u -> {
                     u.setMustChangePassword(false);
