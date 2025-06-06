@@ -4,7 +4,6 @@ import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;
 import be.steby.CoreProject.bll.common.models.user.UserCreationResult;
 import be.steby.CoreProject.bll.common.models.user.UserValidationResult;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.UserRole;
 
 public interface UserCreationService {
 
@@ -21,9 +20,8 @@ public interface UserCreationService {
      *
      * @param user L'utilisateur à valider
      * @param password Le mot de passe (peut être null pour génération auto)
-     * @param authenticatedUserRole Le rôle de l'utilisateur authentifié (null pour signup)
      * @return Résultat de validation avec erreurs éventuelles
      */
-    UserValidationResult validateUserData(User user, String password, UserRole authenticatedUserRole);
+    UserValidationResult validateUserData(User user, String password);
 
 }

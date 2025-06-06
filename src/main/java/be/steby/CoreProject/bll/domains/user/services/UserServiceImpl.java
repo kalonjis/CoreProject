@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.user.services;
 
+import be.steby.CoreProject.bll.common.exceptions.NotEnoughAuthoritiesException;
 import be.steby.CoreProject.bll.domains.emailAddress.exceptions.EmailAlreadyUsedException;
 import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.specifications.UserSpecification;
@@ -177,7 +178,19 @@ public class UserServiceImpl implements UserService {
                 .anyMatch(authority -> authority.getAuthority().equals(role.name()));
     }
 
+    @Override
+    public void requireAdminPermissions(){
+        if( !authenticatedHasRole(UserRole.ADMIN) ){
+            throw new NotEnoughAuthoritiesException("Not enough authorities to perform admin operations.");
+        }
+    }
 
+    @Override
+    public void requireSuperAdminPermissions() {
+        if (!authenticatedHasRole(UserRole.SUPER_ADMIN)) {
+            throw new NotEnoughAuthoritiesException("Not enough authorities to perform super admin operations.");
+        }
+    }
 
 }
 

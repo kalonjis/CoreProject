@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.common;
+package be.steby.CoreProject.bll.common.validators;
 
 import java.util.ArrayList;
 import java.util.List;
