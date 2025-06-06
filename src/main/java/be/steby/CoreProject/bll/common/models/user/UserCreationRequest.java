@@ -8,29 +8,28 @@ public record UserCreationRequest(
         User user,                          // L'utilisateur à créer
         String password,                    // null = génération automatique
         UserCreationMode mode,              // Mode de création
-        RequestContext requestContext,      // Contexte de la requête
-        UserRole authenticatedUserRole      // null pour signup
+        RequestContext requestContext      // Contexte de la requête
 ) {
     /**
      *  Factory method for self-signup
      */
 
     public static UserCreationRequest forSelfSignup(User user, String password, RequestContext requestContext){
-        return new UserCreationRequest(user, password, UserCreationMode.SELF_SIGNUP, requestContext, null);
+        return new UserCreationRequest(user, password, UserCreationMode.SELF_SIGNUP, requestContext);
     }
 
     /**
      * Factory method pour admin creation
      */
-    public static UserCreationRequest forAdminCreate(User user, RequestContext requestContext, UserRole adminRole) {
-        return new UserCreationRequest(user, null, UserCreationMode.ADMIN_CREATE, requestContext, adminRole);
+    public static UserCreationRequest forAdminCreate(User user, RequestContext requestContext) {
+        return new UserCreationRequest(user, null, UserCreationMode.ADMIN_CREATE, requestContext);
     }
 
     /**
      * Factory method pour system creation
      */
     public static UserCreationRequest forSystemCreate(User user, RequestContext requestContext) {
-        return new UserCreationRequest(user, null, UserCreationMode.SYSTEM_CREATE, requestContext, null);
+        return new UserCreationRequest(user, null, UserCreationMode.SYSTEM_CREATE, requestContext);
     }
 }
 

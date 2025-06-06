@@ -50,8 +50,7 @@ public class UserCreationServiceImpl implements UserCreationService{
         // 1. Full validation
         UserValidationResult validation = validateUserData(
                 request.user(),
-                request.password(),
-                request.authenticatedUserRole()
+                request.password()
         );
 
         if(!validation.isValid()){
@@ -98,7 +97,7 @@ public class UserCreationServiceImpl implements UserCreationService{
 
 
     @Override
-    public UserValidationResult validateUserData(User user, String password, UserRole authenticatedUserRole) {
+    public UserValidationResult validateUserData(User user, String password) {
         log.debug("User data validation for {}", user.getUsername());
         List<String> errors = new ArrayList<>();
 
@@ -121,11 +120,6 @@ public class UserCreationServiceImpl implements UserCreationService{
             if (!passwordResult.isValid()) {
                 errors.addAll(passwordResult.errors());
             }
-        }
-
-        // 4. Validation des rôles
-        if (authenticatedUserRole != null) {
-            errors.addAll(validateRoleAssignment(user, authenticatedUserRole));
         }
 
         boolean isValid = errors.isEmpty();

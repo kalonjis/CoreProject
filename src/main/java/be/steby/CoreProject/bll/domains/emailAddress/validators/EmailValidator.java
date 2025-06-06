@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.emailAddress.validators;
 
-import be.steby.CoreProject.bll.common.ValidatorResult;
+import be.steby.CoreProject.bll.common.validators.ValidatorResult;
 
 public interface EmailValidator {
 

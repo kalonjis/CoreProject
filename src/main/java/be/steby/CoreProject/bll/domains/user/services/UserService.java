@@ -48,5 +48,9 @@ public interface UserService {
     boolean isAnonymous();
 
     boolean authenticatedHasRole(UserRole role);
+
+    void requireAdminPermissions();
+
+    void requireSuperAdminPermissions();
 }
 

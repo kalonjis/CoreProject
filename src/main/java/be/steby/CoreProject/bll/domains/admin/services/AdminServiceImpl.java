@@ -5,23 +5,20 @@ import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;
 import be.steby.CoreProject.bll.common.models.user.UserCreationResult;
 import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.common.services.user.UserCreationService;
-import be.steby.CoreProject.bll.exceptions.NotEnoughAuthoritiesException;
+import be.steby.CoreProject.bll.common.exceptions.NotEnoughAuthoritiesException;
 import be.steby.CoreProject.bll.exceptions.SelfActivationException;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
-import be.steby.CoreProject.bll.domains.account.services.tokens.AccountConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
 import be.steby.CoreProject.dl.enums.UserRole;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -43,7 +40,15 @@ public class AdminServiceImpl implements AdminService    {
 
     @Override
     public User createUser(User user, HttpServletRequest request) {
-        User auth = userService.getAuthenticatedUser();
+        // ✅ Validation simple et centralisée
+        userService.requireAdminPermissions();
+
+        // ✅ Validation spécifique pour SUPER_ADMIN si nécessaire
+        boolean userHasSuperAdmin = user.getUserRoles().contains(UserRole.SUPER_ADMIN);
+        if (userHasSuperAdmin) {
+            userService.requireSuperAdminPermissions();
+        }
+
         RequestContext requestContext = requestContextService.captureRequestContext(request);
         UserCreationRequest userCreationRequest = UserCreationRequest.forAdminCreate(user, requestContext);
         UserCreationResult result = userCreationService.createUser(userCreationRequest);
