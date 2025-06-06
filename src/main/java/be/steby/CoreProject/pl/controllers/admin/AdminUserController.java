@@ -190,7 +190,7 @@ public class AdminUserController {
         );
 
         // Ajouter des liens supplémentaires
-        pagedModel.add(linkTo(methodOn(AdminUserController.class).register(null)).withRel("create-user"));
+        pagedModel.add(linkTo(methodOn(AdminUserController.class).register(null, null)).withRel("create-user"));
         pagedModel.add(linkTo(methodOn(AdminUserController.class).searchUsers(null, null)).withRel("search"));
         pagedModel.add(linkTo(methodOn(AdminUserController.class).searchByCriteria(null, null, null, null, null, null)).withRel("advanced-search"));
 
