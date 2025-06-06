@@ -1,5 +1,10 @@
 package be.steby.CoreProject.bll.domains.admin.services;
 
+import be.steby.CoreProject.bll.common.models.RequestContext;
+import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;
+import be.steby.CoreProject.bll.common.models.user.UserCreationResult;
+import be.steby.CoreProject.bll.common.services.context.RequestContextService;
+import be.steby.CoreProject.bll.common.services.user.UserCreationService;
 import be.steby.CoreProject.bll.exceptions.NotEnoughAuthoritiesException;
 import be.steby.CoreProject.bll.exceptions.SelfActivationException;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
@@ -12,6 +17,7 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
 import be.steby.CoreProject.dl.enums.UserRole;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,27 +35,19 @@ public class AdminServiceImpl implements AdminService    {
     private final UserService userService;
     private final DeviceService deviceService;
     private final MailerService mailerService;
-    private final PasswordEncoder passwordEncoder;
-    private final AccountConfirmationTokenServiceImpl accountConfirmationTokenService;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
+    private final RequestContextService requestContextService;
+    private final UserCreationService userCreationService;
 
 
 
     @Override
-    public User createUser(User user) {
-        userService.checkIfUserExists(user);
-
-        if (!userService.authenticatedHasRole(UserRole.SUPER_ADMIN)
-                && hasRole(user, UserRole.SUPER_ADMIN)) {
-            throw new NotEnoughAuthoritiesException("Not enough authorities to create a user with SUPER_ADMIN role");
-        }
-
-        String temporaryPassword = generateSecurePassword();
-        user.setPassword(passwordEncoder.encode(temporaryPassword));
-        userService.saveUser(user);
-        AccountConfirmationToken token = accountConfirmationTokenService.createAccountConfirmationToken(user);
-        mailerService.sendAccountConfirmation(token.getToken(), user, temporaryPassword);
-        return user;
+    public User createUser(User user, HttpServletRequest request) {
+        User auth = userService.getAuthenticatedUser();
+        RequestContext requestContext = requestContextService.captureRequestContext(request);
+        UserCreationRequest userCreationRequest = UserCreationRequest.forAdminCreate(user, requestContext);
+        UserCreationResult result = userCreationService.createUser(userCreationRequest);
+        return result.user();
     }
 
     @Override

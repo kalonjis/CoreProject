@@ -12,6 +12,7 @@ import be.steby.CoreProject.pl.assemblers.UserModelAssembler;
 import be.steby.CoreProject.pl.models.admin.UserRegisterForm;
 import be.steby.CoreProject.pl.models.admin.UserRoleForm;
 import be.steby.CoreProject.pl.models.user.UserDTO;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -115,10 +116,13 @@ public class AdminUserController {
 
 
     @PostMapping()
-    @LogAdminAction(actionType = ActionLogType.ADMIN_USER_CREATED,
-            description = "Création d'un utilisateur par un administrateur")
-    public ResponseEntity<Map<String,String>> register(@Valid @RequestBody UserRegisterForm form) {
-        User user = adminService.createUser(form.toEntity());
+    //@LogAdminAction(actionType = ActionLogType.ADMIN_USER_CREATED,
+          //  description = "Création d'un utilisateur par un administrateur")
+    public ResponseEntity<Map<String,String>> register(
+            @Valid @RequestBody UserRegisterForm form,
+            HttpServletRequest request
+        ) {
+        User user = adminService.createUser(form.toEntity(), request);
         String location = "/api/user/" + user.getId();
 
         Map<String, String> response = new HashMap<>();
