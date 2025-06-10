@@ -1,5 +1,9 @@
 package be.steby.CoreProject.dal;
 
+import be.steby.CoreProject.bll.common.models.RequestContext;
+import be.steby.CoreProject.bll.common.models.user.UserCreationMode;
+import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;
+import be.steby.CoreProject.bll.common.services.user.UserCreationService;
 import be.steby.CoreProject.dal.repositories.DeviceRepository;
 import be.steby.CoreProject.dal.repositories.UserRepository;
 import be.steby.CoreProject.dl.entities.Device;
@@ -7,20 +11,25 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
 import be.steby.CoreProject.dl.enums.UserRole;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.net.InetAddress;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final DeviceRepository deviceRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserCreationService userCreationService;
 
 
     @Override
@@ -33,7 +42,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Doofenshmirtz",
                 "leader@gmail.com",
                 "0417/89 62 32",
-                passwordEncoder.encode("GrosseBertha"),
+                "Test1234!",
                 UserRole.setRoles(UserRole.SUPER_ADMIN)
         );
         User user2 = new User(
@@ -42,7 +51,7 @@ public class DataInitializer implements CommandLineRunner {
                 "ScrumMaster",
                 "kalonj1981@hotmail.com",
                 "0498/56 78 90",
-                passwordEncoder.encode("test123"),
+                "Test1234!",
                 UserRole.setRoles(UserRole.ADMIN)
         );
 
@@ -52,7 +61,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Wakabayashi",
                 "quentin@fake.com",
                 "0467/45 12 34",
-                passwordEncoder.encode("test123"),
+                "Test1234!",
                 UserRole.setRoles(UserRole.MODERATOR)
         );
 
@@ -62,7 +71,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Hongo",
                 "hongo@fake.com",
                 "0467/45 12 34",
-                passwordEncoder.encode("test123"),
+                "Test1234!",
                 UserRole.setRoles(UserRole.USER)
         );
 
@@ -72,17 +81,31 @@ public class DataInitializer implements CommandLineRunner {
                 "En Short",
                 "benja@fake.com",
                 "0467/45 12 34",
-                passwordEncoder.encode("test123"),
+                "Test1234!",
                 UserRole.setRoles(UserRole.GUEST)
         );
+
+        log.info("🔧 Initialisation des données système");
+
+        RequestContext systemContext = createSystemContext();
+
         List<User> users = List.of(user1, user2, user3, user4, user5);
+
         users.forEach(
                 u -> {
-                    u.setMustChangePassword(false);
-                    u.setEnabled(true);
-                    u.setEverActivated(true);
+                    UserCreationRequest userCreationRequest = new UserCreationRequest(
+                            u,
+                            u.getPassword(),
+                            UserCreationMode.SYSTEM_CREATE,
+                            systemContext
+                    );
+                    userCreationService.createUser(userCreationRequest);
                 }
         );
+
+
+
+
         userRepository.saveAll(users);
         //endregion
 
@@ -216,5 +239,63 @@ public class DataInitializer implements CommandLineRunner {
 
         //endregion
 
+    }
+
+    private RequestContext createSystemContext() {
+        // Même logique que InitialAdminCreator mais avec des identifiants différents
+        try {
+            String localIP = InetAddress.getLocalHost().getHostAddress();
+            String hostname = InetAddress.getLocalHost().getHostName();
+            String osName = System.getProperty("os.name");
+            String osVersion = System.getProperty("os.version");
+
+            return RequestContext.builder()
+                    .clientIp(localIP)
+                    .userAgent("DataInitializer/" + osName)
+                    .sessionId("DATA_INIT_" + hostname)
+                    .requestId("DATA_INIT_" + System.currentTimeMillis())
+                    .headers(RequestContext.CapturedHeaders.builder()
+                            .acceptLanguage(Locale.getDefault().toLanguageTag())
+                            .xPlatform(osName + " " + osVersion)
+                            .build())
+                    .deviceInfo(RequestContext.CapturedDeviceInfo.builder()
+                            .osName(osName)
+                            .osVersionMajor(extractMajorVersion(osVersion))
+                            .deviceType("SERVER")
+                            .deviceClass("Server")
+                            .deviceBrand("development")
+                            .build())
+                    .build();
+        } catch (Exception e) {
+            return createFallbackContext();
+        }
+    }
+
+    // Méthode helper pour extraire la version majeure proprement
+    private String extractMajorVersion(String osVersion) {
+        if (osVersion == null || osVersion.isEmpty()) {
+            return "Unknown";
+        }
+        try {
+            return osVersion.split("\\.")[0];
+        } catch (Exception e) {
+            return osVersion; // Retourner la version complète si on ne peut pas extraire
+        }
+    }
+
+    private RequestContext createFallbackContext() {
+        return RequestContext.builder()
+                .clientIp("127.0.0.1")
+                .userAgent("InitialAdminCreator/System")
+                .sessionId("INITIAL_ADMIN")
+                .requestId("ADMIN_INIT_" + System.currentTimeMillis())
+                .headers(RequestContext.CapturedHeaders.builder().build())
+                .deviceInfo(RequestContext.CapturedDeviceInfo.builder()
+                        .osName("Unknown")
+                        .osVersionMajor("Unknown")
+                        .deviceType("SERVER")
+                        .deviceClass("Server")
+                        .build())
+                .build();
     }
 }
