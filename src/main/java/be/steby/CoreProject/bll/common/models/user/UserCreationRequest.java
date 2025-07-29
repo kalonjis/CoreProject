@@ -2,7 +2,6 @@ package be.steby.CoreProject.bll.common.models.user;
 
 import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.UserRole;
 
 public record UserCreationRequest(
         User user,                          // L'utilisateur à créer

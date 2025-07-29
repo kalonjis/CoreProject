@@ -78,6 +78,12 @@ public class UserServiceImpl implements UserService {
         if(user.isEnabled()){
             throw new AttributeUnchangedException("The user is already activated.");
         }
+
+        if( user.getUserRoles().contains(UserRole.SUPER_ADMIN)
+            && !authenticatedHasRole(UserRole.SUPER_ADMIN) ) {
+            throw new NotEnoughAuthoritiesException("Cannot deactivate a SUPER_ADMIN user without SUPER_ADMIN privileges.");
+        }
+
         user.setEnabled(true);
         if( !user.isEverActivated() ){
             user.setEverActivated(true);
@@ -92,6 +98,12 @@ public class UserServiceImpl implements UserService {
         if(!user.isEnabled()){
             throw new AttributeUnchangedException("The user is already deactivated.");
         }
+
+        if( user.getUserRoles().contains(UserRole.SUPER_ADMIN)
+                && !authenticatedHasRole(UserRole.SUPER_ADMIN) ) {
+            throw new NotEnoughAuthoritiesException("Cannot deactivate a SUPER_ADMIN user without SUPER_ADMIN privileges.");
+        }
+
         user.setEnabled(false);
         userRepository.save(user);
     }
