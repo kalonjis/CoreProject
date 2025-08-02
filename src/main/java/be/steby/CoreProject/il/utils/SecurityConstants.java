@@ -13,7 +13,7 @@ public class SecurityConstants {
             "api/user/device/request-confirmation",
             "api/user/device/disconnect/**",
             "api/user/device/disconnect-all-others",
-            "/api/account-confirmation/**",
+            "/api/account/**",
             "/api/password/request-password-reset",
             "/api/password/reset-password",
             "/api/password/request-password-token",
