@@ -116,6 +116,22 @@ public class MailerServiceImpl implements MailerService {
     context.setVariable("username", username);
     mailerUtil.sendMail("Welcome", "accounts/GreetingComfirmedUser", context, user.getEmail());
   }
+
+  /**
+   * @param token
+   * @param user
+   */
+  @Override
+  public void sendAccountDeactivationRequest(String token, User user) {
+    String deactivationUrl = FRONT_URL + "/auth/account-deactivation?token=" + token;
+    String username = defineUsername(user);
+
+    Context context = new Context();
+    context.setVariable("username", username);
+    context.setVariable("url", deactivationUrl);
+    mailerUtil.sendMail("Account deactivation request", "accounts/AccountDeactivationRequest", context, user.getEmail());
+  }
+
   // endregion
 
   // region EmailAddress

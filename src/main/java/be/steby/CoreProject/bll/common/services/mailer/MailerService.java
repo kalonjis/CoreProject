@@ -18,6 +18,8 @@ public interface MailerService {
 
   void sendWelcome(User user);
 
+  void sendAccountDeactivationRequest(String token, User user);
+
   void sendPasswordChangeConfirmation(User user);
 
   void sendChangeEmailRequest(String token, User user);
