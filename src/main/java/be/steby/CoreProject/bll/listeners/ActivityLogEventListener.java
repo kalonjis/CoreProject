@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.listeners;
 
-import be.steby.CoreProject.bll.domains.account.events.ConfirmNewUserAccountEvent;
+import be.steby.CoreProject.bll.domains.account.events.AccountConfirmationEvent;
 import be.steby.CoreProject.bll.events.account.SignupEvent;
 import be.steby.CoreProject.bll.domains.device.events.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
@@ -84,7 +84,7 @@ public class ActivityLogEventListener {
 
     @EventListener
     @Async("activityLogExecutor")
-    public void handleConfirmNewUserAccountEvent(ConfirmNewUserAccountEvent event) {
+    public void handleConfirmNewUserAccountEvent(AccountConfirmationEvent event) {
         executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
