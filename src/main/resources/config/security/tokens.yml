@@ -7,6 +7,13 @@ security:
     max-attempts: 5
     lockout-minutes: 60
 
+  account-deactivation:
+    token:
+      expiration: 86400000 # 24 heures
+      #expiration: 1000  # 1 second
+    max-attempts: 3
+    lockout-minutes: 60
+
   device-confirmation:
     token:
       expiration: 900000  # 15 minutes
