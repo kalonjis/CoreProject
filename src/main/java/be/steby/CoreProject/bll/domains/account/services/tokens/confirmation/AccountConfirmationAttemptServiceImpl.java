@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.account.services.tokens;
+package be.steby.CoreProject.bll.domains.account.services.tokens.confirmation;
 
 import be.steby.CoreProject.bll.common.services.tokens.BaseAttemptTrackerServiceImpl;
 import be.steby.CoreProject.dal.repositories.UserAttemptRepository;

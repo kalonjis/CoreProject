@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.account.services.tokens;
+package be.steby.CoreProject.bll.domains.account.services.tokens.confirmation;
 
 import be.steby.CoreProject.bll.common.services.tokens.BaseTokenServiceImpl;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
