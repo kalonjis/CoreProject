@@ -1,0 +1,28 @@
+security:
+
+  account-confirmation:
+    token:
+      expiration: 86400000 # 24 heures
+      #expiration: 1000  # 1 second
+    max-attempts: 5
+    lockout-minutes: 60
+
+
+  account-deactivation:
+    token:
+      expiration: 86400000 # 24 heures
+      #expiration: 1000  # 1 second
+
+    # Limitation des tentatives (déjà existant dans votre projet)
+    max-attempts: 3
+    lockout-minutes: 30
+
+    # Validation des détails
+    require-details-for-other: true
+    details-min-length: 10
+    details-max-length: 500
+
+    # Règles pour les rôles administratifs
+    allow-admin-deactivation: false
+    allow-super-admin-deactivation: false
+
