@@ -1,7 +1,9 @@
 package be.steby.CoreProject.bll.domains.account.services.tokens.deactivation;
 
 import be.steby.CoreProject.bll.common.services.tokens.BaseTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.account.exceptions.AccountTokenException;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
+import be.steby.CoreProject.bll.exceptions.TokenRevokedException;
 import be.steby.CoreProject.dal.repositories.tokens.AccountDeactivationTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountDeactivationToken;
@@ -62,6 +64,26 @@ public class AccountDeactivationTokenServiceImpl extends BaseTokenServiceImpl<Ac
         token.setReasonDetails(reasonDetails);
         saveToken(token);
         return token;
+    }
+
+
+    @Override
+    @Transactional
+    public AccountDeactivationToken verifyTokenValidity(AccountDeactivationToken token){
+        if (token == null) {
+            throw new AccountTokenException("Invalid deactivation token");
+        }
+
+        if (token.isRevoked()) {
+            throw new AccountTokenException("Token was revoked");
+        }
+
+        if (token.isExpired()) {
+            throw new AccountTokenException("Token has expired", 410);
+        }
+
+        return token;
+
     }
 
 

@@ -8,6 +8,7 @@ spring:
       - classpath:config/security/emailAddress.yml
       - classpath:config/security/tokens.yml
       - classpath:config/security/password.yml
+      - classpath:config/security/account.yml
 
 url:
   back_server: ${URL_BACK_SERVER}
