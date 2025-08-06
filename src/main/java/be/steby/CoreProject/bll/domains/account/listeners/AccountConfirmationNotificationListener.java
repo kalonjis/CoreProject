@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.account.listeners;
 
 import be.steby.CoreProject.bll.domains.account.events.AccountConfirmationEvent;
+import be.steby.CoreProject.bll.domains.account.events.AccountDeactivationConfirmedEvent;
 import be.steby.CoreProject.bll.domains.account.events.RequestAccountActivationEvent;
 import be.steby.CoreProject.bll.domains.account.events.RequestAccountDeactivationEvent;
 import be.steby.CoreProject.bll.events.account.SignupEvent;
@@ -50,5 +51,17 @@ public class AccountConfirmationNotificationListener {
     @Async("emailExecutor")
     public void handleRequestAccountDeactivation(RequestAccountDeactivationEvent event){
         mailerService.sendAccountDeactivationRequest(event.token(), event.user(), event.deactivationReason(), event.reasonDetails());
+    }
+
+
+    @EventListener
+    @Async("emailExecutor")
+    public void handleAccountDeactivationConfirmed(AccountDeactivationConfirmedEvent event){
+        log.info("Sending deactivation confirmation email to user: {}", event.user().getEmail());
+        mailerService.sendAccountDeactivationConfirmation(
+                event.user(),
+                event.deactivationReason(),
+                event.reasonDetails()
+        );
     }
 }

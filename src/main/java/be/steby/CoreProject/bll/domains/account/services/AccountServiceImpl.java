@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.account.services;
 
 import be.steby.CoreProject.bll.domains.account.events.AccountConfirmationEvent;
+import be.steby.CoreProject.bll.domains.account.events.AccountDeactivationConfirmedEvent;
 import be.steby.CoreProject.bll.domains.account.events.RequestAccountActivationEvent;
 import be.steby.CoreProject.bll.domains.account.events.RequestAccountDeactivationEvent;
 import be.steby.CoreProject.bll.domains.account.exceptions.AccountAlreadyActivatedException;
@@ -136,14 +137,26 @@ public class AccountServiceImpl implements AccountService {
         accountDeactivationTokenService.verifyTokenValidity(accountDeactivationToken);
         User user = accountDeactivationToken.getUser();
 
+        // 1. Désactiver l'utilisateur
         userService.deactivateUser(user.getId(), accountDeactivationToken.getDeactivationReason(), accountDeactivationToken.getReasonDetails());
+
+        // 2. Révoquer tous les tokens de l'utilisateur
         refreshTokenService.revokeAllUserTokens(user);
 
+        // 3. Marquer le token comme confirmé
         accountDeactivationToken.setConfirmed(true);
         accountDeactivationTokenService.saveToken(accountDeactivationToken);
 
-        // 4. TODO: Publier l'événement
-        // eventPublisher.publishEvent(new AccountDeactivationConfirmedEvent(...));
+        // 4. Publier l'événement de confirmation de désactivation
+        RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
+        AccountDeactivationConfirmedEvent event = new AccountDeactivationConfirmedEvent(
+                user,
+                accountDeactivationToken.getDeactivationReason(),
+                accountDeactivationToken.getReasonDetails(),
+                requestContext
+        );
+        eventPublisher.publishEvent(event);
+
         return user;
     }
 }
