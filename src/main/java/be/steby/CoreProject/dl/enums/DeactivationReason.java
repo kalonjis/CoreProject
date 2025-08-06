@@ -8,6 +8,8 @@ public enum DeactivationReason {
     SWITCHING_ACCOUNTS("Changement vers un autre compte"),
     WORK_REQUIREMENTS("Exigences professionnelles"),
     NOT_USEFUL("L'application ne m'est plus utile"),
+    GDPR_REQUEST("Suppression conformément au GDPR"),
+    ADMIN_DECISION("Suppression par administrateur"),
     OTHER("Autre raison");
 
     private final String displayName;

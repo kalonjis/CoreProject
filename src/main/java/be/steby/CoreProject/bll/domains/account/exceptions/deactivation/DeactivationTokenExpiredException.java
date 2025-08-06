@@ -1,17 +1,15 @@
-package be.steby.CoreProject.bll.domains.account.exceptions;
+package be.steby.CoreProject.bll.domains.account.exceptions.deactivation;
 
 import be.steby.CoreProject.bll.exceptions.TokenExpiredException;
 
 public class DeactivationTokenExpiredException extends TokenExpiredException {
 
     /**
-     * Constructs a new {@code DeactivationTokenExpiredException} with the specified detail message.
-     * The status code is set to 410 (Gone) by default.
-     *
-     * @param message the detail message
+     * Constructs a new TokenExpiredException with the specified detail message.
+     * The status code is set to 498 by default.
      */
     public DeactivationTokenExpiredException(String message) {
-        super(message, 410);
+        super(message, 498);
     }
 
     /**

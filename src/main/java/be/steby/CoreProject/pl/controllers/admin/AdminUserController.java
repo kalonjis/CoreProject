@@ -170,6 +170,13 @@ public class AdminUserController {
     }
 
 
+    @PutMapping("/gdpr-deletion/{id}")
+    public ResponseEntity<Void> gdprdelete(@PathVariable Long id){
+        adminService.gdprUserDelete(id);
+        return ResponseEntity.ok().build();
+    }
+
+
     private Pageable getPageable(int page, int size, String sort) {
         String[] sortParams = sort.split(",");
         Sort.Direction direction = (sortParams.length > 1 && "desc".equalsIgnoreCase(sortParams[1]))

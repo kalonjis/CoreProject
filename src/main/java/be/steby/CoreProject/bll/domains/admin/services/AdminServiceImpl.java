@@ -14,6 +14,7 @@ import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTo
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
+import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -55,13 +58,14 @@ public class AdminServiceImpl implements AdminService    {
         return result.user();
     }
 
+    /**
+     * @param id
+     */
     @Override
     public void deleteUser(Long id) {
-        if (!userService.authenticatedHasRole(UserRole.ADMIN)){
-            throw new NotEnoughAuthoritiesException("Not enough authorities to delete a user.");
-        }
-        userService.deleteUser(id);
+
     }
+
 
     @Override
     public void activateUser(Long id) {
@@ -90,9 +94,18 @@ public class AdminServiceImpl implements AdminService    {
             throw new SelfActivationException("You are not allowed to deactivate your own account.");
         }
 
-        userService.deactivateUser(id);
+        userService.deactivateUser(id, DeactivationReason.ADMIN_DECISION, "");
 
     }
+
+    @Override
+    public void gdprUserDelete(Long userId) {
+        if (!userService.authenticatedHasRole(UserRole.ADMIN)){
+            throw new NotEnoughAuthoritiesException("Not enough authorities to delete a user.");
+        }
+        userService.gdprUserDelete(userId);
+    }
+
 
     @Override
     public void grantUserRole(Long id, UserRole role) {

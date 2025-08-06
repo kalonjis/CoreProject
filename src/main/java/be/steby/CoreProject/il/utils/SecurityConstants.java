@@ -27,7 +27,8 @@ public class SecurityConstants {
             "/api/admin/users/deactivate/**",
             "/api/admin/users/force-reset-password/**",
             "/api/admin/users/grant-role/**",
-            "/api/admin/users/revoke-role/**"
+            "/api/admin/users/revoke-role/**",
+            "/api/admin/users/gdpr-deletion/**",
     };
 
     // Vous pouvez aussi définir d'autres constantes liées à la sécurité

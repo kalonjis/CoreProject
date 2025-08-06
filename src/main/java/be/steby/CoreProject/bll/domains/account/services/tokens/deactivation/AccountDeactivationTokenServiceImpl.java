@@ -1,9 +1,11 @@
 package be.steby.CoreProject.bll.domains.account.services.tokens.deactivation;
 
 import be.steby.CoreProject.bll.common.services.tokens.BaseTokenServiceImpl;
-import be.steby.CoreProject.bll.domains.account.exceptions.DeactivationTokenExpiredException;
-import be.steby.CoreProject.bll.domains.account.exceptions.DeactivationTokenInvalidException;
-import be.steby.CoreProject.bll.domains.account.exceptions.DeactivationTokenRevokedException;
+import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.DeactivationTokenExpiredException;
+import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.DeactivationTokenInvalidException;
+import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.DeactivationTokenNotFoundException;
+import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.DeactivationTokenRevokedException;
+import be.steby.CoreProject.bll.exceptions.DoesntExistException;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.tokens.AccountDeactivationTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
@@ -47,6 +49,16 @@ public class AccountDeactivationTokenServiceImpl extends BaseTokenServiceImpl<Ac
         this.attemptService = attemptService;
     }
 
+    @Override
+    @Transactional
+    public AccountDeactivationToken getToken(String token) {
+        try {
+            return super.getToken(token); // Délègue à la classe parent
+        } catch (DoesntExistException e) {
+            throw new DeactivationTokenNotFoundException("Deactivation token not found");
+        }
+    }
+
     /**
      * Creates a new refresh token for a user with the configured expiration time.
      *
@@ -72,7 +84,7 @@ public class AccountDeactivationTokenServiceImpl extends BaseTokenServiceImpl<Ac
     @Transactional
     public AccountDeactivationToken verifyTokenValidity(AccountDeactivationToken token){
         if (token == null) {
-            throw new DeactivationTokenInvalidException("Invalid deactivation token");
+            throw new DeactivationTokenNotFoundException("Deactivation token not found");
         }
 
         if (token.isRevoked()) {

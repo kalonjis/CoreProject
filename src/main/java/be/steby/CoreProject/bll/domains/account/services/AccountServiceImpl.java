@@ -3,12 +3,14 @@ package be.steby.CoreProject.bll.domains.account.services;
 import be.steby.CoreProject.bll.domains.account.events.AccountConfirmationEvent;
 import be.steby.CoreProject.bll.domains.account.events.RequestAccountActivationEvent;
 import be.steby.CoreProject.bll.domains.account.events.RequestAccountDeactivationEvent;
+import be.steby.CoreProject.bll.domains.account.exceptions.AccountAlreadyActivatedException;
+import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.AccountAlreadyDeactivatedException;
+import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.InvalidDeactivationRequestException;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationRequest;
-import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationAttemptServiceImpl;
+import be.steby.CoreProject.bll.domains.account.models.DeactivationValidationResult;
 import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.exceptions.TokenValidityException;
-import be.steby.CoreProject.bll.exceptions.UserEnabledStatusException;
 import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
@@ -17,7 +19,6 @@ import be.steby.CoreProject.bll.domains.account.services.tokens.confirmation.Acc
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.AccountDeactivationToken;
-import be.steby.CoreProject.pl.security.models.AccountDeactivationForm;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +35,7 @@ public class AccountServiceImpl implements AccountService {
     private final AccountConfirmationTokenServiceImpl accountConfirmationTokenService;
     private final AccountConfirmationAttemptServiceImpl accountConfirmationAttemptService;
     private final AccountDeactivationTokenServiceImpl accountDeactivationTokenService;
-    private final AccountDeactivationAttemptServiceImpl accountDeactivationAttemptService;
+    private final DeactivationPolicyService deactivationPolicyService;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final UserService userService;
     private final RequestContextService requestContextService;
@@ -72,7 +73,7 @@ public class AccountServiceImpl implements AccountService {
         User user = accountConfirmationToken.getUser();
 
         if( user.isEnabled()) {
-            throw new UserEnabledStatusException("This user account is already activated.", 409);
+            throw new AccountAlreadyActivatedException("This user account is already activated.");
         }
         if(accountConfirmationToken.isValid()) {
             String url = FRONT_URL + "/api/account-confirmation/activation=" + token ;
@@ -94,7 +95,14 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public void requestDeactivation(User user, DeactivationRequest deactivationRequest, HttpServletRequest request) {
         if (!user.isEnabled()) {
-            throw new UserEnabledStatusException("the account is already deactivated");
+            throw new AccountAlreadyDeactivatedException("the account is already deactivated");
+        }
+
+        DeactivationValidationResult validation = deactivationPolicyService.validateDeactivationRequest(deactivationRequest, user);
+        if (!validation.isValid()) {
+            throw new InvalidDeactivationRequestException(
+                    "Deactivation request validation failed: " + String.join(", ", validation.errors())
+            );
         }
 
         AccountDeactivationToken token = accountDeactivationTokenService.createAccountDeactivationToken(
@@ -117,11 +125,12 @@ public class AccountServiceImpl implements AccountService {
      */
     @Override
     public User deactivateAccount(String token, HttpServletRequest httpRequest) {
+
         AccountDeactivationToken accountDeactivationToken = accountDeactivationTokenService.getToken(token);
         accountDeactivationTokenService.verifyTokenValidity(accountDeactivationToken);
         User user = accountDeactivationToken.getUser();
 
-        userService.deactivateUser(user.getId());
+        userService.deactivateUser(user.getId(), accountDeactivationToken.getDeactivationReason(), accountDeactivationToken.getReasonDetails());
         refreshTokenService.revokeAllUserTokens(user);
 
         accountDeactivationToken.setConfirmed(true);

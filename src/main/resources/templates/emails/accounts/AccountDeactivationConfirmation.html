@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Account Deactivation Confirmed – MyFavApp</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+<h1 style="color: #C0392B;">MyFavApp – Account Deactivation Confirmed</h1>
+
+<p>
+    <strong>Hello <span th:text="${username}"></span>,</strong>
+</p>
+
+<p>
+    We confirm that your <strong>MyFavApp</strong> account has been successfully deactivated.
+</p>
+
+<p>
+    Your data associated with this account has been removed or anonymized in accordance with our privacy policy.
+</p>
+
+<p>
+    If you change your mind, you can always reactivate your account by visiting:
+</p>
+
+<p style="display: block; margin: 20px 0;">
+    <a th:href="${url}"
+       style="background-color: #3498DB; color: white; padding: 12px 20px;
+              text-decoration: none; border-radius: 5px; font-weight: bold;
+              display: inline-block;">
+        Reactivate Account
+    </a>
+</p>
+
+<p>
+    If you did not request this deactivation or believe this was done in error, please contact our support team immediately.
+</p>
+
+<p style="margin-top: 30px; font-size: 14px; color: #777;">
+    Best regards, <br>
+    <strong>The MyFavApp Team</strong>
+</p>
+</body>
+</html>
