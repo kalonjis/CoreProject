@@ -2,6 +2,7 @@ package be.steby.CoreProject.bll.common.services.mailer;
 
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.DeactivationReason;
 import org.springframework.scheduling.annotation.Async;
 
 
@@ -18,7 +19,25 @@ public interface MailerService {
 
   void sendWelcome(User user);
 
-  void sendAccountDeactivationRequest(String token, User user);
+    /**
+     * Sends a deactivation request confirmation email to the user
+     *
+     * @param user The user whose account deactivation was requested
+     * @param deactivationReason The reason for deactivation
+     * @param reasonDetails Additional details about the deactivation (can be null)
+     */
+    void sendAccountDeactivationRequest(String token, User user, DeactivationReason deactivationReason, String reasonDetails);
+
+    /**
+     * Sends a deactivation confirmation email to the user
+     *
+     * @param user The user whose account was deactivated
+     * @param deactivationReason The reason for deactivation
+     * @param reasonDetails Additional details about the deactivation (can be null)
+     */
+    void sendAccountDeactivationConfirmation(User user, DeactivationReason deactivationReason, String reasonDetails);
+
+  //void sendAccountDeactivationRequest(String token, User user);
 
   void sendPasswordChangeConfirmation(User user);
 

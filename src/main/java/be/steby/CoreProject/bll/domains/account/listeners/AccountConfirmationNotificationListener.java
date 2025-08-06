@@ -49,6 +49,6 @@ public class AccountConfirmationNotificationListener {
     @EventListener
     @Async("emailExecutor")
     public void handleRequestAccountDeactivation(RequestAccountDeactivationEvent event){
-        mailerService.sendAccountDeactivationRequest(event.token(), event.user());
+        mailerService.sendAccountDeactivationRequest(event.token(), event.user(), event.deactivationReason(), event.reasonDetails());
     }
 }

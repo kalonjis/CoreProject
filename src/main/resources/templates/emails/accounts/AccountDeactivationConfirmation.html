@@ -1,44 +1,116 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Account Deactivation Confirmed – MyFavApp</title>
+    <title th:text="${subjectLine ?: 'Account Deactivated – MyFavApp'}">Account Deactivated – MyFavApp</title>
 </head>
 <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-<h1 style="color: #C0392B;">MyFavApp – Account Deactivation Confirmed</h1>
+<h1 style="color: #E67E22;">MyFavApp – Account Deactivated</h1>
 
 <p>
     <strong>Hello <span th:text="${username}"></span>,</strong>
 </p>
 
 <p>
-    We confirm that your <strong>MyFavApp</strong> account has been successfully deactivated.
+    Your <strong>MyFavApp</strong> account has been successfully deactivated.
 </p>
 
-<p>
-    Your data associated with this account has been removed or anonymized in accordance with our privacy policy.
-</p>
+<!-- Custom message based on deactivation reason -->
+<div style="background-color: #F8F9FA; padding: 15px; border-left: 4px solid #E67E22; margin: 20px 0;">
+    <p th:text="${message}" style="margin: 0; font-style: italic;">
+        <!-- Fallback message if dynamic content fails -->
+        We're sorry to see you go. Your account has been deactivated and your data is safely stored.
+    </p>
+</div>
 
-<p>
-    If you change your mind, you can always reactivate your account by visiting:
-</p>
+<!-- Special notice for GDPR requests -->
+<div th:if="${deactivationReason?.name() == 'GDPR_REQUEST'}"
+     style="background-color: #FDF2E9; padding: 15px; border-left: 4px solid #E67E22; margin: 20px 0;">
+    <h3 style="color: #D35400; margin-top: 0;">🔒 GDPR Compliance Confirmation</h3>
+    <p style="margin-bottom: 0; color: #D35400;">
+        Your personal data has been processed according to GDPR regulations. All identifiable information
+        has been permanently deleted or anonymized as per your request. This action is irreversible.
+    </p>
+</div>
 
-<p style="display: block; margin: 20px 0;">
-    <a th:href="${url}"
-       style="background-color: #3498DB; color: white; padding: 12px 20px;
-              text-decoration: none; border-radius: 5px; font-weight: bold;
-              display: inline-block;">
-        Reactivate Account
-    </a>
-</p>
+<!-- Special notice for Admin decisions -->
+<div th:if="${deactivationReason?.name() == 'ADMIN_DECISION'}"
+     style="background-color: #FADBD8; padding: 15px; border-left: 4px solid #E74C3C; margin: 20px 0;">
+    <h3 style="color: #C0392B; margin-top: 0;">⚖️ Administrative Action</h3>
+    <p style="margin-bottom: 0; color: #C0392B;">
+        This deactivation was processed by our administrative team in accordance with our terms of service
+        and community guidelines. If you have questions about this decision, please contact our support team.
+    </p>
+</div>
 
-<p>
-    If you did not request this deactivation or believe this was done in error, please contact our support team immediately.
-</p>
+<!-- Reactivation information (only for eligible reasons) -->
+<div th:if="${canReactivate == true}"
+     style="background-color: #E8F5E8; padding: 15px; border-radius: 5px; margin: 20px 0;">
+    <h3 style="color: #27AE60; margin-top: 0;">Want to Come Back?</h3>
+    <p style="margin-bottom: 0;">
+        Your account can be reactivated at any time. Simply log in with your credentials,
+        and your account will be automatically restored with all your previous settings and data intact.
+    </p>
+</div>
+
+<!-- No reactivation notice for GDPR and Admin cases -->
+<div th:if="${canReactivate == false}"
+     style="background-color: #F4F4F4; padding: 15px; border-radius: 5px; margin: 20px 0;">
+    <h3 style="color: #666; margin-top: 0;">Account Status</h3>
+    <p style="margin-bottom: 0; color: #666;">
+        <span th:if="${deactivationReason?.name() == 'GDPR_REQUEST'}">
+            This account cannot be reactivated as your data has been permanently deleted in compliance with GDPR regulations.
+        </span>
+        <span th:if="${deactivationReason?.name() == 'ADMIN_DECISION'}">
+            This account cannot be automatically reactivated. Please contact our support team if you wish to discuss this decision.
+        </span>
+    </p>
+</div>
+
+<!-- Data retention notice (for non-GDPR cases) -->
+<div th:if="${deactivationReason?.name() != 'GDPR_REQUEST' and deactivationReason?.name() != 'ADMIN_DECISION'}"
+     style="background-color: #E3F2FD; padding: 15px; border-radius: 5px; margin: 20px 0;">
+    <h3 style="color: #1976D2; margin-top: 0;">📊 Your Data</h3>
+    <p style="margin-bottom: 0; color: #1976D2;">
+        Your account data has been safely stored and will be preserved according to our privacy policy.
+        When you reactivate your account, all your information will be exactly as you left it.
+    </p>
+</div>
+
+<!-- Support information -->
+<div style="border-top: 1px solid #DDD; padding-top: 20px; margin-top: 30px;">
+    <p>
+        <strong>Need Help?</strong><br>
+        If you have any questions or need assistance, our support team is available 24/7.
+        You can reach us at <a href="mailto:support@myfavapp.com" style="color: #3498DB;">support@myfavapp.com</a>
+        <span th:if="${deactivationReason?.name() == 'GDPR_REQUEST'}">
+            or contact our Data Protection Officer at <a href="mailto:dpo@myfavapp.com" style="color: #3498DB;">dpo@myfavapp.com</a>
+        </span>
+    </p>
+</div>
+
+<!-- Reason details (if provided and appropriate to show) -->
+<div th:if="${reasonDetails != null and !#strings.isEmpty(reasonDetails) and deactivationReason?.name() != 'ADMIN_DECISION'}"
+     style="border-top: 1px solid #EEE; padding-top: 20px; margin-top: 20px;">
+    <p style="font-size: 14px; color: #666;">
+        <strong>Your feedback:</strong> "<span th:text="${reasonDetails}" style="font-style: italic;"></span>"
+    </p>
+    <p style="font-size: 14px; color: #666; margin-bottom: 0;">
+        Thank you for taking the time to share your thoughts with us. Your feedback helps us improve our services.
+    </p>
+</div>
 
 <p style="margin-top: 30px; font-size: 14px; color: #777;">
-    Best regards, <br>
+    Thank you for being part of our community.<br>
     <strong>The MyFavApp Team</strong>
 </p>
+
+<!-- Footer with timestamp -->
+<div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #EEE; font-size: 12px; color: #999;">
+    <p>This account deactivation was processed on <span th:text="${#dates.format(#dates.createNow(), 'MMMM dd, yyyy')}"></span></p>
+    <p th:if="${deactivationReason?.name() != 'ADMIN_DECISION'}">
+        If you did not request this deactivation, please contact our support team immediately.
+    </p>
+</div>
 </body>
 </html>
