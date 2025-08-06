@@ -6,6 +6,7 @@ import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.specifications.UserSpecification;
 import be.steby.CoreProject.dal.repositories.UserRepository;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -93,7 +94,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deactivateUser(Long id) {
+    public void deactivateUser(Long id, DeactivationReason reason, String reasonDetails ) {
         User user = getUserById(id);
         if(!user.isEnabled()){
             throw new AttributeUnchangedException("The user is already deactivated.");
@@ -105,6 +106,29 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setEnabled(false);
+        user.setDeactivatedAt(Instant.now());
+        user.setDeactivationReason(reason);
+        user.setDeactivationDetails(reasonDetails);
+        userRepository.save(user);
+    }
+
+    /**
+     * @param id
+     */
+    @Override
+    public void gdprUserDelete(Long id) {
+        User user = getUserById(id);
+
+        // Anonymiser les données personnelles
+        user.setEmail("deleted_" + id + "@anonymized.local");
+        user.setFirstname("Utilisateur");
+        user.setLastname("Supprimé");
+        user.setPhoneNumber(null);
+
+        // Désactiver le compte
+        user.setEnabled(false);
+        user.setDeactivatedAt(Instant.now());
+        user.setDeactivationReason(DeactivationReason.GDPR_REQUEST);
         userRepository.save(user);
     }
 

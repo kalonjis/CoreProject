@@ -1,5 +1,6 @@
 package be.steby.CoreProject.dl.entities;
 
+import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
@@ -107,6 +108,16 @@ public class User extends BaseEntity<Long> implements UserDetails {
     private boolean mustChangePassword;
 
     private Instant activatedAt;
+
+    private Instant deactivatedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "deactivation_reason")
+    private DeactivationReason deactivationReason;
+
+    @Column(name = "reason_details", length = 500)
+    private String deactivationDetails;
+
     // endregion
 
 

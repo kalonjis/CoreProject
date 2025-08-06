@@ -1,4 +1,6 @@
-package be.steby.CoreProject.bll.domains.account.exceptions;
+package be.steby.CoreProject.bll.domains.account.exceptions.deactivation;
+
+import be.steby.CoreProject.bll.domains.account.exceptions.AccountDomainException;
 
 public class InvalidDeactivationRequestException extends AccountDomainException {
 
