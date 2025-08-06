@@ -3,6 +3,8 @@ package be.steby.CoreProject.bll.common.services.mailer;
 
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.DeactivationReason;
+import be.steby.CoreProject.il.utils.DeactivationMessageUtil;
 import be.steby.CoreProject.il.utils.MailerUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +22,8 @@ import java.time.format.DateTimeFormatter;
 @Slf4j
 public class MailerServiceImpl implements MailerService {
   private final MailerUtil mailerUtil;
+
+  private final DeactivationMessageUtil deactivationMessageUtil;
 
   @Value("${url.front_server}")
   private String FRONT_URL;
@@ -117,21 +121,57 @@ public class MailerServiceImpl implements MailerService {
     mailerUtil.sendMail("Welcome", "accounts/GreetingComfirmedUser", context, user.getEmail());
   }
 
-  /**
-   * @param token
-   * @param user
-   */
-  @Override
-  public void sendAccountDeactivationRequest(String token, User user) {
-    String deactivationUrl = FRONT_URL + "/auth/account-deactivation?token=" + token;
+//  /**
+//   * @param token
+//   * @param user
+//   */
+//  @Override
+//  public void sendAccountDeactivationRequest(String token, User user) {
+//    String deactivationUrl = FRONT_URL + "/auth/account-deactivation?token=" + token;
+//    String username = defineUsername(user);
+//
+//    Context context = new Context();
+//    context.setVariable("username", username);
+//    context.setVariable("url", deactivationUrl);
+//    mailerUtil.sendMail("Account deactivation request", "accounts/AccountDeactivationRequest", context, user.getEmail());
+//  }
+@Override
+public void sendAccountDeactivationRequest(String token, User user, DeactivationReason deactivationReason, String reasonDetails) {
     String username = defineUsername(user);
+    String requestMessage = deactivationMessageUtil.getDeactivationRequestMessage(deactivationReason, reasonDetails);
+    String subject = deactivationMessageUtil.getDeactivationRequestSubjectLine(deactivationReason);
+    boolean canReactivate = deactivationMessageUtil.isReactivationAllowed(deactivationReason);
+    String confirmationUrl = FRONT_URL + "/auth/account-deactivation?token=" + token;
 
     Context context = new Context();
     context.setVariable("username", username);
-    context.setVariable("url", deactivationUrl);
-    mailerUtil.sendMail("Account deactivation request", "accounts/AccountDeactivationRequest", context, user.getEmail());
-  }
+    context.setVariable("requestMessage", requestMessage);
+    context.setVariable("subjectLine", subject);
+    context.setVariable("deactivationReason", deactivationReason);
+    context.setVariable("reasonDetails", reasonDetails);
+    context.setVariable("canReactivate", canReactivate);
+    context.setVariable("url", confirmationUrl);
 
+    mailerUtil.sendMail(subject, "accounts/AccountDeactivationRequest", context, user.getEmail());
+}
+
+    @Override
+    public void sendAccountDeactivationConfirmation(User user, DeactivationReason deactivationReason, String reasonDetails) {
+        String username = defineUsername(user);
+        String message = deactivationMessageUtil.getConfirmationMessage(deactivationReason, reasonDetails);
+        String subject = deactivationMessageUtil.getSubjectLine(deactivationReason);
+        boolean canReactivate = deactivationMessageUtil.isReactivationAllowed(deactivationReason);
+
+        Context context = new Context();
+        context.setVariable("username", username);
+        context.setVariable("message", message);
+        context.setVariable("subjectLine", subject);
+        context.setVariable("deactivationReason", deactivationReason);
+        context.setVariable("reasonDetails", reasonDetails);
+        context.setVariable("canReactivate", canReactivate);
+
+        mailerUtil.sendMail(subject, "accounts/AccountDeactivationConfirmation", context, user.getEmail());
+    }
   // endregion
 
   // region EmailAddress

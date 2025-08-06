@@ -112,7 +112,13 @@ public class AccountServiceImpl implements AccountService {
         );
 
         RequestContext requestContext = requestContextService.captureRequestContext(request);
-        RequestAccountDeactivationEvent event = new RequestAccountDeactivationEvent(user, token.getToken(), requestContext);
+        RequestAccountDeactivationEvent event = new RequestAccountDeactivationEvent(
+                user,
+                token.getToken(),
+                deactivationRequest.deactivationReason(),
+                deactivationRequest.reasonDetails(),
+                requestContext);
+
         eventPublisher.publishEvent(event);
 
     }
