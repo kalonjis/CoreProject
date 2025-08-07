@@ -188,4 +188,33 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
     @Modifying
     @Query("DELETE FROM ActivityLog cl WHERE cl.timestamp < :cutoffDate")
     long deleteByTimestampBefore(@Param("cutoffDate") Instant cutoffDate);
+
+
+    /**
+     * Trouve tous les logs par utilisateur et types d'actions spécifiés
+     */
+    Page<ActivityLog> findByUserAndActionTypeInOrderByTimestampDesc(
+            User user,
+            List<String> actionTypes,
+            Pageable pageable);
+
+    /**
+     * Trouve les N derniers logs d'un utilisateur pour des types d'actions spécifiés
+     */
+    @Query("SELECT cl FROM ActivityLog cl WHERE cl.user = :user " +
+            "AND cl.actionType IN :actionTypes " +
+            "ORDER BY cl.timestamp DESC")
+    List<ActivityLog> findTopNByUserAndActionTypeInOrderByTimestampDesc(
+            @Param("user") User user,
+            @Param("actionTypes") List<String> actionTypes,
+            Pageable pageable);
+
+    /**
+     * Compte les logs par utilisateur, type d'action, statut et période (avec statut optionnel)
+     */
+    long countByUserAndActionTypeAndSuccessfulAndTimestampAfter(
+            User user,
+            String actionType,
+            boolean successful,
+            Instant timestamp);
 }

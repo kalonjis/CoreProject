@@ -82,16 +82,6 @@ public class ActivityLogEventListener {
         );
     }
 
-    @EventListener
-    @Async("activityLogExecutor")
-    public void handleConfirmNewUserAccountEvent(AccountConfirmationEvent event) {
-        executeWithDeviceDetection(
-                event.user(),
-                event.requestContext(),
-                device -> activityLogService.logNewAccountActivation(
-                        event.user(), device, event.requestContext())
-        );
-    }
 
 
      // =============== MÉTHODES UTILITAIRES ===============
