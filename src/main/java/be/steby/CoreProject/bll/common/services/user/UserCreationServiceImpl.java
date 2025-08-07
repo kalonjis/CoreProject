@@ -147,6 +147,7 @@ public class UserCreationServiceImpl implements UserCreationService{
                 log.debug("ADMIN_CREATE config applied");
             }
             case SYSTEM_CREATE -> {
+                user.setEmailVerified(true);
                 user.setMustChangePassword(true);
                 user.setEnabled(true);
                 user.setEverActivated(true);
