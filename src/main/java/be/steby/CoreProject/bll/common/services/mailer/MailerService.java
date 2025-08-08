@@ -37,7 +37,13 @@ public interface MailerService {
      */
     void sendAccountDeactivationConfirmation(User user, DeactivationReason deactivationReason, String reasonDetails);
 
-  //void sendAccountDeactivationRequest(String token, User user);
+    /**
+     * Sends a reactivation confirmation email to the user
+     *
+     * @param token The reactivation token
+     * @param user The user whose account reactivation was requested
+     */
+    void sendAccountReactivationRequest(String token, User user);
 
   void sendPasswordChangeConfirmation(User user);
 

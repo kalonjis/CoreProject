@@ -26,9 +26,6 @@ import lombok.*;
 @EqualsAndHashCode(callSuper = true)
 public class AccountDeactivationToken extends BaseToken {
 
-    @Column(nullable = false)
-    private boolean confirmed = false;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "deactivation_reason")
     private DeactivationReason deactivationReason;
