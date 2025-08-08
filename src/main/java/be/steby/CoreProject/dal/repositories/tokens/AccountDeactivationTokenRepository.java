@@ -18,7 +18,7 @@ public interface AccountDeactivationTokenRepository extends BaseTokenRepository<
     Optional<AccountDeactivationToken> findByToken(String token);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("DELETE FROM AccountDeactivationToken adt WHERE act.expiryDate < ?1 OR adt.revoked = true")
+    @Query("DELETE FROM AccountDeactivationToken adt WHERE adt.expiryDate < ?1 OR adt.revoked = true")
     void deleteExpiredTokens(Instant now);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
