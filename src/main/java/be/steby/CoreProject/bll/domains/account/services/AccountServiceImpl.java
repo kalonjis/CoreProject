@@ -182,4 +182,26 @@ public class AccountServiceImpl implements AccountService {
         eventPublisher.publishEvent( new RequestAccountReactivationEvent(user, accountReactivationToken.getToken(), requestContext) );
 
     }
+
+
+    @Override
+    public User reactivateAccount(String token, HttpServletRequest httpRequest) {
+
+        AccountReactivationToken accountReactivationToken = accountReactivationTokenService.getToken(token);
+        accountReactivationTokenService.verifyTokenValidity(accountReactivationToken);
+        User user = accountReactivationToken.getUser();
+
+
+        userService.reactivateUser(user);
+
+        accountReactivationTokenService.revokeAllUserTokens(user);
+
+        accountDeactivationAttemptService.clearAttempts(user);
+
+        RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
+        AccountReactivationConfirmedEvent event = new AccountReactivationConfirmedEvent(user, requestContext);
+        eventPublisher.publishEvent(event);
+
+        return user;
+    }
 }

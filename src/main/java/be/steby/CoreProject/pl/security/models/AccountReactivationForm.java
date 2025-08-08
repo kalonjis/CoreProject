@@ -10,11 +10,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 
-@ValidDeactivationRequest
 public record AccountReactivationForm(
     @NotBlank(message = "L'adresse email ne peut pas être vide")
     @Email(message = "Format d'email invalide")
     @Size(max = 254, message = "L'email ne peut pas dépasser 254 caractères")
-    @ValidEmailDomain
     String email
 ) {}

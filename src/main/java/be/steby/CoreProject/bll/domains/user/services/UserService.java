@@ -30,6 +30,8 @@ public interface UserService {
 
     void deactivateUser(Long id, DeactivationReason reason, String reasonDetails);
 
+    void reactivateUser(User user);
+
     void gdprUserDelete(Long id);
 
     void setUserMailVerified(User user);

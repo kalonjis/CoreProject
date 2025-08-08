@@ -108,16 +108,16 @@ public class AccountController {
                 .body(response);
     }
 
-//    @GetMapping("/reactivation")
-//    public ResponseEntity<Map<String, String>> reactivateAccount(
-//            @RequestParam String token,
-//            HttpServletRequest request
-//    ) {
-//        accountService.reactivateAccount(token, request);
-//        Map<String, String> response = new HashMap<>();
-//        response.put("message", "Your account has been successfully Reactivated. ");
-//        return ResponseEntity.ok()
-//                .header("Content-Type", "application/json")
-//                .body(response);
-//    }
+    @GetMapping("/reactivation")
+    public ResponseEntity<Map<String, String>> reactivateAccount(
+            @RequestParam String token,
+            HttpServletRequest request
+    ) {
+        accountService.reactivateAccount(token, request);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Your account has been successfully Reactivated. ");
+        return ResponseEntity.ok()
+                .header("Content-Type", "application/json")
+                .body(response);
+    }
 }

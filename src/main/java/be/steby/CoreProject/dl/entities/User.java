@@ -111,6 +111,8 @@ public class User extends BaseEntity<Long> implements UserDetails {
 
     private Instant deactivatedAt;
 
+    private Instant reactivatedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "deactivation_reason")
     private DeactivationReason deactivationReason;
