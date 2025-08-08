@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -74,7 +75,7 @@ public class MailerServiceImpl implements MailerService {
 
   // endregion
 
-  // region AccountConfirmation
+  // region Account
 
   @Override
   public void sendSignUpConfirmation(String token, User user) {
@@ -121,39 +122,25 @@ public class MailerServiceImpl implements MailerService {
     mailerUtil.sendMail("Welcome", "accounts/GreetingComfirmedUser", context, user.getEmail());
   }
 
-//  /**
-//   * @param token
-//   * @param user
-//   */
-//  @Override
-//  public void sendAccountDeactivationRequest(String token, User user) {
-//    String deactivationUrl = FRONT_URL + "/auth/account-deactivation?token=" + token;
-//    String username = defineUsername(user);
-//
-//    Context context = new Context();
-//    context.setVariable("username", username);
-//    context.setVariable("url", deactivationUrl);
-//    mailerUtil.sendMail("Account deactivation request", "accounts/AccountDeactivationRequest", context, user.getEmail());
-//  }
-@Override
-public void sendAccountDeactivationRequest(String token, User user, DeactivationReason deactivationReason, String reasonDetails) {
-    String username = defineUsername(user);
-    String requestMessage = deactivationMessageUtil.getDeactivationRequestMessage(deactivationReason, reasonDetails);
-    String subject = deactivationMessageUtil.getDeactivationRequestSubjectLine(deactivationReason);
-    boolean canReactivate = deactivationMessageUtil.isReactivationAllowed(deactivationReason);
-    String confirmationUrl = FRONT_URL + "/auth/account-deactivation?token=" + token;
+    @Override
+    public void sendAccountDeactivationRequest(String token, User user, DeactivationReason deactivationReason, String reasonDetails) {
+        String username = defineUsername(user);
+        String requestMessage = deactivationMessageUtil.getDeactivationRequestMessage(deactivationReason, reasonDetails);
+        String subject = deactivationMessageUtil.getDeactivationRequestSubjectLine(deactivationReason);
+        boolean canReactivate = deactivationMessageUtil.isReactivationAllowed(deactivationReason);
+        String confirmationUrl = FRONT_URL + "/auth/account-deactivation?token=" + token;
 
-    Context context = new Context();
-    context.setVariable("username", username);
-    context.setVariable("requestMessage", requestMessage);
-    context.setVariable("subjectLine", subject);
-    context.setVariable("deactivationReason", deactivationReason);
-    context.setVariable("reasonDetails", reasonDetails);
-    context.setVariable("canReactivate", canReactivate);
-    context.setVariable("url", confirmationUrl);
+        Context context = new Context();
+        context.setVariable("username", username);
+        context.setVariable("requestMessage", requestMessage);
+        context.setVariable("subjectLine", subject);
+        context.setVariable("deactivationReason", deactivationReason);
+        context.setVariable("reasonDetails", reasonDetails);
+        context.setVariable("canReactivate", canReactivate);
+        context.setVariable("url", confirmationUrl);
 
-    mailerUtil.sendMail(subject, "accounts/AccountDeactivationRequest", context, user.getEmail());
-}
+        mailerUtil.sendMail(subject, "accounts/AccountDeactivationRequest", context, user.getEmail());
+    }
 
     @Override
     public void sendAccountDeactivationConfirmation(User user, DeactivationReason deactivationReason, String reasonDetails) {
@@ -171,6 +158,47 @@ public void sendAccountDeactivationRequest(String token, User user, Deactivation
         context.setVariable("canReactivate", canReactivate);
 
         mailerUtil.sendMail(subject, "accounts/AccountDeactivationConfirmation", context, user.getEmail());
+    }
+
+
+    @Override
+    public void sendAccountReactivationRequest(String token, User user) {
+        String username = defineUsername(user);
+        String subject = "Welcome Back! Confirm Your Account Reactivation – MyFavApp";
+        String confirmationUrl = FRONT_URL + "/auth/account-reactivation?token=" + token;
+
+        Context context = new Context();
+        context.setVariable("username", username);
+        context.setVariable("subjectLine", subject);
+        context.setVariable("url", confirmationUrl);
+        context.setVariable("originalDeactivationReason", user.getDeactivationReason());
+        context.setVariable("deactivatedDuration", getDurationSinceDeactivation(user));
+
+        mailerUtil.sendMail(subject, "accounts/AccountReactivationRequest", context, user.getEmail());
+    }
+
+    // Méthode helper pour calculer la durée
+    private String getDurationSinceDeactivation(User user) {
+        if (user.getDeactivatedAt() == null) {
+            return "recently";
+        }
+
+        Duration duration = Duration.between(user.getDeactivatedAt(), Instant.now());
+        long days = duration.toDays();
+
+        if (days == 0) {
+            return "today";
+        } else if (days == 1) {
+            return "yesterday";
+        } else if (days < 7) {
+            return days + " days ago";
+        } else if (days < 30) {
+            long weeks = days / 7;
+            return weeks == 1 ? "1 week ago" : weeks + " weeks ago";
+        } else {
+            long months = days / 30;
+            return months == 1 ? "1 month ago" : months + " months ago";
+        }
     }
   // endregion
 

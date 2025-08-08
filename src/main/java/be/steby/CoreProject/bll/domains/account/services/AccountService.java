@@ -12,4 +12,6 @@ public interface AccountService {
     void requestDeactivation(User user, DeactivationRequest deactivationRequest, HttpServletRequest request);
 
     User deactivateAccount(String token, HttpServletRequest httpRequest);
+
+    void requestReactivation(User user,HttpServletRequest httpRequest);
 }

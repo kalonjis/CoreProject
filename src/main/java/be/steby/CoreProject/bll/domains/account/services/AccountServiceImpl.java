@@ -1,15 +1,15 @@
 package be.steby.CoreProject.bll.domains.account.services;
 
-import be.steby.CoreProject.bll.domains.account.events.AccountConfirmationEvent;
-import be.steby.CoreProject.bll.domains.account.events.AccountDeactivationConfirmedEvent;
-import be.steby.CoreProject.bll.domains.account.events.RequestAccountActivationEvent;
-import be.steby.CoreProject.bll.domains.account.events.RequestAccountDeactivationEvent;
+import be.steby.CoreProject.bll.domains.account.events.*;
 import be.steby.CoreProject.bll.domains.account.exceptions.AccountAlreadyActivatedException;
 import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.AccountAlreadyDeactivatedException;
 import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.InvalidDeactivationRequestException;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationRequest;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationValidationResult;
+import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationAttemptServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.account.services.tokens.reactivation.AccountReactivationAttemptServiceImpl;
+import be.steby.CoreProject.bll.domains.account.services.tokens.reactivation.AccountReactivationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.exceptions.TokenValidityException;
 import be.steby.CoreProject.bll.common.models.RequestContext;
@@ -20,6 +20,7 @@ import be.steby.CoreProject.bll.domains.account.services.tokens.confirmation.Acc
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.AccountDeactivationToken;
+import be.steby.CoreProject.dl.entities.tokens.AccountReactivationToken;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,8 +36,14 @@ public class AccountServiceImpl implements AccountService {
 
     private final AccountConfirmationTokenServiceImpl accountConfirmationTokenService;
     private final AccountConfirmationAttemptServiceImpl accountConfirmationAttemptService;
+
     private final AccountDeactivationTokenServiceImpl accountDeactivationTokenService;
+    private final AccountDeactivationAttemptServiceImpl accountDeactivationAttemptService;
     private final DeactivationPolicyService deactivationPolicyService;
+
+    private final AccountReactivationTokenServiceImpl accountReactivationTokenService;
+    private final AccountReactivationAttemptServiceImpl accountReactivationAttemptService;
+
     private final RefreshTokenServiceImpl refreshTokenService;
     private final UserService userService;
     private final RequestContextService requestContextService;
@@ -143,9 +150,7 @@ public class AccountServiceImpl implements AccountService {
         // 2. Révoquer tous les tokens de l'utilisateur
         refreshTokenService.revokeAllUserTokens(user);
 
-        // 3. Marquer le token comme confirmé
-        accountDeactivationToken.setConfirmed(true);
-        accountDeactivationTokenService.saveToken(accountDeactivationToken);
+        accountDeactivationAttemptService.clearAttempts(user);
 
         // 4. Publier l'événement de confirmation de désactivation
         RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
@@ -158,5 +163,23 @@ public class AccountServiceImpl implements AccountService {
         eventPublisher.publishEvent(event);
 
         return user;
+    }
+
+    /**
+     * @param user
+     * @param httpRequest
+     */
+    @Override
+    public void requestReactivation(User user, HttpServletRequest httpRequest) {
+        if (user.isEnabled()){
+            throw new AccountAlreadyActivatedException("the user with emailAddress " + user.getEmail() + " is already activated!");
+        }
+
+        AccountReactivationToken accountReactivationToken = accountReactivationTokenService.createAccountReactivationToken(user);
+
+        RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
+
+        eventPublisher.publishEvent( new RequestAccountReactivationEvent(user, accountReactivationToken.getToken(), requestContext) );
+
     }
 }

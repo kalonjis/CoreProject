@@ -7,6 +7,7 @@ import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.pl.security.models.AccountDeactivationForm;
+import be.steby.CoreProject.pl.security.models.AccountReactivationForm;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -87,6 +88,34 @@ public class AccountController {
         accountService.deactivateAccount(token, request);
         Map<String, String> response = new HashMap<>();
         response.put("message", "Your account has been successfully deactivated. ");
+        return ResponseEntity.ok()
+                .header("Content-Type", "application/json")
+                .body(response);
+    }
+
+    @PostMapping("/reactivation-request")
+    public ResponseEntity<Map<String, String>> requestReactivation(
+            @Valid @RequestBody AccountReactivationForm form,
+            HttpServletRequest request
+    ) {
+        User user = userService.getUserByEmail(form.email());
+        accountService.requestReactivation(user,request);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "A new Reactivation email has been sent for confirmation.");
+        return ResponseEntity.ok()
+                .header("Content-Type", "application/json")
+                .body(response);
+    }
+
+    @GetMapping("/reactivation")
+    public ResponseEntity<Map<String, String>> reactivateAccount(
+            @RequestParam String token,
+            HttpServletRequest request
+    ) {
+        accountService.reactivateAccount(token, request);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Your account has been successfully Reactivated. ");
         return ResponseEntity.ok()
                 .header("Content-Type", "application/json")
                 .body(response);

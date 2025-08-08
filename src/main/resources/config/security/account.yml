@@ -26,3 +26,13 @@ security:
     allow-admin-deactivation: true
     allow-super-admin-deactivation: false
 
+
+  account-reactivation:
+    token:
+      expiration: 2592000000 # 30 jours
+      #expiration: 1000  # 1 second
+
+    # Limitation des tentatives (déjà existant dans votre projet)
+    max-attempts: 3
+    lockout-minutes: 60
+

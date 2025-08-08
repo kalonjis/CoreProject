@@ -24,6 +24,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -151,6 +152,7 @@ public class UserCreationServiceImpl implements UserCreationService{
                 user.setMustChangePassword(true);
                 user.setEnabled(true);
                 user.setEverActivated(true);
+                user.setActivatedAt(Instant.now());
                 log.debug("SYSTEM_CREATE config applied");
 
             }
