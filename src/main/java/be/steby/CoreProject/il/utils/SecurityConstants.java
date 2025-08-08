@@ -39,6 +39,7 @@ public class SecurityConstants {
             "/api/auth/refresh-token",
             "/api/auth/logout",
             "/api/account/activation/**",
+            "/api/account/request-reactivation",
             "/api/password/**",
             "/api/user/device/confirm/**",
             "/api/user/device/reject/**",

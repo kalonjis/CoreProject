@@ -25,7 +25,6 @@ import lombok.*;
 @Entity
 @Getter @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class AccountReactivationToken extends BaseToken {
 
