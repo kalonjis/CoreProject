@@ -13,5 +13,7 @@ public interface AccountService {
 
     User deactivateAccount(String token, HttpServletRequest httpRequest);
 
+    User reactivateAccount(String token, HttpServletRequest httpRequest);
+
     void requestReactivation(User user,HttpServletRequest httpRequest);
 }

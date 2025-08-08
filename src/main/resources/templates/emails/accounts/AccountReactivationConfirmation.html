@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${subjectLine}">Account Successfully Reactivated</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; }
+        .header { background-color: #28A745; color: white; padding: 20px; text-align: center; }
+        .content { padding: 30px 20px; }
+        .success-box { background-color: #D4EDDA; padding: 20px; border-left: 4px solid #28A745; margin: 20px 0; border-radius: 5px; }
+        .info-box { background-color: #D1ECF1; padding: 15px; border-left: 4px solid #17A2B8; margin: 20px 0; border-radius: 5px; }
+        .features-list { background-color: #F8F9FA; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .footer { border-top: 1px solid #DDD; padding-top: 20px; margin-top: 30px; }
+        .timestamp { margin-top: 40px; padding-top: 20px; border-top: 1px solid #EEE; font-size: 12px; color: #999; }
+        .cta-button { background-color: #007BFF; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🎉 Welcome Back!</h1>
+    <p style="margin: 0; font-size: 16px;">Your Account Has Been Successfully Reactivated</p>
+</div>
+
+<div class="content">
+    <p>Hello <strong th:text="${username}">User</strong>,</p>
+
+    <!-- Success confirmation -->
+    <div class="success-box">
+        <h3 style="color: #155724; margin-top: 0;">✅ Account Reactivated Successfully!</h3>
+        <p style="margin-bottom: 0; color: #155724;">
+            Great news! Your MyFavApp account has been fully reactivated and you now have complete access
+            to all features and your previous data.
+        </p>
+    </div>
+
+    <p>
+        Your account was deactivated <span th:text="${deactivatedDuration}">some time ago</span>,
+        and we're thrilled to have you back with us!
+    </p>
+
+    <!-- Original deactivation reason (if available) -->
+    <div th:if="${originalDeactivationReason}" class="info-box">
+        <p style="margin: 0; color: #0C5460;">
+            <strong>📋 Previous Deactivation:</strong><br>
+            Reason: <span th:text="${originalDeactivationReason?.displayName ?: 'User requested'}">User requested</span>
+        </p>
+    </div>
+
+    <!-- What's restored -->
+    <div class="features-list">
+        <h3 style="color: #495057; margin-top: 0;">🔄 What's Been Restored:</h3>
+        <ul style="margin-bottom: 0; color: #495057;">
+            <li><strong>All your data and settings</strong> - Everything is exactly as you left it</li>
+            <li><strong>Full app access</strong> - All features are now available</li>
+            <li><strong>Your preferences</strong> - Saved settings and customizations</li>
+            <li><strong>Account security</strong> - Your security settings remain intact</li>
+        </ul>
+    </div>
+
+    <!-- Call to action -->
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="https://app.myfavapp.com/login" class="cta-button">
+            🚀 Start Using MyFavApp
+        </a>
+    </div>
+
+    <!-- Security reminder -->
+    <div style="background-color: #FFF3CD; padding: 15px; border-left: 4px solid #FFC107; margin: 20px 0; border-radius: 5px;">
+        <p style="margin: 0; color: #856404;">
+            🔐 <strong>Security Tip:</strong>
+            Since you've been away, we recommend reviewing your account security settings and
+            updating your password if needed to ensure your account remains secure.
+        </p>
+    </div>
+
+    <!-- Next steps -->
+    <h3 style="color: #495057;">What's Next?</h3>
+    <ul style="color: #495057;">
+        <li>Log in to your account using your existing credentials</li>
+        <li>Review any new features that may have been added</li>
+        <li>Update your profile information if needed</li>
+        <li>Explore and enjoy all that MyFavApp has to offer!</li>
+    </ul>
+
+    <!-- Support information -->
+    <div class="footer">
+        <p>
+            <strong>Need Help Getting Started Again?</strong><br>
+            Our support team is here to help you get back up to speed. Feel free to reach out
+            at <a href="mailto:support@myfavapp.com" style="color: #007BFF;">support@myfavapp.com</a>
+        </p>
+
+        <p>
+            You can also visit our <a href="https://help.myfavapp.com" style="color: #007BFF;">Help Center</a>
+            for guides and tutorials.
+        </p>
+    </div>
+
+    <p style="margin-top: 30px; font-size: 14px; color: #777;">
+        Welcome back, and thank you for choosing MyFavApp!<br>
+        <strong>The MyFavApp Team</strong>
+    </p>
+
+    <!-- Footer with timestamp -->
+    <div class="timestamp">
+        <p>Your account was reactivated on <span th:text="${#dates.format(#dates.createNow(), 'MMMM dd, yyyy')}"></span></p>
+        <p>This is an automated confirmation email for security purposes.</p>
+    </div>
+</div>
+
+</body>
+</html>

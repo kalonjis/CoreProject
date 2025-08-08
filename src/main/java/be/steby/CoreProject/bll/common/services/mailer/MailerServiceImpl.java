@@ -177,6 +177,21 @@ public class MailerServiceImpl implements MailerService {
         mailerUtil.sendMail(subject, "accounts/AccountReactivationRequest", context, user.getEmail());
     }
 
+
+    @Override
+    public void sendAccountReactivationConfirmation(User user) {
+        String username = defineUsername(user);
+        String subject = "Account Successfully Reactivated – MyFavApp";
+
+        Context context = new Context();
+        context.setVariable("username", username);
+        context.setVariable("subjectLine", subject);
+        context.setVariable("deactivatedDuration", getDurationSinceDeactivation(user));
+        context.setVariable("originalDeactivationReason", user.getDeactivationReason());
+
+        mailerUtil.sendMail(subject, "accounts/AccountReactivationConfirmation", context, user.getEmail());
+    }
+
     // Méthode helper pour calculer la durée
     private String getDurationSinceDeactivation(User user) {
         if (user.getDeactivatedAt() == null) {

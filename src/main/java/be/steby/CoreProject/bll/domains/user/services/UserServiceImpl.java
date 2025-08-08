@@ -93,6 +93,23 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
+
+    @Override
+    public void reactivateUser(User user) {
+        if(user.isEnabled()){
+            throw new AttributeUnchangedException("The user is already activated.");
+        }
+
+        if( user.getUserRoles().contains(UserRole.SUPER_ADMIN)
+                && !authenticatedHasRole(UserRole.SUPER_ADMIN) ) {
+            throw new NotEnoughAuthoritiesException("Cannot activate a SUPER_ADMIN user without SUPER_ADMIN privileges.");
+        }
+
+        user.setEnabled(true);
+        user.setReactivatedAt(Instant.now());
+        userRepository.save(user);
+    }
+
     @Override
     public void deactivateUser(Long id, DeactivationReason reason, String reasonDetails ) {
         User user = getUserById(id);

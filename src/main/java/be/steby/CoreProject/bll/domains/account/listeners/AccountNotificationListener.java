@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 @Order(10)
 @RequiredArgsConstructor
 @Slf4j
-public class AccountConfirmationNotificationListener {
+public class AccountNotificationListener {
 
     private final MailerService mailerService;
     private final AccountConfirmationTokenServiceImpl accountConfirmationTokenService;
@@ -67,5 +67,13 @@ public class AccountConfirmationNotificationListener {
     @Async("emailExecutor")
     public void handleRequestAccountReactivation(RequestAccountReactivationEvent event){
         mailerService.sendAccountReactivationRequest(event.token(), event.user());
+    }
+
+
+    @EventListener
+    @Async("emailExecutor")
+    public void handleAccountReactivationConfirmed(AccountReactivationConfirmedEvent event){
+        log.info("Sending reactivation confirmation email to user: {}", event.user().getEmail());
+        mailerService.sendAccountReactivationConfirmation(event.user());
     }
 }
