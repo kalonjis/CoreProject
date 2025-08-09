@@ -99,11 +99,11 @@ public class AdminServiceImpl implements AdminService    {
     }
 
     @Override
-    public void gdprUserDelete(Long userId) {
+    public void gdprUserDelete(User user) {
         if (!userService.authenticatedHasRole(UserRole.ADMIN)){
             throw new NotEnoughAuthoritiesException("Not enough authorities to delete a user.");
         }
-        userService.gdprUserDelete(userId);
+        userService.gdprUserDelete(user);
     }
 
 

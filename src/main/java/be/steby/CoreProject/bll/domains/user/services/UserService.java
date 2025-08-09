@@ -32,7 +32,7 @@ public interface UserService {
 
     void reactivateUser(User user);
 
-    void gdprUserDelete(Long id);
+    void gdprUserDelete(User user);
 
     void setUserMailVerified(User user);
 

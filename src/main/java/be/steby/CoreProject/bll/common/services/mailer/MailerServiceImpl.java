@@ -1,10 +1,10 @@
 package be.steby.CoreProject.bll.common.services.mailer;
 
 
+import be.steby.CoreProject.bll.domains.account.services.DeactivationMessageService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
-import be.steby.CoreProject.il.utils.DeactivationMessageUtil;
 import be.steby.CoreProject.il.utils.MailerUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ import java.time.format.DateTimeFormatter;
 public class MailerServiceImpl implements MailerService {
   private final MailerUtil mailerUtil;
 
-  private final DeactivationMessageUtil deactivationMessageUtil;
+  private final DeactivationMessageService deactivationMessageService;
 
   @Value("${url.front_server}")
   private String FRONT_URL;
@@ -125,9 +125,9 @@ public class MailerServiceImpl implements MailerService {
     @Override
     public void sendAccountDeactivationRequest(String token, User user, DeactivationReason deactivationReason, String reasonDetails) {
         String username = defineUsername(user);
-        String requestMessage = deactivationMessageUtil.getDeactivationRequestMessage(deactivationReason, reasonDetails);
-        String subject = deactivationMessageUtil.getDeactivationRequestSubjectLine(deactivationReason);
-        boolean canReactivate = deactivationMessageUtil.isReactivationAllowed(deactivationReason);
+        String requestMessage = deactivationMessageService.getDeactivationRequestMessage(deactivationReason, reasonDetails);
+        String subject = deactivationMessageService.getDeactivationRequestSubjectLine(deactivationReason);
+        boolean canReactivate = deactivationMessageService.isReactivationAllowed(deactivationReason);
         String confirmationUrl = FRONT_URL + "/auth/account-deactivation?token=" + token;
 
         Context context = new Context();
@@ -145,9 +145,9 @@ public class MailerServiceImpl implements MailerService {
     @Override
     public void sendAccountDeactivationConfirmation(User user, DeactivationReason deactivationReason, String reasonDetails) {
         String username = defineUsername(user);
-        String message = deactivationMessageUtil.getConfirmationMessage(deactivationReason, reasonDetails);
-        String subject = deactivationMessageUtil.getSubjectLine(deactivationReason);
-        boolean canReactivate = deactivationMessageUtil.isReactivationAllowed(deactivationReason);
+        String message = deactivationMessageService.getConfirmationMessage(deactivationReason, reasonDetails);
+        String subject = deactivationMessageService.getSubjectLine(deactivationReason);
+        boolean canReactivate = deactivationMessageService.isReactivationAllowed(deactivationReason);
 
         Context context = new Context();
         context.setVariable("username", username);

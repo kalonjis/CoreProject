@@ -1,17 +1,56 @@
-package be.steby.CoreProject.il.utils;
+package be.steby.CoreProject.bll.domains.account.services;
 
 import be.steby.CoreProject.dl.enums.DeactivationReason;
-import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 /**
- * Utility class that provides localized messages for account deactivation confirmations
- * based on the deactivation reason.
+ * Service responsible for managing deactivation-related messages and business rules.
+ *
+ * This service encapsulates:
+ * - Business rules for account reactivation eligibility
+ * - Personalized messaging based on deactivation reasons
+ * - Email content generation for deactivation workflows
+ *
+ * @author Generated
+ * @since 1.0
  */
-@Component
-public class DeactivationMessageUtil {
+@Service
+@Slf4j
+public class DeactivationMessageService {
+
+    // region Business Rules
 
     /**
-     * Returns an appropriate confirmation message based on the deactivation reason
+     * Determines if the deactivation reason allows for account reactivation.
+     *
+     * This method implements core business rules for account reactivation:
+     * - GDPR_REQUEST: Cannot be reactivated (data permanently deleted)
+     * - ADMIN_DECISION: Cannot be automatically reactivated (requires manual review)
+     * - All other reasons: Allow automatic reactivation
+     *
+     * @param reason The deactivation reason to evaluate
+     * @return true if reactivation is allowed, false otherwise
+     */
+    public boolean isReactivationAllowed(DeactivationReason reason) {
+        if (reason == null) {
+            return true; // Default allows reactivation
+        }
+
+        return switch (reason) {
+            case GDPR_REQUEST -> false; // GDPR deletion is permanent
+            case ADMIN_DECISION -> false; // Admin decisions require manual review
+            default -> true; // All other reasons allow reactivation
+        };
+    }
+
+    // endregion
+
+    // region Confirmation Messages
+
+    /**
+     * Returns an appropriate confirmation message based on the deactivation reason.
+     * Used in post-deactivation confirmation emails.
      *
      * @param reason The reason for deactivation
      * @param reasonDetails Additional details provided by the user (can be null)
@@ -19,7 +58,7 @@ public class DeactivationMessageUtil {
      */
     public String getConfirmationMessage(DeactivationReason reason, String reasonDetails) {
         if (reason == null) {
-            return getDefaultMessage();
+            return getDefaultConfirmationMessage();
         }
 
         return switch (reason) {
@@ -81,39 +120,13 @@ public class DeactivationMessageUtil {
         };
     }
 
-    /**
-     * Returns a default message when no specific reason is provided
-     */
-    private String getDefaultMessage() {
-        return "Your account has been successfully deactivated. We're sorry to see you go, but we understand " +
-                "that everyone's needs are different. Your account can be reactivated at any time if you decide to return. " +
-                "Thank you for being part of our community.";
-    }
+    // endregion
+
+    // region Request Messages
 
     /**
-     * Returns a subject line for the confirmation email based on the deactivation reason
-     */
-    public String getSubjectLine(DeactivationReason reason) {
-        if (reason == null) {
-            return "Account Deactivation Confirmed – MyFavApp";
-        }
-
-        return switch (reason) {
-            case TAKING_A_BREAK -> "Taking a Break – Account Deactivated – MyFavApp";
-            case TOO_MUCH_TIME -> "Digital Wellness – Account Deactivated – MyFavApp";
-            case PRIVACY_CONCERNS -> "Privacy First – Account Deactivated – MyFavApp";
-            case ACCOUNT_CLEANUP -> "Account Cleanup – Deactivation Confirmed – MyFavApp";
-            case SWITCHING_ACCOUNTS -> "Account Switch – Deactivation Confirmed – MyFavApp";
-            case WORK_REQUIREMENTS -> "Work Requirements – Account Deactivated – MyFavApp";
-            case NOT_USEFUL -> "Account Deactivated – MyFavApp";
-            case GDPR_REQUEST -> "GDPR Compliance – Account Deactivated – MyFavApp";
-            case ADMIN_DECISION -> "Administrative Action – Account Deactivated – MyFavApp";
-            case OTHER -> "Account Deactivation Confirmed – MyFavApp";
-        };
-    }
-
-    /**
-     * Returns a personalized message for the deactivation request email based on the reason
+     * Returns a personalized message for the deactivation request email based on the reason.
+     * Used in the initial deactivation request confirmation email.
      *
      * @param reason The reason for deactivation
      * @param reasonDetails Additional details provided by the user (can be null)
@@ -135,28 +148,27 @@ public class DeactivationMessageUtil {
 
             case PRIVACY_CONCERNS ->
                     "We have received your request to deactivate your account due to privacy concerns. " +
-                            "We take your privacy seriously and understand your decision.";
+                            "We take your privacy seriously and want to address any concerns you may have.";
 
             case ACCOUNT_CLEANUP ->
                     "We have received your request to deactivate your account as part of your account cleanup process. " +
                             "We understand the importance of managing your digital presence.";
 
             case SWITCHING_ACCOUNTS ->
-                    "We have received your request to deactivate this account as you're switching to another one. " +
+                    "We have received your request to deactivate your account because you're switching to another account. " +
                             "We're here to help make this transition as smooth as possible.";
 
             case WORK_REQUIREMENTS ->
                     "We have received your request to deactivate your account due to work requirements. " +
-                            "We understand that professional obligations sometimes require these changes.";
+                            "We understand that professional obligations sometimes necessitate these changes.";
 
             case NOT_USEFUL ->
-                    "We have received your request to deactivate your account as it's no longer useful to you. " +
-                            "We're sorry that our application didn't meet your needs.";
+                    "We have received your request to deactivate your account as our application no longer meets your needs. " +
+                            "We appreciate your feedback and are sorry to see you go.";
 
             case GDPR_REQUEST ->
-                    "We have received your request to deactivate your account and delete your personal data " +
-                            "in accordance with GDPR regulations. We will process this request according to " +
-                            "European data protection law.";
+                    "We have received your request to delete your account and personal data in accordance with GDPR regulations. " +
+                            "We will process this request according to European data protection law.";
 
             case ADMIN_DECISION ->
                     "Your account deactivation has been initiated by our administrative team in accordance " +
@@ -172,8 +184,15 @@ public class DeactivationMessageUtil {
         };
     }
 
+    // endregion
+
+    // region Subject Lines
+
     /**
-     * Returns a subject line for the deactivation request email based on the reason
+     * Returns a subject line for the deactivation request email based on the reason.
+     *
+     * @param reason The deactivation reason
+     * @return Appropriate subject line for the request email
      */
     public String getDeactivationRequestSubjectLine(DeactivationReason reason) {
         if (reason == null) {
@@ -195,20 +214,58 @@ public class DeactivationMessageUtil {
     }
 
     /**
-     * Determines if the deactivation reason allows for account reactivation
+     * Returns a subject line for the deactivation confirmation email based on the reason.
      *
      * @param reason The deactivation reason
-     * @return true if reactivation is possible, false otherwise
+     * @return Appropriate subject line for the confirmation email
      */
-    public boolean isReactivationAllowed(DeactivationReason reason) {
+    public String getSubjectLine(DeactivationReason reason) {
         if (reason == null) {
-            return true; // Default allows reactivation
+            return "Account Deactivation Confirmed – MyFavApp";
         }
 
         return switch (reason) {
-            case GDPR_REQUEST -> false; // GDPR deletion is permanent
-            case ADMIN_DECISION -> false; // Admin decisions require manual review
-            default -> true; // All other reasons allow reactivation
+            case TAKING_A_BREAK -> "Taking a Break – Account Deactivated – MyFavApp";
+            case TOO_MUCH_TIME -> "Digital Wellness – Account Deactivated – MyFavApp";
+            case PRIVACY_CONCERNS -> "Privacy First – Account Deactivated – MyFavApp";
+            case ACCOUNT_CLEANUP -> "Account Cleanup – Deactivation Confirmed – MyFavApp";
+            case SWITCHING_ACCOUNTS -> "Account Switch – Deactivation Confirmed – MyFavApp";
+            case WORK_REQUIREMENTS -> "Work Requirements – Account Deactivated – MyFavApp";
+            case NOT_USEFUL -> "Account Deactivated – MyFavApp";
+            case GDPR_REQUEST -> "GDPR Compliance – Account Deactivated – MyFavApp";
+            case ADMIN_DECISION -> "Administrative Action – Account Deactivated – MyFavApp";
+            case OTHER -> "Account Deactivation Confirmed – MyFavApp";
         };
     }
+
+    // endregion
+
+    // region Helper Methods
+
+    /**
+     * Returns a default confirmation message when no specific reason is provided.
+     *
+     * @return Default confirmation message
+     */
+    private String getDefaultConfirmationMessage() {
+        return "Your account has been successfully deactivated. We're sorry to see you go, but we understand " +
+                "that everyone's needs are different. Your account can be reactivated at any time if you decide to return. " +
+                "Thank you for being part of our community.";
+    }
+
+    /**
+     * Logs the evaluation of reactivation eligibility for audit purposes.
+     *
+     * @param reason The deactivation reason being evaluated
+     * @param allowed Whether reactivation is allowed
+     */
+    public void logReactivationEligibility(DeactivationReason reason, boolean allowed) {
+        log.debug("Reactivation eligibility check: reason={}, allowed={}", reason, allowed);
+
+        if (!allowed) {
+            log.info("Reactivation denied for reason: {} (requires manual intervention)", reason);
+        }
+    }
+
+    // endregion
 }

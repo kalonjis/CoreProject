@@ -133,11 +133,10 @@ public class UserServiceImpl implements UserService {
      * @param id
      */
     @Override
-    public void gdprUserDelete(Long id) {
-        User user = getUserById(id);
+    public void gdprUserDelete(User user) {
 
         // Anonymiser les données personnelles
-        user.setEmail("deleted_" + id + "@anonymized.local");
+        user.setEmail("deleted_" + user.getId() + "@anonymized.local");
         user.setFirstname("Utilisateur");
         user.setLastname("Supprimé");
         user.setPhoneNumber(null);
