@@ -170,11 +170,11 @@ public class AdminUserController {
     }
 
 
-    @PutMapping("/gdpr-deletion/{id}")
-    public ResponseEntity<Void> gdprdelete(@PathVariable Long id){
-        adminService.gdprUserDelete(id);
-        return ResponseEntity.ok().build();
-    }
+//    @PutMapping("/gdpr-deletion/{id}")
+//    public ResponseEntity<Void> gdprdelete(@PathVariable Long id){
+//        adminService.gdprUserDelete(id);
+//        return ResponseEntity.ok().build();
+//    }
 
 
     private Pageable getPageable(int page, int size, String sort) {

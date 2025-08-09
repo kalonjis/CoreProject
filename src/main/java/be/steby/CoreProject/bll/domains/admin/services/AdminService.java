@@ -15,7 +15,7 @@ public interface AdminService {
 
     void deleteUser(Long id);
 
-    void gdprUserDelete(Long userId);
+    void gdprUserDelete(User user);
 
     void activateUser(Long id);
 

@@ -4,6 +4,7 @@ import be.steby.CoreProject.bll.domains.account.events.*;
 import be.steby.CoreProject.bll.domains.account.exceptions.AccountAlreadyActivatedException;
 import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.AccountAlreadyDeactivatedException;
 import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.InvalidDeactivationRequestException;
+import be.steby.CoreProject.bll.domains.account.exceptions.reactivation.ReactivationNotAllowedException;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationRequest;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationValidationResult;
 import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationAttemptServiceImpl;
@@ -21,6 +22,7 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.AccountDeactivationToken;
 import be.steby.CoreProject.dl.entities.tokens.AccountReactivationToken;
+import be.steby.CoreProject.dl.enums.DeactivationReason;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +42,7 @@ public class AccountServiceImpl implements AccountService {
     private final AccountDeactivationTokenServiceImpl accountDeactivationTokenService;
     private final AccountDeactivationAttemptServiceImpl accountDeactivationAttemptService;
     private final DeactivationPolicyService deactivationPolicyService;
+    private final DeactivationMessageService deactivationMessageService;
 
     private final AccountReactivationTokenServiceImpl accountReactivationTokenService;
     private final AccountReactivationAttemptServiceImpl accountReactivationAttemptService;
@@ -142,10 +145,15 @@ public class AccountServiceImpl implements AccountService {
 
         AccountDeactivationToken accountDeactivationToken = accountDeactivationTokenService.getToken(token);
         accountDeactivationTokenService.verifyTokenValidity(accountDeactivationToken);
-        User user = accountDeactivationToken.getUser();
 
-        // 1. Désactiver l'utilisateur
-        userService.deactivateUser(user.getId(), accountDeactivationToken.getDeactivationReason(), accountDeactivationToken.getReasonDetails());
+        User user = accountDeactivationToken.getUser();
+        DeactivationReason reason = accountDeactivationToken.getDeactivationReason();
+
+        if (reason == DeactivationReason.GDPR_REQUEST){
+            userService.gdprUserDelete(user);
+        } else {
+            userService.deactivateUser(user.getId(), accountDeactivationToken.getDeactivationReason(), accountDeactivationToken.getReasonDetails());
+        }
 
         // 2. Révoquer tous les tokens de l'utilisateur
         refreshTokenService.revokeAllUserTokens(user);
@@ -175,6 +183,10 @@ public class AccountServiceImpl implements AccountService {
             throw new AccountAlreadyActivatedException("the user with emailAddress " + user.getEmail() + " is already activated!");
         }
 
+        if (!deactivationMessageService.isReactivationAllowed(user.getDeactivationReason())) {
+            throw new ReactivationNotAllowedException("Account reactivation is not allowed for this deactivation reason: " + user.getDeactivationReason());
+        }
+
         AccountReactivationToken accountReactivationToken = accountReactivationTokenService.createAccountReactivationToken(user);
 
         RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
@@ -191,6 +203,13 @@ public class AccountServiceImpl implements AccountService {
         accountReactivationTokenService.verifyTokenValidity(accountReactivationToken);
         User user = accountReactivationToken.getUser();
 
+        if (user.isEnabled()){
+            throw new AccountAlreadyActivatedException("the user with emailAddress " + user.getEmail() + " is already activated!");
+        }
+
+        if (!deactivationMessageService.isReactivationAllowed(user.getDeactivationReason())) {
+            throw new ReactivationNotAllowedException("Account reactivation is not allowed for this deactivation reason: " + user.getDeactivationReason());
+        }
 
         userService.reactivateUser(user);
 
