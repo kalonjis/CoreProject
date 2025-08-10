@@ -1,5 +1,6 @@
 package be.steby.CoreProject.dl.entities;
 
+import be.steby.CoreProject.dl.enums.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
 import jakarta.persistence.*;
@@ -109,9 +110,11 @@ public class User extends BaseEntity<Long> implements UserDetails {
 
     private Instant activatedAt;
 
-    private Instant deactivatedAt;
-
     private Instant reactivatedAt;
+
+    // Désactivation self-service
+
+    private Instant deactivatedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "deactivation_reason")
@@ -119,6 +122,21 @@ public class User extends BaseEntity<Long> implements UserDetails {
 
     @Column(name = "reason_details", length = 500)
     private String deactivationDetails;
+
+    // Désactivation administrative
+    @Enumerated(EnumType.STRING)
+    @Column(name = "admin_deactivation_reason")
+    private AdminDeactivationCategory adminDeactivationReason;
+
+    @Column(name = "admin_deactivation_details", length = 500)
+    private String adminDeactivationDetails;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admin_deactivated_by")
+    private User adminDeactivatedBy;
+
+    @Column(name = "admin_deactivated_at")
+    private Instant adminDeactivatedAt;
 
     // endregion
 
@@ -216,5 +234,33 @@ public class User extends BaseEntity<Long> implements UserDetails {
 
 
     // endregion
+
+
+    /**
+     * Détermine si l'utilisateur a été désactivé par un admin
+     */
+    public boolean isAdminDeactivated() {
+        return !enabled && adminDeactivationReason != null;
+    }
+
+    /**
+     * Détermine si l'utilisateur s'est auto-désactivé
+     */
+    public boolean isSelfDeactivated() {
+        return !enabled && deactivationReason != null && adminDeactivationReason == null;
+    }
+
+    /**
+     * Récupère la raison de désactivation (admin ou self)
+     */
+    public String getDeactivationDisplayReason() {
+        if (adminDeactivationReason != null) {
+            return adminDeactivationReason.getDisplayName();
+        }
+        if (deactivationReason != null) {
+            return deactivationReason.getDisplayName();
+        }
+        return null;
+    }
 
 }
