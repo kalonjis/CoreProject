@@ -20,14 +20,17 @@ public enum ActionLogType {
     ACCOUNT_DELETED("Suppression de compte utilisateur"),
     ACCOUNT_LOCKED("Verrouillage de compte utilisateur"),
     ACCOUNT_UNLOCKED("Déverrouillage de compte utilisateur"),
+    ACCOUNT_REACTIVATION_COMPLETED("Réactivation de compte confirmée"),
 
     // DEMANDES DE COMPTE (NOUVELLES ADDITIONS)
     ACCOUNT_ACTIVATION_REQUESTED("Demande d'activation de compte utilisateur"),
     ACCOUNT_DEACTIVATION_REQUESTED("Demande de désactivation de compte utilisateur"),
+    ACCOUNT_REACTIVATION_REQUESTED("Demande de réactivation de compte utilisateur"),
 
     // TENTATIVES ÉCHOUÉES (NOUVELLES ADDITIONS)
     ACCOUNT_ACTIVATION_ATTEMPT_FAILED("Tentative d'activation de compte échouée"),
     ACCOUNT_DEACTIVATION_ATTEMPT_FAILED("Tentative de désactivation de compte échouée"),
+    ACCOUNT_REACTIVATION_ATTEMPT_FAILED("Tentative de réactivation de compte échouée"),
 
     // GESTION DES TOKENS (NOUVELLES ADDITIONS)
     ACCOUNT_TOKEN_REVOKED("Révocation de token de compte utilisateur"),
