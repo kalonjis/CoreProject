@@ -53,7 +53,7 @@ public class AccountController {
    * @param token The expired token.
    * @return ResponseEntity with the status and a message.
    */
-  @GetMapping("/request-activation")
+  @GetMapping("/activation-request")
   public ResponseEntity<Map<String, String>> requestActivation(@RequestParam String token, HttpServletRequest request) {
       accountService.requestActivation(token, request);
       Map<String, String> response = new HashMap<>();
