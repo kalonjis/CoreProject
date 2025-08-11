@@ -75,6 +75,10 @@ public enum ActionLogType {
     ADMIN_USER_UPDATED("Mise à jour d'utilisateur par un administrateur"),
     ADMIN_PASSWORD_RESET("Réinitialisation de mot de passe par un administrateur"),
     ADMIN_FORCE_LOGOUT("Déconnexion forcée par un administrateur"),
+    ADMIN_USER_SEARCH("Recherche d'utilisateurs par un administrateur"),
+    ADMIN_USER_DELETION("Suppression d'utilisateur par un administrateur"),
+    ADMIN_DATA_EXPORT("Export de données par un administrateur"),
+    ADMIN_AUDIT_ACCESS("Accès aux logs d'audit par un administrateur"),
 
     // SECURITE
     SECURITY_SUSPICIOUS_ACTIVITY("Activité suspecte détectée"),
