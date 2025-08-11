@@ -1,5 +1,6 @@
 package be.steby.CoreProject.dl.entities;
 
+import be.steby.CoreProject.dl.enums.ActionLogType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -48,11 +49,13 @@ public class ActivityLog extends BaseEntity<Long> {
     private String metadata;
 
     /**
-     * Types d'actions utilisateur à enregistrer
-     * Format: CATEGORIE_ACTION
+     * ✅ TYPE D'ACTION AVEC ENUM - TYPE SAFE !
+     * Utilise l'enum ActionLogType directement avec mapping STRING
+     * Hibernate stocke la valeur de l'enum comme string en base
      */
+    @Enumerated(EnumType.STRING)
     @Column(name = "action_type", length = 50, nullable = false)
-    private String actionType;
+    private ActionLogType actionType;  // ← ENUM au lieu de String !
 
     /**
      * Détails complémentaires sur l'action
@@ -84,4 +87,40 @@ public class ActivityLog extends BaseEntity<Long> {
      */
     @Column(name = "triggered_alert")
     private Boolean triggeredAlert;
+
+    // ✅ Méthodes helper pour compatibilité avec l'ancien code
+
+    /**
+     * Obtient la catégorie de l'action.
+     * @return La catégorie (AUTH, ACCOUNT, etc.)
+     */
+    public String getActionCategory() {
+        return actionType != null ? actionType.getCategory() : "UNKNOWN";
+    }
+
+    /**
+     * Obtient la description lisible de l'action.
+     * @return Description de l'action
+     */
+    public String getActionDescription() {
+        return actionType != null ? actionType.getDescription() : "Action inconnue";
+    }
+
+    /**
+     * Vérifie si l'action appartient à une catégorie donnée.
+     * @param category La catégorie à vérifier
+     * @return true si l'action appartient à cette catégorie
+     */
+    public boolean isActionCategory(String category) {
+        return actionType != null && actionType.isCategory(category);
+    }
+
+    /**
+     * Getter pour compatibilité avec l'ancien code qui attend un String.
+     * @deprecated Utiliser directement getActionType() qui retourne l'enum
+     */
+    @Deprecated
+    public String getActionTypeAsString() {
+        return actionType != null ? actionType.name() : null;
+    }
 }
