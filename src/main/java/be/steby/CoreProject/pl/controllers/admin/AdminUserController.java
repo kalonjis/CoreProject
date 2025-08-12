@@ -148,7 +148,7 @@ public class AdminUserController {
     @PatchMapping("/deactivate/{id}")
     public ResponseEntity<Void> deactivateUser(
             @PathVariable Long id,
-            @Valid UserDeactivationForm form) {
+            @Valid @RequestBody UserDeactivationForm form) {
         adminService.deactivateUser(id, form.deactivationCategory(), form.adminDeactivationDetails());
         return ResponseEntity.ok().build();
     }
