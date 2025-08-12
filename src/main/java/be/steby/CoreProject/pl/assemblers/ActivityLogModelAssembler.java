@@ -40,11 +40,11 @@ public class ActivityLogModelAssembler implements RepresentationModelAssembler<A
         }
 
         // Add action-type link to find similar actions
-        if (log.getActionType() != null) {
-            model.add(linkTo(methodOn(ActivityLogController.class)
-                    .searchLogs(null, null, java.util.Collections.singletonList(log.getActionType()), null, null, null, null))
-                    .withRel("similarActions"));
-        }
+//        if (log.getActionType() != null) {
+//            model.add(linkTo(methodOn(ActivityLogController.class)
+//                    .searchLogs(null, null, java.util.Collections.singletonList(log.getActionType()), null, null, null, null))
+//                    .withRel("similarActions"));
+//        }
 
         return model;
     }

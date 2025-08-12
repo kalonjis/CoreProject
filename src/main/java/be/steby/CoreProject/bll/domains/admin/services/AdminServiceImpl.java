@@ -14,6 +14,7 @@ import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTo
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
+import be.steby.CoreProject.dl.enums.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
 import jakarta.servlet.http.HttpServletRequest;
@@ -84,7 +85,7 @@ public class AdminServiceImpl implements AdminService    {
 
 
     @Override
-    public void deactivateUser(Long id) {
+    public void deactivateUser(Long id, AdminDeactivationCategory deactivationCategory, String adminDeactivationDetails) {
         if (!userService.authenticatedHasRole(UserRole.ADMIN)){
             throw new NotEnoughAuthoritiesException("Not enough authorities to deactivate a user.");
         }
@@ -94,7 +95,7 @@ public class AdminServiceImpl implements AdminService    {
             throw new SelfActivationException("You are not allowed to deactivate your own account.");
         }
 
-        userService.deactivateUser(id, DeactivationReason.ADMIN_DECISION, "");
+        userService.adminDeactivateUser(id, deactivationCategory, adminDeactivationDetails);
 
     }
 

@@ -71,7 +71,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 .location(location)
                 .successful(successful)
                 .failureReason(successful ? null : details)
-                .actionType(actionType.name())
+                .actionType(actionType)
                 .actionDetails(details)
                 .sessionId(sessionId)
                 .metadata(metadata)
@@ -546,7 +546,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 actionTypes.stream().map(ActionLogType::name).collect(Collectors.toList()) : null;
 
         return activityLogRepository.findByUserAndActionTypeInAndTimestampBetween(
-                user, actionTypeStrings, startDate, endDate, pageable);
+                user, actionTypes, startDate, endDate, pageable);
     }
 
     /**

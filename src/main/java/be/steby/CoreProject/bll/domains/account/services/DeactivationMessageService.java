@@ -39,7 +39,6 @@ public class DeactivationMessageService {
 
         return switch (reason) {
             case GDPR_REQUEST -> false; // GDPR deletion is permanent
-            case ADMIN_DECISION -> false; // Admin decisions require manual review
             default -> true; // All other reasons allow reactivation
         };
     }
@@ -103,12 +102,6 @@ public class DeactivationMessageService {
                             "as required by European data protection law. If you have any questions about this process, " +
                             "please contact our Data Protection Officer.";
 
-            case ADMIN_DECISION ->
-                    "Your account has been deactivated by our administrative team. This action was taken in accordance " +
-                            "with our terms of service and community guidelines. If you believe this action was taken in error " +
-                            "or if you have questions about the deactivation, please contact our support team who will be " +
-                            "happy to review your case.";
-
             case OTHER -> {
                 String baseMessage = "Your account has been successfully deactivated for the reason you specified.";
                 if (reasonDetails != null && !reasonDetails.trim().isEmpty()) {
@@ -170,10 +163,6 @@ public class DeactivationMessageService {
                     "We have received your request to delete your account and personal data in accordance with GDPR regulations. " +
                             "We will process this request according to European data protection law.";
 
-            case ADMIN_DECISION ->
-                    "Your account deactivation has been initiated by our administrative team in accordance " +
-                            "with our terms of service and community guidelines.";
-
             case OTHER -> {
                 String baseMessage = "We have received your request to deactivate your account.";
                 if (reasonDetails != null && !reasonDetails.trim().isEmpty()) {
@@ -208,7 +197,6 @@ public class DeactivationMessageService {
             case WORK_REQUIREMENTS -> "Work Requirements – Confirm Deactivation – MyFavApp";
             case NOT_USEFUL -> "Confirm Your Account Deactivation – MyFavApp";
             case GDPR_REQUEST -> "GDPR Request – Confirm Account Deletion – MyFavApp";
-            case ADMIN_DECISION -> "Administrative Action – Account Deactivation – MyFavApp";
             case OTHER -> "Confirm Your Account Deactivation – MyFavApp";
         };
     }
@@ -233,7 +221,6 @@ public class DeactivationMessageService {
             case WORK_REQUIREMENTS -> "Work Requirements – Account Deactivated – MyFavApp";
             case NOT_USEFUL -> "Account Deactivated – MyFavApp";
             case GDPR_REQUEST -> "GDPR Compliance – Account Deactivated – MyFavApp";
-            case ADMIN_DECISION -> "Administrative Action – Account Deactivated – MyFavApp";
             case OTHER -> "Account Deactivation Confirmed – MyFavApp";
         };
     }

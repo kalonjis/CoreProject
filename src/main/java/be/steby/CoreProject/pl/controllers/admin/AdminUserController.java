@@ -8,7 +8,8 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.ActionLogType;
 import be.steby.CoreProject.dl.enums.UserRole;
 import be.steby.CoreProject.il.audit.LogAdminAction;
-import be.steby.CoreProject.pl.assemblers.UserModelAssembler;
+//import be.steby.CoreProject.pl.assemblers.UserModelAssembler;
+import be.steby.CoreProject.pl.models.admin.UserDeactivationForm;
 import be.steby.CoreProject.pl.models.admin.UserRegisterForm;
 import be.steby.CoreProject.pl.models.admin.UserRoleForm;
 import be.steby.CoreProject.pl.models.user.UserDTO;
@@ -44,57 +45,57 @@ public class AdminUserController {
     private final AdminService adminService;
     private final UserService userService;
     private final RefreshTokenServiceImpl refreshTokenService;
-    private final UserModelAssembler userAssembler;
+    //private final UserModelAssembler userAssembler;
     private final PagedResourcesAssembler<User> pagedResourcesAssembler;
 
-    @GetMapping("/all")
-    public ResponseEntity<PagedModel<EntityModel<UserDTO>>> getUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id,asc") String sort) {
+//    @GetMapping("/all")
+//    public ResponseEntity<PagedModel<EntityModel<UserDTO>>> getUsers(
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "10") int size,
+//            @RequestParam(defaultValue = "id,asc") String sort) {
+//
+//        Pageable pageable = getPageable(page, size, sort);
+//        Page<User> userPage = adminService.searchUsers(null, pageable);
+//
+//        return ResponseEntity.ok(assemblePagedModel(userPage, pageable));
+//    }
+//
+//    @GetMapping("/search")
+//    public ResponseEntity<PagedModel<EntityModel<UserDTO>>> searchUsers(
+//            @RequestParam String query,
+//            @PageableDefault(size = 20) Pageable pageable) {
+//
+//        Page<User> userPage = adminService.searchUsers(query, pageable);
+//
+//        return ResponseEntity.ok(assemblePagedModel(userPage, pageable));
+//    }
+//
+//
+//    @GetMapping("/searchbycriteria")
+//    public ResponseEntity<PagedModel<EntityModel<UserDTO>>> searchByCriteria(
+//            @RequestParam(required = false) String username,
+//            @RequestParam(required = false) String firstname,
+//            @RequestParam(required = false) String lastname,
+//            @RequestParam(required = false) String email,
+//            @RequestParam(required = false) String phoneNumber,
+//            @PageableDefault(size = 20) Pageable pageable) {
+//
+//        Page<User> userPage = adminService.searchUsersByCriteria(username, firstname, lastname, email, phoneNumber, pageable);
+//
+//        return ResponseEntity.ok(assemblePagedModel(userPage, pageable));
+//    }
 
-        Pageable pageable = getPageable(page, size, sort);
-        Page<User> userPage = adminService.searchUsers(null, pageable);
 
-        return ResponseEntity.ok(assemblePagedModel(userPage, pageable));
-    }
-
-    @GetMapping("/search")
-    public ResponseEntity<PagedModel<EntityModel<UserDTO>>> searchUsers(
-            @RequestParam String query,
-            @PageableDefault(size = 20) Pageable pageable) {
-
-        Page<User> userPage = adminService.searchUsers(query, pageable);
-
-        return ResponseEntity.ok(assemblePagedModel(userPage, pageable));
-    }
-
-
-    @GetMapping("/searchbycriteria")
-    public ResponseEntity<PagedModel<EntityModel<UserDTO>>> searchByCriteria(
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String firstname,
-            @RequestParam(required = false) String lastname,
-            @RequestParam(required = false) String email,
-            @RequestParam(required = false) String phoneNumber,
-            @PageableDefault(size = 20) Pageable pageable) {
-
-        Page<User> userPage = adminService.searchUsersByCriteria(username, firstname, lastname, email, phoneNumber, pageable);
-
-        return ResponseEntity.ok(assemblePagedModel(userPage, pageable));
-    }
-
-
-    @GetMapping("/{id}")
-    public ResponseEntity<EntityModel<UserDTO>> getUserById(@PathVariable Long id) {
-        User user = adminService.getUserById(id);
-        User authenticatedUser = userService.getAuthenticatedUser();
-        boolean isSuperAdmin = userService.authenticatedHasRole(UserRole.SUPER_ADMIN);
-
-        EntityModel<UserDTO> userModel = userAssembler.toModelWithPermissions(user, authenticatedUser, isSuperAdmin);
-
-        return ResponseEntity.ok(userModel);
-    }
+//    @GetMapping("/{id}")
+//    public ResponseEntity<EntityModel<UserDTO>> getUserById(@PathVariable Long id) {
+//        User user = adminService.getUserById(id);
+//        User authenticatedUser = userService.getAuthenticatedUser();
+//        boolean isSuperAdmin = userService.authenticatedHasRole(UserRole.SUPER_ADMIN);
+//
+//        EntityModel<UserDTO> userModel = userAssembler.toModelWithPermissions(user, authenticatedUser, isSuperAdmin);
+//
+//        return ResponseEntity.ok(userModel);
+//    }
 
 
     @GetMapping("/count-total")
@@ -145,8 +146,10 @@ public class AdminUserController {
     }
 
     @PatchMapping("/deactivate/{id}")
-    public ResponseEntity<Void> deactivateUser(@PathVariable Long id) {
-        adminService.deactivateUser(id);
+    public ResponseEntity<Void> deactivateUser(
+            @PathVariable Long id,
+            @Valid UserDeactivationForm form) {
+        adminService.deactivateUser(id, form.deactivationCategory(), form.adminDeactivationDetails());
         return ResponseEntity.ok().build();
     }
 
@@ -186,21 +189,21 @@ public class AdminUserController {
         return PageRequest.of(page, size, sorting);
     }
 
-    private PagedModel<EntityModel<UserDTO>> assemblePagedModel(Page<User> userPage, Pageable pageable) {
-        User authenticatedUser = userService.getAuthenticatedUser();
-        boolean isSuperAdmin = userService.authenticatedHasRole(UserRole.SUPER_ADMIN);
-
-        // Utiliser un assembleur personnalisé pour convertir les utilisateurs en EntityModel<UserDTO>
-        PagedModel<EntityModel<UserDTO>> pagedModel = pagedResourcesAssembler.toModel(
-                userPage,
-                user -> userAssembler.toModelWithPermissions(user, authenticatedUser, isSuperAdmin)
-        );
-
-        // Ajouter des liens supplémentaires
-        pagedModel.add(linkTo(methodOn(AdminUserController.class).register(null, null)).withRel("create-user"));
-        pagedModel.add(linkTo(methodOn(AdminUserController.class).searchUsers(null, null)).withRel("search"));
-        pagedModel.add(linkTo(methodOn(AdminUserController.class).searchByCriteria(null, null, null, null, null, null)).withRel("advanced-search"));
-
-        return pagedModel;
-    }
+//    private PagedModel<EntityModel<UserDTO>> assemblePagedModel(Page<User> userPage, Pageable pageable) {
+//        User authenticatedUser = userService.getAuthenticatedUser();
+//        boolean isSuperAdmin = userService.authenticatedHasRole(UserRole.SUPER_ADMIN);
+//
+//        // Utiliser un assembleur personnalisé pour convertir les utilisateurs en EntityModel<UserDTO>
+//        PagedModel<EntityModel<UserDTO>> pagedModel = pagedResourcesAssembler.toModel(
+//                userPage,
+//                user -> userAssembler.toModelWithPermissions(user, authenticatedUser, isSuperAdmin)
+//        );
+//
+//        // Ajouter des liens supplémentaires
+//        pagedModel.add(linkTo(methodOn(AdminUserController.class).register(null, null)).withRel("create-user"));
+//        pagedModel.add(linkTo(methodOn(AdminUserController.class).searchUsers(null, null)).withRel("search"));
+//        pagedModel.add(linkTo(methodOn(AdminUserController.class).searchByCriteria(null, null, null, null, null, null)).withRel("advanced-search"));
+//
+//        return pagedModel;
+//    }
 }

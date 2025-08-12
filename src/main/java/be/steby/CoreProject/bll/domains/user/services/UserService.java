@@ -2,6 +2,7 @@ package be.steby.CoreProject.bll.domains.user.services;
 
 
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
 import org.springframework.data.domain.Page;
@@ -29,6 +30,8 @@ public interface UserService {
     void activateUser(Long id);
 
     void deactivateUser(Long id, DeactivationReason reason, String reasonDetails);
+
+    void adminDeactivateUser(Long id, AdminDeactivationCategory deactivationCategory, String adminDeactivationDetails);
 
     void reactivateUser(User user);
 

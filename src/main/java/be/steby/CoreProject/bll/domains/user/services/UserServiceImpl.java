@@ -6,6 +6,7 @@ import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.specifications.UserSpecification;
 import be.steby.CoreProject.dal.repositories.UserRepository;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Set;
 
 
 @Slf4j
@@ -129,8 +131,36 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
+    public void adminDeactivateUser(Long id, AdminDeactivationCategory deactivationCategory, String adminDeactivationDetails){
+        User targetUser = getUserById(id);
+        if(!targetUser.isEnabled()){
+            throw new AttributeUnchangedException("The user is already deactivated.");
+        }
+
+        User admin = getAuthenticatedUser();
+
+        Set<UserRole> adminRoles = admin.getUserRoles();
+
+        if (adminRoles.contains(UserRole.SUPER_ADMIN) || adminRoles.contains(UserRole.ADMIN)){
+            throw new NotEnoughAuthoritiesException("Cannot deactivate a user without SUPER_ADMIN or ADMIN privileges.");
+        }
+
+        if( targetUser.getUserRoles().contains(UserRole.SUPER_ADMIN)
+                && !adminRoles.contains(UserRole.SUPER_ADMIN) ) {
+            throw new NotEnoughAuthoritiesException("Cannot deactivate a SUPER_ADMIN user without SUPER_ADMIN privileges.");
+        }
+
+        targetUser.setEnabled(false);
+        targetUser.setAdminDeactivatedAt(Instant.now());
+        targetUser.setAdminDeactivatedBy(admin);
+        targetUser.setAdminDeactivationReason(deactivationCategory);
+        targetUser.setAdminDeactivationDetails(adminDeactivationDetails);
+        userRepository.save(targetUser);
+
+    }
+
     /**
-     * @param id
+     * @param user
      */
     @Override
     public void gdprUserDelete(User user) {

@@ -221,10 +221,10 @@ public class EmailActivityLogService extends AbstractActivityLogService {
         return activityLogRepository.findByUserAndActionTypeInAndTimestampBetween(
                 user,
                 List.of(
-                        ActionLogType.EMAIL_CHANGE_REQUEST.name(),
-                        ActionLogType.EMAIL_CHANGE_CANCELLED.name(),
-                        ActionLogType.EMAIL_VERIFIED.name(),
-                        ActionLogType.EMAIL_CHANGE_COMPLETE.name()
+                        ActionLogType.EMAIL_CHANGE_REQUEST,
+                        ActionLogType.EMAIL_CHANGE_CANCELLED,
+                        ActionLogType.EMAIL_VERIFIED,
+                        ActionLogType.EMAIL_CHANGE_COMPLETE
                 ),
                 startDate,
                 endDate,

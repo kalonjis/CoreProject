@@ -39,8 +39,11 @@ public record UserRegisterForm (
   @Pattern(regexp = "^[0-9]+$", message = "Phone number must contain only digits")
   String phoneNumber,
 
+
   @Enumerated(EnumType.STRING)
-  Set<UserRole> userRoles
+  Set<UserRole> userRoles,
+
+  boolean autoActivate
   ){
 
   public User toEntity() {
