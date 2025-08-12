@@ -141,7 +141,7 @@ public class UserServiceImpl implements UserService {
 
         Set<UserRole> adminRoles = admin.getUserRoles();
 
-        if (adminRoles.contains(UserRole.SUPER_ADMIN) || adminRoles.contains(UserRole.ADMIN)){
+        if (!adminRoles.contains(UserRole.SUPER_ADMIN) || !adminRoles.contains(UserRole.ADMIN)){
             throw new NotEnoughAuthoritiesException("Cannot deactivate a user without SUPER_ADMIN or ADMIN privileges.");
         }
 
