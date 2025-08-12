@@ -14,7 +14,7 @@ public record ActivityLogDTO(
         String username,
         Long deviceId,
         String deviceInfo,
-        String actionType,
+        ActionLogType actionType,
         String actionCategory,
         String actionDescription,
         Instant timestamp,
@@ -46,18 +46,11 @@ public record ActivityLogDTO(
         String formattedDuration = formatDuration(log.getDurationSeconds());
 
         // Essayer de convertir l'actionType en enum
-        ActionLogType actionTypeEnum = null;
-        try {
-            if (log.getActionType() != null) {
-                actionTypeEnum = ActionLogType.valueOf(log.getActionType());
-            }
-        } catch (IllegalArgumentException e) {
-            // Ignorer l'erreur si le type d'action n'est pas reconnu
-        }
+        ActionLogType actionType = log.getActionType() != null ? log.getActionType() : null ;
 
         // Obtenir la catégorie et la description
-        String actionCategory = actionTypeEnum != null ? actionTypeEnum.getCategory() : "UNKNOWN";
-        String actionDescription = actionTypeEnum != null ? actionTypeEnum.getDescription() : log.getActionType();
+        String actionCategory = actionType != null ? actionType.getCategory() : "UNKNOWN";
+        String actionDescription = actionType != null ? actionType.getDescription() : actionType.name();
 
         // Traiter les métadonnées si présentes
         Object metadataObj = null;

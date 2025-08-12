@@ -259,11 +259,11 @@ public class PasswordActivityLogService extends AbstractActivityLogService {
         return activityLogRepository.findByUserAndActionTypeInAndTimestampBetween(
                 user,
                 List.of(
-                        ActionLogType.PASSWORD_CHANGED.name(),
-                        ActionLogType.PASSWORD_RESET_REQUEST.name(),
-                        ActionLogType.PASSWORD_RESET_COMPLETE.name(),
-                        ActionLogType.PASSWORD_EXPIRED.name(),
-                        ActionLogType.ADMIN_PASSWORD_RESET.name()
+                        ActionLogType.PASSWORD_CHANGED,
+                        ActionLogType.PASSWORD_RESET_REQUEST,
+                        ActionLogType.PASSWORD_RESET_COMPLETE,
+                        ActionLogType.PASSWORD_EXPIRED,
+                        ActionLogType.ADMIN_PASSWORD_RESET
                 ),
                 startDate,
                 endDate,
