@@ -76,17 +76,6 @@ public class AdminDeactivationValidationException extends AdminDomainException {
         );
     }
 
-    /**
-     * Crée une exception pour une tentative d'auto-désactivation.
-     *
-     * @return Une nouvelle instance de l'exception
-     */
-    public static AdminDeactivationValidationException forSelfDeactivation() {
-        return new AdminDeactivationValidationException(
-                "Un administrateur ne peut pas désactiver son propre compte",
-                409 // Conflict comme SelfManagementException
-        );
-    }
 
     /**
      * Crée une exception pour des règles business violées.

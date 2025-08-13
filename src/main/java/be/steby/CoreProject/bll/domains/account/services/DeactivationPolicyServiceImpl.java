@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 
 @Service
@@ -136,22 +137,25 @@ public class DeactivationPolicyServiceImpl implements DeactivationPolicyService{
      * Valide les règles spécifiques à l'utilisateur (rôles, etc.)
      */
     private void validateUserSpecificRules(User user, List<String> validationErrors) {
-        // Empêcher la désactivation des comptes administrateurs selon la configuration
-        if (user.getUserRoles().contains(UserRole.SUPER_ADMIN) && !allowSuperAdminDeactivation) {
-            validationErrors.add("Deactivation of a Super Admin account is not allowed");
+        Set<UserRole> userRoles = user.getUserRoles();
+
+        if (userRoles.contains(UserRole.ADMIN) && !allowAdminDeactivation) {
+            validationErrors.add("\"ADMINISTRATIVE PROCEDURE REQUIRED: Administrators cannot self-deactivate. \" +\n" +
+                    "        \"Contact another administrator to handle your account deactivation and ensure \" +\n" +
+                    "        \"proper handover of responsibilities.\"");
         }
 
-        if (user.getUserRoles().contains(UserRole.ADMIN) && !allowAdminDeactivation) {
-            validationErrors.add("Deactivation of an Admin account is not allowed");
+        if (userRoles.contains(UserRole.SUPER_ADMIN) && !allowSuperAdminDeactivation) {
+            validationErrors.add("\"ADMINISTRATIVE PROCEDURE REQUIRED: Super-Administrators cannot self-deactivate. \" +\n" +
+                    "        \"Contact another Super-Administrator to handle your account deactivation and ensure \" +\n" +
+                    "        \"proper handover of responsibilities.\"");
         }
-
-        // Autres règles métier spécifiques à l'utilisateur
-        // Ex : vérifier s'il y a des tâches en cours, des projets actifs, etc.
     }
 
-    /**
-     * Valide l'état actuel du compte
-     */
+
+        /**
+         * Valide l'état actuel du compte
+         */
     private void validateAccountState(User user, List<String> validationErrors) {
         // Vérifier si le compte est déjà désactivé
         if (!user.isEnabled()) {
