@@ -1,6 +1,6 @@
 package be.steby.CoreProject.dl.entities;
 
-import be.steby.CoreProject.dl.enums.AdminDeactivationCategory;
+import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
 import jakarta.persistence.*;

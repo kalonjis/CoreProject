@@ -7,7 +7,7 @@ import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.ActionLogType;
-import be.steby.CoreProject.dl.enums.AdminDeactivationCategory;
+import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.UserRole;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

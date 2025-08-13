@@ -14,8 +14,7 @@ import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTo
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
-import be.steby.CoreProject.dl.enums.AdminDeactivationCategory;
-import be.steby.CoreProject.dl.enums.DeactivationReason;
+import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.UserRole;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +23,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
-import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 
 
