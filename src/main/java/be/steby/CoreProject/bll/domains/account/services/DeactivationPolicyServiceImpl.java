@@ -1,10 +1,12 @@
 package be.steby.CoreProject.bll.domains.account.services;
 
+import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationRequest;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationValidationResult;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,10 +15,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-
+@RequiredArgsConstructor
 @Service
 @Slf4j
 public class DeactivationPolicyServiceImpl implements DeactivationPolicyService{
+
+    private final UserPermissionService userPermissionService;
 
     @Value("${security.account-deactivation.require-details-for-other:true}")
     private boolean requireDetailsForOtherReason;
@@ -28,11 +32,7 @@ public class DeactivationPolicyServiceImpl implements DeactivationPolicyService{
     @Value("${security.account-deactivation.details-max-length:500}")
     private int detailsMaxLength;
 
-    @Value("${security.account-deactivation.allow-admin-deactivation:false}")
-    private boolean allowAdminDeactivation;
 
-    @Value("${security.account-deactivation.allow-super-admin-deactivation:false}")
-    private boolean allowSuperAdminDeactivation;
 
     /**
      * @param request The deactivation request to validate
@@ -137,36 +137,39 @@ public class DeactivationPolicyServiceImpl implements DeactivationPolicyService{
      * Valide les règles spécifiques à l'utilisateur (rôles, etc.)
      */
     private void validateUserSpecificRules(User user, List<String> validationErrors) {
-        Set<UserRole> userRoles = user.getUserRoles();
+        if (!userPermissionService.canSelfDeactivate(user)) {
+            UserRole highestRole = userPermissionService.getHighestRole(user);
 
-        if (userRoles.contains(UserRole.ADMIN) && !allowAdminDeactivation) {
-            validationErrors.add("\"ADMINISTRATIVE PROCEDURE REQUIRED: Administrators cannot self-deactivate. \" +\n" +
-                    "        \"Contact another administrator to handle your account deactivation and ensure \" +\n" +
-                    "        \"proper handover of responsibilities.\"");
-        }
-
-        if (userRoles.contains(UserRole.SUPER_ADMIN) && !allowSuperAdminDeactivation) {
-            validationErrors.add("\"ADMINISTRATIVE PROCEDURE REQUIRED: Super-Administrators cannot self-deactivate. \" +\n" +
-                    "        \"Contact another Super-Administrator to handle your account deactivation and ensure \" +\n" +
-                    "        \"proper handover of responsibilities.\"");
+            if (highestRole == UserRole.SUPER_ADMIN) {
+                validationErrors.add("PROCÉDURE ADMINISTRATIVE REQUISE : Les super-administrateurs ne peuvent pas se désactiver. " +
+                        "Contactez un autre super-administrateur pour gérer la désactivation de votre compte et " +
+                        "assurer la transition des responsabilités.");
+            } else if (highestRole == UserRole.ADMIN) {
+                validationErrors.add("PROCÉDURE ADMINISTRATIVE REQUISE : Les administrateurs ne peuvent pas se désactiver. " +
+                        "Contactez un autre administrateur pour gérer la désactivation de votre compte et " +
+                        "assurer la transition des responsabilités.");
+            } else if (highestRole == UserRole.MODERATOR) {
+                validationErrors.add("PROCÉDURE ADMINISTRATIVE REQUISE : Les modérateurs ne peuvent pas se désactiver. " +
+                        "Contactez un administrateur pour gérer la désactivation de votre compte et " +
+                        "assurer la transition des responsabilités de modération.");
+            }
         }
     }
 
 
-        /**
-         * Valide l'état actuel du compte
-         */
+    /**
+     * Valide l'état actuel du compte
+     */
     private void validateAccountState(User user, List<String> validationErrors) {
         // Vérifier si le compte est déjà désactivé
         if (!user.isEnabled()) {
             validationErrors.add("Le compte est déjà désactivé");
         }
 
-        // Vérifier si le compte est confirmé
-        if (!user.isEnabled()) {
+        // ✅ CORRECTION: Vérifier si l'email est vérifié (pas isEnabled())
+        if (!user.isEmailVerified()) {
             validationErrors.add("Impossible de désactiver un compte non confirmé");
         }
-
     }
 
     /**

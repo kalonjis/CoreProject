@@ -1,13 +1,16 @@
 package be.steby.CoreProject.bll.domains.admin.services;
 
+import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory;
 import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;
 import be.steby.CoreProject.bll.common.models.user.UserCreationResult;
 import be.steby.CoreProject.bll.common.services.context.RequestContextService;
+import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.bll.common.services.user.UserCreationService;
 import be.steby.CoreProject.bll.common.exceptions.NotEnoughAuthoritiesException;
 import be.steby.CoreProject.bll.domains.account.exceptions.SelfActivationException;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
+import be.steby.CoreProject.bll.domains.admin.exceptions.SelfManagementException;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTokenServiceImpl;
@@ -36,7 +39,7 @@ public class AdminServiceImpl implements AdminService    {
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
     private final RequestContextService requestContextService;
     private final UserCreationService userCreationService;
-
+    private final UserPermissionService userPermissionService;
 
 
     @Override
@@ -67,33 +70,49 @@ public class AdminServiceImpl implements AdminService    {
 
     @Override
     public void activateUser(Long id) {
+        // ✅ Vérification des permissions administratives
         if (!userService.authenticatedHasRole(UserRole.ADMIN)){
-            throw new NotEnoughAuthoritiesException("Not enough authorities to activate a user.");
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("activer un utilisateur");
         }
-        Long authenticatedUserId = userService.getAuthenticatedUser().getId();
 
-        if(authenticatedUserId == id){
-            throw new SelfActivationException("You are not allowed to activate your own account.");
+        User actor = userService.getAuthenticatedUser();
+        User target = userService.getUserById(id);
+
+        // ✅ Utilisation du nouveau service pour vérifier les permissions
+        if (!userPermissionService.canActivateUser(actor, target)) {
+            if (actor.getId().equals(id)) {
+                throw UserPermissionExceptionFactory.forSelfActivation();
+            } else {
+                UserRole targetRole = userPermissionService.getHighestRole(target);
+                throw UserPermissionExceptionFactory.forUnauthorizedUserAction("activer", targetRole);
+            }
         }
 
         userService.activateUser(id);
-
     }
 
 
     @Override
     public void deactivateUser(Long id, AdminDeactivationCategory deactivationCategory, String adminDeactivationDetails) {
         if (!userService.authenticatedHasRole(UserRole.ADMIN)){
-            throw new NotEnoughAuthoritiesException("Not enough authorities to deactivate a user.");
-        }
-        Long authenticatedUserId = userService.getAuthenticatedUser().getId();
-
-        if(authenticatedUserId == id){
-            throw new SelfActivationException("You are not allowed to deactivate your own account.");
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("désactiver un utilisateur");
         }
 
+        User actor = userService.getAuthenticatedUser();
+        User target = userService.getUserById(id);
+
+        // ✅ Utilisation du nouveau service pour vérifier les permissions
+        if (!userPermissionService.canDeactivateUser(actor, target)) {
+            if (actor.getId().equals(id)) {
+                throw UserPermissionExceptionFactory.forSelfDeactivation();
+            } else {
+                UserRole targetRole = userPermissionService.getHighestRole(target);
+                throw UserPermissionExceptionFactory.forUnauthorizedUserAction("désactiver", targetRole);
+            }
+        }
+
+        // ✅ Appel du service métier (inchangé)
         userService.adminDeactivateUser(id, deactivationCategory, adminDeactivationDetails);
-
     }
 
     @Override
@@ -108,12 +127,21 @@ public class AdminServiceImpl implements AdminService    {
     @Override
     public void grantUserRole(Long id, UserRole role) {
         if (!userService.authenticatedHasRole(UserRole.ADMIN)){
-            throw new NotEnoughAuthoritiesException("Not enough authorities to grant new role to a user.");
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("accorder des rôles");
         }
 
-        if (!userService.authenticatedHasRole(UserRole.SUPER_ADMIN)
-                && role == UserRole.SUPER_ADMIN) {
-            throw new NotEnoughAuthoritiesException("Not enough authorities to grant a user with SUPER_ADMIN role");
+        User actor = userService.getAuthenticatedUser();
+        User target = userService.getUserById(id);
+
+        // ✅ Utilisation du nouveau service pour vérifier les permissions
+        if (!userPermissionService.canGrantRole(actor, target, role)) {
+            if (actor.getId().equals(id)) {
+                throw UserPermissionExceptionFactory.forSelfRoleManagement("accorder des rôles à");
+            } else if (role == UserRole.SUPER_ADMIN) {
+                throw UserPermissionExceptionFactory.forSuperAdminRoleGrant();
+            } else {
+                throw UserPermissionExceptionFactory.forInsufficientPermissions(UserRole.ADMIN, "accorder ce rôle");
+            }
         }
 
         userService.grantUserRole(id, role);
@@ -122,10 +150,23 @@ public class AdminServiceImpl implements AdminService    {
     @Override
     public void revokeUserRole(Long id, UserRole role) {
         if (!userService.authenticatedHasRole(UserRole.ADMIN)){
-            throw new NotEnoughAuthoritiesException("Not enough authorities to revoke a user's role.");
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("révoquer des rôles");
         }
 
-        // a implementer: possibilité de se retrogradé check + supprimer un autre super_admin check
+        User actor = userService.getAuthenticatedUser();
+        User target = userService.getUserById(id);
+
+        // ✅ Utilisation du nouveau service pour vérifier les permissions
+        if (!userPermissionService.canRevokeRole(actor, target, role)) {
+            if (actor.getId().equals(id)) {
+                throw UserPermissionExceptionFactory.forSelfRoleManagement("révoquer des rôles de");
+            } else if (role == UserRole.SUPER_ADMIN) {
+                throw UserPermissionExceptionFactory.forSuperAdminRoleRevoke();
+            } else {
+                throw UserPermissionExceptionFactory.forInsufficientPermissions(UserRole.ADMIN, "révoquer ce rôle");
+            }
+        }
+
         userService.revokeUserRole(id, role);
     }
 
