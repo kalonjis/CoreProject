@@ -23,7 +23,7 @@ security:
     details-max-length: 500
 
     # Règles pour les rôles administratifs
-    allow-admin-deactivation: true
+    allow-admin-deactivation: false
     allow-super-admin-deactivation: false
 
 

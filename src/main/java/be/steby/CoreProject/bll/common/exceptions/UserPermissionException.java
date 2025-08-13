@@ -1,0 +1,29 @@
+package be.steby.CoreProject.bll.common.exceptions;
+
+import be.steby.CoreProject.bll.exceptions.CoreProjectException;
+
+/**
+ * Exception de base pour toutes les exceptions liées aux permissions utilisateur.
+ * Cette classe étend CoreProjectException pour s'intégrer avec le système global de gestion d'erreurs.
+ */
+public class UserPermissionException extends CoreProjectException {
+
+    /**
+     * Crée une nouvelle exception avec un message et un code de statut par défaut 403 (Forbidden).
+     *
+     * @param message Message décrivant l'erreur de permission
+     */
+    public UserPermissionException(String message) {
+        super(message, 403);
+    }
+
+    /**
+     * Crée une nouvelle exception avec un message et un code de statut spécifique.
+     *
+     * @param message Message décrivant l'erreur de permission
+     * @param status Code de statut HTTP
+     */
+    public UserPermissionException(String message, int status) {
+        super(message, status);
+    }
+}

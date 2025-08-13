@@ -22,7 +22,9 @@ public class SelfManagementException extends AdminDomainException {
      */
     public static SelfManagementException forSelfActivation() {
         return new SelfManagementException(
-                "Vous ne pouvez pas activer votre propre compte"
+                "ADMINISTRATIVE PROCEDURE REQUIRED: Administrators cannot self-reactivate. " +
+                "Contact another administrator to handle your account reactivation and ensure " +
+                "proper handover of responsibilities."
         );
     }
 
@@ -33,7 +35,9 @@ public class SelfManagementException extends AdminDomainException {
      */
     public static SelfManagementException forSelfDeactivation() {
         return new SelfManagementException(
-                "Vous ne pouvez pas désactiver votre propre compte"
+                "ADMINISTRATIVE PROCEDURE REQUIRED: Administrators cannot self-deactivate. " +
+                "Contact another administrator to handle your account deactivation and ensure " +
+                "proper handover of responsibilities."
         );
     }
 
