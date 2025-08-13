@@ -167,8 +167,6 @@ public class DeactivationPolicyServiceImpl implements DeactivationPolicyService{
             validationErrors.add("Impossible de désactiver un compte non confirmé");
         }
 
-        // Autres validations d'état
-        // Ex : vérifier la date de création (pas de désactivation trop rapide), etc.
     }
 
     /**

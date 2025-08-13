@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.auth.services;
 
+import be.steby.CoreProject.bll.domains.account.exceptions.AccountActivationException;
 import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordException;
 import be.steby.CoreProject.bll.events.account.SignupEvent;
 import be.steby.CoreProject.bll.exceptions.*;
@@ -40,7 +41,7 @@ public class AuthServiceImpl implements AuthService {
         User user = (User) loadUserByUsername(username);
         if (!user.isEnabled()) {
             if (!user.isEverActivated()) {
-                throw new AccountActivationException("Your account has never been activated. Please check your email and follow the activation instructions.", user.getUsername());
+                throw new AccountActivationException("Your account has never been activated. Please check your email and follow the activation instructions.");
             } else {
                 throw new UserEnabledStatusException("User account has been disabled by an administrator. Please contact support.", 403);
             }

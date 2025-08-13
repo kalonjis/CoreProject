@@ -6,7 +6,7 @@ import be.steby.CoreProject.bll.common.models.user.UserCreationResult;
 import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.common.services.user.UserCreationService;
 import be.steby.CoreProject.bll.common.exceptions.NotEnoughAuthoritiesException;
-import be.steby.CoreProject.bll.exceptions.SelfActivationException;
+import be.steby.CoreProject.bll.domains.account.exceptions.SelfActivationException;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
