@@ -2,7 +2,7 @@ package be.steby.CoreProject.bll.domains.admin.events;
 
 import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.AdminDeactivationCategory;
+import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 
 import java.time.Instant;
 
