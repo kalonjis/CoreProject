@@ -1,0 +1,73 @@
+security:
+  admin:
+    # Validation des champs utilisateur lors de la création
+    validation:
+      username:
+        min-length: 2
+        max-length: 50
+      firstname:
+        min-length: 2
+        max-length: 100
+      lastname:
+        min-length: 2
+        max-length: 100
+      phone:
+        min-length: 9
+        max-length: 15
+        pattern: "^[0-9]+$"
+      details:
+        min-length: 10
+        max-length: 500
+
+    # Règles de sécurité pour les rôles
+    security:
+      roles:
+        # Rôles considérés comme administratifs (gestion des COMPTES)
+        administrative: ["ADMIN", "SUPER_ADMIN"]
+        # Rôles de modération (gestion du CONTENU uniquement)
+        moderation: ["MODERATOR"]
+        # Rôles protégés (nécessitent SUPER_ADMIN pour attribution)
+        protected: ["SUPER_ADMIN", "ADMIN"]
+        # Rôles que les ADMIN peuvent attribuer
+        admin-assignable: ["MODERATOR", "USER", "GUEST"]
+        # Rôle obligatoire pour tout utilisateur
+        required-base-role: "USER"
+
+      # Règles de ciblage pour les actions admin
+      targeting:
+        # Un admin ne peut pas se cibler lui-même
+        allow-self-targeting: false
+        # Un admin ne peut pas cibler un SUPER_ADMIN (sauf si SUPER_ADMIN lui-même)
+        allow-admin-target-super-admin: false
+
+    # Limitation des opérations d'administration
+    operations:
+      # Limitation de création d'utilisateurs
+      user-creation:
+        max-per-day: 50
+        max-per-hour: 10
+        require-justification: false
+
+      # Limitation des désactivations
+      deactivation:
+        max-per-day: 20
+        max-per-hour: 5
+        require-detailed-reason: true
+        min-reason-length: 10
+
+      # Limitation des attributions de rôles
+      role-management:
+        max-grants-per-day: 30
+        max-revokes-per-day: 30
+        require-approval-for-admin-roles: false
+
+    # Configuration de l'audit
+    audit:
+      # Enregistrer toutes les actions admin
+      log-all-operations: true
+      # Détail des métadonnées à capturer
+      capture-metadata: true
+      # Alertes pour actions sensibles
+      alert-sensitive-operations: true
+      # Retention des logs admin (en jours)
+      log-retention-days: 365

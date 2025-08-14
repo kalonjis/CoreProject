@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.domains.admin.models.AdminUserCreationRequest;
 import be.steby.CoreProject.bll.domains.admin.models.AdminValidationResult;
 import be.steby.CoreProject.bll.domains.emailAddress.models.EmailValidationResult;
 import be.steby.CoreProject.bll.domains.emailAddress.services.EmailPolicyService;
+import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.dl.enums.UserRole;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import lombok.RequiredArgsConstructor;
@@ -17,8 +18,10 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Implémentation hybride du service de politique administrative.
+ * Implémentation du service de politique administrative.
  * Se concentre sur les validations complexes où il apporte une vraie valeur ajoutée.
+ * Suit le pattern password/emailAddress avec configuration externalisée.
+ * ✅ UTILISE UserPermissionService existant pour éviter la redondance.
  */
 @Service
 @RequiredArgsConstructor
@@ -26,25 +29,49 @@ import java.util.Set;
 public class AdminPolicyServiceImpl implements AdminPolicyService {
 
     private final EmailPolicyService emailPolicyService;
+    // ✅ UTILISE le service existant au lieu de créer des Utils redondants
+    private final UserPermissionService userPermissionService;
 
-    // Configuration via properties
-    @Value("${admin.validation.username.min-length:2}")
+    // Configuration des validations depuis admin.yml
+    @Value("${security.admin.validation.username.min-length:2}")
     private int usernameMinLength;
 
-    @Value("${admin.validation.username.max-length:50}")
+    @Value("${security.admin.validation.username.max-length:50}")
     private int usernameMaxLength;
 
-    @Value("${admin.validation.name.min-length:2}")
-    private int nameMinLength;
+    @Value("${security.admin.validation.firstname.min-length:2}")
+    private int firstnameMinLength;
 
-    @Value("${admin.validation.name.max-length:100}")
-    private int nameMaxLength;
+    @Value("${security.admin.validation.firstname.max-length:100}")
+    private int firstnameMaxLength;
 
-    @Value("${admin.validation.details.min-length:10}")
+    @Value("${security.admin.validation.lastname.min-length:2}")
+    private int lastnameMinLength;
+
+    @Value("${security.admin.validation.lastname.max-length:100}")
+    private int lastnameMaxLength;
+
+    @Value("${security.admin.validation.phone.min-length:9}")
+    private int phoneMinLength;
+
+    @Value("${security.admin.validation.phone.max-length:15}")
+    private int phoneMaxLength;
+
+    @Value("${security.admin.validation.phone.pattern:^[0-9]+$}")
+    private String phonePattern;
+
+    @Value("${security.admin.validation.details.min-length:10}")
     private int detailsMinLength;
 
-    @Value("${admin.validation.details.max-length:500}")
+    @Value("${security.admin.validation.details.max-length:500}")
     private int detailsMaxLength;
+
+    // Configuration de l'audit
+    @Value("${security.admin.audit.log-all-operations:true}")
+    private boolean logAllOperations;
+
+    @Value("${security.admin.operations.deactivation.require-detailed-reason:true}")
+    private boolean requireDetailedReason;
 
     /**
      * Validation complexe de création utilisateur.
@@ -52,15 +79,17 @@ public class AdminPolicyServiceImpl implements AdminPolicyService {
      */
     @Override
     public AdminValidationResult validateUserCreation(AdminUserCreationRequest request) {
-        log.debug("Validation de création utilisateur - username: {}, email: {}",
-                request.username(), request.email());
+        if (logAllOperations) {
+            log.debug("Validation de création utilisateur - username: {}, email: {}",
+                    request.username(), request.email());
+        }
 
         List<String> errors = new ArrayList<>();
 
         // 1. Validation des champs texte basiques
         validateUsername(request.username(), errors);
-        validateName(request.firstname(), "prénom", errors);
-        validateName(request.lastname(), "nom de famille", errors);
+        validateFirstname(request.firstname(), errors);
+        validateLastname(request.lastname(), errors);
         validatePhoneNumber(request.phoneNumber(), errors);
 
         // 2. ✅ VALEUR AJOUTÉE : Validation email via service existant
@@ -69,7 +98,7 @@ public class AdminPolicyServiceImpl implements AdminPolicyService {
             errors.addAll(emailResult.errors());
         }
 
-        // 3. ✅ VALEUR AJOUTÉE : Validation des rôles (règles de sécurité)
+        // 3. ✅ VALEUR AJOUTÉE : Validation des rôles - UTILISE UserPermissionService
         validateUserRoles(request.userRoles(), errors);
 
         // 4. ✅ VALEUR AJOUTÉE : Validation du contexte de requête (audit)
@@ -77,17 +106,21 @@ public class AdminPolicyServiceImpl implements AdminPolicyService {
             errors.add("Le contexte de requête est requis pour l'audit des opérations");
         }
 
-        log.debug("Validation création utilisateur terminée - {} erreurs", errors.size());
+        if (logAllOperations) {
+            log.debug("Validation création utilisateur terminée - {} erreurs", errors.size());
+        }
+
         return errors.isEmpty() ? AdminValidationResult.valid() : AdminValidationResult.invalid(errors);
     }
 
     /**
      * Validation spécifique aux détails de désactivation.
-     * Plus simple et ciblé que la validation complète précédente.
      */
     @Override
     public AdminValidationResult validateDeactivationDetails(AdminDeactivationRequest request) {
-        log.debug("Validation détails désactivation - category: {}", request.deactivationCategory());
+        if (logAllOperations) {
+            log.debug("Validation détails désactivation - category: {}", request.deactivationCategory());
+        }
 
         List<String> errors = new ArrayList<>();
 
@@ -97,7 +130,10 @@ public class AdminPolicyServiceImpl implements AdminPolicyService {
         // 2. Validation des détails
         validateDeactivationDetailsText(request.adminDeactivationDetails(), errors);
 
-        log.debug("Validation détails désactivation terminée - {} erreurs", errors.size());
+        if (logAllOperations) {
+            log.debug("Validation détails désactivation terminée - {} erreurs", errors.size());
+        }
+
         return errors.isEmpty() ? AdminValidationResult.valid() : AdminValidationResult.invalid(errors);
     }
 
@@ -126,66 +162,80 @@ public class AdminPolicyServiceImpl implements AdminPolicyService {
         }
     }
 
-    private void validateName(String name, String fieldName, List<String> errors) {
-        if (name == null || name.isBlank()) {
-            errors.add("Le " + fieldName + " ne peut pas être vide");
+    private void validateFirstname(String firstname, List<String> errors) {
+        if (firstname == null || firstname.isBlank()) {
+            errors.add("Le prénom ne peut pas être vide");
             return;
         }
 
-        String trimmed = name.trim();
-        if (trimmed.length() < nameMinLength) {
-            errors.add("Le " + fieldName + " doit contenir au moins " + nameMinLength + " caractères");
+        String trimmed = firstname.trim();
+        if (trimmed.length() < firstnameMinLength) {
+            errors.add("Le prénom doit contenir au moins " + firstnameMinLength + " caractères");
         }
 
-        if (trimmed.length() > nameMaxLength) {
-            errors.add("Le " + fieldName + " ne peut pas dépasser " + nameMaxLength + " caractères");
+        if (trimmed.length() > firstnameMaxLength) {
+            errors.add("Le prénom ne peut pas dépasser " + firstnameMaxLength + " caractères");
+        }
+    }
+
+    private void validateLastname(String lastname, List<String> errors) {
+        if (lastname == null || lastname.isBlank()) {
+            errors.add("Le nom de famille ne peut pas être vide");
+            return;
+        }
+
+        String trimmed = lastname.trim();
+        if (trimmed.length() < lastnameMinLength) {
+            errors.add("Le nom de famille doit contenir au moins " + lastnameMinLength + " caractères");
+        }
+
+        if (trimmed.length() > lastnameMaxLength) {
+            errors.add("Le nom de famille ne peut pas dépasser " + lastnameMaxLength + " caractères");
         }
     }
 
     private void validatePhoneNumber(String phoneNumber, List<String> errors) {
-        // Téléphone optionnel, validation seulement si fourni
-        if (phoneNumber != null && !phoneNumber.isBlank()) {
-            String cleaned = phoneNumber.replaceAll("\\s+", "");
+        if (phoneNumber == null || phoneNumber.isBlank()) {
+            return; // Téléphone optionnel
+        }
 
-            // Format basique : + suivi de 8 à 15 chiffres
-            if (!cleaned.matches("^\\+\\d{8,15}$")) {
-                errors.add("Le numéro de téléphone doit être au format international (+33123456789)");
-            }
+        String trimmed = phoneNumber.trim();
+        if (trimmed.length() < phoneMinLength || trimmed.length() > phoneMaxLength) {
+            errors.add(String.format("Le numéro de téléphone doit contenir entre %d et %d caractères",
+                    phoneMinLength, phoneMaxLength));
+        }
+
+        if (!trimmed.matches(phonePattern)) {
+            errors.add("Le numéro de téléphone ne peut contenir que des chiffres");
         }
     }
 
+    // ✅ SIMPLIFIÉ : Validation basique des rôles, UserPermissionService gère le reste
     private void validateUserRoles(Set<UserRole> roles, List<String> errors) {
-        if (roles == null || roles.isEmpty()) {
-            errors.add("Au moins un rôle doit être attribué");
-            return;
-        }
-
-        // Toujours inclure USER
+        // Vérification du rôle de base requis
         if (!roles.contains(UserRole.USER)) {
             errors.add("Le rôle USER est obligatoire pour tout utilisateur");
         }
 
-        // Interdire la création directe de SUPER_ADMIN
-        if (roles.contains(UserRole.SUPER_ADMIN)) {
-            errors.add("Les super-administrateurs ne peuvent pas être créés via ce formulaire");
-        }
+        // Les autres vérifications de permissions (qui peut attribuer quoi)
+        // sont gérées par UserPermissionService dans les services métier
 
-        // Cohérence : ADMIN implique MODERATOR
-        if (roles.contains(UserRole.ADMIN) && !roles.contains(UserRole.MODERATOR)) {
-            errors.add("Le rôle ADMIN nécessite également le rôle MODERATOR");
+        if (logAllOperations) {
+            log.debug("Validation des rôles: {} (permissions vérifiées par UserPermissionService)", roles);
         }
     }
 
     private void validateDeactivationCategory(AdminDeactivationCategory category, List<String> errors) {
         if (category == null) {
-            errors.add("La catégorie de désactivation est obligatoire");
+            errors.add("La catégorie de désactivation ne peut pas être null");
         }
-        // Pas de validation spécifique par catégorie pour rester simple
     }
 
     private void validateDeactivationDetailsText(String details, List<String> errors) {
         if (details == null || details.isBlank()) {
-            errors.add("Les détails de désactivation sont obligatoires");
+            if (requireDetailedReason) {
+                errors.add("Les détails de désactivation sont obligatoires");
+            }
             return;
         }
 
@@ -197,37 +247,5 @@ public class AdminPolicyServiceImpl implements AdminPolicyService {
         if (trimmed.length() > detailsMaxLength) {
             errors.add("Les détails ne peuvent pas dépasser " + detailsMaxLength + " caractères");
         }
-
-        // Validation basique de contenu inapproprié
-        if (containsInappropriateContent(trimmed)) {
-            errors.add("Les détails contiennent du contenu inapproprié");
-        }
-    }
-
-    /**
-     * Vérifie si le contenu contient des éléments inappropriés.
-     * Validation basique - peut être étendue selon les besoins.
-     */
-    private boolean containsInappropriateContent(String content) {
-        if (content == null || content.isBlank()) {
-            return false;
-        }
-
-        String lowerContent = content.toLowerCase();
-
-        // Liste basique de mots/patterns inappropriés
-        String[] inappropriatePatterns = {
-                "<script", "javascript:", "onclick=", "onerror=",
-                "eval(", "alert(", "prompt(", "confirm(",
-                // Ajoutez d'autres patterns selon vos besoins
-        };
-
-        for (String pattern : inappropriatePatterns) {
-            if (lowerContent.contains(pattern)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

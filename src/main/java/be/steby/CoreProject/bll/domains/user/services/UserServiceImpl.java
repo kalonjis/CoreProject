@@ -282,13 +282,16 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void requireAdminPermissions(){
-        if( !authenticatedHasRole(UserRole.ADMIN) ){
+        // ADMIN ou SUPER_ADMIN peuvent faire des opérations admin
+        if( !authenticatedHasRole(UserRole.ADMIN) && !authenticatedHasRole(UserRole.SUPER_ADMIN) ){
             throw UserPermissionExceptionFactory.forAdminPermissionRequired("effectuer des opérations d'administration");
         }
     }
 
+    // ✅ AJOUTER dans UserServiceImpl.java :
     @Override
     public void requireSuperAdminPermissions() {
+        // Seuls les SUPER_ADMIN peuvent faire des opérations super admin
         if (!authenticatedHasRole(UserRole.SUPER_ADMIN)) {
             throw UserPermissionExceptionFactory.forInsufficientPermissions(UserRole.SUPER_ADMIN, "effectuer des opérations de super administration");
         }
