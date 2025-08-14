@@ -1,6 +1,8 @@
 package be.steby.CoreProject.bll.domains.user.services;
 
 import be.steby.CoreProject.bll.common.exceptions.NotEnoughAuthoritiesException;
+import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory;
+import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.bll.domains.emailAddress.exceptions.EmailAlreadyUsedException;
 import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.specifications.UserSpecification;
@@ -26,7 +28,10 @@ import java.util.Set;
 @RequiredArgsConstructor
 @Service
 public class UserServiceImpl implements UserService {
+
     private final UserRepository userRepository;
+    private final UserPermissionService userPermissionService;
+
 
 
     @Override
@@ -138,27 +143,43 @@ public class UserServiceImpl implements UserService {
         }
 
         User admin = getAuthenticatedUser();
-
         Set<UserRole> adminRoles = admin.getUserRoles();
 
-        if (!adminRoles.contains(UserRole.SUPER_ADMIN) && !adminRoles.contains(UserRole.ADMIN)){
-            throw new NotEnoughAuthoritiesException("Cannot deactivate a user without SUPER_ADMIN or ADMIN privileges.");
+        // ✅ NOUVELLE VÉRIFICATION DÉFENSIVE - Empêche l'auto-targeting
+        if (admin.getId().equals(targetUser.getId())) {
+            throw UserPermissionExceptionFactory.forAdminSelfTargeting();
         }
 
+        // Vérification des permissions administratives
+        if (!adminRoles.contains(UserRole.SUPER_ADMIN) && !adminRoles.contains(UserRole.ADMIN)){
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("désactiver un utilisateur");
+        }
+
+        // Vérification spécifique SUPER_ADMIN
         if( targetUser.getUserRoles().contains(UserRole.SUPER_ADMIN)
                 && !adminRoles.contains(UserRole.SUPER_ADMIN) ) {
-            throw new NotEnoughAuthoritiesException("Cannot deactivate a SUPER_ADMIN user without SUPER_ADMIN privileges.");
+            throw UserPermissionExceptionFactory.forSuperAdminAction("désactiver");
         }
 
+        // ✅ NOUVELLE VÉRIFICATION - Validation selon les politiques
+        // Si l'admin essaie de contourner les règles de self-deactivation
+        if (admin.getId().equals(targetUser.getId()) &&
+                !userPermissionService.canSelfDeactivate(admin)) {
+            throw UserPermissionExceptionFactory.forSelfDeactivationPolicyBypass();
+        }
+
+        // Procéder à la désactivation
         targetUser.setEnabled(false);
-        targetUser.setAdminDeactivatedAt(Instant.now());
-        targetUser.setAdminDeactivatedBy(admin);
         targetUser.setAdminDeactivationReason(deactivationCategory);
-        targetUser.setAdminDeactivationDetails(adminDeactivationDetails);
+        targetUser.setDeactivationDetails(adminDeactivationDetails);
+        targetUser.setAdminDeactivatedBy(admin);
+
         userRepository.save(targetUser);
 
+        // Log de l'action
+        log.info("User {} administratively deactivated by admin {} with category: {}",
+                targetUser.getUsername(), admin.getUsername(), deactivationCategory);
     }
-
     /**
      * @param user
      */
