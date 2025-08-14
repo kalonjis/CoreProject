@@ -8,9 +8,7 @@ import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.bll.common.services.user.UserCreationService;
 import be.steby.CoreProject.bll.common.exceptions.NotEnoughAuthoritiesException;
-import be.steby.CoreProject.bll.domains.account.exceptions.SelfActivationException;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
-import be.steby.CoreProject.bll.domains.admin.exceptions.SelfManagementException;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTokenServiceImpl;
@@ -70,7 +68,6 @@ public class AdminServiceImpl implements AdminService    {
 
     @Override
     public void activateUser(Long id) {
-        // ✅ Vérification des permissions administratives
         if (!userService.authenticatedHasRole(UserRole.ADMIN)){
             throw UserPermissionExceptionFactory.forAdminPermissionRequired("activer un utilisateur");
         }
@@ -78,10 +75,11 @@ public class AdminServiceImpl implements AdminService    {
         User actor = userService.getAuthenticatedUser();
         User target = userService.getUserById(id);
 
-        // ✅ Utilisation du nouveau service pour vérifier les permissions
         if (!userPermissionService.canActivateUser(actor, target)) {
             if (actor.getId().equals(id)) {
-                throw UserPermissionExceptionFactory.forSelfActivation();
+                // ✅ FIX - Message adapté au rôle spécifique de l'acteur
+                UserRole actorRole = userPermissionService.getHighestRole(actor);
+                throw UserPermissionExceptionFactory.forSelfActivationByRole(actorRole);
             } else {
                 UserRole targetRole = userPermissionService.getHighestRole(target);
                 throw UserPermissionExceptionFactory.forUnauthorizedUserAction("activer", targetRole);
@@ -101,17 +99,17 @@ public class AdminServiceImpl implements AdminService    {
         User actor = userService.getAuthenticatedUser();
         User target = userService.getUserById(id);
 
-        // ✅ Utilisation du nouveau service pour vérifier les permissions
         if (!userPermissionService.canDeactivateUser(actor, target)) {
             if (actor.getId().equals(id)) {
-                throw UserPermissionExceptionFactory.forSelfDeactivation();
+                // ✅ FIX - Message adapté au rôle spécifique de l'acteur
+                UserRole actorRole = userPermissionService.getHighestRole(actor);
+                throw UserPermissionExceptionFactory.forSelfDeactivationByRole(actorRole);
             } else {
                 UserRole targetRole = userPermissionService.getHighestRole(target);
                 throw UserPermissionExceptionFactory.forUnauthorizedUserAction("désactiver", targetRole);
             }
         }
 
-        // ✅ Appel du service métier (inchangé)
         userService.adminDeactivateUser(id, deactivationCategory, adminDeactivationDetails);
     }
 
