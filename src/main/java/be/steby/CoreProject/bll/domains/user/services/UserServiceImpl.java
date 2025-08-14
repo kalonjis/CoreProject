@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.domains.user.services;
 
-import be.steby.CoreProject.bll.common.exceptions.NotEnoughAuthoritiesException;
 import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory;
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.bll.domains.emailAddress.exceptions.EmailAlreadyUsedException;
@@ -88,8 +87,8 @@ public class UserServiceImpl implements UserService {
         }
 
         if( user.getUserRoles().contains(UserRole.SUPER_ADMIN)
-            && !authenticatedHasRole(UserRole.SUPER_ADMIN) ) {
-            throw new NotEnoughAuthoritiesException("Cannot activate a SUPER_ADMIN user without SUPER_ADMIN privileges.");
+                && !authenticatedHasRole(UserRole.SUPER_ADMIN) ) {
+            throw UserPermissionExceptionFactory.forSuperAdminAction("activer");
         }
 
         user.setEnabled(true);
@@ -109,7 +108,7 @@ public class UserServiceImpl implements UserService {
 
         if( user.getUserRoles().contains(UserRole.SUPER_ADMIN)
                 && !authenticatedHasRole(UserRole.SUPER_ADMIN) ) {
-            throw new NotEnoughAuthoritiesException("Cannot activate a SUPER_ADMIN user without SUPER_ADMIN privileges.");
+            throw UserPermissionExceptionFactory.forSuperAdminAction("activer");
         }
 
         user.setEnabled(true);
@@ -126,7 +125,7 @@ public class UserServiceImpl implements UserService {
 
         if( user.getUserRoles().contains(UserRole.SUPER_ADMIN)
                 && !authenticatedHasRole(UserRole.SUPER_ADMIN) ) {
-            throw new NotEnoughAuthoritiesException("Cannot deactivate a SUPER_ADMIN user without SUPER_ADMIN privileges.");
+            throw UserPermissionExceptionFactory.forSuperAdminAction("désactiver");
         }
 
         user.setEnabled(false);
@@ -284,16 +283,15 @@ public class UserServiceImpl implements UserService {
     @Override
     public void requireAdminPermissions(){
         if( !authenticatedHasRole(UserRole.ADMIN) ){
-            throw new NotEnoughAuthoritiesException("Not enough authorities to perform admin operations.");
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("effectuer des opérations d'administration");
         }
     }
 
     @Override
     public void requireSuperAdminPermissions() {
         if (!authenticatedHasRole(UserRole.SUPER_ADMIN)) {
-            throw new NotEnoughAuthoritiesException("Not enough authorities to perform super admin operations.");
+            throw UserPermissionExceptionFactory.forInsufficientPermissions(UserRole.SUPER_ADMIN, "effectuer des opérations de super administration");
         }
     }
 
 }
-
