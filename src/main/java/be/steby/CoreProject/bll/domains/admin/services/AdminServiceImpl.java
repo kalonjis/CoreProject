@@ -7,7 +7,6 @@ import be.steby.CoreProject.bll.common.models.user.UserCreationResult;
 import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.bll.common.services.user.UserCreationService;
-import be.steby.CoreProject.bll.common.exceptions.NotEnoughAuthoritiesException;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
@@ -29,7 +28,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class AdminServiceImpl implements AdminService    {
+public class AdminServiceImpl implements AdminService {
 
     private final UserService userService;
     private final DeviceService deviceService;
@@ -116,7 +115,7 @@ public class AdminServiceImpl implements AdminService    {
     @Override
     public void gdprUserDelete(User user) {
         if (!userService.authenticatedHasRole(UserRole.ADMIN)){
-            throw new NotEnoughAuthoritiesException("Not enough authorities to delete a user.");
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("supprimer un utilisateur");
         }
         userService.gdprUserDelete(user);
     }
@@ -171,7 +170,7 @@ public class AdminServiceImpl implements AdminService    {
     @Override
     public Page<User> searchUsers(String query, Pageable pageable) {
         if (!userService.authenticatedHasRole(UserRole.ADMIN)){
-            throw new NotEnoughAuthoritiesException("Not enough authorities to search a user.");
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("rechercher des utilisateurs");
         }
         return userService.searchUsers(query, pageable);
     }
@@ -179,7 +178,7 @@ public class AdminServiceImpl implements AdminService    {
     @Override
     public Page<User> searchUsersByCriteria(String username, String firstname, String lastname, String email, String phoneNumber, Pageable pageable) {
         if (!userService.authenticatedHasRole(UserRole.ADMIN)){
-            throw new NotEnoughAuthoritiesException("Not enough authorities to search a user.");
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("rechercher des utilisateurs");
         }
         return userService.searchUsersByCriteria(username, firstname, lastname, email, phoneNumber, pageable);
     }
@@ -187,7 +186,7 @@ public class AdminServiceImpl implements AdminService    {
     @Override
     public User getUserById(Long id) {
         if (!userService.authenticatedHasRole(UserRole.ADMIN)){
-            throw new NotEnoughAuthoritiesException("Not enough authorities to search a user.");
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("consulter les détails utilisateur");
         }
         return userService.getUserById(id);
     }
@@ -195,14 +194,12 @@ public class AdminServiceImpl implements AdminService    {
     @Override
     public void triggerPasswordReset(Long id) {
         if (!userService.authenticatedHasRole(UserRole.ADMIN)){
-            throw new NotEnoughAuthoritiesException("Not enough authorities to trigger a user's password reset.");
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("déclencher la réinitialisation de mot de passe");
         }
 
         User user = getUserById(id);
         PasswordResetToken token = passwordResetTokenService.createPasswordResetToken(user);
         mailerService.sendPasswordReset(token.getToken(), user);
-
-
     }
 
     @Override
@@ -230,36 +227,38 @@ public class AdminServiceImpl implements AdminService    {
         String numbers = "0123456789";
         String specialCharacters = "!@#$%^&*()-_=+[]{}|;:,.<>/?";
 
-        // Combiner tous les caractères
-        String allChars = upperCaseLetters + lowerCaseLetters + numbers + specialCharacters;
+        // Combiner tous les caractères possibles
+        String allCharacters = upperCaseLetters + lowerCaseLetters + numbers + specialCharacters;
 
         SecureRandom random = new SecureRandom();
+        StringBuilder password = new StringBuilder();
 
-        // Générer une longueur aléatoire entre 8 et 10
-        int length = random.nextInt(3) + 8;  // 8, 9 ou 10
-
-        StringBuilder password = new StringBuilder(length);
-
-        // Assurer au moins un caractère de chaque type
+        // Garantir au moins un caractère de chaque type
         password.append(upperCaseLetters.charAt(random.nextInt(upperCaseLetters.length())));
         password.append(lowerCaseLetters.charAt(random.nextInt(lowerCaseLetters.length())));
         password.append(numbers.charAt(random.nextInt(numbers.length())));
         password.append(specialCharacters.charAt(random.nextInt(specialCharacters.length())));
 
-        // Remplir le reste avec des caractères aléatoires
-        for (int i = 4; i < length; i++) {
-            password.append(allChars.charAt(random.nextInt(allChars.length())));
+        // Remplir le reste du mot de passe avec des caractères aléatoires
+        for (int i = 4; i < 12; i++) { // Mot de passe de 12 caractères
+            password.append(allCharacters.charAt(random.nextInt(allCharacters.length())));
         }
 
-        // Mélanger le mot de passe pour éviter un motif prévisible
-        char[] passwordArray = password.toString().toCharArray();
-        for (int i = 0; i < passwordArray.length; i++) {
-            int j = random.nextInt(passwordArray.length);
-            char temp = passwordArray[i];
-            passwordArray[i] = passwordArray[j];
-            passwordArray[j] = temp;
+        // Mélanger les caractères pour éviter un pattern prévisible
+        return shuffleString(password.toString());
+    }
+
+    private String shuffleString(String input) {
+        char[] characters = input.toCharArray();
+        SecureRandom random = new SecureRandom();
+
+        for (int i = characters.length - 1; i > 0; i--) {
+            int randomIndex = random.nextInt(i + 1);
+            char temp = characters[i];
+            characters[i] = characters[randomIndex];
+            characters[randomIndex] = temp;
         }
 
-        return new String(passwordArray);
+        return new String(characters);
     }
 }
