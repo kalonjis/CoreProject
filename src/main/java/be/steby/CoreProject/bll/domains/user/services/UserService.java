@@ -35,6 +35,8 @@ public interface UserService {
 
     void reactivateUser(User user);
 
+    void adminActivateUser(User target, User admin);
+
     void gdprUserDelete(User user);
 
     void setUserMailVerified(User user);

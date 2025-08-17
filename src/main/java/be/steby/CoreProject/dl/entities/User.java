@@ -112,8 +112,6 @@ public class User extends BaseEntity<Long> implements UserDetails {
 
     private Instant reactivatedAt;
 
-    // Désactivation self-service
-
     private Instant deactivatedAt;
 
     @Enumerated(EnumType.STRING)
@@ -131,12 +129,14 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Column(name = "admin_deactivation_details", length = 500)
     private String adminDeactivationDetails;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "admin_deactivated_by")
+    @Column(name = "admin_deactivated_by")
     private User adminDeactivatedBy;
 
     @Column(name = "admin_deactivated_at")
     private Instant adminDeactivatedAt;
+
+    @Column(name = "reactivated_by")
+    private User reactivatedBy;
 
     // endregion
 
