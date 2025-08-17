@@ -116,6 +116,23 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
+
+    public void adminActivateUser(User target, User admin) {
+
+        if(target.isEnabled()){
+            throw new AttributeUnchangedException("The user is already activated.");
+        }
+
+        if( target.getUserRoles().contains(UserRole.SUPER_ADMIN)
+                && !authenticatedHasRole(UserRole.SUPER_ADMIN) ) {
+            throw UserPermissionExceptionFactory.forSuperAdminAction("activer");
+        }
+
+        target.setEnabled(true);
+        target.setReactivatedAt(Instant.now());
+        target.setReactivatedBy(admin);
+    }
+
     @Override
     public void deactivateUser(Long id, DeactivationReason reason, String reasonDetails ) {
         User user = getUserById(id);
@@ -170,8 +187,9 @@ public class UserServiceImpl implements UserService {
         // Procéder à la désactivation
         targetUser.setEnabled(false);
         targetUser.setAdminDeactivationReason(deactivationCategory);
-        targetUser.setDeactivationDetails(adminDeactivationDetails);
+        targetUser.setAdminDeactivationDetails(adminDeactivationDetails);
         targetUser.setAdminDeactivatedBy(admin);
+        targetUser.setAdminDeactivatedAt(Instant.now());
 
         userRepository.save(targetUser);
 

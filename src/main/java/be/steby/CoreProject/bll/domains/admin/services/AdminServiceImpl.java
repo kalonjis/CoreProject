@@ -9,6 +9,8 @@ import be.steby.CoreProject.bll.common.services.permissions.UserPermissionServic
 import be.steby.CoreProject.bll.common.services.user.UserCreationService;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
+import be.steby.CoreProject.bll.domains.admin.exceptions.reactivation.InsufficientReactivationPermissionException;
+import be.steby.CoreProject.bll.domains.admin.exceptions.reactivation.NeverReactivatableException;
 import be.steby.CoreProject.bll.domains.admin.models.AdminDeactivationRequest;
 import be.steby.CoreProject.bll.domains.admin.models.AdminUserCreationRequest;
 import be.steby.CoreProject.bll.domains.admin.models.AdminValidationResult;
@@ -150,32 +152,53 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public void activateUser(Long id) {
-        log.debug("Activation utilisateur par admin - targetId: {}", id);
+        log.debug("Admin activation request - targetId: {}", id);
 
-        // 1. ✅ Validation authentification via UserService
+        // 1. Authentication validation
         userService.requireAdminPermissions();
 
-        // 2. Récupération des acteurs
+        // 2. Get actors
         User actor = userService.getAuthenticatedUser();
         User target = userService.getUserById(id);
 
-        // 3. ✅ Vérification des permissions (SANS cycle)
-        if (!userPermissionService.canActivateUser(actor, target)) {
-            if (actor.getId().equals(id)) {
-                throw UserPermissionExceptionFactory.forAdminSelfTargeting();
-            } else {
-                UserRole targetRole = userPermissionService.getHighestRole(target);
-                throw UserPermissionExceptionFactory.forUnauthorizedUserAction("activer", targetRole);
+        // 3. ✅ SIMPLE VALIDATION: Direct enum usage
+        if (target.isAdminDeactivated()) {
+            AdminDeactivationCategory category = target.getAdminDeactivationReason();
+            UserRole actorRole = userPermissionService.getHighestRole(actor);
+
+            // ❌ NEVER reactivatable
+            if (!category.allowsAdminReactivation()) {
+                throw new NeverReactivatableException(
+                        String.format("Category '%s' cannot be reactivated by any administrator due to legal/compliance restrictions.",
+                                category.getDisplayName())
+                );
+            }
+
+            // ⚠️ SUPER_ADMIN only
+            if (category.requiresSuperAdminReactivation() && actorRole != UserRole.SUPER_ADMIN) {
+                throw new InsufficientReactivationPermissionException(
+                        String.format("Category '%s' requires SUPER_ADMIN permissions for reactivation. Current role: %s",
+                                category.getDisplayName(), actorRole.name())
+                );
             }
         }
 
-        // 4. Logique métier
-        userService.activateUser(id);
+        // 4. General permissions (preserved)
+        if (!userPermissionService.canActivateUser(actor, target)) {
+            if (actor.getId().equals(id)) {
+                UserRole actorRole = userPermissionService.getHighestRole(actor);
+                throw UserPermissionExceptionFactory.forSelfActivationByRole(actorRole);
+            } else {
+                UserRole targetRole = userPermissionService.getHighestRole(target);
+                throw UserPermissionExceptionFactory.forUnauthorizedUserAction("activate", targetRole);
+            }
+        }
 
-        log.info("Utilisateur activé avec succès - ID: {}, activé par: {}",
-                id, actor.getUsername());
+        userService.adminActivateUser(target, actor);
+
+
+        log.info("User successfully activated by admin - ID: {}, activated by: {}", id, actor.getUsername());
     }
-
     // ===============================
     // GESTION DES RÔLES
     // ===============================
