@@ -1,128 +1,204 @@
 package be.steby.CoreProject.dl.enums.admin.deactivation;
 
 /**
- * Enumération des catégories spécifiques pour les désactivations administratives.
- * Structure organisée en catégories principales et sous-catégories.
+ * Administrative deactivation categories with built-in reactivation rules.
+ * Each category specifies whether it allows automatic reactivation.
  */
 public enum AdminDeactivationCategory {
 
-    // ===== CATÉGORIE : BANNISSEMENTS =====
-    BANNED_DOXXING("Bannissement - Divulgation d'informations privées",
-            "L'utilisateur a divulgué des informations personnelles d'autres utilisateurs",
-            DeactivationMainCategory.BANNED),
+    // ❌ BANNED - DO NOT allow reactivation (permanent bans)
+    BANNED_HATE_SPEECH(
+            "Banned for hate speech",
+            "Permanent ban for hate speech or discriminatory content",
+            DeactivationMainCategory.BANNED,
+            false  // ❌ allowsReactivation
+    ),
+    BANNED_HARASSMENT(
+            "Banned for harassment",
+            "Permanent ban for harassment of other users",
+            DeactivationMainCategory.BANNED,
+            false  // ❌ allowsReactivation
+    ),
+    BANNED_INAPPROPRIATE_BEHAVIOR(
+            "Banned for inappropriate behavior",
+            "Permanent ban for severe inappropriate behavior",
+            DeactivationMainCategory.BANNED,
+            false  // ❌ allowsReactivation
+    ),
 
-    BANNED_INAPPROPRIATE_BEHAVIOR("Bannissement - Comportement inapproprié",
-            "L'utilisateur a eu un comportement inapproprié envers d'autres membres",
-            DeactivationMainCategory.BANNED),
+    // ❌ LEGAL - DO NOT allow reactivation (legal/compliance issues)
+    LEGAL_REQUEST(
+            "Legal request",
+            "Deactivation following legal authority request",
+            DeactivationMainCategory.LEGAL,
+            false  // ❌ allowsReactivation
+    ),
+    LEGAL_COPYRIGHT(
+            "Copyright violation",
+            "Deactivation for copyright infringement",
+            DeactivationMainCategory.LEGAL,
+            false  // ❌ allowsReactivation
+    ),
+    LEGAL_MINOR_SAFETY(
+            "Minor safety",
+            "Deactivation for minor protection concerns",
+            DeactivationMainCategory.LEGAL,
+            false  // ❌ allowsReactivation
+    ),
 
-    BANNED_HARASSMENT("Bannissement - Harcèlement",
-            "L'utilisateur a harcelé ou intimidé d'autres utilisateurs",
-            DeactivationMainCategory.BANNED),
+    // ✅ MAINTENANCE - ALLOW reactivation (temporary/operational)
+    MAINTENANCE_SYSTEM_UPGRADE(
+            "System maintenance",
+            "System upgrade requiring temporary deactivation",
+            DeactivationMainCategory.MAINTENANCE,
+            true   // ✅ allowsReactivation
+    ),
+    MAINTENANCE_DATA_CLEANUP(
+            "Data cleanup",
+            "Database cleanup requiring temporary deactivation",
+            DeactivationMainCategory.MAINTENANCE,
+            true   // ✅ allowsReactivation
+    ),
 
-    BANNED_HATE_SPEECH("Bannissement - Discours de haine",
-            "L'utilisateur a tenu des propos haineux ou discriminatoires",
-            DeactivationMainCategory.BANNED),
+    // ✅ ADMINISTRATIVE - ALLOW reactivation (admin errors/special cases)
+    ADMIN_ERROR(
+            "Administrative error",
+            "Accidental deactivation due to administrative error",
+            DeactivationMainCategory.ADMINISTRATIVE,
+            true   // ✅ allowsReactivation
+    ),
+    OTHER_ADMIN_REASON(
+            "Other administrative reason",
+            "Other administrative reason not listed above",
+            DeactivationMainCategory.ADMINISTRATIVE,
+            true   // ✅ allowsReactivation
+    ),
 
-    // ===== CATÉGORIE : VIOLATIONS CONDITIONS D'UTILISATION =====
-    TOS_VIOLATION_COMMERCIAL_ABUSE("Violation TOS - Abus commercial",
-            "L'utilisateur utilise la plateforme à des fins commerciales non autorisées",
-            DeactivationMainCategory.TOS_VIOLATION),
+    // 🔄 TOS_VIOLATION - Mixed (depends on severity)
+    TOS_VIOLATION_SPAM(
+            "TOS Violation - Spam",
+            "Repeated sending of unwanted messages",
+            DeactivationMainCategory.TOS_VIOLATION,
+            true   // ✅ Low severity -> reactivation possible
+    ),
+    TOS_VIOLATION_MULTIPLE_ACCOUNTS(
+            "TOS Violation - Multiple accounts",
+            "Creation of unauthorized multiple accounts",
+            DeactivationMainCategory.TOS_VIOLATION,
+            true   // ✅ Low severity -> reactivation possible
+    ),
+    TOS_VIOLATION_COMMERCIAL_ABUSE(
+            "TOS Violation - Commercial abuse",
+            "Unauthorized commercial use of the platform",
+            DeactivationMainCategory.TOS_VIOLATION,
+            false  // ❌ Medium severity -> no reactivation
+    ),
+    TOS_VIOLATION_FRAUD(
+            "TOS Violation - Fraud",
+            "Attempt at fraud or financial scam",
+            DeactivationMainCategory.TOS_VIOLATION,
+            false  // ❌ High severity -> no reactivation
+    ),
+    TOS_VIOLATION_IMPERSONATION(
+            "TOS Violation - Impersonation",
+            "Impersonation of other users or entities",
+            DeactivationMainCategory.TOS_VIOLATION,
+            false  // ❌ High severity -> no reactivation
+    ),
+    TOS_VIOLATION_UNDERAGE(
+            "TOS Violation - Underage user",
+            "User below the required legal age",
+            DeactivationMainCategory.TOS_VIOLATION,
+            false  // ❌ Legal compliance -> no reactivation
+    ),
 
-    TOS_VIOLATION_SPAM("Violation TOS - Spam",
-            "L'utilisateur a envoyé du contenu spam ou des messages non sollicités",
-            DeactivationMainCategory.TOS_VIOLATION),
-
-    TOS_VIOLATION_FRAUD("Violation TOS - Fraude",
-            "L'utilisateur a tenté de frauder ou tromper d'autres utilisateurs",
-            DeactivationMainCategory.TOS_VIOLATION),
-
-    TOS_VIOLATION_IMPERSONATION("Violation TOS - Usurpation d'identité",
-            "L'utilisateur a usurpé l'identité d'une autre personne",
-            DeactivationMainCategory.TOS_VIOLATION),
-
-    TOS_VIOLATION_MULTIPLE_ACCOUNTS("Violation TOS - Comptes multiples",
-            "L'utilisateur a créé plusieurs comptes en violation des règles",
-            DeactivationMainCategory.TOS_VIOLATION),
-
-    TOS_VIOLATION_UNDERAGE("Violation TOS - Utilisateur mineur",
-            "L'utilisateur est mineur et ne respecte pas l'âge minimum requis",
-            DeactivationMainCategory.TOS_VIOLATION),
-
-    // ===== CATÉGORIE : RISQUES DE SÉCURITÉ =====
-    SECURITY_RISK_DATA_BREACH("Risque sécuritaire - Fuite de données",
-            "Le compte a été impliqué dans une fuite de données",
-            DeactivationMainCategory.SECURITY_RISK),
-
-    SECURITY_RISK_COMPROMISED("Risque sécuritaire - Compte compromis",
-            "Le compte présente des signes de compromission",
-            DeactivationMainCategory.SECURITY_RISK),
-
-    SECURITY_RISK_SUSPICIOUS_ACTIVITY("Risque sécuritaire - Activité suspecte",
-            "Des activités suspectes ont été détectées sur ce compte",
-            DeactivationMainCategory.SECURITY_RISK),
-
-    SECURITY_RISK_MALWARE("Risque sécuritaire - Malware",
-            "Le compte a été utilisé pour distribuer des logiciels malveillants",
-            DeactivationMainCategory.SECURITY_RISK),
-
-    // ===== CATÉGORIE : PROBLÈMES LÉGAUX =====
-    LEGAL_REQUEST("Demande légale",
-            "Désactivation suite à une demande des autorités légales",
-            DeactivationMainCategory.LEGAL),
-
-    LEGAL_COPYRIGHT("Violation de droits d'auteur",
-            "L'utilisateur a violé des droits d'auteur de façon répétée",
-            DeactivationMainCategory.LEGAL),
-
-    LEGAL_MINOR_SAFETY("Protection des mineurs",
-            "Désactivation pour protéger la sécurité des mineurs",
-            DeactivationMainCategory.LEGAL),
-
-    // ===== CATÉGORIE : MAINTENANCE =====
-    MAINTENANCE_INACTIVE("Maintenance - Compte inactif",
-            "Compte inactif depuis une période prolongée",
-            DeactivationMainCategory.MAINTENANCE),
-
-    MAINTENANCE_DATA_CLEANUP("Maintenance - Nettoyage des données",
-            "Désactivation dans le cadre du nettoyage périodique",
-            DeactivationMainCategory.MAINTENANCE),
-
-    MAINTENANCE_DUPLICATE("Maintenance - Compte en doublon",
-            "Compte identifié comme doublon d'un compte existant",
-            DeactivationMainCategory.MAINTENANCE),
-
-    // ===== CATÉGORIE : CAS SPÉCIAUX =====
-    ADMIN_ERROR("Erreur administrative",
-            "Désactivation accidentelle par erreur administrative",
-            DeactivationMainCategory.ADMINISTRATIVE),
-
-    REQUESTED_BY_USER("Demandé par l'utilisateur",
-            "Désactivation effectuée à la demande explicite de l'utilisateur",
-            DeactivationMainCategory.ADMINISTRATIVE),
-
-    OTHER_ADMIN_REASON("Autre raison administrative",
-            "Autre raison administrative non listée ci-dessus",
-            DeactivationMainCategory.ADMINISTRATIVE);
+    // 🔄 SECURITY_RISK - Mixed (depends on risk type)
+    SECURITY_RISK_COMPROMISED(
+            "Security risk - Compromised account",
+            "Account potentially compromised by third party",
+            DeactivationMainCategory.SECURITY_RISK,
+            true   // ✅ Can be reactivated after securing
+    ),
+    SECURITY_RISK_SUSPICIOUS_ACTIVITY(
+            "Security risk - Suspicious activity",
+            "Detection of suspicious activities",
+            DeactivationMainCategory.SECURITY_RISK,
+            false  // ❌ Investigation needed
+    ),
+    SECURITY_RISK_MALWARE(
+            "Security risk - Malware",
+            "Detection of malicious software",
+            DeactivationMainCategory.SECURITY_RISK,
+            false  // ❌ Risk too high
+    );
 
     private final String displayName;
     private final String description;
     private final DeactivationMainCategory mainCategory;
+    private final boolean allowsReactivation;  // ✅ NEW FIELD
 
-    AdminDeactivationCategory(String displayName, String description, DeactivationMainCategory mainCategory) {
+    /**
+     * ✅ MODIFIED CONSTRUCTOR with allowsReactivation parameter.
+     *
+     * @param displayName Human-readable name for this category
+     * @param description Detailed description of this category
+     * @param mainCategory The main category this belongs to
+     * @param allowsReactivation Whether this category allows automatic reactivation
+     */
+    AdminDeactivationCategory(String displayName, String description,
+                              DeactivationMainCategory mainCategory,
+                              boolean allowsReactivation) {
         this.displayName = displayName;
         this.description = description;
         this.mainCategory = mainCategory;
+        this.allowsReactivation = allowsReactivation;
     }
 
-    // Getters existants
+    // ===== EXISTING GETTERS =====
     public String getDisplayName() { return displayName; }
     public String getDescription() { return description; }
     public DeactivationMainCategory getMainCategory() { return mainCategory; }
 
-    // ===== NOUVELLES MÉTHODES AVEC STRUCTURE CATÉGORIES =====
+    // ===== NEW SIMPLE METHOD - replaces complex switch statement! =====
+    /**
+     * ✅ SIMPLIFIED METHOD - Determines if this category allows reactivation.
+     * Replaces the complex switch statement with direct field access.
+     *
+     * @return true if reactivation is allowed, false otherwise
+     */
+    public boolean allowsReactivation() {
+        return allowsReactivation;
+    }
+
+    // ===== UTILITY METHODS =====
 
     /**
-     * Retourne toutes les sous-catégories d'une catégorie principale
+     * Returns all categories that allow reactivation.
+     *
+     * @return Array of categories that allow reactivation
+     */
+    public static AdminDeactivationCategory[] getReactivableCategories() {
+        return java.util.Arrays.stream(values())
+                .filter(AdminDeactivationCategory::allowsReactivation)
+                .toArray(AdminDeactivationCategory[]::new);
+    }
+
+    /**
+     * Returns all categories that do NOT allow reactivation.
+     *
+     * @return Array of categories that do not allow reactivation
+     */
+    public static AdminDeactivationCategory[] getNonReactivableCategories() {
+        return java.util.Arrays.stream(values())
+                .filter(category -> !category.allowsReactivation())
+                .toArray(AdminDeactivationCategory[]::new);
+    }
+
+    /**
+     * Returns all subcategories of a main category.
+     *
+     * @param mainCategory The main category to filter by
+     * @return Array of subcategories
      */
     public static AdminDeactivationCategory[] getByMainCategory(DeactivationMainCategory mainCategory) {
         return java.util.Arrays.stream(values())
@@ -131,7 +207,10 @@ public enum AdminDeactivationCategory {
     }
 
     /**
-     * Retourne les catégories qui nécessitent une invalidation de sessions
+     * Returns categories that require session invalidation.
+     * This logic is preserved from the original implementation.
+     *
+     * @return true if this category requires session invalidation
      */
     public boolean requiresSessionInvalidation() {
         return switch (mainCategory) {
@@ -142,7 +221,10 @@ public enum AdminDeactivationCategory {
     }
 
     /**
-     * Retourne les catégories qui nécessitent une validation Super Admin
+     * Returns categories that require Super Admin approval.
+     * This logic is preserved from the original implementation.
+     *
+     * @return true if this category requires Super Admin approval
      */
     public boolean requiresSuperAdminApproval() {
         return switch (this) {
@@ -151,16 +233,12 @@ public enum AdminDeactivationCategory {
         };
     }
 
-    // Méthodes existantes adaptées
-    public boolean allowsReactivation() {
-        return switch (mainCategory) {
-            case MAINTENANCE, ADMINISTRATIVE -> true;
-            case BANNED, LEGAL -> false;
-            case SECURITY_RISK -> this == SECURITY_RISK_COMPROMISED; // Après sécurisation
-            case TOS_VIOLATION -> getSeverityLevel() <= 2;
-        };
-    }
-
+    /**
+     * Returns the severity level of this category.
+     * This logic is preserved from the original implementation.
+     *
+     * @return Severity level (1-5, higher = more severe)
+     */
     public int getSeverityLevel() {
         return switch (mainCategory) {
             case MAINTENANCE -> 1;
@@ -176,10 +254,11 @@ public enum AdminDeactivationCategory {
         };
     }
 
-    // ===== MÉTHODES EXISTANTES CONSERVÉES =====
-
     /**
-     * Détermine si cette catégorie nécessite une explication détaillée obligatoire
+     * Determines if this category requires detailed explanation.
+     * This logic is preserved from the original implementation.
+     *
+     * @return true if detailed explanation is required
      */
     public boolean requiresDetailedExplanation() {
         return switch (this) {
@@ -192,32 +271,39 @@ public enum AdminDeactivationCategory {
     }
 
     /**
-     * Retourne les catégories par niveau de sévérité
-     */
-    public static AdminDeactivationCategory[] getBySeverityLevel(int level) {
-        return java.util.Arrays.stream(values())
-                .filter(category -> category.getSeverityLevel() == level)
-                .toArray(AdminDeactivationCategory[]::new);
-    }
-
-    /**
-     * Retourne les catégories qui permettent la réactivation
-     */
-    public static AdminDeactivationCategory[] getReactivableCategories() {
-        return java.util.Arrays.stream(values())
-                .filter(AdminDeactivationCategory::allowsReactivation)
-                .toArray(AdminDeactivationCategory[]::new);
-    }
-
-    /**
-     * Détermine la durée de rétention des logs pour cette catégorie
+     * Returns the log retention period for this category.
+     * This logic is preserved from the original implementation.
+     *
+     * @return Log retention period in days
      */
     public int getLogRetentionDays() {
         return switch (this) {
-            case LEGAL_REQUEST, LEGAL_COPYRIGHT, LEGAL_MINOR_SAFETY -> 2555; // 7 ans
-            case BANNED_HARASSMENT, BANNED_HATE_SPEECH -> 1095; // 3 ans
-            case SECURITY_RISK_MALWARE, TOS_VIOLATION_FRAUD -> 730; // 2 ans
-            default -> 365; // 1 an
+            case LEGAL_REQUEST, LEGAL_COPYRIGHT, LEGAL_MINOR_SAFETY -> 2555; // 7 years
+            case BANNED_HARASSMENT, BANNED_HATE_SPEECH -> 1095; // 3 years
+            case SECURITY_RISK_MALWARE, TOS_VIOLATION_FRAUD -> 730; // 2 years
+            default -> 365; // 1 year
         };
+    }
+
+    /**
+     * Returns the count of categories that allow reactivation.
+     *
+     * @return Count of reactivable categories
+     */
+    public static long getReactivableCount() {
+        return java.util.Arrays.stream(values())
+                .filter(AdminDeactivationCategory::allowsReactivation)
+                .count();
+    }
+
+    /**
+     * Returns the count of categories that do NOT allow reactivation.
+     *
+     * @return Count of non-reactivable categories
+     */
+    public static long getNonReactivableCount() {
+        return java.util.Arrays.stream(values())
+                .filter(category -> !category.allowsReactivation())
+                .count();
     }
 }

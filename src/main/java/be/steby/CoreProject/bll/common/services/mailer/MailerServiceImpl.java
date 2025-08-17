@@ -127,7 +127,10 @@ public class MailerServiceImpl implements MailerService {
         String username = defineUsername(user);
         String requestMessage = deactivationMessageService.getDeactivationRequestMessage(deactivationReason, reasonDetails);
         String subject = deactivationMessageService.getDeactivationRequestSubjectLine(deactivationReason);
-        boolean canReactivate = deactivationMessageService.isReactivationAllowed(deactivationReason);
+
+        // ✅ FIX: Utilise directement l'enum field
+        boolean canReactivate = deactivationReason != null ? deactivationReason.allowsReactivation() : true;
+
         String confirmationUrl = FRONT_URL + "/auth/account-deactivation?token=" + token;
 
         Context context = new Context();
@@ -147,7 +150,9 @@ public class MailerServiceImpl implements MailerService {
         String username = defineUsername(user);
         String message = deactivationMessageService.getConfirmationMessage(deactivationReason, reasonDetails);
         String subject = deactivationMessageService.getSubjectLine(deactivationReason);
-        boolean canReactivate = deactivationMessageService.isReactivationAllowed(deactivationReason);
+
+        // ✅ FIX: Utilise directement l'enum field
+        boolean canReactivate = deactivationReason != null ? deactivationReason.allowsReactivation() : true;
 
         Context context = new Context();
         context.setVariable("username", username);
