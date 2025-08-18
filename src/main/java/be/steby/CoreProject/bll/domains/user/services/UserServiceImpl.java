@@ -7,6 +7,7 @@ import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.specifications.UserSpecification;
 import be.steby.CoreProject.dal.repositories.UserRepository;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.ReactivationType;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
@@ -111,14 +112,27 @@ public class UserServiceImpl implements UserService {
             throw UserPermissionExceptionFactory.forSuperAdminAction("activer");
         }
 
+        User authenticatedUser = getAuthenticatedUser();
+        ReactivationType reactivationType;
+
+        if (user.getId().equals(authenticatedUser.getId())) {
+            // Auto-réactivation
+            reactivationType = ReactivationType.SELF_REACTIVATION;
+            user.setReactivatedBy(user);
+        } else {
+            // Réactivation par admin - utilise la méthode helper
+            reactivationType = determineAdminReactivationType(user);
+            user.setReactivatedBy(authenticatedUser);
+        }
+
         user.setEnabled(true);
         user.setReactivatedAt(Instant.now());
+        user.setReactivationType(reactivationType);
         userRepository.save(user);
     }
 
 
     public void adminActivateUser(User target, User admin) {
-
         if(target.isEnabled()){
             throw new AttributeUnchangedException("The user is already activated.");
         }
@@ -128,9 +142,15 @@ public class UserServiceImpl implements UserService {
             throw UserPermissionExceptionFactory.forSuperAdminAction("activer");
         }
 
+        // ✅ LOGIQUE SIMPLE POUR ADMIN RÉACTIVATION - utilise la méthode helper
+        ReactivationType reactivationType = determineAdminReactivationType(target);
+
         target.setEnabled(true);
         target.setReactivatedAt(Instant.now());
         target.setReactivatedBy(admin);
+        target.setReactivationType(reactivationType);
+
+        userRepository.save(target);
     }
 
     @Override
@@ -197,6 +217,7 @@ public class UserServiceImpl implements UserService {
         log.info("User {} administratively deactivated by admin {} with category: {}",
                 targetUser.getUsername(), admin.getUsername(), deactivationCategory);
     }
+
     /**
      * @param user
      */
@@ -312,6 +333,15 @@ public class UserServiceImpl implements UserService {
         // Seuls les SUPER_ADMIN peuvent faire des opérations super admin
         if (!authenticatedHasRole(UserRole.SUPER_ADMIN)) {
             throw UserPermissionExceptionFactory.forInsufficientPermissions(UserRole.SUPER_ADMIN, "effectuer des opérations de super administration");
+        }
+    }
+
+    private ReactivationType determineAdminReactivationType(User target) {
+        if (target.getAdminDeactivationReason() != null &&
+                target.getAdminDeactivationReason().requiresSuperAdminReactivation()) {
+            return ReactivationType.SUPER_ADMIN_REACTIVATION;
+        } else {
+            return ReactivationType.ADMIN_REACTIVATION;
         }
     }
 

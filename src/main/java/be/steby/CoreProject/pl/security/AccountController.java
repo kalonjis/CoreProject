@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -24,44 +25,45 @@ import java.util.Map;
 @RequestMapping("/api/account")
 public class AccountController {
 
-  // Required dependencies injected via constructor
-  private final AccountService accountService;
-  private final UserService userService;
-  private final DeviceService deviceService;
+    // Required dependencies injected via constructor
+    private final AccountService accountService;
+    private final UserService userService;
+    private final DeviceService deviceService;
 
-  /**
-   * Handles account confirmation when a user clicks the registration confirmation link.
-   *
-   * @param token The token sent to the user for account confirmation.
-   * @return ResponseEntity with the status and a message.
-   */
-  @GetMapping("/activation")
-  public ResponseEntity<Map<String, String>> confirmAccount(@RequestParam String token, HttpServletRequest request) {
-      User user = accountService.confirmNewUserAccount(token, request);
-      //deviceService.detectAndRegisterDevice(request, user, false);
-      Map<String, String> response = new HashMap<>();
-      response.put("message", "Thank you. Your account has been successfully activated. You can now use it to connect to your favorite app.");
-      return ResponseEntity.ok()
+    /**
+     * Handles account confirmation when a user clicks the registration confirmation link.
+     *
+     * @param token The token sent to the user for account confirmation.
+     * @return ResponseEntity with the status and a message.
+     */
+    @PreAuthorize("isAnonymous()")
+    @GetMapping("/activation")
+    public ResponseEntity<Map<String, String>> confirmAccount(@RequestParam String token, HttpServletRequest request) {
+        User user = accountService.confirmNewUserAccount(token, request);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Thank you. Your account has been successfully activated. You can now use it to connect to your favorite app.");
+        return ResponseEntity.ok()
               .header("Content-Type", "application/json")
               .body(response);
-  }
+    }
 
 
-  /**
-   * Handles the request for a new confirmation token if the old one has expired.
-   *
-   * @param token The expired token.
-   * @return ResponseEntity with the status and a message.
-   */
-  @GetMapping("/activation-request")
-  public ResponseEntity<Map<String, String>> requestActivation(@RequestParam String token, HttpServletRequest request) {
-      accountService.requestActivation(token, request);
-      Map<String, String> response = new HashMap<>();
-      response.put("message", "A new confirmation email has been sent.");
-      return ResponseEntity.ok()
-          .header("Content-Type", "application/json")
-          .body(response);
-  }
+    /**
+     * Handles the request for a new confirmation token if the old one has expired.
+     *
+     * @param token The expired token.
+     * @return ResponseEntity with the status and a message.
+     */
+    @PreAuthorize("isAnonymous()")
+    @GetMapping("/activation-request")
+    public ResponseEntity<Map<String, String>> requestActivation(@RequestParam String token, HttpServletRequest request) {
+        accountService.requestActivation(token, request);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "A new confirmation email has been sent.");
+        return ResponseEntity.ok()
+                .header("Content-Type", "application/json")
+                .body(response);
+    }
 
 
     @PostMapping("/deactivation-request")
@@ -93,6 +95,7 @@ public class AccountController {
                 .body(response);
     }
 
+    @PreAuthorize("isAnonymous()")
     @PostMapping("/reactivation-request")
     public ResponseEntity<Map<String, String>> requestReactivation(
             @Valid @RequestBody AccountReactivationForm form,
@@ -108,6 +111,7 @@ public class AccountController {
                 .body(response);
     }
 
+    @PreAuthorize("isAnonymous()")
     @GetMapping("/reactivation")
     public ResponseEntity<Map<String, String>> reactivateAccount(
             @RequestParam String token,
