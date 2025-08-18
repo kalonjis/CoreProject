@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.password.services;
+package be.steby.CoreProject.bll.common.services.validation.password;
 
 
 import be.steby.CoreProject.bll.domains.password.models.PasswordValidationResult;
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 @Service
-public class PasswordPolicyServiceImpl implements PasswordPolicyService{
+public class PasswordPolicyServiceImpl implements PasswordPolicyService {
 
     @Value("${security.password.min-length:8}")
     private int minLength;

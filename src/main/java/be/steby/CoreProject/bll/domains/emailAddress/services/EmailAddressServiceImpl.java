@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.emailAddress.services;
 
+import be.steby.CoreProject.bll.common.services.validation.email.EmailPolicyService;
 import be.steby.CoreProject.bll.domains.emailAddress.events.*;
 import be.steby.CoreProject.bll.domains.emailAddress.exceptions.InvalidEmailException;
 import be.steby.CoreProject.bll.domains.emailAddress.models.EmailValidationResult;

@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.admin.exceptions;
 
 /**
- * Exception levée lors des validations de désactivation admin.
+ * Exception levée lors des validation de désactivation admin.
  * Suit le pattern du projet : étend AdminDomainException.
  */
 public class AdminDeactivationValidationException extends AdminDomainException {

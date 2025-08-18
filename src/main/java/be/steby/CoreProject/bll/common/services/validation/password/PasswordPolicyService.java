@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.password.services;
+package be.steby.CoreProject.bll.common.services.validation.password;
 
 import be.steby.CoreProject.bll.domains.password.models.PasswordValidationResult;
 

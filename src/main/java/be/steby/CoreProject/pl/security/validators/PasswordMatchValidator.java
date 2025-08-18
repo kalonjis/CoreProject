@@ -28,7 +28,7 @@ public class PasswordMatchValidator implements ConstraintValidator<PasswordMatch
             return true;
         }
 
-        // Si l'un des champs est null, laissez les validations @NotNull s'en charger
+        // Si l'un des champs est null, laissez les validation @NotNull s'en charger
         if (password == null || confirmPassword == null) {
             return true;
         }

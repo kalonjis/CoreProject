@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.password.services;
 
+import be.steby.CoreProject.bll.common.services.validation.password.PasswordPolicyService;
 import be.steby.CoreProject.bll.domains.password.events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.domains.password.events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.domains.password.events.RequestPasswordTokenEvent;

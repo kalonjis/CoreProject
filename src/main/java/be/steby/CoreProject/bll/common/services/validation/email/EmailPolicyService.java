@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.emailAddress.services;
+package be.steby.CoreProject.bll.common.services.validation.email;
 
 import be.steby.CoreProject.bll.domains.emailAddress.models.EmailValidationResult;
 
