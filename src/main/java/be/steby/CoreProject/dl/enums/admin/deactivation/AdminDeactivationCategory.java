@@ -1,245 +1,221 @@
 package be.steby.CoreProject.dl.enums.admin.deactivation;
 
+import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.ReactivationPolicy;
+import be.steby.CoreProject.dl.enums.UserRole;
+
 /**
- * Administrative deactivation categories with comprehensive reactivation rules.
- * Each category defines its own self-reactivation, admin reactivation, and super admin requirements.
+ * Complete administrative deactivation categories with comprehensive rules.
+ * Each category defines deactivation permissions, reactivation policies, and business rules.
  *
- * ✅ OPTION 3: Systematic approach with all rules centralized in enum fields
+ * ✅ COMPLETE VERSION with all existing methods + ReactivationPolicy integration
  */
 public enum AdminDeactivationCategory {
 
-    // ❌ BANNED - Strict rules for permanent bans
+    // ===== BANNED CATEGORIES =====
     BANNED_HATE_SPEECH(
-            "Banned for hate speech",
+            "Banned - Hate Speech",
             "Permanent ban for hate speech or discriminatory content",
             DeactivationMainCategory.BANNED,
-            false,  // allowsReactivation (self-service) → NO
-            true,   // allowsAdminReactivation → YES (but restricted)
-            true    // requiresSuperAdminReactivation → SUPER_ADMIN required
+            ReactivationPolicy.SUPER_ADMIN_ONLY
     ),
     BANNED_HARASSMENT(
-            "Banned for harassment",
+            "Banned - Harassment",
             "Permanent ban for harassment of other users",
             DeactivationMainCategory.BANNED,
-            false,  // allowsReactivation → NO
-            true,   // allowsAdminReactivation → YES (but restricted)
-            true    // requiresSuperAdminReactivation → SUPER_ADMIN required
+            ReactivationPolicy.SUPER_ADMIN_ONLY
     ),
     BANNED_INAPPROPRIATE_BEHAVIOR(
-            "Banned for inappropriate behavior",
+            "Banned - Inappropriate Behavior",
             "Permanent ban for severe inappropriate behavior",
             DeactivationMainCategory.BANNED,
-            false,  // allowsReactivation → NO
-            true,   // allowsAdminReactivation → YES (but restricted)
-            true    // requiresSuperAdminReactivation → SUPER_ADMIN required
+            ReactivationPolicy.SUPER_ADMIN_ONLY
     ),
 
-    // ❌ LEGAL - NEVER allow reactivation (legal/compliance restrictions)
+    // ===== LEGAL CATEGORIES =====
     LEGAL_REQUEST(
-            "Legal request",
+            "Legal Request",
             "Deactivation following legal authority request",
             DeactivationMainCategory.LEGAL,
-            false,  // allowsReactivation → NO
-            false,  // allowsAdminReactivation → NEVER!
-            false   // requiresSuperAdminReactivation → N/A
+            ReactivationPolicy.NEVER
     ),
     LEGAL_COPYRIGHT(
-            "Copyright violation",
+            "Copyright Violation",
             "Deactivation for copyright infringement",
             DeactivationMainCategory.LEGAL,
-            false,  // allowsReactivation → NO
-            false,  // allowsAdminReactivation → NEVER!
-            false   // requiresSuperAdminReactivation → N/A
+            ReactivationPolicy.NEVER
     ),
     LEGAL_MINOR_SAFETY(
-            "Minor safety",
+            "Minor Safety",
             "Deactivation for minor protection concerns",
             DeactivationMainCategory.LEGAL,
-            false,  // allowsReactivation → NO
-            false,  // allowsAdminReactivation → NEVER!
-            false   // requiresSuperAdminReactivation → N/A
+            ReactivationPolicy.NEVER
     ),
 
-    // ✅ MAINTENANCE - ALLOW reactivation (temporary/operational)
-    MAINTENANCE_SYSTEM_UPGRADE(
-            "System maintenance",
-            "System upgrade requiring temporary deactivation",
-            DeactivationMainCategory.MAINTENANCE,
-            true,   // allowsReactivation → YES
-            true,   // allowsAdminReactivation → YES
-            false   // requiresSuperAdminReactivation → Regular admin OK
-    ),
-    MAINTENANCE_DATA_CLEANUP(
-            "Data cleanup",
-            "Database cleanup requiring temporary deactivation",
-            DeactivationMainCategory.MAINTENANCE,
-            true,   // allowsReactivation → YES
-            true,   // allowsAdminReactivation → YES
-            false   // requiresSuperAdminReactivation → Regular admin OK
-    ),
-
-    // ✅ ADMINISTRATIVE - ALLOW reactivation (admin errors/special cases)
-    ADMIN_ERROR(
-            "Administrative error",
-            "Accidental deactivation due to administrative error",
-            DeactivationMainCategory.ADMINISTRATIVE,
-            true,   // allowsReactivation → YES
-            true,   // allowsAdminReactivation → YES
-            false   // requiresSuperAdminReactivation → Regular admin OK
-    ),
-    OTHER_ADMIN_REASON(
-            "Other administrative reason",
-            "Other administrative reason not listed above",
-            DeactivationMainCategory.ADMINISTRATIVE,
-            true,   // allowsReactivation → YES
-            true,   // allowsAdminReactivation → YES
-            false   // requiresSuperAdminReactivation → Regular admin OK
-    ),
-
-    // 🔄 TOS_VIOLATION - Mixed rules based on severity
+    // ===== TOS VIOLATION CATEGORIES =====
     TOS_VIOLATION_SPAM(
             "TOS Violation - Spam",
             "Repeated sending of unwanted messages",
             DeactivationMainCategory.TOS_VIOLATION,
-            true,   // allowsReactivation → YES (low severity)
-            true,   // allowsAdminReactivation → YES
-            false   // requiresSuperAdminReactivation → Regular admin OK
+            ReactivationPolicy.ADMIN_ONLY
     ),
     TOS_VIOLATION_MULTIPLE_ACCOUNTS(
-            "TOS Violation - Multiple accounts",
-            "Creation of unauthorized multiple accounts",
+            "TOS Violation - Multiple Accounts",
+            "Creating multiple fake or duplicate accounts",
             DeactivationMainCategory.TOS_VIOLATION,
-            true,   // allowsReactivation → YES (low severity)
-            true,   // allowsAdminReactivation → YES
-            false   // requiresSuperAdminReactivation → Regular admin OK
+            ReactivationPolicy.ADMIN_ONLY
     ),
     TOS_VIOLATION_COMMERCIAL_ABUSE(
-            "TOS Violation - Commercial abuse",
-            "Unauthorized commercial use of the platform",
+            "TOS Violation - Commercial Abuse",
+            "Unauthorized commercial or promotional activity",
             DeactivationMainCategory.TOS_VIOLATION,
-            false,  // allowsReactivation → NO (medium severity)
-            true,   // allowsAdminReactivation → YES
-            false   // requiresSuperAdminReactivation → Regular admin OK
+            ReactivationPolicy.ADMIN_ONLY
+    ),
+    TOS_VIOLATION_UNDERAGE(
+            "TOS Violation - Underage User",
+            "User confirmed to be under minimum age requirement",
+            DeactivationMainCategory.TOS_VIOLATION,
+            ReactivationPolicy.ADMIN_ONLY
     ),
     TOS_VIOLATION_FRAUD(
             "TOS Violation - Fraud",
-            "Attempt at fraud or financial scam",
+            "Fraudulent activity or financial misconduct",
             DeactivationMainCategory.TOS_VIOLATION,
-            false,  // allowsReactivation → NO (high severity)
-            true,   // allowsAdminReactivation → YES (but restricted)
-            true    // requiresSuperAdminReactivation → SUPER_ADMIN required
+            ReactivationPolicy.SUPER_ADMIN_ONLY
     ),
     TOS_VIOLATION_IMPERSONATION(
             "TOS Violation - Impersonation",
-            "Impersonation of other users or entities",
+            "Impersonating other users or entities",
             DeactivationMainCategory.TOS_VIOLATION,
-            false,  // allowsReactivation → NO (high severity)
-            true,   // allowsAdminReactivation → YES (but restricted)
-            true    // requiresSuperAdminReactivation → SUPER_ADMIN required
-    ),
-    TOS_VIOLATION_UNDERAGE(
-            "TOS Violation - Underage user",
-            "User below the required legal age",
-            DeactivationMainCategory.TOS_VIOLATION,
-            false,  // allowsReactivation → NO (legal compliance)
-            false,  // allowsAdminReactivation → NO (legal compliance)
-            false   // requiresSuperAdminReactivation → N/A
+            ReactivationPolicy.SUPER_ADMIN_ONLY
     ),
 
-    // 🔄 SECURITY_RISK - Mixed rules based on risk type
-    SECURITY_RISK_COMPROMISED(
-            "Security risk - Compromised account",
-            "Account potentially compromised by third party",
+    // ===== SECURITY RISK CATEGORIES =====
+    SECURITY_RISK_COMPROMISED_ACCOUNT(
+            "Security Risk - Compromised Account",
+            "Account suspected of being compromised",
             DeactivationMainCategory.SECURITY_RISK,
-            true,   // allowsReactivation → YES (after securing)
-            true,   // allowsAdminReactivation → YES
-            false   // requiresSuperAdminReactivation → Regular admin OK
+            ReactivationPolicy.ADMIN_ONLY
     ),
     SECURITY_RISK_SUSPICIOUS_ACTIVITY(
-            "Security risk - Suspicious activity",
-            "Detection of suspicious activities",
+            "Security Risk - Suspicious Activity",
+            "Suspicious login patterns or activity",
             DeactivationMainCategory.SECURITY_RISK,
-            false,  // allowsReactivation → NO (investigation needed)
-            true,   // allowsAdminReactivation → YES (but restricted)
-            true    // requiresSuperAdminReactivation → SUPER_ADMIN required
+            ReactivationPolicy.ADMIN_ONLY
     ),
     SECURITY_RISK_MALWARE(
-            "Security risk - Malware",
-            "Detection of malicious software",
+            "Security Risk - Malware",
+            "Account spreading or infected with malware",
             DeactivationMainCategory.SECURITY_RISK,
-            false,  // allowsReactivation → NO (risk too high)
-            true,   // allowsAdminReactivation → YES (but restricted)
-            true    // requiresSuperAdminReactivation → SUPER_ADMIN required
+            ReactivationPolicy.SUPER_ADMIN_ONLY
+    ),
+
+    // ===== MAINTENANCE CATEGORIES =====
+    MAINTENANCE_SYSTEM_UPGRADE(
+            "Maintenance - System Upgrade",
+            "System upgrade requiring temporary deactivation",
+            DeactivationMainCategory.MAINTENANCE,
+            ReactivationPolicy.SELF_SERVICE
+    ),
+    MAINTENANCE_DATA_CLEANUP(
+            "Maintenance - Data Cleanup",
+            "Database cleanup requiring temporary deactivation",
+            DeactivationMainCategory.MAINTENANCE,
+            ReactivationPolicy.SELF_SERVICE
+    ),
+    MAINTENANCE_MIGRATION(
+            "Maintenance - Data Migration",
+            "Data migration requiring temporary deactivation",
+            DeactivationMainCategory.MAINTENANCE,
+            ReactivationPolicy.SELF_SERVICE
+    ),
+
+    // ===== ADMINISTRATIVE CATEGORIES =====
+    ADMIN_ERROR(
+            "Administrative Error",
+            "Accidental deactivation due to administrative error",
+            DeactivationMainCategory.ADMINISTRATIVE,
+            ReactivationPolicy.SELF_SERVICE
+    ),
+    ADMIN_INVESTIGATION(
+            "Administrative Investigation",
+            "Temporary deactivation pending investigation",
+            DeactivationMainCategory.ADMINISTRATIVE,
+            ReactivationPolicy.ADMIN_ONLY
+    ),
+    OTHER_ADMIN_REASON(
+            "Other Administrative Reason",
+            "Other administrative reason not listed above",
+            DeactivationMainCategory.ADMINISTRATIVE,
+            ReactivationPolicy.ADMIN_ONLY
     );
 
     // ===== FIELDS =====
     private final String displayName;
     private final String description;
     private final DeactivationMainCategory mainCategory;
-    private final boolean allowsReactivation;           // ✅ Self-service reactivation
-    private final boolean allowsAdminReactivation;      // ✅ NEW - Admin can reactivate
-    private final boolean requiresSuperAdminReactivation; // ✅ NEW - Requires SUPER_ADMIN
+    private final ReactivationPolicy reactivationPolicy;
 
-    /**
-     * ✅ ENHANCED CONSTRUCTOR with all reactivation rules
-     *
-     * @param displayName Human-readable name for this category
-     * @param description Detailed description of this category
-     * @param mainCategory The main category this belongs to
-     * @param allowsReactivation Whether self-service reactivation is allowed
-     * @param allowsAdminReactivation Whether admin reactivation is allowed
-     * @param requiresSuperAdminReactivation Whether SUPER_ADMIN role is required for reactivation
-     */
+    // ===== CONSTRUCTOR =====
     AdminDeactivationCategory(String displayName, String description,
                               DeactivationMainCategory mainCategory,
-                              boolean allowsReactivation,
-                              boolean allowsAdminReactivation,
-                              boolean requiresSuperAdminReactivation) {
+                              ReactivationPolicy reactivationPolicy) {
         this.displayName = displayName;
         this.description = description;
         this.mainCategory = mainCategory;
-        this.allowsReactivation = allowsReactivation;
-        this.allowsAdminReactivation = allowsAdminReactivation;
-        this.requiresSuperAdminReactivation = requiresSuperAdminReactivation;
+        this.reactivationPolicy = reactivationPolicy;
     }
 
     // ===== BASIC GETTERS =====
     public String getDisplayName() { return displayName; }
     public String getDescription() { return description; }
     public DeactivationMainCategory getMainCategory() { return mainCategory; }
+    public ReactivationPolicy getReactivationPolicy() { return reactivationPolicy; }
 
-    // ===== ✅ REACTIVATION RULE GETTERS =====
+    // ===== REACTIVATION METHODS (for backward compatibility) =====
 
     /**
      * Determines if this category allows self-service reactivation.
-     *
-     * @return true if user can reactivate their own account
      */
     public boolean allowsReactivation() {
-        return allowsReactivation;
+        return reactivationPolicy == ReactivationPolicy.SELF_SERVICE;
     }
 
     /**
-     * ✅ NEW - Determines if this category allows admin reactivation.
-     *
-     * @return true if admin can reactivate this account
+     * Determines if this category allows admin reactivation.
      */
     public boolean allowsAdminReactivation() {
-        return allowsAdminReactivation;
+        return reactivationPolicy == ReactivationPolicy.SELF_SERVICE
+                || reactivationPolicy == ReactivationPolicy.ADMIN_ONLY
+                || reactivationPolicy == ReactivationPolicy.SUPER_ADMIN_ONLY;
     }
 
     /**
-     * ✅ NEW - Determines if this category requires SUPER_ADMIN for reactivation.
-     *
-     * @return true if only SUPER_ADMIN can reactivate this account
+     * Determines if this category requires SUPER_ADMIN for reactivation.
      */
     public boolean requiresSuperAdminReactivation() {
-        return requiresSuperAdminReactivation;
+        return reactivationPolicy == ReactivationPolicy.SUPER_ADMIN_ONLY;
     }
 
-    // ===== DERIVED RULES (preserved from original) =====
+    // ===== DEACTIVATION PERMISSION METHODS =====
 
     /**
+     * ✅ USED BY AdminDeactivationRequest
+     * Returns categories that require Super Admin approval for DEACTIVATION.
+     * Note: This is different from reactivation rules!
+     */
+    public boolean requiresSuperAdminApproval() {
+        return switch (this) {
+            case LEGAL_REQUEST, LEGAL_MINOR_SAFETY, BANNED_HATE_SPEECH,
+                 TOS_VIOLATION_FRAUD, SECURITY_RISK_MALWARE -> true;
+            default -> mainCategory == DeactivationMainCategory.LEGAL;
+        };
+    }
+
+    // ===== BUSINESS RULE METHODS =====
+
+    /**
+     * ✅ USED BY AdminDeactivationRequest
      * Returns categories that require session invalidation.
      */
     public boolean requiresSessionInvalidation() {
@@ -251,17 +227,7 @@ public enum AdminDeactivationCategory {
     }
 
     /**
-     * Returns categories that require Super Admin approval for DEACTIVATION.
-     * Note: This is different from reactivation rules!
-     */
-    public boolean requiresSuperAdminApproval() {
-        return switch (this) {
-            case LEGAL_REQUEST, LEGAL_MINOR_SAFETY, BANNED_HATE_SPEECH -> true;
-            default -> mainCategory == DeactivationMainCategory.LEGAL;
-        };
-    }
-
-    /**
+     * ✅ USED BY AdminDeactivationRequest
      * Returns the severity level of this category.
      */
     public int getSeverityLevel() {
@@ -280,19 +246,21 @@ public enum AdminDeactivationCategory {
     }
 
     /**
+     * ✅ USED BY AdminDeactivationRequest
      * Determines if this category requires detailed explanation.
      */
     public boolean requiresDetailedExplanation() {
         return switch (this) {
             case BANNED_INAPPROPRIATE_BEHAVIOR, BANNED_HARASSMENT, BANNED_HATE_SPEECH,
                  TOS_VIOLATION_FRAUD, TOS_VIOLATION_IMPERSONATION,
-                 SECURITY_RISK_SUSPICIOUS_ACTIVITY, LEGAL_REQUEST,
-                 ADMIN_ERROR, OTHER_ADMIN_REASON -> true;
+                 SECURITY_RISK_SUSPICIOUS_ACTIVITY, SECURITY_RISK_MALWARE,
+                 LEGAL_REQUEST, ADMIN_ERROR, ADMIN_INVESTIGATION, OTHER_ADMIN_REASON -> true;
             default -> false;
         };
     }
 
     /**
+     * ✅ USED BY AdminDeactivationRequest
      * Returns the log retention period for this category.
      */
     public int getLogRetentionDays() {
@@ -304,76 +272,52 @@ public enum AdminDeactivationCategory {
         };
     }
 
-    // ===== ✅ UTILITY METHODS =====
+    // ===== UTILITY METHODS =====
 
     /**
-     * Returns all categories that allow self-reactivation.
+     * Checks if an actor can reactivate a user with this category.
      */
+    public boolean canReactivate(User actor, User target) {
+        return switch (reactivationPolicy) {
+            case NEVER -> false;
+            case SELF_SERVICE -> actor.equals(target) || hasAdminPermission(actor);
+            case ADMIN_ONLY -> hasAdminPermission(actor);
+            case SUPER_ADMIN_ONLY -> hasSuperAdminPermission(actor);
+        };
+    }
+
+    private boolean hasAdminPermission(User user) {
+        return user.getUserRoles().contains(UserRole.ADMIN)
+                || user.getUserRoles().contains(UserRole.SUPER_ADMIN);
+    }
+
+    private boolean hasSuperAdminPermission(User user) {
+        return user.getUserRoles().contains(UserRole.SUPER_ADMIN);
+    }
+
+    // ===== STATIC FILTER METHODS =====
+
+    public static AdminDeactivationCategory[] getByPolicy(ReactivationPolicy policy) {
+        return java.util.Arrays.stream(values())
+                .filter(category -> category.reactivationPolicy == policy)
+                .toArray(AdminDeactivationCategory[]::new);
+    }
+
     public static AdminDeactivationCategory[] getReactivableCategories() {
         return java.util.Arrays.stream(values())
-                .filter(AdminDeactivationCategory::allowsReactivation)
+                .filter(category -> category.reactivationPolicy != ReactivationPolicy.NEVER)
                 .toArray(AdminDeactivationCategory[]::new);
     }
 
-    /**
-     * ✅ NEW - Returns all categories that allow admin reactivation.
-     */
-    public static AdminDeactivationCategory[] getAdminReactivableCategories() {
-        return java.util.Arrays.stream(values())
-                .filter(AdminDeactivationCategory::allowsAdminReactivation)
-                .toArray(AdminDeactivationCategory[]::new);
-    }
-
-    /**
-     * ✅ NEW - Returns all categories that require SUPER_ADMIN for reactivation.
-     */
-    public static AdminDeactivationCategory[] getSuperAdminOnlyCategories() {
-        return java.util.Arrays.stream(values())
-                .filter(AdminDeactivationCategory::requiresSuperAdminReactivation)
-                .toArray(AdminDeactivationCategory[]::new);
-    }
-
-    /**
-     * ✅ NEW - Returns all categories that NEVER allow reactivation.
-     */
-    public static AdminDeactivationCategory[] getNeverReactivableCategories() {
-        return java.util.Arrays.stream(values())
-                .filter(category -> !category.allowsAdminReactivation())
-                .toArray(AdminDeactivationCategory[]::new);
-    }
-
-    /**
-     * Returns all subcategories of a main category.
-     */
     public static AdminDeactivationCategory[] getByMainCategory(DeactivationMainCategory mainCategory) {
         return java.util.Arrays.stream(values())
                 .filter(category -> category.getMainCategory() == mainCategory)
                 .toArray(AdminDeactivationCategory[]::new);
     }
 
-    // ===== COUNTS =====
-
-    public static long getReactivableCount() {
+    public static AdminDeactivationCategory[] getBySeverityLevel(int minLevel) {
         return java.util.Arrays.stream(values())
-                .filter(AdminDeactivationCategory::allowsReactivation)
-                .count();
-    }
-
-    public static long getAdminReactivableCount() {
-        return java.util.Arrays.stream(values())
-                .filter(AdminDeactivationCategory::allowsAdminReactivation)
-                .count();
-    }
-
-    public static long getSuperAdminOnlyCount() {
-        return java.util.Arrays.stream(values())
-                .filter(AdminDeactivationCategory::requiresSuperAdminReactivation)
-                .count();
-    }
-
-    public static long getNeverReactivableCount() {
-        return java.util.Arrays.stream(values())
-                .filter(category -> !category.allowsAdminReactivation())
-                .count();
+                .filter(category -> category.getSeverityLevel() >= minLevel)
+                .toArray(AdminDeactivationCategory[]::new);
     }
 }

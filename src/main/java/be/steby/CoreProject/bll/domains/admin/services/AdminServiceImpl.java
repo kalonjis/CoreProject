@@ -2,10 +2,12 @@ package be.steby.CoreProject.bll.domains.admin.services;
 
 import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory;
 import be.steby.CoreProject.bll.common.models.RequestContext;
+import be.steby.CoreProject.bll.common.models.reactivation.ReactivationEligibility;
 import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;
 import be.steby.CoreProject.bll.common.models.user.UserCreationResult;
 import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
+import be.steby.CoreProject.bll.common.services.reactivation.ReactivationPolicyService;
 import be.steby.CoreProject.bll.common.services.user.UserCreationService;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
@@ -48,9 +50,9 @@ public class AdminServiceImpl implements AdminService {
     private final RequestContextService requestContextService;
     private final UserCreationService userCreationService;
 
-    // ✅ Services de validation et permissions (SANS cycle)
     private final UserPermissionService userPermissionService;
     private final AdminPolicyService adminPolicyService;
+    private final ReactivationPolicyService reactivationPolicyService;
 
     // ===============================
     // GESTION DES UTILISATEURS
@@ -158,46 +160,29 @@ public class AdminServiceImpl implements AdminService {
         userService.requireAdminPermissions();
 
         // 2. Get actors
-        User actor = userService.getAuthenticatedUser();
-        User target = userService.getUserById(id);
+        User currentAdmin  = userService.getAuthenticatedUser();
+        User targetUser = userService.getUserById(id);
 
         // 3. ✅ SIMPLE VALIDATION: Direct enum usage
-        if (target.isAdminDeactivated()) {
-            AdminDeactivationCategory category = target.getAdminDeactivationReason();
-            UserRole actorRole = userPermissionService.getHighestRole(actor);
+        if (targetUser.isAdminDeactivated()) {
+            ReactivationEligibility eligibility = reactivationPolicyService.checkEligibility(targetUser, currentAdmin);
 
-            // ❌ NEVER reactivatable
-            if (!category.allowsAdminReactivation()) {
-                throw new NeverReactivatableException(
-                        String.format("Category '%s' cannot be reactivated by any administrator due to legal/compliance restrictions.",
-                                category.getDisplayName())
-                );
-            }
+            if (!eligibility.isEligible()) {
+                // Gestion spécifique des erreurs selon le type
+                switch (eligibility.getType()) {
+                    case NEVER_REACTIVATABLE ->
+                            throw new NeverReactivatableException(eligibility.getReason());
+                    case INSUFFICIENT_PERMISSIONS ->
+                            throw new InsufficientReactivationPermissionException(eligibility.getReason());
+                    default ->
+                            throw new AdminOperationException("Reactivation denied: " + eligibility.getReason());
+                }
+            }}
 
-            // ⚠️ SUPER_ADMIN only
-            if (category.requiresSuperAdminReactivation() && actorRole != UserRole.SUPER_ADMIN) {
-                throw new InsufficientReactivationPermissionException(
-                        String.format("Category '%s' requires SUPER_ADMIN permissions for reactivation. Current role: %s",
-                                category.getDisplayName(), actorRole.name())
-                );
-            }
-        }
-
-        // 4. General permissions (preserved)
-        if (!userPermissionService.canActivateUser(actor, target)) {
-            if (actor.getId().equals(id)) {
-                UserRole actorRole = userPermissionService.getHighestRole(actor);
-                throw UserPermissionExceptionFactory.forSelfActivationByRole(actorRole);
-            } else {
-                UserRole targetRole = userPermissionService.getHighestRole(target);
-                throw UserPermissionExceptionFactory.forUnauthorizedUserAction("activate", targetRole);
-            }
-        }
-
-        userService.adminActivateUser(target, actor);
+        userService.adminActivateUser(targetUser, currentAdmin);
 
 
-        log.info("User successfully activated by admin - ID: {}, activated by: {}", id, actor.getUsername());
+        log.info("User successfully activated by admin - ID: {}, activated by: {}", id, currentAdmin.getUsername());
     }
     // ===============================
     // GESTION DES RÔLES

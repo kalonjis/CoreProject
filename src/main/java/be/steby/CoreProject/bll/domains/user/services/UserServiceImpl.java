@@ -1,7 +1,10 @@
 package be.steby.CoreProject.bll.domains.user.services;
 
+import be.steby.CoreProject.bll.common.exceptions.UserPermissionException;
 import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory;
+import be.steby.CoreProject.bll.common.models.reactivation.ReactivationEligibility;
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
+import be.steby.CoreProject.bll.common.services.reactivation.ReactivationPolicyService;
 import be.steby.CoreProject.bll.domains.emailAddress.exceptions.EmailAlreadyUsedException;
 import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.specifications.UserSpecification;
@@ -31,6 +34,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final UserPermissionService userPermissionService;
+    private final ReactivationPolicyService reactivationPolicyService;
 
 
 
@@ -102,22 +106,23 @@ public class UserServiceImpl implements UserService {
             throw new AttributeUnchangedException("The user is already activated.");
         }
 
-        User authenticatedUser = getAuthenticatedUser();
-        ReactivationPolicy reactivationPolicy;
-
-        if (user.getId().equals(authenticatedUser.getId())) {
-            // Auto-réactivation
-            reactivationPolicy = ReactivationPolicy.SELF_SERVICE;
-            user.setReactivatedBy(user);
-        } else {
-            // Réactivation par admin - utilise la méthode helper
-            reactivationPolicy = determineAdminReactivationType(user);
-            user.setReactivatedBy(authenticatedUser);
+        // ✅ Vérification d'éligibilité avec le service commun
+        ReactivationEligibility eligibility = reactivationPolicyService.checkEligibility(user, user);
+        if (!eligibility.isEligible()) {
+            throw new UserPermissionException("Reactivation not allowed: " + eligibility.getReason());
         }
 
+        // ✅ Détermination automatique de la politique
+        ReactivationPolicy policy = reactivationPolicyService.determineReactivationPolicy(user, user);
+
+        log.info("Reactivating user {} with policy {} by user {}",
+                user.getUsername(), policy, user.getUsername());
+
+        // Réactivation
         user.setEnabled(true);
         user.setReactivatedAt(Instant.now());
-        user.setReactivationPolicy(reactivationPolicy);
+        user.setReactivatedBy(user);
+        user.setReactivationPolicy(policy);
         userRepository.save(user);
     }
 
@@ -127,18 +132,28 @@ public class UserServiceImpl implements UserService {
             throw new AttributeUnchangedException("The user is already activated.");
         }
 
+        // ✅ Vérification d'éligibilité
+        ReactivationEligibility eligibility = reactivationPolicyService.checkEligibility(target, admin);
+        if (!eligibility.isEligible()) {
+            throw new UserPermissionException("Admin reactivation not allowed: " + eligibility.getReason());
+        }
+
+        // Vérification spéciale pour SUPER_ADMIN targets (règle métier spécifique)
         if( target.getUserRoles().contains(UserRole.SUPER_ADMIN)
-                && !authenticatedHasRole(UserRole.SUPER_ADMIN) ) {
+                && !admin.getUserRoles().contains(UserRole.SUPER_ADMIN) ) {
             throw UserPermissionExceptionFactory.forSuperAdminAction("activer");
         }
 
-        // ✅ LOGIQUE SIMPLE POUR ADMIN RÉACTIVATION - utilise la méthode helper
-        ReactivationPolicy reactivationPolicy = determineAdminReactivationType(target);
+        // ✅ Politique automatique
+        ReactivationPolicy policy = reactivationPolicyService.determineReactivationPolicy(target, admin);
+
+        log.info("Admin {} reactivating user {} with policy {}",
+                admin.getUsername(), target.getUsername(), policy);
 
         target.setEnabled(true);
         target.setReactivatedAt(Instant.now());
         target.setReactivatedBy(admin);
-        target.setReactivationPolicy(reactivationPolicy);
+        target.setReactivationPolicy(policy);
 
         userRepository.save(target);
     }
@@ -317,21 +332,11 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    // ✅ AJOUTER dans UserServiceImpl.java :
     @Override
     public void requireSuperAdminPermissions() {
         // Seuls les SUPER_ADMIN peuvent faire des opérations super admin
         if (!authenticatedHasRole(UserRole.SUPER_ADMIN)) {
             throw UserPermissionExceptionFactory.forInsufficientPermissions(UserRole.SUPER_ADMIN, "effectuer des opérations de super administration");
-        }
-    }
-
-    private ReactivationPolicy determineAdminReactivationType(User target) {
-        if (target.getAdminDeactivationReason() != null &&
-                target.getAdminDeactivationReason().requiresSuperAdminReactivation()) {
-            return ReactivationPolicy.SUPER_ADMIN_ONLY;
-        } else {
-            return ReactivationPolicy.ADMIN_ONLY;
         }
     }
 
