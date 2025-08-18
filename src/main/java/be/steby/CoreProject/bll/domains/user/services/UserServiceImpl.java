@@ -87,11 +87,6 @@ public class UserServiceImpl implements UserService {
             throw new AttributeUnchangedException("The user is already activated.");
         }
 
-        if( user.getUserRoles().contains(UserRole.SUPER_ADMIN)
-                && !authenticatedHasRole(UserRole.SUPER_ADMIN) ) {
-            throw UserPermissionExceptionFactory.forSuperAdminAction("activer");
-        }
-
         user.setEnabled(true);
         if( !user.isEverActivated() ){
             user.setEverActivated(true);
@@ -105,11 +100,6 @@ public class UserServiceImpl implements UserService {
     public void reactivateUser(User user) {
         if(user.isEnabled()){
             throw new AttributeUnchangedException("The user is already activated.");
-        }
-
-        if( user.getUserRoles().contains(UserRole.SUPER_ADMIN)
-                && !authenticatedHasRole(UserRole.SUPER_ADMIN) ) {
-            throw UserPermissionExceptionFactory.forSuperAdminAction("activer");
         }
 
         User authenticatedUser = getAuthenticatedUser();

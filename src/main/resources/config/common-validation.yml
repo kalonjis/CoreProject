@@ -1,0 +1,26 @@
+validation:
+  # Username validation rules - GENERIC
+  username:
+    min-length: 2
+    max-length: 50
+    pattern: "^[a-zA-Z0-9_-]+$"
+    description: "Username must contain only letters, numbers, hyphens and underscores"
+
+  # First name validation rules - GENERIC
+  firstname:
+    min-length: 2
+    max-length: 100
+    description: "First name validation rules"
+
+  # Last name validation rules - GENERIC
+  lastname:
+    min-length: 2
+    max-length: 100
+    description: "Last name validation rules"
+
+  # Phone number validation rules - GENERIC
+  phone:
+    min-length: 9
+    max-length: 15
+    pattern: "^[0-9]+$"
+    description: "Phone number must contain only digits"

@@ -50,7 +50,7 @@ public class AdminUserController {
      * Suit le modèle de PasswordController.changePassword()
      *
      * @param id ID de l'utilisateur à désactiver
-     * @param form Formulaire avec validations (includes nouvelles propriétés)
+     * @param form Formulaire avec validation (includes nouvelles propriétés)
      * @param request HttpServletRequest pour contexte (pattern projet)
      * @return ResponseEntity avec message informatif (pattern projet)
      */

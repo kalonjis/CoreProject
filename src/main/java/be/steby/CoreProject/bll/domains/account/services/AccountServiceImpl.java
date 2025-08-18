@@ -12,7 +12,6 @@ import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.Acc
 import be.steby.CoreProject.bll.domains.account.services.tokens.reactivation.AccountReactivationAttemptServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.reactivation.AccountReactivationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
-import be.steby.CoreProject.bll.exceptions.TokenValidityException;
 import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
@@ -27,7 +26,6 @@ import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategor
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
@@ -44,7 +42,6 @@ public class AccountServiceImpl implements AccountService {
     private final DeactivationPolicyService deactivationPolicyService;
 
     private final AccountReactivationTokenServiceImpl accountReactivationTokenService;
-    private final AccountReactivationAttemptServiceImpl accountReactivationAttemptService;
 
     private final UserService userService;
     private final RefreshTokenServiceImpl refreshTokenService;

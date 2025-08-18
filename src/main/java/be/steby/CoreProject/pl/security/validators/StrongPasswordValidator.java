@@ -1,7 +1,7 @@
 package be.steby.CoreProject.pl.security.validators;
 
 import be.steby.CoreProject.bll.domains.password.models.PasswordValidationResult;
-import be.steby.CoreProject.bll.domains.password.services.PasswordPolicyService;
+import be.steby.CoreProject.bll.common.services.validation.password.PasswordPolicyService;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import lombok.RequiredArgsConstructor;
