@@ -1,6 +1,6 @@
 package be.steby.CoreProject.dl.entities;
 
-import be.steby.CoreProject.dl.enums.ReactivationType;
+import be.steby.CoreProject.dl.enums.ReactivationPolicy;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
@@ -142,8 +142,8 @@ public class User extends BaseEntity<Long> implements UserDetails {
     private User reactivatedBy;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "reactivation_type")
-    private ReactivationType reactivationType;
+    @Column(name = "reactivation_policy")
+    private ReactivationPolicy reactivationPolicy;
 
     // endregion
 

@@ -7,7 +7,7 @@ import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.specifications.UserSpecification;
 import be.steby.CoreProject.dal.repositories.UserRepository;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ReactivationType;
+import be.steby.CoreProject.dl.enums.ReactivationPolicy;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
@@ -103,21 +103,21 @@ public class UserServiceImpl implements UserService {
         }
 
         User authenticatedUser = getAuthenticatedUser();
-        ReactivationType reactivationType;
+        ReactivationPolicy reactivationPolicy;
 
         if (user.getId().equals(authenticatedUser.getId())) {
             // Auto-réactivation
-            reactivationType = ReactivationType.SELF_REACTIVATION;
+            reactivationPolicy = ReactivationPolicy.SELF_SERVICE;
             user.setReactivatedBy(user);
         } else {
             // Réactivation par admin - utilise la méthode helper
-            reactivationType = determineAdminReactivationType(user);
+            reactivationPolicy = determineAdminReactivationType(user);
             user.setReactivatedBy(authenticatedUser);
         }
 
         user.setEnabled(true);
         user.setReactivatedAt(Instant.now());
-        user.setReactivationType(reactivationType);
+        user.setReactivationPolicy(reactivationPolicy);
         userRepository.save(user);
     }
 
@@ -133,12 +133,12 @@ public class UserServiceImpl implements UserService {
         }
 
         // ✅ LOGIQUE SIMPLE POUR ADMIN RÉACTIVATION - utilise la méthode helper
-        ReactivationType reactivationType = determineAdminReactivationType(target);
+        ReactivationPolicy reactivationPolicy = determineAdminReactivationType(target);
 
         target.setEnabled(true);
         target.setReactivatedAt(Instant.now());
         target.setReactivatedBy(admin);
-        target.setReactivationType(reactivationType);
+        target.setReactivationPolicy(reactivationPolicy);
 
         userRepository.save(target);
     }
@@ -326,12 +326,12 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    private ReactivationType determineAdminReactivationType(User target) {
+    private ReactivationPolicy determineAdminReactivationType(User target) {
         if (target.getAdminDeactivationReason() != null &&
                 target.getAdminDeactivationReason().requiresSuperAdminReactivation()) {
-            return ReactivationType.SUPER_ADMIN_REACTIVATION;
+            return ReactivationPolicy.SUPER_ADMIN_ONLY;
         } else {
-            return ReactivationType.ADMIN_REACTIVATION;
+            return ReactivationPolicy.ADMIN_ONLY;
         }
     }
 
