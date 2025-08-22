@@ -3,7 +3,7 @@
 //import be.steby.CoreProject.dl.entities.User;
 //import be.steby.CoreProject.dl.enums.UserRole;
 //import be.steby.CoreProject.pl.controllers.admin.AdminUserController;
-//import be.steby.CoreProject.pl.models.user.UserDTO;
+//import be.steby.CoreProject.pl.security.user.models.UserDTO;
 //import org.springframework.hateoas.EntityModel;
 //import org.springframework.hateoas.server.RepresentationModelAssembler;
 //import org.springframework.stereotype.Component;

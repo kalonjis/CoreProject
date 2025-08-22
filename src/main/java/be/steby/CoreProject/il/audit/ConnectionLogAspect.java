@@ -41,7 +41,7 @@
 //     * Journalise les connexions utilisateur réussies
 //     */
 //    @AfterReturning(
-//            pointcut = "execution(* be.steby.CoreProject.pl.security.AuthController.login(..))")
+//            pointcut = "execution(* be.steby.CoreProject.pl.controllers.auth.AuthController.login(..))")
 //    public void logSuccessfulLogin(JoinPoint joinPoint) {
 //        try {
 //            // Une fois que login() a réussi, l'utilisateur est authentifié
@@ -61,7 +61,7 @@
 //     * Journalise les tentatives de connexion échouées
 //     */
 //    @AfterThrowing(
-//            pointcut = "execution(* be.steby.CoreProject.pl.security.AuthController.login(..))",
+//            pointcut = "execution(* be.steby.CoreProject.pl.controllers.auth.AuthController.login(..))",
 //            throwing = "ex")
 //    public void logFailedLogin(JoinPoint joinPoint, Exception ex) {
 //        try {
@@ -102,7 +102,7 @@
 //    /**
 //     * Journalise les déconnexions utilisateur
 //     */
-////    @Before("execution(* be.steby.CoreProject.pl.security.AuthController.logout(..))")
+////    @Before("execution(* be.steby.CoreProject.pl.controllers.auth.AuthController.logout(..))")
 ////    public void logLogout(JoinPoint joinPoint) {
 ////        try {
 ////            if (userService.isAnonymous()) {

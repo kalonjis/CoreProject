@@ -1,7 +1,7 @@
 package be.steby.CoreProject.pl.assemblers;
 
 import be.steby.CoreProject.dl.entities.ActivityLog;
-import be.steby.CoreProject.pl.security.ActivityLogController;
+import be.steby.CoreProject.pl.controllers.activity.ActivityLogController;
 import be.steby.CoreProject.pl.security.models.ActivityLogDTO;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
