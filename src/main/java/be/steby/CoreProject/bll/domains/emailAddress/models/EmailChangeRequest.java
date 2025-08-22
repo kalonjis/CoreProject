@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.emailAddress.models;
 
 import be.steby.CoreProject.bll.domains.emailAddress.exceptions.EmailValidationException;
-import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
+import be.steby.CoreProject.pl.models.emailAddress.ChangeEmailForm;
 
 /**
  * Représente une demande de changement d'adresse email dans le domaine métier.

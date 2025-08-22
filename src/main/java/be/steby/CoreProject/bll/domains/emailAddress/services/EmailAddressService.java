@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.emailAddress.services;
 
-import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
+import be.steby.CoreProject.pl.models.emailAddress.ChangeEmailForm;
 import jakarta.servlet.http.HttpServletRequest;
 
 public interface EmailAddressService {
