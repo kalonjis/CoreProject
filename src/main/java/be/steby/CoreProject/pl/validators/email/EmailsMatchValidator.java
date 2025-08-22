@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.validators.email;
 
-import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
+import be.steby.CoreProject.pl.models.emailAddress.ChangeEmailForm;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 

@@ -3,7 +3,7 @@ package be.steby.CoreProject.pl.validators.account;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationRequest;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationValidationResult;
 import be.steby.CoreProject.bll.domains.account.services.DeactivationPolicyService;
-import be.steby.CoreProject.pl.security.models.AccountDeactivationForm;
+import be.steby.CoreProject.pl.models.account.AccountDeactivationForm;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import lombok.RequiredArgsConstructor;

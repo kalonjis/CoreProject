@@ -1,11 +1,11 @@
 package be.steby.CoreProject.pl.models.password;
 
+import be.steby.CoreProject.pl.validators.password.PasswordMatch;
+import be.steby.CoreProject.pl.validators.password.StrongPassword;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-import be.steby.CoreProject.pl.security.validators.PasswordMatch;
-import be.steby.CoreProject.pl.security.validators.StrongPassword;
 
 @PasswordMatch(message = "Les mots de passe doivent être identiques")
 public record PasswordResetForm(

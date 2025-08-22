@@ -1,7 +1,7 @@
 package be.steby.CoreProject.pl.controllers.emailAddress;
 
 import be.steby.CoreProject.bll.domains.emailAddress.services.EmailAddressService;
-import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
+import be.steby.CoreProject.pl.models.emailAddress.ChangeEmailForm;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

@@ -11,7 +11,7 @@ import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.emailAddress.services.tokens.EmailConfirmationTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.EmailConfirmationToken;
-import be.steby.CoreProject.pl.models.user.ChangeEmailForm;
+import be.steby.CoreProject.pl.models.emailAddress.ChangeEmailForm;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
