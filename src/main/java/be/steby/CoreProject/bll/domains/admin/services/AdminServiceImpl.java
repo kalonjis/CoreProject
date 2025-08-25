@@ -2,17 +2,15 @@ package be.steby.CoreProject.bll.domains.admin.services;
 
 import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory;
 import be.steby.CoreProject.bll.common.models.RequestContext;
-import be.steby.CoreProject.bll.common.models.reactivation.ReactivationEligibility;
 import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;
 import be.steby.CoreProject.bll.common.models.user.UserCreationResult;
 import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
-import be.steby.CoreProject.bll.common.services.reactivation.ReactivationPolicyService;
 import be.steby.CoreProject.bll.common.services.user.UserCreationService;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
+import be.steby.CoreProject.bll.domains.admin.events.AdminUserActivatedEvent;
+import be.steby.CoreProject.bll.domains.admin.events.AdminUserDeactivatedEvent;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
-import be.steby.CoreProject.bll.domains.admin.exceptions.reactivation.InsufficientReactivationPermissionException;
-import be.steby.CoreProject.bll.domains.admin.exceptions.reactivation.NeverReactivatableException;
 import be.steby.CoreProject.bll.domains.admin.models.AdminDeactivationRequest;
 import be.steby.CoreProject.bll.domains.admin.models.AdminUserCreationRequest;
 import be.steby.CoreProject.bll.domains.admin.models.AdminValidationResult;
@@ -27,6 +25,7 @@ import be.steby.CoreProject.dl.enums.UserRole;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -35,8 +34,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Implémentation complète du service d'administration utilisateur.
- * ✅ SANS cycle de dépendances - utilise UserService pour l'auth et UserPermissionService pour les checks.
+ * Admin service implementation focused on orchestration and event publishing.
+ * Delegates all business logic to UserService while handling admin-specific concerns.
  */
 @Service
 @RequiredArgsConstructor
@@ -49,28 +48,24 @@ public class AdminServiceImpl implements AdminService {
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
     private final RequestContextService requestContextService;
     private final UserCreationService userCreationService;
-
     private final UserPermissionService userPermissionService;
     private final AdminPolicyService adminPolicyService;
-    private final ReactivationPolicyService reactivationPolicyService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ===============================
-    // GESTION DES UTILISATEURS
+    // USER MANAGEMENT
     // ===============================
 
     @Override
     @Transactional
     public User createUser(User user, HttpServletRequest request) {
-        log.debug("Création utilisateur par admin - username: {}, roles: {}",
+        log.debug("Admin user creation request - username: {}, roles: {}",
                 user.getUsername(), user.getUserRoles());
 
-        // 1. ✅ Validation authentification via UserService (pas de cycle)
-        userService.requireAdminPermissions();
-
-        // 2. Capture contexte
+        // 1. Capture request context
         RequestContext requestContext = requestContextService.captureRequestContext(request);
 
-        // 3. Conversion vers modèle admin
+        // 2. Convert to admin creation model
         AdminUserCreationRequest adminRequest = new AdminUserCreationRequest(
                 user.getUsername(),
                 user.getFirstname(),
@@ -82,30 +77,32 @@ public class AdminServiceImpl implements AdminService {
                 requestContext
         );
 
-        // 4. ✅ Validation via AdminPolicyService
+        // 3. Validate via admin policy service
         AdminValidationResult validation = adminPolicyService.validateUserCreation(adminRequest);
         if (!validation.isValid()) {
-            String errorMessage = "Validation de création utilisateur échouée: " +
+            String errorMessage = "User creation validation failed: " +
                     String.join(", ", validation.errors());
             log.warn(errorMessage);
             throw new AdminOperationException(errorMessage);
         }
 
-        // 5. ✅ Vérification des permissions pour les rôles demandés (SANS cycle)
+        // 4. Get admin actor for permission checks
         User actor = userService.getAuthenticatedUser();
+
+        // 5. Check role granting permissions
         for (UserRole role : user.getUserRoles()) {
             if (!userPermissionService.canGrantRole(actor, user, role)) {
                 throw UserPermissionExceptionFactory.forInsufficientPermissions(
                         userPermissionService.getHighestRole(actor),
-                        "attribuer le rôle " + role);
+                        "grant role " + role);
             }
         }
 
-        // 6. Logique métier
+        // 6. Delegate to user creation service
         UserCreationRequest userCreationRequest = UserCreationRequest.forAdminCreate(user, requestContext);
         UserCreationResult result = userCreationService.createUser(userCreationRequest);
 
-        log.info("Utilisateur créé avec succès par admin - ID: {}, username: {}",
+        log.info("User successfully created by admin - ID: {}, username: {}",
                 result.user().getId(), result.user().getUsername());
 
         return result.user();
@@ -113,194 +110,221 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    public void deactivateUser(Long id, AdminDeactivationCategory deactivationCategory, String adminDeactivationDetails) {
-        log.debug("Désactivation utilisateur par admin - targetId: {}, category: {}",
-                id, deactivationCategory);
+    public void activateUser(Long id, HttpServletRequest request) {
+        log.debug("Admin activation request - targetId: {}", id);
 
-        // 1. ✅ Validation authentification via UserService
-        userService.requireAdminPermissions();
+        // 1. Capture request context
+        RequestContext requestContext = requestContextService.captureRequestContext(request);
 
-        // 2. Récupération des acteurs
-        User actor = userService.getAuthenticatedUser();
+        // 2. Get actors
+        User admin = userService.getAuthenticatedUser();
         User target = userService.getUserById(id);
 
-        // 3. ✅ Vérification des permissions (SANS cycle)
-        if (!userPermissionService.canDeactivateUser(actor, target)) {
-            if (actor.getId().equals(id)) {
-                throw UserPermissionExceptionFactory.forAdminSelfTargeting();
-            } else {
-                UserRole targetRole = userPermissionService.getHighestRole(target);
-                throw UserPermissionExceptionFactory.forUnauthorizedUserAction("désactiver", targetRole);
-            }
+        // 3. Determine activation type and delegate
+        boolean isFirstActivation = !target.isEverActivated();
+
+        if (isFirstActivation) {
+            userService.adminActivateUser(target, admin);
+        } else {
+            userService.adminReactivateUser(target, admin);
         }
 
-        // 4. Validation des détails de désactivation
+        // 4. Publish appropriate event
+        boolean wasDeactivated = target.getDeactivatedAt() != null;
+        AdminUserActivatedEvent event = wasDeactivated
+                ? AdminUserActivatedEvent.of(target, admin, true, target.getDeactivatedAt(), requestContext)
+                : AdminUserActivatedEvent.simple(target, admin, requestContext);
+
+        eventPublisher.publishEvent(event);
+
+        String actionType = isFirstActivation ? "activated" : "reactivated";
+        log.info("User successfully {} by admin - ID: {}, {} by: {}",
+                actionType, id, actionType, admin.getUsername());
+    }
+
+    @Override
+    @Transactional
+    public void deactivateUser(Long id, AdminDeactivationCategory deactivationCategory, String adminDeactivationDetails, HttpServletRequest request) {
+        log.debug("Admin deactivation request - targetId: {}, category: {}",
+                id, deactivationCategory);
+
+        // 1. Capture request context
+        RequestContext requestContext = requestContextService.captureRequestContext(request);
+
+        // 2. Get actors
+        User admin = userService.getAuthenticatedUser();
+        User target = userService.getUserById(id);
+
+        // 3. Validate deactivation details via admin policy
         AdminDeactivationRequest deactivationRequest = new AdminDeactivationRequest(
                 id, deactivationCategory, adminDeactivationDetails);
 
         AdminValidationResult validationResult = adminPolicyService.validateDeactivationDetails(deactivationRequest);
         if (!validationResult.isValid()) {
             throw new AdminOperationException(
-                    "Validation de désactivation échouée: " + String.join(", ", validationResult.errors()));
+                    "Deactivation validation failed: " + String.join(", ", validationResult.errors()));
         }
 
-        // 5. Logique métier
-        userService.adminDeactivateUser(id, deactivationCategory, adminDeactivationDetails);
+        // 4. Delegate to user service
+        userService.adminDeactivateUser(target, admin, deactivationCategory, adminDeactivationDetails);
 
-        log.info("Utilisateur désactivé avec succès - ID: {}, désactivé par: {}, catégorie: {}",
-                id, actor.getUsername(), deactivationCategory);
+        // 5. Publish deactivation event
+        AdminUserDeactivatedEvent event = AdminUserDeactivatedEvent.simple(
+                target, admin, deactivationCategory, adminDeactivationDetails, requestContext);
+        eventPublisher.publishEvent(event);
+
+        log.info("User successfully deactivated by admin - ID: {}, deactivated by: {}, category: {}",
+                id, admin.getUsername(), deactivationCategory);
     }
 
     @Override
+    
     @Transactional
-    public void activateUser(Long id) {
-        log.debug("Admin activation request - targetId: {}", id);
+    public void reactivateUser(Long id, HttpServletRequest request) {
+        log.debug("Admin reactivation request - targetId: {}", id);
 
-        // 1. Authentication validation
-        userService.requireAdminPermissions();
+        // 1. Capture request context
+        RequestContext requestContext = requestContextService.captureRequestContext(request);
 
         // 2. Get actors
-        User currentAdmin  = userService.getAuthenticatedUser();
-        User targetUser = userService.getUserById(id);
+        User admin = userService.getAuthenticatedUser();
+        User target = userService.getUserById(id);
 
-        // 3. ✅ SIMPLE VALIDATION: Direct enum usage
-        if (targetUser.isAdminDeactivated()) {
-            ReactivationEligibility eligibility = reactivationPolicyService.checkEligibility(targetUser, currentAdmin);
+        // 3. Delegate to user service
+        userService.adminReactivateUser(target, admin);
 
-            if (!eligibility.isEligible()) {
-                // Gestion spécifique des erreurs selon le type
-                switch (eligibility.getType()) {
-                    case NEVER_REACTIVATABLE ->
-                            throw new NeverReactivatableException(eligibility.getReason());
-                    case INSUFFICIENT_PERMISSIONS ->
-                            throw new InsufficientReactivationPermissionException(eligibility.getReason());
-                    default ->
-                            throw new AdminOperationException("Reactivation denied: " + eligibility.getReason());
-                }
-            }}
+        // 4. Publish reactivation event
+        AdminUserActivatedEvent event = AdminUserActivatedEvent.of(
+                target, admin, true, target.getDeactivatedAt(), requestContext);
+        eventPublisher.publishEvent(event);
 
-        userService.adminActivateUser(targetUser, currentAdmin);
-
-
-        log.info("User successfully activated by admin - ID: {}, activated by: {}", id, currentAdmin.getUsername());
+        log.info("User successfully reactivated by admin - ID: {}, reactivated by: {}",
+                id, admin.getUsername());
     }
+
     // ===============================
-    // GESTION DES RÔLES
+    // ROLE MANAGEMENT
     // ===============================
 
     @Override
     @Transactional
     public void grantUserRole(Long id, UserRole role) {
-        log.debug("Attribution rôle par admin - targetId: {}, role: {}", id, role);
+        log.debug("Admin role grant request - targetId: {}, role: {}", id, role);
 
-        // 1. ✅ Validation authentification via UserService
-        userService.requireAdminPermissions();
-
-        // 2. Récupération des acteurs
+        // 1. Get actors
         User actor = userService.getAuthenticatedUser();
         User target = userService.getUserById(id);
 
-        // 3. ✅ Validation des permissions (SANS cycle)
+        // 2. Check permissions
         if (!userPermissionService.canGrantRole(actor, target, role)) {
             UserRole actorRole = userPermissionService.getHighestRole(actor);
             if (role == UserRole.SUPER_ADMIN || role == UserRole.ADMIN) {
                 throw UserPermissionExceptionFactory.forInsufficientPermissions(
-                        UserRole.SUPER_ADMIN, "attribuer le rôle " + role);
+                        UserRole.SUPER_ADMIN, "grant role " + role);
             } else {
                 throw UserPermissionExceptionFactory.forInsufficientPermissions(
-                        UserRole.ADMIN, "attribuer le rôle " + role);
+                        UserRole.ADMIN, "grant role " + role);
             }
         }
 
-        // 4. Logique métier
+        // 3. Delegate to user service
         userService.grantUserRole(id, role);
 
-        log.info("Rôle {} attribué à l'utilisateur {} par {}",
+        log.info("Role {} granted to user {} by admin {}",
                 role, target.getUsername(), actor.getUsername());
     }
 
     @Override
     @Transactional
     public void revokeUserRole(Long id, UserRole role) {
-        log.debug("Révocation rôle par admin - targetId: {}, role: {}", id, role);
+        log.debug("Admin role revoke request - targetId: {}, role: {}", id, role);
 
-        // 1. ✅ Validation authentification via UserService
-        userService.requireAdminPermissions();
-
-        // 2. Récupération des acteurs
+        // 1. Get actors
         User actor = userService.getAuthenticatedUser();
         User target = userService.getUserById(id);
 
-        // 3. ✅ Validation des permissions (SANS cycle)
+        // 2. Check permissions
         if (!userPermissionService.canRevokeRole(actor, target, role)) {
             throw UserPermissionExceptionFactory.forInsufficientPermissions(
-                    userPermissionService.getHighestRole(actor), "révoquer le rôle " + role);
+                    userPermissionService.getHighestRole(actor), "revoke role " + role);
         }
 
-        // 4. Logique métier
+        // 3. Delegate to user service
         userService.revokeUserRole(id, role);
 
-        log.info("Rôle {} révoqué de l'utilisateur {} par {}",
+        log.info("Role {} revoked from user {} by admin {}",
                 role, target.getUsername(), actor.getUsername());
     }
 
     // ===============================
-    // AUTRES OPÉRATIONS ADMIN (inchangées)
+    // OTHER ADMIN OPERATIONS
     // ===============================
 
     @Override
     @Transactional
     public void deleteUser(Long id) {
-        userService.requireSuperAdminPermissions(); // ✅ Via UserService
+        // Delegate with permission check
         userService.deleteUser(id);
     }
 
     @Override
     @Transactional
     public void gdprUserDelete(User user) {
-        userService.requireSuperAdminPermissions(); // ✅ Via UserService
+        // Delegate with permission check
         userService.gdprUserDelete(user);
     }
 
     @Override
     @Transactional
     public void triggerPasswordReset(Long id) {
-        userService.requireAdminPermissions(); // ✅ Via UserService
+        // 1. Check admin permissions
+        userService.requireAdminPermissions();
 
+        // 2. Get target user
         User target = getUserById(id);
+
+        // 3. Create password reset token
         PasswordResetToken token = passwordResetTokenService.createPasswordResetToken(target);
+
+        // 4. Send email
         mailerService.sendPasswordReset(token.getToken(), target);
+
+        log.info("Password reset triggered for user {} by admin", target.getUsername());
     }
+
+    // ===============================
+    // QUERY OPERATIONS (Simple delegation)
+    // ===============================
 
     @Override
     public Page<User> searchUsers(String query, Pageable pageable) {
-        userService.requireAdminPermissions(); // ✅ Via UserService
+        userService.requireAdminPermissions();
         return userService.searchUsers(query, pageable);
     }
 
     @Override
     public Page<User> searchUsersByCriteria(String username, String firstname, String lastname,
                                             String email, String phoneNumber, Pageable pageable) {
-        userService.requireAdminPermissions(); // ✅ Via UserService
+        userService.requireAdminPermissions();
         return userService.searchUsersByCriteria(username, firstname, lastname, email, phoneNumber, pageable);
     }
 
     @Override
     public User getUserById(Long id) {
-        userService.requireAdminPermissions(); // ✅ Via UserService
+        userService.requireAdminPermissions();
         return userService.getUserById(id);
     }
 
     @Override
     public List<Device> getUserDevices(Long id) {
-        userService.requireAdminPermissions(); // ✅ Via UserService
+        userService.requireAdminPermissions();
         User user = userService.getUserById(id);
         return deviceService.getUserDevice(user);
     }
 
     @Override
     public Long getTotalUsers() {
-        userService.requireAdminPermissions(); // ✅ Via UserService
+        userService.requireAdminPermissions();
         return userService.getTotalUsers();
     }
 }

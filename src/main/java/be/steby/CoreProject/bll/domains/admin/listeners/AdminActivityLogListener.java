@@ -26,7 +26,7 @@ public class AdminActivityLogListener {
      * @param event Événement de création d'utilisateur par admin
      */
     @EventListener
-    @Async("auditTaskExecutor")
+    @Async("activityLogExecutor")
     @Order(100) // S'exécute après les listeners principaux
     public void handleUserCreatedByAdmin(UserCreatedByAdminEvent event) {
         try {
@@ -52,7 +52,7 @@ public class AdminActivityLogListener {
      * @param event Événement d'attribution de rôle
      */
     @EventListener
-    @Async("auditTaskExecutor")
+    @Async("activityLogExecutor")
     @Order(100)
     public void handleUserRoleGranted(UserRoleGrantedEvent event) {
         try {
@@ -80,7 +80,7 @@ public class AdminActivityLogListener {
      * @param event Événement de révocation de rôle
      */
     @EventListener
-    @Async("auditTaskExecutor")
+    @Async("activityLogExecutor")
     @Order(100)
     public void handleUserRoleRevoked(UserRoleRevokedEvent event) {
         try {
@@ -108,7 +108,7 @@ public class AdminActivityLogListener {
      * @param event Événement d'activation d'utilisateur par admin
      */
     @EventListener
-    @Async("auditTaskExecutor")
+    @Async("activityLogExecutor")
     @Order(100)
     public void handleAdminUserActivated(AdminUserActivatedEvent event) {
         try {
@@ -133,7 +133,7 @@ public class AdminActivityLogListener {
      * @param event Événement de désactivation d'utilisateur par admin
      */
     @EventListener
-    @Async("auditTaskExecutor")
+    @Async("activityLogExecutor")
     @Order(100)
     public void handleAdminUserDeactivated(AdminUserDeactivatedEvent event) {
         try {
@@ -166,7 +166,7 @@ public class AdminActivityLogListener {
      * @param event Événement de reset de mot de passe par admin
      */
     @EventListener
-    @Async("auditTaskExecutor")
+    @Async("activityLogExecutor")
     @Order(100)
     public void handleAdminPasswordResetTriggered(AdminPasswordResetTriggeredEvent event) {
         try {
@@ -199,7 +199,7 @@ public class AdminActivityLogListener {
      * @param event Événement d'action administrative
      */
     @EventListener
-    @Async("auditTaskExecutor")
+    @Async("activityLogExecutor")
     @Order(100)
     public void handleAdminAction(AdminActionEvent event) {
         try {

@@ -111,6 +111,10 @@ public class User extends BaseEntity<Long> implements UserDetails {
 
     private Instant activatedAt;
 
+    @ManyToOne
+    @JoinColumn(name = "activated_by")
+    private User activatedBy;
+
     private Instant reactivatedAt;
 
     private Instant deactivatedAt;

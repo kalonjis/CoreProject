@@ -98,6 +98,7 @@ public record AdminUserDeactivatedEvent(
      * @param targetUser L'utilisateur désactivé
      * @param adminUser L'administrateur
      * @param category La catégorie de la désactivation
+     * @param adminDeactivationDetails Les commentaires de la désactivation
      * @param requestContext Le contexte de la requête
      * @return Nouvel événement
      */
@@ -105,9 +106,10 @@ public record AdminUserDeactivatedEvent(
             User targetUser,
             User adminUser,
             AdminDeactivationCategory category,
+            String adminDeactivationDetails,
             RequestContext requestContext) {
         return new AdminUserDeactivatedEvent(
-                targetUser, adminUser, category, null, true, null, requestContext
+                targetUser, adminUser, category, adminDeactivationDetails, true, null, requestContext
         );
     }
 

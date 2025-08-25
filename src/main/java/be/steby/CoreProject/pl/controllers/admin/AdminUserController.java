@@ -66,7 +66,8 @@ public class AdminUserController {
         adminService.deactivateUser(
                 id,
                 form.deactivationCategory(),
-                form.adminDeactivationDetails()
+                form.adminDeactivationDetails(),
+                request
         );
 
         // Réponse informative selon pattern projet (comme PasswordController)
@@ -89,7 +90,7 @@ public class AdminUserController {
 
         log.info("Demande d'activation utilisateur ID: {} reçue", id);
 
-        adminService.activateUser(id);
+        adminService.activateUser(id, request);
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "Utilisateur activé avec succès");
