@@ -22,10 +22,9 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Set;
-
 
 @Slf4j
 @RequiredArgsConstructor
@@ -36,41 +35,43 @@ public class UserServiceImpl implements UserService {
     private final UserPermissionService userPermissionService;
     private final ReactivationPolicyService reactivationPolicyService;
 
-
+    // ===============================
+    // SEARCH AND QUERY OPERATIONS
+    // ===============================
 
     @Override
     public Page<User> searchUsers(String query, Pageable pageable) {
-        log.info("Recherche globale avec query: '{}' et pagination: {}", query, pageable);
-        Page<User> results = userRepository.findAll(UserSpecification.searchInAllFields(query), pageable);
-        return results;
+        log.info("Global search with query: '{}' and pagination: {}", query, pageable);
+        return userRepository.findAll(UserSpecification.searchInAllFields(query), pageable);
     }
 
     @Override
-    public Page<User> searchUsersByCriteria(String username, String firstname, String lastname, String email, String phoneNumber, Pageable pageable) {
-        log.info("Recherche par critères : username='{}', firstname='{}', lastname='{}', email='{}', phoneNumber='{}' avec pagination: {}",
+    public Page<User> searchUsersByCriteria(String username, String firstname, String lastname,
+                                            String email, String phoneNumber, Pageable pageable) {
+        log.info("Criteria search: username='{}', firstname='{}', lastname='{}', email='{}', phoneNumber='{}' with pagination: {}",
                 username, firstname, lastname, email, phoneNumber, pageable);
 
-        Page<User> results = userRepository.findAll(UserSpecification.searchByCriteria(username, firstname, lastname, email, phoneNumber), pageable);
-        return results;
+        return userRepository.findAll(
+                UserSpecification.searchByCriteria(username, firstname, lastname, email, phoneNumber),
+                pageable);
     }
 
     @Override
-    public User getUserById(Long id){
+    public User getUserById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(()-> new DoesntExistException("User with id "+ id +" does not exist"));
+                .orElseThrow(() -> new DoesntExistException("User with id " + id + " does not exist"));
     }
-
 
     @Override
     public User getUserByUsername(String username) {
-        return userRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new DoesntExistException("User account with username : "+ username +" not Found: "));
+        return userRepository.findByUsernameIgnoreCase(username)
+                .orElseThrow(() -> new DoesntExistException("User account with username: " + username + " not found"));
     }
-
 
     @Override
     public User getUserByEmail(String email) {
         return userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(()-> new DoesntExistException("User with email address "+ email +" not found"));
+                .orElseThrow(() -> new DoesntExistException("User with email address " + email + " not found"));
     }
 
     @Override
@@ -79,95 +80,102 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deleteUser(Long id) {
-        User user = getUserById(id);
-        userRepository.delete(user);
+    public Long getTotalUsers() {
+        return userRepository.count();
     }
 
+    // ===============================
+    // USER ACTIVATION OPERATIONS
+    // ===============================
+
     @Override
+    @Transactional
     public void activateUser(Long id) {
         User user = getUserById(id);
-        if(user.isEnabled()){
-            throw new AttributeUnchangedException("The user is already activated.");
+        if (user.isEnabled()) {
+            throw new AttributeUnchangedException("The user is already activated");
         }
 
         user.setEnabled(true);
-        if( !user.isEverActivated() ){
+        if (!user.isEverActivated()) {
             user.setEverActivated(true);
         }
         user.setActivatedAt(Instant.now());
         userRepository.save(user);
-    }
 
+        log.info("User {} self-activated", user.getUsername());
+    }
 
     @Override
-    public void reactivateUser(User user) {
-        if(user.isEnabled()){
-            throw new AttributeUnchangedException("The user is already activated.");
-        }
-
-        // ✅ Vérification d'éligibilité avec le service commun
-        ReactivationEligibility eligibility = reactivationPolicyService.checkEligibility(user, user);
-        if (!eligibility.isEligible()) {
-            throw new UserPermissionException("Reactivation not allowed: " + eligibility.getReason());
-        }
-
-        // ✅ Détermination automatique de la politique
-        ReactivationPolicy policy = reactivationPolicyService.determineReactivationPolicy(user, user);
-
-        log.info("Reactivating user {} with policy {} by user {}",
-                user.getUsername(), policy, user.getUsername());
-
-        // Réactivation
-        user.setEnabled(true);
-        user.setReactivatedAt(Instant.now());
-        user.setReactivatedBy(user);
-        user.setReactivationPolicy(policy);
-        userRepository.save(user);
-    }
-
-
+    @Transactional
     public void adminActivateUser(User target, User admin) {
-        if(target.isEnabled()){
-            throw new AttributeUnchangedException("The user is already activated.");
+        log.debug("Admin activation request - target: {}, admin: {}",
+                target.getUsername(), admin.getUsername());
+
+        // 1. Defensive validation
+        if (target == null) {
+            throw new IllegalArgumentException("Target user cannot be null");
+        }
+        if (admin == null) {
+            throw new IllegalArgumentException("Admin user cannot be null");
         }
 
-        // ✅ Vérification d'éligibilité
-        ReactivationEligibility eligibility = reactivationPolicyService.checkEligibility(target, admin);
-        if (!eligibility.isEligible()) {
-            throw new UserPermissionException("Admin reactivation not allowed: " + eligibility.getReason());
+        // 2. Check if user is already enabled
+        if (target.isEnabled()) {
+            throw new AttributeUnchangedException("User is already activated");
         }
 
-        // Vérification spéciale pour SUPER_ADMIN targets (règle métier spécifique)
-        if( target.getUserRoles().contains(UserRole.SUPER_ADMIN)
-                && !admin.getUserRoles().contains(UserRole.SUPER_ADMIN) ) {
-            throw UserPermissionExceptionFactory.forSuperAdminAction("activer");
+        // 3. Check if this is really a first activation (not a reactivation)
+        if (target.isEverActivated()) {
+            throw new IllegalStateException("User was already activated before. Use adminReactivateUser instead");
         }
 
-        // ✅ Politique automatique
-        ReactivationPolicy policy = reactivationPolicyService.determineReactivationPolicy(target, admin);
+        // 4. Admin permission validation
+        if (!admin.getUserRoles().contains(UserRole.ADMIN) &&
+                !admin.getUserRoles().contains(UserRole.SUPER_ADMIN)) {
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("activate a user");
+        }
 
-        log.info("Admin {} reactivating user {} with policy {}",
-                admin.getUsername(), target.getUsername(), policy);
+        // 5. Super admin protection
+        if (target.getUserRoles().contains(UserRole.SUPER_ADMIN) &&
+                !admin.getUserRoles().contains(UserRole.SUPER_ADMIN)) {
+            throw UserPermissionExceptionFactory.forSuperAdminAction("activate");
+        }
 
+        // 6. Self-targeting prevention
+        if (admin.getId().equals(target.getId())) {
+            throw UserPermissionExceptionFactory.forAdminSelfTargeting();
+        }
+
+        // 7. Perform activation
         target.setEnabled(true);
-        target.setReactivatedAt(Instant.now());
-        target.setReactivatedBy(admin);
-        target.setReactivationPolicy(policy);
+        target.setEverActivated(true);
+        target.setActivatedAt(Instant.now());
+        target.setActivatedBy(admin);
+        target.setEmailVerified(true); // Admin activation bypasses email verification
 
         userRepository.save(target);
+
+        log.info("User {} successfully activated by admin {} (first activation)",
+                target.getUsername(), admin.getUsername());
     }
 
+    // ===============================
+    // USER DEACTIVATION OPERATIONS
+    // ===============================
+
     @Override
-    public void deactivateUser(Long id, DeactivationReason reason, String reasonDetails ) {
+    @Transactional
+    public void deactivateUser(Long id, DeactivationReason reason, String reasonDetails) {
         User user = getUserById(id);
-        if(!user.isEnabled()){
-            throw new AttributeUnchangedException("The user is already deactivated.");
+        if (!user.isEnabled()) {
+            throw new AttributeUnchangedException("The user is already deactivated");
         }
 
-        if( user.getUserRoles().contains(UserRole.SUPER_ADMIN)
-                && !authenticatedHasRole(UserRole.SUPER_ADMIN) ) {
-            throw UserPermissionExceptionFactory.forSuperAdminAction("désactiver");
+        // Super admin protection for self-deactivation
+        if (user.getUserRoles().contains(UserRole.SUPER_ADMIN) &&
+                !authenticatedHasRole(UserRole.SUPER_ADMIN)) {
+            throw UserPermissionExceptionFactory.forSuperAdminAction("deactivate");
         }
 
         user.setEnabled(false);
@@ -175,72 +183,257 @@ public class UserServiceImpl implements UserService {
         user.setDeactivationReason(reason);
         user.setDeactivationDetails(reasonDetails);
         userRepository.save(user);
+
+        log.info("User {} self-deactivated with reason: {}", user.getUsername(), reason);
     }
 
-    public void adminDeactivateUser(Long id, AdminDeactivationCategory deactivationCategory, String adminDeactivationDetails){
-        User targetUser = getUserById(id);
-        if(!targetUser.isEnabled()){
-            throw new AttributeUnchangedException("The user is already deactivated.");
+    @Override
+    @Transactional
+    public void adminDeactivateUser(User target, User admin, AdminDeactivationCategory deactivationCategory,
+                                    String adminDeactivationDetails) {
+        log.debug("Admin deactivation - target: {}, admin: {}, category: {}",
+                target.getUsername(), admin.getUsername(), deactivationCategory);
+
+        // 1. Defensive validation
+        if (target == null) {
+            throw new IllegalArgumentException("Target user cannot be null");
+        }
+        if (admin == null) {
+            throw new IllegalArgumentException("Admin user cannot be null");
         }
 
-        User admin = getAuthenticatedUser();
-        Set<UserRole> adminRoles = admin.getUserRoles();
+        // 2. Check if user is already deactivated
+        if (!target.isEnabled()) {
+            throw new AttributeUnchangedException("The user is already deactivated");
+        }
 
-        // ✅ NOUVELLE VÉRIFICATION DÉFENSIVE - Empêche l'auto-targeting
-        if (admin.getId().equals(targetUser.getId())) {
+        // 3. Admin permission validation
+        if (!admin.getUserRoles().contains(UserRole.ADMIN) &&
+                !admin.getUserRoles().contains(UserRole.SUPER_ADMIN)) {
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("deactivate a user");
+        }
+
+        // 4. Self-targeting prevention
+        if (admin.getId().equals(target.getId())) {
             throw UserPermissionExceptionFactory.forAdminSelfTargeting();
         }
 
-        // Vérification des permissions administratives
-        if (!adminRoles.contains(UserRole.SUPER_ADMIN) && !adminRoles.contains(UserRole.ADMIN)){
-            throw UserPermissionExceptionFactory.forAdminPermissionRequired("désactiver un utilisateur");
+        // 5. Super admin protection
+        if (target.getUserRoles().contains(UserRole.SUPER_ADMIN) &&
+                !admin.getUserRoles().contains(UserRole.SUPER_ADMIN)) {
+            throw UserPermissionExceptionFactory.forSuperAdminAction("deactivate");
         }
 
-        // Vérification spécifique SUPER_ADMIN
-        if( targetUser.getUserRoles().contains(UserRole.SUPER_ADMIN)
-                && !adminRoles.contains(UserRole.SUPER_ADMIN) ) {
-            throw UserPermissionExceptionFactory.forSuperAdminAction("désactiver");
+        // 6. Check if admin can deactivate this user
+        if (!userPermissionService.canDeactivateUser(admin, target)) {
+            UserRole targetRole = userPermissionService.getHighestRole(target);
+            throw UserPermissionExceptionFactory.forUnauthorizedUserAction("deactivate", targetRole);
         }
 
-        // ✅ NOUVELLE VÉRIFICATION - Validation selon les politiques
-        // Si l'admin essaie de contourner les règles de self-deactivation
-        if (admin.getId().equals(targetUser.getId()) &&
-                !userPermissionService.canSelfDeactivate(admin)) {
-            throw UserPermissionExceptionFactory.forSelfDeactivationPolicyBypass();
-        }
+        // 7. Perform deactivation
+        target.setEnabled(false);
+        target.setAdminDeactivationReason(deactivationCategory);
+        target.setAdminDeactivationDetails(adminDeactivationDetails);
+        target.setAdminDeactivatedBy(admin);
+        target.setAdminDeactivatedAt(Instant.now());
 
-        // Procéder à la désactivation
-        targetUser.setEnabled(false);
-        targetUser.setAdminDeactivationReason(deactivationCategory);
-        targetUser.setAdminDeactivationDetails(adminDeactivationDetails);
-        targetUser.setAdminDeactivatedBy(admin);
-        targetUser.setAdminDeactivatedAt(Instant.now());
+        userRepository.save(target);
 
-        userRepository.save(targetUser);
-
-        // Log de l'action
         log.info("User {} administratively deactivated by admin {} with category: {}",
-                targetUser.getUsername(), admin.getUsername(), deactivationCategory);
+                target.getUsername(), admin.getUsername(), deactivationCategory);
     }
 
-    /**
-     * @param user
-     */
-    @Override
-    public void gdprUserDelete(User user) {
+    // ===============================
+    // USER REACTIVATION OPERATIONS
+    // ===============================
 
-        // Anonymiser les données personnelles
+    @Override
+    @Transactional
+    public void reactivateUser(User user) {
+        if (user.isEnabled()) {
+            throw new AttributeUnchangedException("The user is already activated");
+        }
+
+        // Check reactivation eligibility (self-reactivation)
+        ReactivationEligibility eligibility = reactivationPolicyService.checkEligibility(user, user);
+        if (!eligibility.isEligible()) {
+            throw new UserPermissionException("Reactivation not allowed: " + eligibility.getReason());
+        }
+
+        // Determine reactivation policy
+        ReactivationPolicy policy = reactivationPolicyService.determineReactivationPolicy(user, user);
+
+        log.info("Self-reactivating user {} with policy {}", user.getUsername(), policy);
+
+        // Perform reactivation
+        user.setEnabled(true);
+        user.setReactivatedAt(Instant.now());
+        user.setReactivatedBy(user);
+        user.setReactivationPolicy(policy);
+
+        // Clear self-deactivation data only
+        if (user.getDeactivatedAt() != null) {
+            user.setDeactivationReason(null);
+            user.setDeactivationDetails(null);
+            user.setDeactivatedAt(null);
+        }
+
+        userRepository.save(user);
+
+        log.info("User {} successfully self-reactivated", user.getUsername());
+    }
+
+    @Override
+    @Transactional
+    public void adminReactivateUser(User target, User admin) {
+        log.debug("Admin reactivation request - target: {}, admin: {}",
+                target.getUsername(), admin.getUsername());
+
+        // 1. Defensive validation
+        if (target == null) {
+            throw new IllegalArgumentException("Target user cannot be null");
+        }
+        if (admin == null) {
+            throw new IllegalArgumentException("Admin user cannot be null");
+        }
+
+        // 2. Check if user is already enabled
+        if (target.isEnabled()) {
+            throw new AttributeUnchangedException("User is already active");
+        }
+
+        // 3. Check if this is really a reactivation (user was activated before)
+        if (!target.isEverActivated()) {
+            throw new IllegalStateException("User was never activated before. Use adminActivateUser instead");
+        }
+
+        // 4. Admin permission validation
+        if (!admin.getUserRoles().contains(UserRole.ADMIN) &&
+                !admin.getUserRoles().contains(UserRole.SUPER_ADMIN)) {
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("reactivate a user");
+        }
+
+        // 5. Super admin protection
+        if (target.getUserRoles().contains(UserRole.SUPER_ADMIN) &&
+                !admin.getUserRoles().contains(UserRole.SUPER_ADMIN)) {
+            throw UserPermissionExceptionFactory.forSuperAdminAction("reactivate");
+        }
+
+        // 6. Self-targeting prevention
+        if (admin.getId().equals(target.getId())) {
+            throw UserPermissionExceptionFactory.forAdminSelfTargeting();
+        }
+
+        // 7. Reactivation eligibility check (only if admin deactivated)
+        if (target.isAdminDeactivated()) {
+            ReactivationEligibility eligibility = reactivationPolicyService.checkEligibility(target, admin);
+            if (!eligibility.isEligible()) {
+                throw new UserPermissionException("Admin reactivation not allowed: " + eligibility.getReason());
+            }
+        }
+
+        // 8. Determine reactivation policy
+        ReactivationPolicy policy = reactivationPolicyService.determineReactivationPolicy(target, admin);
+
+        // 9. Perform reactivation
+        target.setEnabled(true);
+        target.setReactivatedAt(Instant.now());
+        target.setReactivatedBy(admin);
+        target.setReactivationPolicy(policy);
+
+        // 10. Clear deactivation data
+        if (target.getDeactivatedAt() != null) {
+            target.setDeactivationReason(null);
+            target.setDeactivationDetails(null);
+            target.setDeactivatedAt(null);
+        }
+
+        // 11. Clear admin deactivation data if applicable
+        if (target.isAdminDeactivated()) {
+            target.setAdminDeactivationReason(null);
+            target.setAdminDeactivationDetails(null);
+            target.setAdminDeactivatedBy(null);
+            target.setAdminDeactivatedAt(null);
+        }
+
+        userRepository.save(target);
+
+        log.info("User {} successfully reactivated by admin {} with policy {}",
+                target.getUsername(), admin.getUsername(), policy);
+    }
+
+    // ===============================
+    // USER DELETION OPERATIONS
+    // ===============================
+
+    @Override
+    @Transactional
+    public void deleteUser(Long id) {
+        // Only super admins can delete users
+        requireSuperAdminPermissions();
+
+        User user = getUserById(id);
+        userRepository.delete(user);
+
+        log.info("User {} deleted by super admin", user.getUsername());
+    }
+
+    @Override
+    @Transactional
+    public void gdprUserDelete(User user) {
+        // Only super admins can perform GDPR deletion
+        requireSuperAdminPermissions();
+
+        // Anonymize personal data
         user.setEmail("deleted_" + user.getId() + "@anonymized.local");
-        user.setFirstname("Utilisateur");
-        user.setLastname("Supprimé");
+        user.setFirstname("User");
+        user.setLastname("Deleted");
         user.setPhoneNumber(null);
 
-        // Désactiver le compte
+        // Deactivate account
         user.setEnabled(false);
         user.setDeactivatedAt(Instant.now());
         user.setDeactivationReason(DeactivationReason.GDPR_REQUEST);
         userRepository.save(user);
+
+        log.info("User {} GDPR deleted and anonymized", user.getUsername());
     }
+
+    // ===============================
+    // ROLE MANAGEMENT OPERATIONS
+    // ===============================
+
+    @Override
+    @Transactional
+    public void grantUserRole(Long id, UserRole role) {
+        User user = getUserById(id);
+        if (user.getUserRoles().contains(role)) {
+            throw new AttributeUnchangedException("The user already has role " + role);
+        }
+
+        user.getUserRoles().add(role);
+        userRepository.save(user);
+
+        log.info("Role {} granted to user {}", role, user.getUsername());
+    }
+
+    @Override
+    @Transactional
+    public void revokeUserRole(Long id, UserRole role) {
+        User user = getUserById(id);
+        if (!user.getUserRoles().contains(role)) {
+            throw new AttributeUnchangedException("The user does not have role " + role);
+        }
+
+        user.getUserRoles().remove(role);
+        userRepository.save(user);
+
+        log.info("Role {} revoked from user {}", role, user.getUsername());
+    }
+
+    // ===============================
+    // USER VALIDATION AND CHECKS
+    // ===============================
 
     @Override
     public void setUserMailVerified(User user) {
@@ -248,13 +441,12 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
-
     @Override
     public void checkIfUserExists(User user) {
-        if ( existsByUsername(user.getUsername()) ) {
+        if (existsByUsername(user.getUsername())) {
             throw new UsernameAlreadyTakenException("User account with username: " + user.getUsername() + " already exists");
         }
-        if ( existsByEmail(user.getEmail()) ) {
+        if (existsByEmail(user.getEmail())) {
             throw new EmailAlreadyUsedException("User account with email address: " + user.getEmail() + " already exists");
         }
     }
@@ -269,34 +461,9 @@ public class UserServiceImpl implements UserService {
         return userRepository.existsByEmailIgnoreCase(email);
     }
 
-
-    @Override
-    public void grantUserRole(Long id, UserRole role) {
-        User user = getUserById(id);
-        if( user.getUserRoles().contains(role)){
-            throw new AttributeUnchangedException("The user is already granted with role " + role);
-        }
-
-        user.getUserRoles().add(role);
-        userRepository.save(user);
-    }
-
-    @Override
-    public void revokeUserRole(Long id, UserRole role) {
-        User user = getUserById(id);
-        if(! user.getUserRoles().contains(role)){
-            throw new AttributeUnchangedException("The user is not granted with role " + role);
-        }
-
-        user.getUserRoles().remove(role);
-        userRepository.save(user);
-    }
-
-    @Override
-    public Long getTotalUsers() {
-        return userRepository.count();
-    }
-
+    // ===============================
+    // AUTHENTICATION AND AUTHORIZATION
+    // ===============================
 
     @Override
     public User getAuthenticatedUser() {
@@ -309,13 +476,11 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-
     @Override
     public boolean isAnonymous() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication instanceof AnonymousAuthenticationToken;
     }
-
 
     @Override
     public boolean authenticatedHasRole(UserRole role) {
@@ -325,19 +490,19 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void requireAdminPermissions(){
-        // ADMIN ou SUPER_ADMIN peuvent faire des opérations admin
-        if( !authenticatedHasRole(UserRole.ADMIN) && !authenticatedHasRole(UserRole.SUPER_ADMIN) ){
-            throw UserPermissionExceptionFactory.forAdminPermissionRequired("effectuer des opérations d'administration");
+    public void requireAdminPermissions() {
+        // ADMIN or SUPER_ADMIN can perform admin operations
+        if (!authenticatedHasRole(UserRole.ADMIN) && !authenticatedHasRole(UserRole.SUPER_ADMIN)) {
+            throw UserPermissionExceptionFactory.forAdminPermissionRequired("perform administrative operations");
         }
     }
 
     @Override
     public void requireSuperAdminPermissions() {
-        // Seuls les SUPER_ADMIN peuvent faire des opérations super admin
+        // Only SUPER_ADMIN can perform super admin operations
         if (!authenticatedHasRole(UserRole.SUPER_ADMIN)) {
-            throw UserPermissionExceptionFactory.forInsufficientPermissions(UserRole.SUPER_ADMIN, "effectuer des opérations de super administration");
+            throw UserPermissionExceptionFactory.forInsufficientPermissions(
+                    UserRole.SUPER_ADMIN, "perform super administrative operations");
         }
     }
-
 }
