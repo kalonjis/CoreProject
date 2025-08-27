@@ -2,8 +2,7 @@ package be.steby.CoreProject.dal.repositories;
 
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.User;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import be.steby.CoreProject.dl.enums.actionLogTypes.ActionLogType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,357 +11,320 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
+/**
+ * ActivityLog Repository - Simple DAL with basic types
+ * Pagination will be handled in services (BLL)
+ */
 @Repository
 public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> {
 
-    /**
-     * Trouve tous les logs de connexion pour un utilisateur spécifique
-     */
-    Page<ActivityLog> findByUserOrderByTimestampDesc(User user, Pageable pageable);
+    // ================== TYPE-SAFE METHODS (NEW - Use ActionLogType enums) ==================
 
     /**
-     * Recherche les logs par type d'action
-     */
-    //Page<ActivityLog> findByActionTypeOrderByTimestampDesc(String actionType, Pageable pageable);
-
-    /**
-     * Recherche les logs par utilisateur et type d'action
-     */
-    //Page<ActivityLog> findByUserAndActionTypeOrderByTimestampDesc(User user, String actionType, Pageable pageable);
-
-    /**
-     * Trouve les derniers logs d'un certain type pour un utilisateur
-     */
-    //List<ActivityLog> findTop10ByUserAndActionTypeOrderByTimestampDesc(User user, String actionType);
-
-    /**
-     * Recherche les logs d'un utilisateur selon plusieurs types d'actions et une période
-     */
-//    @Query("SELECT cl FROM ActivityLog cl WHERE cl.user = :user " +
-//            "AND (:actionTypes IS NULL OR cl.actionType IN :actionTypes) " +
-//            "AND cl.timestamp BETWEEN :startDate AND :endDate " +
-//            "ORDER BY cl.timestamp DESC")
-//    Page<ActivityLog> findByUserAndActionTypeInAndTimestampBetween(
-//            @Param("user") User user,
-//            @Param("actionTypes") List<String> actionTypes,
-//            @Param("startDate") Instant startDate,
-//            @Param("endDate") Instant endDate,
-//            Pageable pageable);
-
-    /**
-     * Recherche avancée de logs selon plusieurs critères
-     */
-    @Query("SELECT cl FROM ActivityLog cl WHERE " +
-            "(:userId IS NULL OR cl.user.id = :userId) AND " +
-            "(:ipAddress IS NULL OR cl.ipAddress = :ipAddress) AND " +
-            "(:actionTypes IS NULL OR cl.actionType IN :actionTypes) AND " +
-            "(:successful IS NULL OR cl.successful = :successful) AND " +
-            "cl.timestamp BETWEEN :startDate AND :endDate " +
-            "ORDER BY cl.timestamp DESC")
-    Page<ActivityLog> searchLogs(
-            @Param("userId") Long userId,
-            @Param("ipAddress") String ipAddress,
-            @Param("actionTypes") List<String> actionTypes,
-            @Param("successful") Boolean successful,
-            @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate,
-            Pageable pageable);
-
-    /**
-     * Compte les logs par utilisateur, type d'action, statut et période
-     */
-    long countByUserAndActionTypeAndSuccessfulAndTimestampBetween(
-            User user, String actionType, boolean successful, Instant startDate, Instant endDate);
-
-    /**
-     * Compte les logs par type d'action, statut et période
-     */
-    long countByActionTypeAndSuccessfulAndTimestampBetween(
-            String actionType, boolean successful, Instant startDate, Instant endDate);
-
-    /**
-     * Compte les logs par utilisateur, type d'action et période
-     */
-    long countByUserAndActionTypeAndTimestampBetween(
-            User user, String actionType, Instant startDate, Instant endDate);
-
-    /**
-     * Vérifie si un utilisateur s'est connecté depuis une IP dans une période donnée
-     */
-    boolean existsByUserAndIpAddressAndTimestampAfter(
-            User user, String ipAddress, Instant since);
-
-    /**
-     * Vérifie si un utilisateur s'est connecté depuis une localisation dans une période donnée
-     */
-    boolean existsByUserAndLocationAndTimestampAfter(
-            User user, String location, Instant since);
-
-    /**
-     * Compte le nombre d'appareils distincts utilisés par un utilisateur dans une période
-     */
-    @Query("SELECT COUNT(DISTINCT cl.device.id) FROM ActivityLog cl WHERE cl.user.id = :userId " +
-            "AND cl.device IS NOT NULL AND cl.timestamp BETWEEN :startDate AND :endDate")
-    Long countDistinctDevicesByUserAndTimestampBetween(
-            @Param("userId") Long userId,
-            @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate);
-
-    /**
-     * Trouve les adresses IP distinctes utilisées par un utilisateur dans une période
-     */
-    @Query("SELECT DISTINCT cl.ipAddress FROM ActivityLog cl WHERE cl.user = :user " +
-            "AND cl.timestamp BETWEEN :startDate AND :endDate")
-    List<String> findDistinctIpAddressesByUserAndTimestampBetween(
-            @Param("user") User user,
-            @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate);
-
-    /**
-     * Compte le nombre d'utilisateurs uniques pour un type d'action dans une période
-     */
-    @Query("SELECT COUNT(DISTINCT cl.user.id) FROM ActivityLog cl WHERE cl.actionType = :actionType " +
-            "AND cl.timestamp BETWEEN :startDate AND :endDate")
-    Long countDistinctUsersByActionTypeAndTimestampBetween(
-            @Param("actionType") String actionType,
-            @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate);
-
-    /**
-     * Compte le nombre d'adresses IP uniques pour un type d'action dans une période
-     */
-    @Query("SELECT COUNT(DISTINCT cl.ipAddress) FROM ActivityLog cl WHERE cl.actionType = :actionType " +
-            "AND cl.timestamp BETWEEN :startDate AND :endDate")
-    Long countDistinctIpAddressesByActionTypeAndTimestampBetween(
-            @Param("actionType") String actionType,
-            @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate);
-
-    /**
-     * Compte les connexions par localisation
-     */
-    @Query("SELECT cl.location, COUNT(cl.id) FROM ActivityLog cl WHERE cl.actionType = 'AUTH_LOGIN' " +
-            "AND cl.successful = true AND cl.timestamp BETWEEN :startDate AND :endDate " +
-            "GROUP BY cl.location ORDER BY COUNT(cl.id) DESC")
-    List<Object[]> countLoginsByLocation(
-            @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate);
-
-    /**
-     * Compte les connexions par jour
-     */
-    @Query(value = "SELECT CAST(timestamp as date) as login_date, COUNT(*) " +
-            "FROM connection_logs " +
-            "WHERE action_type = 'AUTH_LOGIN' AND successful = true " +
-            "AND timestamp BETWEEN :startDate AND :endDate " +
-            "GROUP BY CAST(timestamp as date) " +
-            "ORDER BY login_date", nativeQuery = true)
-    List<Object[]> countLoginsByDay(
-            @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate);
-
-    /**
-     * Recherche des activités suspectes: connexions depuis différentes adresses IP
-     * dans un court intervalle de temps
-     */
-    @Query("SELECT cl FROM ActivityLog cl WHERE cl.user = :user AND cl.actionType = 'AUTH_LOGIN' " +
-            "AND cl.successful = true AND cl.timestamp BETWEEN :startDate AND :endDate " +
-            "ORDER BY cl.timestamp DESC")
-    List<ActivityLog> findSuspiciousActivities(
-            @Param("user") User user,
-            @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate);
-
-
-    /**
-     * Recherche les logs par type d'action (ENUM) - TYPE SAFE
-     */
-    Page<ActivityLog> findByActionTypeOrderByTimestampDesc(ActionLogType actionType, Pageable pageable);
-
-    /**
-     * Recherche les logs par utilisateur et type d'action (ENUM) - TYPE SAFE
-     */
-    Page<ActivityLog> findByUserAndActionTypeOrderByTimestampDesc(User user, ActionLogType actionType, Pageable pageable);
-
-    /**
-     * Trouve les derniers logs d'un certain type pour un utilisateur (ENUM) - TYPE SAFE
-     */
-    List<ActivityLog> findTop10ByUserAndActionTypeOrderByTimestampDesc(User user, ActionLogType actionType);
-
-    /**
-     * Recherche par types d'actions multiples (ENUM) - TYPE SAFE
-     */
-    @Query("SELECT al FROM ActivityLog al WHERE al.actionType IN :actionTypes ORDER BY al.timestamp DESC")
-    Page<ActivityLog> findByActionTypeInOrderByTimestampDesc(
-            @Param("actionTypes") List<ActionLogType> actionTypes,
-            Pageable pageable);
-
-    /**
-     * Recherche par types d'actions avec période (ENUM) - TYPE SAFE
+     * Find logs by ActionLogType (type-safe)
      */
     @Query("SELECT al FROM ActivityLog al WHERE " +
-            "al.actionType IN :actionTypes AND " +
-            "al.timestamp BETWEEN :startDate AND :endDate " +
+            "al.actionType = :#{#actionType.name()} AND " +
+            "al.actionCategory = :#{#actionType.category} " +
             "ORDER BY al.timestamp DESC")
-    Page<ActivityLog> findByActionTypeInAndTimestampBetweenOrderByTimestampDesc(
-            @Param("actionTypes") List<ActionLogType> actionTypes,
-            @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate,
-            Pageable pageable);
+    List<ActivityLog> findByActionTypeOrderByTimestampDesc(@Param("actionType") ActionLogType actionType);
 
     /**
-     * Recherche par utilisateur et types d'actions (ENUM) - TYPE SAFE
+     * Find logs by user and ActionLogType (type-safe)
      */
     @Query("SELECT al FROM ActivityLog al WHERE " +
             "al.user = :user AND " +
-            "(:actionTypes IS NULL OR al.actionType IN :actionTypes) AND " +
-            "al.timestamp BETWEEN :startDate AND :endDate " +
+            "al.actionType = :#{#actionType.name()} AND " +
+            "al.actionCategory = :#{#actionType.category} " +
             "ORDER BY al.timestamp DESC")
-    Page<ActivityLog> findByUserAndActionTypeInAndTimestampBetween(
+    List<ActivityLog> findByUserAndActionTypeOrderByTimestampDesc(
             @Param("user") User user,
-            @Param("actionTypes") List<ActionLogType> actionTypes,
-            @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate,
-            Pageable pageable);
+            @Param("actionType") ActionLogType actionType);
 
     /**
-     * Recherche avancée avec enum pour actionTypes - TYPE SAFE
+     * Find latest log by user and ActionLogType (type-safe)
+     */
+    @Query("SELECT al FROM ActivityLog al WHERE " +
+            "al.user = :user AND " +
+            "al.actionType = :#{#actionType.name()} AND " +
+            "al.actionCategory = :#{#actionType.category} " +
+            "ORDER BY al.timestamp DESC LIMIT 1")
+    Optional<ActivityLog> findTopByUserAndActionTypeOrderByTimestampDesc(
+            @Param("user") User user,
+            @Param("actionType") ActionLogType actionType);
+
+    /**
+     * Find latest log by user and ActionLogType with success status (type-safe)
+     */
+    @Query("SELECT al FROM ActivityLog al WHERE " +
+            "al.user = :user AND " +
+            "al.actionType = :#{#actionType.name()} AND " +
+            "al.actionCategory = :#{#actionType.category} AND " +
+            "al.successful = :successful " +
+            "ORDER BY al.timestamp DESC LIMIT 1")
+    Optional<ActivityLog> findTopByUserAndActionTypeAndSuccessfulOrderByTimestampDesc(
+            @Param("user") User user,
+            @Param("actionType") ActionLogType actionType,
+            @Param("successful") boolean successful);
+
+    /**
+     * Count by ActionLogType and success status (type-safe)
+     */
+    @Query("SELECT COUNT(al) FROM ActivityLog al WHERE " +
+            "al.actionType = :#{#actionType.name()} AND " +
+            "al.actionCategory = :#{#actionType.category} AND " +
+            "al.successful = :successful AND " +
+            "al.timestamp BETWEEN :startDate AND :endDate")
+    long countByActionTypeAndSuccessfulAndTimestampBetween(
+            @Param("actionType") ActionLogType actionType,
+            @Param("successful") boolean successful,
+            @Param("startDate") Instant startDate,
+            @Param("endDate") Instant endDate);
+
+    /**
+     * Find logs by ActionLogType and time range (type-safe)
+     */
+    @Query("SELECT al FROM ActivityLog al WHERE " +
+            "al.actionType = :#{#actionType.name()} AND " +
+            "al.actionCategory = :#{#actionType.category} AND " +
+            "al.timestamp BETWEEN :startDate AND :endDate " +
+            "ORDER BY al.timestamp DESC")
+    List<ActivityLog> findByActionTypeAndTimestampBetweenOrderByTimestampDesc(
+            @Param("actionType") ActionLogType actionType,
+            @Param("startDate") Instant startDate,
+            @Param("endDate") Instant endDate);
+
+    // ================== CATEGORY-BASED METHODS ==================
+
+    /**
+     * Find logs by action category (AUTH, ADMIN, SECURITY, etc.)
+     */
+    List<ActivityLog> findByActionCategoryOrderByTimestampDesc(String actionCategory);
+
+    /**
+     * Find logs by user and category
+     */
+    List<ActivityLog> findByUserAndActionCategoryOrderByTimestampDesc(User user, String actionCategory);
+
+    /**
+     * Find logs by multiple categories
+     */
+    @Query("SELECT al FROM ActivityLog al WHERE " +
+            "al.actionCategory IN :categories " +
+            "ORDER BY al.timestamp DESC")
+    List<ActivityLog> findByActionCategoryInOrderByTimestampDesc(@Param("categories") List<String> categories);
+
+    /**
+     * Count by category and time range
+     */
+    @Query("SELECT COUNT(al) FROM ActivityLog al WHERE " +
+            "al.actionCategory = :category AND " +
+            "al.timestamp BETWEEN :startDate AND :endDate")
+    long countByActionCategoryAndTimestampBetween(
+            @Param("category") String category,
+            @Param("startDate") Instant startDate,
+            @Param("endDate") Instant endDate);
+
+    // ================== USER-BASED METHODS ==================
+
+    /**
+     * Find user's all logs
+     */
+    List<ActivityLog> findByUserOrderByTimestampDesc(User user);
+
+    /**
+     * Find user's logs by time range
+     */
+    List<ActivityLog> findByUserAndTimestampBetweenOrderByTimestampDesc(
+            User user, Instant startDate, Instant endDate);
+
+    /**
+     * Find user's logs by success status
+     */
+    List<ActivityLog> findByUserAndSuccessfulOrderByTimestampDesc(User user, boolean successful);
+
+    /**
+     * Count user's actions in time range
+     */
+    long countByUserAndTimestampBetween(User user, Instant startDate, Instant endDate);
+
+    // ================== TIME-BASED METHODS ==================
+
+    /**
+     * Find logs since timestamp
+     */
+    List<ActivityLog> findByTimestampAfterOrderByTimestampDesc(Instant timestamp);
+
+    /**
+     * Find logs in time range
+     */
+    List<ActivityLog> findByTimestampBetweenOrderByTimestampDesc(Instant startDate, Instant endDate);
+
+    /**
+     * Find logs before timestamp
+     */
+    List<ActivityLog> findByTimestampBeforeOrderByTimestampDesc(Instant timestamp);
+
+    // ================== STATUS-BASED METHODS ==================
+
+    /**
+     * Find failed actions
+     */
+    List<ActivityLog> findBySuccessfulOrderByTimestampDesc(boolean successful);
+
+    /**
+     * Find failed actions since timestamp
+     */
+    List<ActivityLog> findBySuccessfulAndTimestampAfterOrderByTimestampDesc(boolean successful, Instant timestamp);
+
+    /**
+     * Find high-risk actions
+     */
+    @Query("SELECT al FROM ActivityLog al WHERE " +
+            "al.riskLevel >= :minRiskLevel " +
+            "ORDER BY al.riskLevel DESC, al.timestamp DESC")
+    List<ActivityLog> findByRiskLevelGreaterThanEqualOrderByRiskLevelDescTimestampDesc(@Param("minRiskLevel") int minRiskLevel);
+
+    /**
+     * Find high-risk actions in time range
+     */
+    @Query("SELECT al FROM ActivityLog al WHERE " +
+            "al.riskLevel >= :minRiskLevel AND " +
+            "al.timestamp BETWEEN :startDate AND :endDate " +
+            "ORDER BY al.riskLevel DESC, al.timestamp DESC")
+    List<ActivityLog> findHighRiskActionsByTimestamp(
+            @Param("minRiskLevel") int minRiskLevel,
+            @Param("startDate") Instant startDate,
+            @Param("endDate") Instant endDate);
+
+    // ================== IP/LOCATION-BASED METHODS ==================
+
+    /**
+     * Find logs by IP address
+     */
+    List<ActivityLog> findByIpAddressOrderByTimestampDesc(String ipAddress);
+
+    /**
+     * Find user's logs by IP address
+     */
+    List<ActivityLog> findByUserAndIpAddressOrderByTimestampDesc(User user, String ipAddress);
+
+    /**
+     * Find logs by location
+     */
+    List<ActivityLog> findByLocationOrderByTimestampDesc(String location);
+
+    // ================== ADVANCED SEARCH ==================
+
+    /**
+     * Advanced search with multiple optional filters
      */
     @Query("SELECT al FROM ActivityLog al WHERE " +
             "(:userId IS NULL OR al.user.id = :userId) AND " +
             "(:ipAddress IS NULL OR al.ipAddress = :ipAddress) AND " +
-            "(:actionTypes IS NULL OR al.actionType IN :actionTypes) AND " +
+            "(:category IS NULL OR al.actionCategory = :category) AND " +
             "(:successful IS NULL OR al.successful = :successful) AND " +
+            "(:riskLevel IS NULL OR al.riskLevel >= :riskLevel) AND " +
             "al.timestamp BETWEEN :startDate AND :endDate " +
             "ORDER BY al.timestamp DESC")
-    Page<ActivityLog> searchLogsWithEnums(
+    List<ActivityLog> searchLogs(
             @Param("userId") Long userId,
             @Param("ipAddress") String ipAddress,
-            @Param("actionTypes") List<ActionLogType> actionTypes,
+            @Param("category") String category,
             @Param("successful") Boolean successful,
-            @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate,
-            Pageable pageable);
-
-    /**
-     * Compte par type d'action avec enum - TYPE SAFE
-     */
-    @Query("SELECT COUNT(al) FROM ActivityLog al WHERE " +
-            "al.actionType = :actionType AND " +
-            "al.successful = :successful AND " +
-            "al.timestamp BETWEEN :startDate AND :endDate")
-    long countByActionTypeAndSuccessfulAndTimestampBetween(
-            @Param("actionType") ActionLogType actionType,
-            @Param("successful") boolean successful,
+            @Param("riskLevel") Integer riskLevel,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate);
 
-    /**
-     * Compte par utilisateur et type d'action avec enum - TYPE SAFE
-     */
-    @Query("SELECT COUNT(al) FROM ActivityLog al WHERE " +
-            "al.user = :user AND " +
-            "al.actionType = :actionType AND " +
-            "al.successful = :successful AND " +
-            "al.timestamp BETWEEN :startDate AND :endDate")
-    long countByUserAndActionTypeAndSuccessfulAndTimestampBetween(
-            @Param("user") User user,
-            @Param("actionType") ActionLogType actionType,
-            @Param("successful") boolean successful,
-            @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate);
+    // ================== STATISTICS ==================
 
     /**
-     * Trouve le dernier log d'un certain type pour un utilisateur avec statut - TYPE SAFE
+     * Get action statistics by category
      */
-    ActivityLog findTopByUserAndActionTypeAndSuccessfulOrderByTimestampDesc(
-            User user, ActionLogType actionType, boolean successful);
-
-    /**
-     * Statistiques par catégorie d'actions - TYPE SAFE
-     */
-    @Query("SELECT al.actionType, COUNT(al) FROM ActivityLog al WHERE " +
+    @Query("SELECT al.actionCategory, COUNT(al) FROM ActivityLog al WHERE " +
             "al.timestamp BETWEEN :startDate AND :endDate " +
-            "GROUP BY al.actionType " +
+            "GROUP BY al.actionCategory " +
+            "ORDER BY COUNT(al) DESC")
+    List<Object[]> getCategoryStatistics(
+            @Param("startDate") Instant startDate,
+            @Param("endDate") Instant endDate);
+
+    /**
+     * Get action statistics by type
+     */
+    @Query("SELECT al.actionType, al.actionCategory, COUNT(al) FROM ActivityLog al WHERE " +
+            "al.timestamp BETWEEN :startDate AND :endDate " +
+            "GROUP BY al.actionType, al.actionCategory " +
             "ORDER BY COUNT(al) DESC")
     List<Object[]> getActionTypeStatistics(
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate);
 
     /**
-     * Recherche les actions par catégorie - TYPE SAFE
+     * Count total logs in time range
      */
-    @Query("SELECT al FROM ActivityLog al WHERE " +
-            "SUBSTRING(al.actionType, 1, LOCATE('_', al.actionType) - 1) = :category AND " +
-            "al.timestamp BETWEEN :startDate AND :endDate " +
-            "ORDER BY al.timestamp DESC")
-    Page<ActivityLog> findByActionCategoryAndTimestampBetween(
-            @Param("category") String category,
+    long countByTimestampBetween(Instant startDate, Instant endDate);
+
+    /**
+     * Count active users in time range
+     */
+    @Query("SELECT COUNT(DISTINCT al.user.id) FROM ActivityLog al WHERE " +
+            "al.timestamp BETWEEN :startDate AND :endDate")
+    long countActiveUsers(
             @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate,
-            Pageable pageable);
-
-// ================== MÉTHODES DE MIGRATION (à supprimer plus tard) ==================
+            @Param("endDate") Instant endDate);
 
     /**
-     * @deprecated Utiliser findByActionTypeOrderByTimestampDesc(ActionLogType, Pageable) à la place
+     * Count by success status in time range
      */
-    @Deprecated
-    Page<ActivityLog> findByActionTypeOrderByTimestampDesc(String actionType, Pageable pageable);
+    long countBySuccessfulAndTimestampBetween(boolean successful, Instant startDate, Instant endDate);
+
+    // ================== MAINTENANCE ==================
 
     /**
-     * @deprecated Utiliser findByUserAndActionTypeOrderByTimestampDesc(User, ActionLogType, Pageable) à la place
-     */
-    @Deprecated
-    Page<ActivityLog> findByUserAndActionTypeOrderByTimestampDesc(User user, String actionType, Pageable pageable);
-
-    /**
-     * @deprecated Utiliser findTop10ByUserAndActionTypeOrderByTimestampDesc(User, ActionLogType) à la place
-     */
-    @Deprecated
-    List<ActivityLog> findTop10ByUserAndActionTypeOrderByTimestampDesc(User user, String actionType);
-
-    /**
-     * Trouve le dernier log d'un certain type pour un utilisateur avec un statut spécifique
-     */
-    ActivityLog findTopByUserAndActionTypeAndSuccessfulOrderByTimestampDesc(
-            User user, String actionType, boolean successful);
-
-
-    /**
-     * Supprime les logs antérieurs à une date donnée
+     * Delete old logs
      */
     @Modifying
-    @Query("DELETE FROM ActivityLog cl WHERE cl.timestamp < :cutoffDate")
+    @Query("DELETE FROM ActivityLog al WHERE al.timestamp < :cutoffDate")
     long deleteByTimestampBefore(@Param("cutoffDate") Instant cutoffDate);
 
+    /**
+     * Count logs before date (for maintenance info)
+     */
+    long countByTimestampBefore(Instant cutoffDate);
 
     /**
-     * Trouve tous les logs par utilisateur et types d'actions spécifiés
+     * Find oldest logs (for archiving)
      */
-    Page<ActivityLog> findByUserAndActionTypeInOrderByTimestampDesc(
-            User user,
-            List<String> actionTypes,
-            Pageable pageable);
+    @Query("SELECT al FROM ActivityLog al ORDER BY al.timestamp ASC")
+    List<ActivityLog> findOldestLogs();
+
+    // ================== DEPRECATED METHODS (keep for migration) ==================
 
     /**
-     * Trouve les N derniers logs d'un utilisateur pour des types d'actions spécifiés
+     * @deprecated Use findByActionTypeOrderByTimestampDesc(ActionLogType) instead
      */
-    @Query("SELECT cl FROM ActivityLog cl WHERE cl.user = :user " +
-            "AND cl.actionType IN :actionTypes " +
-            "ORDER BY cl.timestamp DESC")
-    List<ActivityLog> findTopNByUserAndActionTypeInOrderByTimestampDesc(
-            @Param("user") User user,
-            @Param("actionTypes") List<String> actionTypes,
-            Pageable pageable);
+    @Deprecated
+    List<ActivityLog> findByActionTypeOrderByTimestampDesc(String actionType);
 
     /**
-     * Compte les logs par utilisateur, type d'action, statut et période (avec statut optionnel)
+     * @deprecated Use findByUserAndActionTypeOrderByTimestampDesc(User, ActionLogType) instead
      */
+    @Deprecated
+    List<ActivityLog> findByUserAndActionTypeOrderByTimestampDesc(User user, String actionType);
+
+    /**
+     * @deprecated Use findTopByUserAndActionTypeOrderByTimestampDesc(User, ActionLogType) instead
+     */
+    @Deprecated
+    Optional<ActivityLog> findTopByUserAndActionTypeOrderByTimestampDesc(User user, String actionType);
+
+    /**
+     * @deprecated Use countByActionTypeAndSuccessfulAndTimestampBetween(ActionLogType, boolean, Instant, Instant) instead
+     */
+    @Deprecated
     long countByUserAndActionTypeAndSuccessfulAndTimestampAfter(
-            User user,
-            String actionType,
-            boolean successful,
-            Instant timestamp);
+            User user, String actionType, boolean successful, Instant timestamp);
 }
