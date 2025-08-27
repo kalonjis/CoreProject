@@ -6,7 +6,6 @@ import be.steby.CoreProject.bll.domains.admin.events.AdminActionEvent;
 import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ActionLogType;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.UserRole;
 import com.fasterxml.jackson.core.JsonProcessingException;

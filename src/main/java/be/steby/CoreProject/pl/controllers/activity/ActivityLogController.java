@@ -4,7 +4,6 @@ import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ActionLogType;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
 import be.steby.CoreProject.il.device.RequiresDeviceTrustLevel;
 import be.steby.CoreProject.pl.assemblers.ActivityLogModelAssembler;

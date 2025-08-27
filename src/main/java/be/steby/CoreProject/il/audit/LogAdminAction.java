@@ -1,7 +1,5 @@
 package be.steby.CoreProject.il.audit;
 
-import be.steby.CoreProject.dl.enums.ActionLogType;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

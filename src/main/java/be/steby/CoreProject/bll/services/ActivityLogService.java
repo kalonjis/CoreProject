@@ -4,7 +4,6 @@ import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ActionLogType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

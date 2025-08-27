@@ -6,7 +6,6 @@ import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ActionLogType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

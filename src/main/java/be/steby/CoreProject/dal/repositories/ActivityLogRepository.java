@@ -2,7 +2,6 @@ package be.steby.CoreProject.dal.repositories;
 
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ActionLogType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
