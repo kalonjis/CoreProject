@@ -1,6 +1,7 @@
 package be.steby.CoreProject.pl.models.activity;
 
 import be.steby.CoreProject.dl.entities.ActivityLog;
+import be.steby.CoreProject.dl.enums.actionLogTypes.ActionLogType;
 
 import java.time.Instant;
 import java.time.ZoneId;

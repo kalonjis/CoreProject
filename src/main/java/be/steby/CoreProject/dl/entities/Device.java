@@ -85,5 +85,8 @@ public class Device extends BaseEntity<Long> {
     @Column
     private Instant logoutTime;
 
+    public boolean isTrusted(){
+        return this.deviceTrustLevel == DeviceTrustLevel.HIGHLY_TRUSTED || this.deviceTrustLevel == DeviceTrustLevel.TRUSTED;
+    }
 
 }
