@@ -11,9 +11,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Authentication domain activity logging service.
+ * PURE logging service - records what happened, nothing more.
+ *
+ * Principle: "We log events, analysts analyze them"
+ *
+ * @author Steby Core Project Team
+ * @version 2.0 - Pure KISS Edition
  */
 @Service
 @Slf4j
@@ -110,15 +120,18 @@ public class AuthActivityLogService extends AbstractActivityLogService {
     }
 
     /**
-     * Logs security challenge issued
+     * Logs security challenge (replaces SecurityActivityLogService)
      */
     @Transactional
     public ActivityLog logSecurityChallenge(User user, Device device, boolean passed,
-                                            String details, RequestContext context) {
+                                            String challengeType, RequestContext context) {
         if (passed) {
-            return logSuccess(user, device, AuthAction.SECURITY_CHALLENGE_PASSED, context);
+            ActivityLog activityLog = logSuccess(user, device, AuthAction.SECURITY_CHALLENGE_PASSED, context);
+            activityLog.setActionDetails("Challenge type: " + challengeType);
+            return activityLogRepository.save(activityLog);
         } else {
-            return logFailure(user, device, AuthAction.SECURITY_CHALLENGE_FAILED, details, context);
+            return logFailure(user, device, AuthAction.SECURITY_CHALLENGE_FAILED,
+                    "Failed challenge: " + challengeType, context);
         }
     }
 

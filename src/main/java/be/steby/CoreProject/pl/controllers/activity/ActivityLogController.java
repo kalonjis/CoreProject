@@ -303,28 +303,6 @@ public class ActivityLogController {
         return ResponseEntity.ok(systemStats);
     }
 
-    /**
-     * Endpoint pour obtenir les informations sur les types d'actions disponibles
-     */
-    @GetMapping("/action-types")
-    public ResponseEntity<CollectionModel<EntityModel<Map<String, String>>>> getActionTypes() {
-        List<EntityModel<Map<String, String>>> actionTypesList = Arrays.stream(ActionLogType.values())
-                .map(type -> {
-                    Map<String, String> typeInfo = new HashMap<>();
-                    typeInfo.put("key", type.name());
-                    typeInfo.put("category", type.getCategory());
-                    typeInfo.put("description", type.getDescription());
-                    return EntityModel.of(typeInfo);
-                })
-                .collect(Collectors.toList());
-
-        CollectionModel<EntityModel<Map<String, String>>> collectionModel = CollectionModel.of(
-                actionTypesList,
-                linkTo(methodOn(ActivityLogController.class).getActionTypes()).withSelfRel()
-        );
-
-        return ResponseEntity.ok(collectionModel);
-    }
 
     /**
      * Convertit une liste de chaînes en liste d'énumérations ActionLogType

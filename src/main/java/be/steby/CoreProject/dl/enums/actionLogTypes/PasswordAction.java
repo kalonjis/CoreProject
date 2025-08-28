@@ -3,7 +3,8 @@ package be.steby.CoreProject.dl.enums.actionLogTypes;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 
 /**
- * Password domain actions with specialized business logic.
+ * Password domain actions - COMPLETE enum aligned with ActivityListeners.
+ * Contains all password-related actions used in listeners and services.
  */
 public enum PasswordAction implements ActionLogType {
 
@@ -16,6 +17,7 @@ public enum PasswordAction implements ActionLogType {
 
     // ================== PASSWORD RESET PROCESS ==================
     PASSWORD_RESET_REQUESTED("Password reset requested"),
+    PASSWORD_RESET_TOKEN_REQUESTED("Password reset token requested"), // Used by PasswordActivityLogListener
     PASSWORD_RESET_COMPLETED("Password reset completed"),
     PASSWORD_RESET_EXPIRED("Password reset token expired"),
     PASSWORD_RESET_CANCELLED("Password reset cancelled"),
@@ -70,23 +72,24 @@ public enum PasswordAction implements ActionLogType {
     @Override
     public int getDefaultRiskLevel() {
         return switch (this) {
-            // Critical security risks
+            // Critical security risks (5)
             case PASSWORD_COMPROMISED_DETECTED, PASSWORD_BREACH_CHECK,
                  PASSWORD_ADMIN_RESET, MASTER_PASSWORD_CHANGED -> 5;
 
-            // High security risks
+            // High security risks (4)
             case PASSWORD_LOCKOUT_TRIGGERED, PASSWORD_HISTORY_VIOLATION,
                  PASSWORD_RESET_COMPLETED, PASSWORD_RETRY_LIMIT_EXCEEDED -> 4;
 
-            // Medium risks
+            // Medium risks (3)
             case PASSWORD_CHANGED, PASSWORD_UPDATED, TEMPORARY_PASSWORD_ISSUED,
-                 PASSWORD_RESET_REQUESTED, PASSWORD_FORCE_EXPIRED -> 3;
+                 PASSWORD_RESET_REQUESTED, PASSWORD_RESET_TOKEN_REQUESTED,
+                 PASSWORD_FORCE_EXPIRED -> 3;
 
-            // Low-medium risks
+            // Low-medium risks (2)
             case PASSWORD_ATTEMPT_FAILED, PASSWORD_COMPLEXITY_FAILED,
                  WEAK_PASSWORD_DETECTED, PASSWORD_POLICY_VIOLATION -> 2;
 
-            // Low risks (routine operations)
+            // Low risks (1)
             default -> 1;
         };
     }
@@ -111,6 +114,10 @@ public enum PasswordAction implements ActionLogType {
             case PASSWORD_RESET_REQUESTED -> log.isSuccessful() ?
                     "🔄 Password reset requested for user: " + userName :
                     "❌ Failed to request password reset for user: " + userName;
+
+            case PASSWORD_RESET_TOKEN_REQUESTED -> log.isSuccessful() ?
+                    "🎫 Password reset token requested for user: " + userName :
+                    "❌ Failed to generate password reset token for user: " + userName;
 
             case PASSWORD_RESET_COMPLETED -> log.isSuccessful() ?
                     "✅ Password reset completed for user: " + userName :

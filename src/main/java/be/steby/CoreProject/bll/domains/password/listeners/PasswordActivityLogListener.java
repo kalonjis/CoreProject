@@ -5,7 +5,7 @@ import be.steby.CoreProject.bll.common.utils.DeviceDetectionHelper;
 import be.steby.CoreProject.bll.domains.password.events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.domains.password.events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.domains.password.events.RequestPasswordTokenEvent;
-import be.steby.CoreProject.bll.domains.password.logs.PasswordActivityLogService;
+import be.steby.CoreProject.bll.domains.password.services.PasswordActivityLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -33,7 +33,7 @@ public class PasswordActivityLogListener {
         deviceDetectionHelper.executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
-                device -> passwordActivityLogService.logPasswordResetRequest(
+                device -> passwordActivityLogService.logPasswordResetRequested(
                         event.user(), device, event.requestContext())
         );
     }
@@ -44,8 +44,8 @@ public class PasswordActivityLogListener {
         deviceDetectionHelper.executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
-                device -> passwordActivityLogService.logPasswordChange(
-                        event.user(), device, true, event.requestContext())
+                device -> passwordActivityLogService.logPasswordChanged(
+                        event.user(), device, event.requestContext())
         );
     }
 
