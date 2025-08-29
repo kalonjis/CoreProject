@@ -6,11 +6,12 @@ import be.steby.CoreProject.bll.domains.account.events.RequestAccountActivationE
 import be.steby.CoreProject.bll.domains.account.events.RequestAccountDeactivationEvent;
 import be.steby.CoreProject.bll.domains.account.events.RequestAccountReactivationEvent;
 import be.steby.CoreProject.bll.domains.account.events.AccountReactivationConfirmedEvent;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.events.account.SignupEvent;
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.domains.account.services.AccountActivityLogService;
-import be.steby.CoreProject.bll.common.utils.DeviceDetectionHelper;
 import be.steby.CoreProject.bll.common.models.RequestContext;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+
+import java.util.function.Consumer;
 
 /**
  * Listener pour enregistrer les événements de compte dans les logs d'activité.
@@ -38,7 +41,8 @@ public class AccountActivityLogListener {
 
     private final ActivityLogService activityLogService;
     private final AccountActivityLogService accountActivityLogService;
-    private final DeviceDetectionHelper deviceDetectionHelper;
+    private final DeviceService deviceService;
+
 
     // ================== ÉVÉNEMENTS PRINCIPAUX DE COMPTE ==================
 
@@ -48,7 +52,7 @@ public class AccountActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleSignupEvent(SignupEvent event) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
                 device -> {
@@ -63,7 +67,7 @@ public class AccountActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleAccountConfirmationEvent(AccountConfirmationEvent event) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
                 device -> {
@@ -83,7 +87,7 @@ public class AccountActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleRequestAccountActivationEvent(RequestAccountActivationEvent event) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
                 device -> {
@@ -107,7 +111,7 @@ public class AccountActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleRequestAccountDeactivationEvent(RequestAccountDeactivationEvent event) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
                 device -> {
@@ -134,7 +138,7 @@ public class AccountActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleRequestAccountReactivationEvent(RequestAccountReactivationEvent event) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
                 device -> {
@@ -160,7 +164,7 @@ public class AccountActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleAccountDeactivationConfirmedEvent(AccountDeactivationConfirmedEvent event) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
                 device -> {
@@ -185,7 +189,7 @@ public class AccountActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleAccountReactivationConfirmedEvent(AccountReactivationConfirmedEvent event) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
                 device -> {
@@ -212,7 +216,7 @@ public class AccountActivityLogListener {
      * @param requestContext Le contexte de la requête
      */
     public void logFailedActivationAttempt(User user, String failureReason, String tokenUsed, RequestContext requestContext) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 user,
                 requestContext,
                 device -> {
@@ -238,7 +242,7 @@ public class AccountActivityLogListener {
      * @param requestContext Le contexte de la requête
      */
     public void logFailedDeactivationAttempt(User user, String failureReason, String tokenUsed, RequestContext requestContext) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 user,
                 requestContext,
                 device -> {
@@ -264,7 +268,7 @@ public class AccountActivityLogListener {
      * @param requestContext Le contexte de la requête
      */
     public void logFailedReactivationAttempt(User user, String failureReason, String tokenUsed, RequestContext requestContext) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 user,
                 requestContext,
                 device -> {
@@ -290,7 +294,7 @@ public class AccountActivityLogListener {
      * @param requestContext Le contexte de la requête
      */
     public void logTokenRevocation(User user, String tokenType, String revocationReason, RequestContext requestContext) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 user,
                 requestContext,
                 device -> {
@@ -306,36 +310,21 @@ public class AccountActivityLogListener {
                     );
                 });
     }
+
+
+    // ← Ajouter cette méthode (copiée d'ActivityLogEventListener)
+    private void executeWithDeviceDetection(User user,
+                                            RequestContext requestContext,
+                                            Consumer<Device> loggingAction) {
+        Device device = null;
+        try {
+            device = deviceService.detectFromRequestContext(requestContext, user);
+        } catch (Exception e) {
+            log.warn("Impossible de détecter le device pour l'utilisateur {} : {}",
+                    user.getUsername(), e.getMessage());
+        }
+        loggingAction.accept(device);
+    }
+
 }
 
-/*
- * INTÉGRATION COMPLÈTE AVEC DeviceDetectionHelper ET AccountActivityLogService :
- *
- * Ce listener utilise maintenant :
- * - DeviceDetectionHelper : Pour la détection robuste des devices (pattern recommandé du projet)
- * - AccountActivityLogService : Service spécialisé pour tracer les activités de compte
- *
- * COUVERTURE COMPLÈTE DES ÉVÉNEMENTS :
- * ✅ Création de compte (SignupEvent)
- * ✅ Confirmation de compte (AccountConfirmationEvent)
- * ✅ Demandes d'activation (RequestAccountActivationEvent)
- * ✅ Demandes de désactivation (RequestAccountDeactivationEvent)
- * ✅ Demandes de réactivation (RequestAccountReactivationEvent)
- * ✅ Confirmations de désactivation (AccountDeactivationConfirmedEvent)
- * ✅ Confirmations de réactivation (AccountReactivationConfirmedEvent)
- * ✅ Gestion des tentatives échouées (méthodes utilitaires)
- * ✅ Révocation de tokens (méthode utilitaire)
- *
- * TRAÇABILITÉ COMPLÈTE :
- * - Les demandes (Request events)
- * - Les confirmations (Confirmed events)
- * - Les échecs (Failed attempt methods)
- * - Détection automatique et sécurisée des devices
- * - Gestion d'erreurs intégrée dans DeviceDetectionHelper
- *
- * ANALYSES AVANCÉES POSSIBLES :
- * - Détection d'activité suspecte sur les comptes
- * - Statistiques sur les tentatives échouées
- * - Historique complet des activités de compte
- * - Audit de sécurité et conformité
- */

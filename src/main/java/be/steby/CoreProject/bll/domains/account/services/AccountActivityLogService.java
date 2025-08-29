@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.account.services;
 
-import be.steby.CoreProject.bll.common.logs.AbstractActivityLogService;
 import be.steby.CoreProject.bll.common.models.RequestContext;
+import be.steby.CoreProject.bll.common.services.activitylog.AbstractActivityLogService;
 import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
@@ -58,6 +58,11 @@ public class AccountActivityLogService extends AbstractActivityLogService {
     @Override
     protected String getDomainName() {
         return "ACCOUNT";
+    }
+
+    @Override
+    protected int getBaseRiskForActionType(ActionLogType actionType) {
+        return 0;
     }
 
     // ================== MÉTHODES UTILITAIRES PRIVÉES ==================

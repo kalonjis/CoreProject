@@ -1,9 +1,14 @@
 package be.steby.CoreProject.bll.common.listeners.users;
 
+import java.util.function.Consumer;
+
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
+import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.entities.Device;
+import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.common.event.user.AdminUserCreatedEvent;
 import be.steby.CoreProject.bll.common.event.user.SelfSignupUserCreatedEvent;
 import be.steby.CoreProject.bll.common.event.user.SystemUserCreatedEvent;
-import be.steby.CoreProject.bll.common.utils.DeviceDetectionHelper;
 import be.steby.CoreProject.bll.services.ActivityLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +24,8 @@ import org.springframework.stereotype.Component;
 public class UserCreationActivityLogListener {
 
     private final ActivityLogService activityLogService;
-    private final DeviceDetectionHelper deviceDetectionHelper;
+    private final DeviceService deviceService;
+
 
     /**
      * Journalise l'auto-inscription
@@ -27,7 +33,7 @@ public class UserCreationActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleSelfSignupUserCreated(SelfSignupUserCreatedEvent event) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
                 device -> activityLogService.logAccountCreation(
@@ -41,7 +47,7 @@ public class UserCreationActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleAdminUserCreated(AdminUserCreatedEvent event) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
                 device -> activityLogService.logAccountCreation(
@@ -55,11 +61,25 @@ public class UserCreationActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleSystemUserCreated(SystemUserCreatedEvent event) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
                 device -> activityLogService.logAccountCreation(
                         event.user(), device, event.requestContext())
         );
+    }
+
+    // ← Ajouter cette méthode (copiée d'ActivityLogEventListener)
+    private void executeWithDeviceDetection(User user,
+                                            RequestContext requestContext,
+                                            Consumer<Device> loggingAction) {
+        Device device = null;
+        try {
+            device = deviceService.detectFromRequestContext(requestContext, user);
+        } catch (Exception e) {
+            log.warn("Impossible de détecter le device pour l'utilisateur {} : {}",
+                    user.getUsername(), e.getMessage());
+        }
+        loggingAction.accept(device);
     }
 }
