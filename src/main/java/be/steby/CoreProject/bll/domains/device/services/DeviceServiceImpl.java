@@ -256,7 +256,7 @@ public class DeviceServiceImpl implements DeviceService {
                 .lastIpAddress(ipAddress)
                 .location(IpLocationUtils.resolveLocationFromIp(ipAddress))
                 .deviceTrustLevel(DeviceTrustLevel.UNTRUSTED)
-                .confirmed(confirmDevice)
+                .confirmed(false)
                 .blacklisted(false)
                 .build();
 
@@ -304,11 +304,7 @@ public class DeviceServiceImpl implements DeviceService {
         existingDevice.setLastSeen(Instant.now());
         existingDevice.setLastIpAddress(ipAddress);
         existingDevice.setLocation(IpLocationUtils.resolveLocationFromIp(ipAddress));
-
-        if (confirmDevice) {
-            existingDevice.setConfirmed(true);
-        }
-
+        
         deviceRepository.save(existingDevice);
         return existingDevice;
     }
