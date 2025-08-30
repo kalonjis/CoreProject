@@ -61,11 +61,8 @@ public class UserCreationActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleSystemUserCreated(SystemUserCreatedEvent event) {
-        executeWithDeviceDetection(
-                event.user(),
-                event.requestContext(),
-                device -> activityLogService.logAccountCreation(
-                        event.user(), device, event.requestContext())
+        activityLogService.logAccountCreation(
+            event.user(), null, event.requestContext()
         );
     }
 
