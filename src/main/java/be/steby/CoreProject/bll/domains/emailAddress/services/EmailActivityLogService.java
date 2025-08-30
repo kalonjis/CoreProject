@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.emailAddress.services;
 
-import be.steby.CoreProject.bll.common.logs.AbstractActivityLogService;
 import be.steby.CoreProject.bll.common.models.RequestContext;
+import be.steby.CoreProject.bll.common.services.activitylog.AbstractActivityLogService;
 import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
@@ -44,6 +44,11 @@ public class EmailActivityLogService extends AbstractActivityLogService {
     @Override
     protected String getDomainName() {
         return "EMAIL";
+    }
+
+    @Override
+    protected int getBaseRiskForActionType(ActionLogType actionType) {
+        return 0;
     }
 
     /**

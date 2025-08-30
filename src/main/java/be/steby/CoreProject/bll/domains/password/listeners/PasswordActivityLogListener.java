@@ -1,7 +1,13 @@
 package be.steby.CoreProject.bll.domains.password.listeners;
 
+// ← Ajoutez ces imports manquants
+import java.util.function.Consumer;
+import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.entities.Device;
+import be.steby.CoreProject.bll.common.models.RequestContext;
 
-import be.steby.CoreProject.bll.common.utils.DeviceDetectionHelper;
+// Vos imports existants
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.password.events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.domains.password.events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.domains.password.events.RequestPasswordTokenEvent;
@@ -13,24 +19,19 @@ import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-/**
- * Listener pour enregistrer les événements dans les logs d'activité.
- * Utilise un executeur asynchrone dédié pour ne pas bloquer le thread principal.
- */
 @RequiredArgsConstructor
 @Component
-@Order(10) // Priorité élevée pour la journalisation
+@Order(10)
 @Slf4j
 public class PasswordActivityLogListener {
 
     private final PasswordActivityLogService passwordActivityLogService;
-    private final DeviceDetectionHelper deviceDetectionHelper;
-
+    private final DeviceService deviceService;
 
     @EventListener
     @Async("activityLogExecutor")
     public void handleRequestPasswordReset(RequestPasswordResetEvent event) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
                 device -> passwordActivityLogService.logPasswordResetRequest(
@@ -41,7 +42,7 @@ public class PasswordActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handlePasswordChangedEvent(PasswordChangedEvent event) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
                 device -> passwordActivityLogService.logPasswordChange(
@@ -52,7 +53,7 @@ public class PasswordActivityLogListener {
     @EventListener
     @Async("activityLogExecutor")
     public void handleRequestPasswordToken(RequestPasswordTokenEvent event) {
-        deviceDetectionHelper.executeWithDeviceDetection(
+        executeWithDeviceDetection(
                 event.user(),
                 event.requestContext(),
                 device -> passwordActivityLogService.logRequestPasswordToken(
@@ -60,4 +61,17 @@ public class PasswordActivityLogListener {
         );
     }
 
+    // ← Ajouter cette méthode (copiée d'ActivityLogEventListener)
+    private void executeWithDeviceDetection(User user,
+                                            RequestContext requestContext,
+                                            Consumer<Device> loggingAction) {
+        Device device = null;
+        try {
+            device = deviceService.detectFromRequestContext(requestContext, user);
+        } catch (Exception e) {
+            log.warn("Impossible de détecter le device pour l'utilisateur {} : {}",
+                    user.getUsername(), e.getMessage());
+        }
+        loggingAction.accept(device);
+    }
 }

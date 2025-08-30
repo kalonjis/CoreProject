@@ -22,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nl.basjes.parse.useragent.UserAgent;
 import nl.basjes.parse.useragent.UserAgentAnalyzer;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,12 +44,6 @@ public class DeviceServiceImpl implements DeviceService {
 
     // New services for DRY refactoring
     private final DeviceFingerprintService deviceFingerprintService;
-
-    @Value("${app.device.auto-confirm:false}")
-    private boolean autoConfirmDevices;
-
-    @Value("${app.device.notify-new-device:true}")
-    private boolean notifyNewDevice;
 
     // =========================================================================
     // Public interface methods
@@ -263,7 +256,7 @@ public class DeviceServiceImpl implements DeviceService {
                 .lastIpAddress(ipAddress)
                 .location(IpLocationUtils.resolveLocationFromIp(ipAddress))
                 .deviceTrustLevel(DeviceTrustLevel.UNTRUSTED)
-                .confirmed(autoConfirmDevices || confirmDevice)
+                .confirmed(confirmDevice)
                 .blacklisted(false)
                 .build();
 
@@ -290,7 +283,7 @@ public class DeviceServiceImpl implements DeviceService {
                 .lastIpAddress(ipAddress)
                 .location(IpLocationUtils.resolveLocationFromIp(ipAddress))
                 .deviceTrustLevel(DeviceTrustLevel.UNTRUSTED)
-                .confirmed(autoConfirmDevices)
+                .confirmed(false)  // Never auto-confirm devices from context
                 .blacklisted(false)
                 .build();
 

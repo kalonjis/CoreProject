@@ -1,9 +1,9 @@
 package be.steby.CoreProject.bll.services.impl;
 
+import be.steby.CoreProject.bll.common.utils.IpLocationUtils;
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
 import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.services.ActivityLogService;
-import be.steby.CoreProject.bll.domains.device.utils.IpUtils;
 import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
@@ -51,7 +51,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
             RequestContext requestContext) {
 
         String clientIp = getClientIpAddress(requestContext);
-        String location = IpUtils.getLocationFromIp(clientIp);
+        String location = IpLocationUtils.resolveLocationFromIp(clientIp);
         String sessionId = getOrCreateSessionId(requestContext);
 
         // Évaluer le niveau de risque en fonction du type d'action et du contexte
@@ -802,7 +802,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         }
 
         // 4. Si la localisation est inhabituelle
-        String location = IpUtils.getLocationFromIp(ipAddress);
+        String location = IpLocationUtils.resolveLocationFromIp(ipAddress);
         boolean locationKnown = activityLogRepository.existsByUserAndLocationAndTimestampAfter(
                 user, location, Instant.now().minus(30, ChronoUnit.DAYS));
         if (!locationKnown && location != null && !location.equals("Unknown")) {
