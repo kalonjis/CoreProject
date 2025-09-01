@@ -18,7 +18,13 @@ public interface DeviceService {
 
     List<Device> getUserDevice(User user);
 
-    Device detectAndRegisterDevice(HttpServletRequest request, User user, boolean confirmDevice);
+    /**
+     * Detects and registers a device based on the HTTP request.
+     * @param request The HTTP request containing device information
+     * @param user The user for whom the device is being detected
+     * @return The detected/registered device
+     */
+    Device detectAndRegisterDevice(HttpServletRequest request, User user);
 
     Device detectCurrentDevice(HttpServletRequest request);
 
