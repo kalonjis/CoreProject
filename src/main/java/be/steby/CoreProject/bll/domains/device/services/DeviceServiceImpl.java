@@ -4,7 +4,6 @@ import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.common.utils.IpLocationUtils;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
-import be.steby.CoreProject.bll.domains.device.events.DeviceDetectedEvent;
 import be.steby.CoreProject.bll.domains.device.events.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.domains.device.utils.UserAgentUtils;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
@@ -41,13 +40,7 @@ public class DeviceServiceImpl implements DeviceService {
     private final RefreshTokenServiceImpl refreshTokenService;
     private final UserService userService;
     private final ApplicationEventPublisher eventPublisher;
-
-    // New services for DRY refactoring
     private final DeviceFingerprintService deviceFingerprintService;
-
-    // =========================================================================
-    // Public interface methods
-    // =========================================================================
 
     @Override
     public Device getDeviceById(Long id) {
@@ -75,27 +68,23 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     @Transactional
-    public Device detectAndRegisterDevice(HttpServletRequest request, User user, boolean confirmDevice) {
+    public Device detectAndRegisterDevice(HttpServletRequest request, User user) {
         String userAgentString = request.getHeader("User-Agent");
         String ipAddress = IpLocationUtils.extractClientIp(request);
-
-        // Use new fingerprint service
         String fingerprint = deviceFingerprintService.generateFingerprint(request, user.getId());
-
         UserAgent agent = userAgentAnalyzer.parse(userAgentString);
 
         Device device = deviceRepository.findByFingerprint(fingerprint)
-                .map(existingDevice -> updateExistingDevice(user, existingDevice, ipAddress, confirmDevice))
-                .orElseGet(() -> createNewDevice(user, agent, request, fingerprint, ipAddress, confirmDevice));
+                .map(existingDevice -> updateExistingDevice(user, existingDevice, ipAddress))
+                .orElseGet(() -> createNewDevice(user, agent, request, fingerprint, ipAddress));
 
-        publishDeviceDetectedEvent(device, user, request);
         return device;
     }
 
     @Override
     public Device detectCurrentDevice(HttpServletRequest request) {
         User user = userService.getAuthenticatedUser();
-        return detectAndRegisterDevice(request, user, false);
+        return detectAndRegisterDevice(request, user);
     }
 
     @Override
@@ -103,17 +92,13 @@ public class DeviceServiceImpl implements DeviceService {
     public Device detectFromRequestContext(RequestContext requestContext, User user) {
         String userAgentString = requestContext.getUserAgent();
         String ipAddress = requestContext.getClientIp();
-
-        // Use new fingerprint service with RequestContext
         String fingerprint = deviceFingerprintService.generateFingerprint(requestContext, user.getId());
-
         UserAgent agent = userAgentAnalyzer.parse(userAgentString);
 
         Device device = deviceRepository.findByFingerprint(fingerprint)
-                .map(existingDevice -> updateExistingDevice(user, existingDevice, ipAddress, false))
+                .map(existingDevice -> updateExistingDevice(user, existingDevice, ipAddress))
                 .orElseGet(() -> createNewDeviceFromContext(user, agent, requestContext, fingerprint, ipAddress));
 
-        publishDeviceDetectedEventFromContext(device, user, requestContext);
         return device;
     }
 
@@ -154,9 +139,12 @@ public class DeviceServiceImpl implements DeviceService {
     @Transactional
     public Device confirmDevice(String token) {
         Device device = getDeviceByToken(token);
+        device.setDeviceTrustLevel(DeviceTrustLevel.BASIC);
         device.setConfirmed(true);
+        if (device.isBlacklisted()) {
+            device.setBlacklisted(false);
+        }
         deviceRepository.save(device);
-
         log.info("Device {} confirmed for user {}", device.getId(), device.getUser().getUsername());
         return device;
     }
@@ -165,28 +153,26 @@ public class DeviceServiceImpl implements DeviceService {
     @Transactional
     public void rejectDevice(String token) {
         Device device = getDeviceByToken(token);
+        device.setDeviceTrustLevel(DeviceTrustLevel.UNTRUSTED);
+        device.setConfirmed(false);
         device.setBlacklisted(true);
         device.setBlacklistedTime(Instant.now());
+
+        User user = device.getUser();
+        refreshTokenService.revokeDeviceTokens(user, device);
         deviceRepository.save(device);
 
-        log.info("Device {} rejected and blacklisted for user {}", device.getId(), device.getUser().getUsername());
+        log.info("Device {} rejected and blacklisted for user {}", device.getId(), user.getUsername());
     }
 
     @Override
-    public Long getTotalDevices() {
-        return deviceRepository.count();
-    }
-
-    @Override
-    @Transactional
     public void requestConfirmationLink(HttpServletRequest request) {
-        Device currentDevice = detectCurrentDevice(request);
         User user = userService.getAuthenticatedUser();
+        Device currentDevice = detectCurrentDevice(request);
 
         DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
                 user, currentDevice.getId());
 
-        // Here you would typically send an email with the confirmation link
         log.info("Confirmation link requested for device {} of user {}",
                 currentDevice.getId(), user.getUsername());
     }
@@ -196,15 +182,14 @@ public class DeviceServiceImpl implements DeviceService {
     public void disconnectDevice(Long deviceId, HttpServletRequest request) {
         Device currentDevice = detectCurrentDevice(request);
         User currentUser = currentDevice.getUser();
-        Device deviceToDisconnect = getDeviceById(deviceId);
+        Device deviceToDisconnect = getMyDevice(deviceId);
 
-        if (!authenticatedUserOwnsDevice(deviceToDisconnect)) {
-            throw new OwnershipException("Access denied: You can only disconnect your own devices.");
+        if (deviceToDisconnect.isLoggedOut()) {
+            throw new AttributeUnchangedException("Device with id : " + deviceId + " was already disconnected !");
         }
 
         if (currentDevice.getId().equals(deviceToDisconnect.getId())) {
-            throw new CurrentDeviceDisconnectionException(
-                    "You cannot disconnect your current device remotely. Please use the logout function instead.");
+            throw new CurrentDeviceDisconnectionException("You cannot disconnect your current device remotely. Please use the logout function instead.");
         }
 
         refreshTokenService.revokeDeviceTokens(currentUser, deviceToDisconnect);
@@ -212,8 +197,7 @@ public class DeviceServiceImpl implements DeviceService {
         deviceToDisconnect.setLogoutTime(Instant.now());
         deviceRepository.save(deviceToDisconnect);
 
-        log.info("Device {} marked as disconnected for user {}",
-                deviceId, currentUser.getUsername());
+        log.info("Device {} marked as disconnected for user {}", deviceId, currentUser.getUsername());
     }
 
     @Override
@@ -223,8 +207,7 @@ public class DeviceServiceImpl implements DeviceService {
         User currentUser = currentDevice.getUser();
         List<Device> userDevices = getMyDeviceList();
 
-        log.info("Starting disconnection of all other devices for user {}",
-                currentUser.getUsername());
+        log.info("Starting disconnection of all other devices for user {}", currentUser.getUsername());
 
         int count = 0;
         for (Device device : userDevices) {
@@ -238,96 +221,15 @@ public class DeviceServiceImpl implements DeviceService {
             }
         }
 
-        log.info("{} devices successfully disconnected for user {}",
-                count, currentUser.getUsername());
+        log.info("{} devices successfully disconnected for user {}", count, currentUser.getUsername());
     }
 
-    // =========================================================================
+    @Override
+    public Long getTotalDevices() {
+        return deviceRepository.count();
+    }
+
     // Private helper methods
-    // =========================================================================
-
-    private Device createNewDevice(User user, UserAgent agent, HttpServletRequest request,
-                                   String fingerprint, String ipAddress, boolean confirmDevice) {
-        Device device = Device.builder()
-                .user(user)
-                .fingerprint(fingerprint)
-                .firstSeen(Instant.now())
-                .lastSeen(Instant.now())
-                .lastIpAddress(ipAddress)
-                .location(IpLocationUtils.resolveLocationFromIp(ipAddress))
-                .deviceTrustLevel(DeviceTrustLevel.UNTRUSTED)
-                .confirmed(false)
-                .blacklisted(false)
-                .build();
-
-        // Use new UserAgentUtils for device info population
-        UserAgentUtils.populateDeviceInfo(device, agent, request);
-
-        if (isFirstDevice(user)) {
-            device.setFirstDeviceUsed(true);
-        }
-
-        deviceRepository.save(device);
-        log.info("New device created with ID {} for user {}", device.getId(), user.getUsername());
-
-        return device;
-    }
-
-    private Device createNewDeviceFromContext(User user, UserAgent agent, RequestContext requestContext,
-                                              String fingerprint, String ipAddress) {
-        Device device = Device.builder()
-                .user(user)
-                .fingerprint(fingerprint)
-                .firstSeen(Instant.now())
-                .lastSeen(Instant.now())
-                .lastIpAddress(ipAddress)
-                .location(IpLocationUtils.resolveLocationFromIp(ipAddress))
-                .deviceTrustLevel(DeviceTrustLevel.UNTRUSTED)
-                .confirmed(false)  // Never auto-confirm devices from context
-                .blacklisted(false)
-                .build();
-
-        // Use new UserAgentUtils for device info population from RequestContext
-        UserAgentUtils.populateDeviceInfo(device, agent, requestContext);
-
-        if (isFirstDevice(user)) {
-            device.setFirstDeviceUsed(true);
-        }
-
-        deviceRepository.save(device);
-        log.info("New device created from context with ID {} for user {}", device.getId(), user.getUsername());
-
-        return device;
-    }
-
-    private Device updateExistingDevice(User user, Device existingDevice, String ipAddress, boolean confirmDevice) {
-        existingDevice.setLastSeen(Instant.now());
-        existingDevice.setLastIpAddress(ipAddress);
-        existingDevice.setLocation(IpLocationUtils.resolveLocationFromIp(ipAddress));
-        
-        deviceRepository.save(existingDevice);
-        return existingDevice;
-    }
-
-    private void publishDeviceDetectedEvent(Device device, User user, HttpServletRequest request) {
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
-        publishDeviceDetectedEventFromContext(device, user, requestContext);
-    }
-
-    private void publishDeviceDetectedEventFromContext(Device device, User user, RequestContext requestContext) {
-        boolean isNewDevice = device.getFirstSeen().equals(device.getLastSeen());
-
-        eventPublisher.publishEvent(new DeviceDetectedEvent(
-                device,
-                user,
-                isNewDevice,
-                device.isBlacklisted(),
-                device.isConfirmed(),
-                device.isFirstDeviceUsed(),
-                requestContext
-        ));
-    }
-
     private Device getDeviceByToken(String token) {
         DeviceConfirmationToken deviceConfirmationToken = deviceConfirmationTokenService.getToken(token);
         deviceConfirmationTokenService.verifyTokenValidity(deviceConfirmationToken);
@@ -345,6 +247,61 @@ public class DeviceServiceImpl implements DeviceService {
         if (!authenticatedUserOwnsDevice(device)) {
             throw new OwnershipException("Access denied: You can only access your own devices.");
         }
+    }
+
+    private Device updateExistingDevice(User user, Device device, String ipAddress) {
+        device.setLastSeen(Instant.now());
+        device.setLastIpAddress(ipAddress);
+        device.setLocation(IpLocationUtils.resolveLocationFromIp(ipAddress));
+        return deviceRepository.save(device);
+    }
+
+    private Device createNewDevice(User user, UserAgent agent, HttpServletRequest request, String fingerprint, String ipAddress) {
+        Device device = Device.builder()
+                .user(user)
+                .fingerprint(fingerprint)
+                .firstSeen(Instant.now())
+                .lastSeen(Instant.now())
+                .lastIpAddress(ipAddress)
+                .location(IpLocationUtils.resolveLocationFromIp(ipAddress))
+                .deviceTrustLevel(DeviceTrustLevel.UNTRUSTED)
+                .confirmed(false)
+                .blacklisted(false)
+                .build();
+
+        UserAgentUtils.populateDeviceInfo(device, agent, request);
+
+        if (isFirstDevice(user)) {
+            device.setFirstDeviceUsed(true);
+        }
+
+        deviceRepository.save(device);
+        log.info("New device created with ID {} for user {}", device.getId(), user.getUsername());
+        return device;
+    }
+
+    private Device createNewDeviceFromContext(User user, UserAgent agent, RequestContext requestContext, String fingerprint, String ipAddress) {
+        Device device = Device.builder()
+                .user(user)
+                .fingerprint(fingerprint)
+                .firstSeen(Instant.now())
+                .lastSeen(Instant.now())
+                .lastIpAddress(ipAddress)
+                .location(IpLocationUtils.resolveLocationFromIp(ipAddress))
+                .deviceTrustLevel(DeviceTrustLevel.UNTRUSTED)
+                .confirmed(false)
+                .blacklisted(false)
+                .build();
+
+        UserAgentUtils.populateDeviceInfo(device, agent, requestContext);
+
+        if (isFirstDevice(user)) {
+            device.setFirstDeviceUsed(true);
+        }
+
+        deviceRepository.save(device);
+        log.info("New device created from context with ID {} for user {}", device.getId(), user.getUsername());
+        return device;
     }
 
     private boolean isFirstDevice(User user) {

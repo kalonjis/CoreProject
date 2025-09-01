@@ -1,16 +1,15 @@
 package be.steby.CoreProject.pl.controllers.auth;
 
-import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
-import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
-import be.steby.CoreProject.bll.common.models.RequestContext;
-import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.domains.auth.services.AuthService;
-import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.userRegistration.services.UserRegistrationService;
+import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidCredentialsException;
+import be.steby.CoreProject.bll.domains.auth.exceptions.BlacklistedDeviceException;
+import be.steby.CoreProject.bll.domains.auth.exceptions.AccountDisabledException;
+import be.steby.CoreProject.bll.domains.account.exceptions.AccountActivationException;
 import be.steby.CoreProject.dl.entities.Device;
-import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
 import be.steby.CoreProject.pl.models.account.UserSignupForm;
 import be.steby.CoreProject.pl.models.auth.LoginForm;
@@ -22,7 +21,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.GrantedAuthority;
@@ -35,97 +35,290 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * REST Controller responsible for handling authentication-related HTTP requests.
+ * This controller manages user authentication, token management, and session handling.
+ * All business logic is delegated to appropriate services while this controller
+ * focuses solely on HTTP concerns (cookies, headers, response formatting).
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
 @Slf4j
 public class AuthController {
 
+    // Service dependencies
     private final AuthService authService;
     private final UserRegistrationService userRegistrationService;
-    private final JwtUtil jwtUtil;
     private final RefreshTokenServiceImpl refreshTokenService;
-    private final DeviceService deviceService;
-    private final ApplicationEventPublisher eventPublisher;
-    private final RequestContextService requestContextService;
 
-    private static final String COOKIE_PATH = "/";  // Path unifié pour tous les cookies
+    // JWT utilities
+    private final JwtUtil jwtUtil;
 
+    // Configuration properties
+    @Value("${security.jwt.access-token.name}")
+    private String accessTokenCookieName;
 
-    @PostMapping("signup")
-    public ResponseEntity<UserShortDTO>signup(@Valid @RequestBody UserSignupForm form, HttpServletRequest request){
-       User user = userRegistrationService.signup(form.toEntity(), request);
-       String location = "/api/user/" + user.getId();
-       return ResponseEntity.created(URI.create(location)).build();
+    @Value("${security.jwt.refresh-token.name}")
+    private String refreshTokenCookieName;
+
+    @Value("${security.jwt.access-token.expiration}")
+    private Long accessTokenDurationMs;
+
+    @Value("${security.jwt.refresh-token.expiration}")
+    private Long refreshTokenDurationMs;
+
+    private static final String COOKIE_PATH = "/";
+
+    // =========================================================================
+    // Public Authentication Endpoints
+    // =========================================================================
+
+    /**
+     * Handles user registration requests.
+     * Creates a new user account and sends activation email.
+     *
+     * @param form User signup form containing registration details
+     * @param request HTTP request for context capture
+     * @return ResponseEntity with created status and user location
+     */
+    @PostMapping("/signup")
+    public ResponseEntity<UserShortDTO> signup(@Valid @RequestBody UserSignupForm form,
+                                               HttpServletRequest request) {
+        log.info("Processing signup request for username: {}", form.username());
+
+        User user = userRegistrationService.signup(form.toEntity(), request);
+        String location = "/api/user/" + user.getId();
+
+        log.info("User registration successful for username: {}", user.getUsername());
+        return ResponseEntity.created(URI.create(location)).build();
     }
 
-
+    /**
+     * Handles user login requests.
+     * Authenticates user, detects device, generates tokens, and sets secure cookies.
+     *
+     * @param form Login form containing username and password
+     * @param request HTTP request for device detection
+     * @param response HTTP response for cookie setting
+     * @return ResponseEntity with login status and user information
+     */
     @PreAuthorize("isAnonymous()")
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Valid LoginForm form, HttpServletRequest request, HttpServletResponse response) {
-        User user = null;
-        Device device = null;
-        boolean successful = false;
-        String failureReason = null;
+    public ResponseEntity<?> login(@RequestBody @Valid LoginForm form,
+                                   HttpServletRequest request,
+                                   HttpServletResponse response) {
+        log.info("Processing login request for username: {}", form.username());
 
         try {
-            // Tentative de connexion
-            user = authService.login(form.username(), form.password());
-            device = deviceService.detectAndRegisterDevice(request, user, true);
+            // Delegate business logic to service (authentication, device detection, events)
+            User user = authService.login(form.username(), form.password(), request);
 
-            // Si on arrive ici, c'est un succès
-            successful = true;
+            // Extract device from request attribute (set by service)
+            Device device = extractDeviceFromRequest(request);
 
-            if(device.isLoggedOut()) {
-                device.setLoggedOut(false);
-                deviceService.saveDevice(device);
-            }
+            // Handle HTTP concerns: token generation and cookie management
+            handleSuccessfulLogin(user, device, response);
 
-            // Génération des tokens
-            String accessToken = jwtUtil.generateAccessToken(user, device);
-            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, device);
-            String refreshTokenCookie = refreshToken.getId() + "." + refreshToken.getToken();
+            // Build and return response
+            Map<String, Object> responseBody = buildLoginSuccessResponse(user, device);
 
-            // Configuration des cookies
-            addAccessTokenCookie(response, accessToken);
-            addRefreshTokenCookie(response, refreshTokenCookie);
-
-            // Préparation de la réponse
-            Map<String, Object> responseBody = new HashMap<>();
-            responseBody.put("deviceId", device.getId());
-            responseBody.put("deviceConfirmed", device.isConfirmed());
+            log.info("Login successful for user: {} with device: {}",
+                    user.getUsername(), device.getId());
 
             return ResponseEntity.ok(responseBody);
 
-        } catch (Exception ex) {
-            failureReason = ex.getMessage();
-            throw ex;
+        } catch (InvalidCredentialsException e) {
+            log.warn("Invalid credentials for username: {}", form.username());
+            return handleAuthenticationFailure("Invalid credentials", e.getMessage());
 
-        } finally {
-            try {
-                RequestContext requestContext = requestContextService.captureRequestContext(request);
+        } catch (AccountActivationException e) {
+            log.warn("Account activation required for username: {}", form.username());
+            return handleAuthenticationFailure("Account activation required", e.getMessage());
 
-                eventPublisher.publishEvent(new UserLoggedInEvent(
-                        user,
-                        device,
-                        successful,
-                        failureReason,
-                        requestContext
-                ));
-            } catch (Exception e) {
-                log.error("Erreur lors de la publication de l'événement de connexion: {}", e.getMessage(), e);
-            }
+        } catch (BlacklistedDeviceException e) {
+            log.warn("Blacklisted device login attempt for username: {}", form.username());
+            return handleSecurityFailure("Device blacklisted", e.getMessage());
+
+        } catch (AccountDisabledException e) {
+            log.warn("Disabled account login attempt for username: {}", form.username());
+            return handleSecurityFailure("Account disabled", e.getMessage());
+
+        } catch (Exception e) {
+            log.error("Unexpected error during login for username: {}: {}",
+                    form.username(), e.getMessage(), e);
+            return handleGenericFailure("Login failed", "An unexpected error occurred during login");
         }
     }
 
+    /**
+     * Provides current authentication status.
+     * Used by frontend to check if user is authenticated.
+     *
+     * @param user Currently authenticated user (null if not authenticated)
+     * @return ResponseEntity with authentication status and user details
+     */
+    @GetMapping("/status")
+    public ResponseEntity<Map<String, Object>> getAuthenticationStatus(@AuthenticationPrincipal User user) {
+        Map<String, Object> response = buildAuthStatusResponse(user);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Returns current authenticated user details.
+     *
+     * @param user Currently authenticated user
+     * @return ResponseEntity with user information
+     */
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getCurrentUser(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(UserDTO.fromEntity(user));
     }
 
+    /**
+     * Refreshes access token using refresh token cookie.
+     * Validates refresh token and generates new access token.
+     *
+     * @param refreshTokenCookie Refresh token from HTTP cookie
+     * @param response HTTP response for new cookie setting
+     * @return ResponseEntity indicating refresh status
+     */
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshToken(@CookieValue(name = "refresh_token", required = false) String refreshTokenCookie,
+                                          HttpServletResponse response) {
+        if (refreshTokenCookie == null) {
+            log.warn("Refresh token request without cookie");
+            return ResponseEntity.badRequest().body(createErrorResponse("Refresh token is required"));
+        }
 
-    @GetMapping("/status")
-    public ResponseEntity<Map<String, Object>> getAuthStatus(@AuthenticationPrincipal User user) {
+        try {
+            log.debug("Processing refresh token request");
+
+            // Parse and validate refresh token
+            RefreshToken validatedToken = validateAndParseRefreshToken(refreshTokenCookie);
+
+            // Generate new tokens
+            RefreshToken newRefreshToken = refreshTokenService.rotateToken(validatedToken);
+            String newAccessToken = jwtUtil.generateAccessToken(
+                    newRefreshToken.getUser(), newRefreshToken.getDevice());
+
+            // Set new cookies
+            setTokenCookies(response, newAccessToken, formatRefreshTokenCookie(newRefreshToken));
+
+            log.debug("Token refresh successful for user: {}", newRefreshToken.getUser().getUsername());
+            return ResponseEntity.ok().build();
+
+        } catch (Exception e) {
+            log.warn("Refresh token validation failed: {}", e.getMessage());
+            clearTokenCookies(response);
+            return ResponseEntity.badRequest().body(createErrorResponse("Invalid refresh token"));
+        }
+    }
+
+    /**
+     * Handles user logout requests.
+     * Delegates business logic to service and handles HTTP cookie clearing.
+     *
+     * @param refreshTokenCookie Refresh token from HTTP cookie
+     * @param request HTTP request for context capture
+     * @param response HTTP response for cookie clearing
+     * @return ResponseEntity with no content status
+     */
+    @PostMapping("/logout")
+    @Transactional
+    public ResponseEntity<?> logout(@CookieValue(name = "refresh_token", required = false) String refreshTokenCookie,
+                                    HttpServletRequest request,
+                                    HttpServletResponse response) {
+        try {
+            // Delegate business logic to service (token revocation, event publishing)
+            authService.logout(refreshTokenCookie, request);
+
+            log.info("Logout request processed successfully");
+        } catch (Exception e) {
+            log.warn("Error during logout process: {}", e.getMessage());
+        } finally {
+            // Always clear cookies regardless of business logic outcome
+            clearTokenCookies(response);
+        }
+
+        return ResponseEntity.noContent().build();
+    }
+
+    // =========================================================================
+    // Private Helper Methods - Login Process
+    // =========================================================================
+
+    /**
+     * Extracts device information from request attributes.
+     * Device is set by AuthService during login process.
+     */
+    private Device extractDeviceFromRequest(HttpServletRequest request) {
+        Device device = (Device) request.getAttribute("currentDevice");
+        if (device == null) {
+            throw new IllegalStateException("Device information not found in request");
+        }
+        return device;
+    }
+
+    /**
+     * Handles successful login by generating tokens and setting cookies.
+     */
+    private void handleSuccessfulLogin(User user, Device device, HttpServletResponse response) {
+        // Generate tokens
+        String accessToken = jwtUtil.generateAccessToken(user, device);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, device);
+
+        // Set secure cookies
+        setTokenCookies(response, accessToken, formatRefreshTokenCookie(refreshToken));
+    }
+
+    /**
+     * Builds success response for login endpoint.
+     */
+    private Map<String, Object> buildLoginSuccessResponse(User user, Device device) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Login successful");
+        response.put("user", UserDTO.fromEntity(user));
+        response.put("deviceId", device.getId());
+        response.put("deviceConfirmed", device.isConfirmed());
+        return response;
+    }
+
+    /**
+     * Handles authentication failures (401 Unauthorized).
+     * Used for invalid credentials and account activation issues.
+     */
+    private ResponseEntity<?> handleAuthenticationFailure(String error, String message) {
+        Map<String, Object> errorResponse = createErrorResponse(error, message);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+    }
+
+    /**
+     * Handles security-related failures (403 Forbidden).
+     * Used for blacklisted devices and disabled accounts.
+     */
+    private ResponseEntity<?> handleSecurityFailure(String error, String message) {
+        Map<String, Object> errorResponse = createErrorResponse(error, message);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+    }
+
+    /**
+     * Handles unexpected failures (500 Internal Server Error).
+     * Used for system errors and unexpected exceptions.
+     */
+    private ResponseEntity<?> handleGenericFailure(String error, String message) {
+        Map<String, Object> errorResponse = createErrorResponse(error, message);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+
+    // =========================================================================
+    // Private Helper Methods - Authentication Status
+    // =========================================================================
+
+    /**
+     * Builds authentication status response.
+     */
+    private Map<String, Object> buildAuthStatusResponse(User user) {
         Map<String, Object> response = new HashMap<>();
         boolean isAuthenticated = user != null;
 
@@ -138,133 +331,158 @@ public class AuthController {
                     .collect(Collectors.toList()));
         }
 
-        return ResponseEntity.ok(response);
+        return response;
     }
 
-    @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(
-            @CookieValue(name = "refresh_token", required = false) String refreshTokenCookie,
-            HttpServletResponse response) {
-        if (refreshTokenCookie == null) {
-            return ResponseEntity.badRequest().body("Refresh Token is required");
+    // =========================================================================
+    // Private Helper Methods - Token Management
+    // =========================================================================
+
+    /**
+     * Validates and parses refresh token from cookie format.
+     */
+    private RefreshToken validateAndParseRefreshToken(String refreshTokenCookie) {
+        String[] parts = refreshTokenCookie.split("\\.", 2);
+        if (parts.length != 2) {
+            throw new IllegalArgumentException("Invalid refresh token format");
         }
 
         try {
-            // Séparer l'ID et le token
-            String[] parts = refreshTokenCookie.split("\\.");
-            if (parts.length != 2) {
-                return ResponseEntity.badRequest().body("Invalid token format");
-            }
-
             Long tokenId = Long.parseLong(parts[0]);
             String tokenValue = parts[1];
 
-            // Vérifier l'ID ET le token
-            RefreshToken oldToken = refreshTokenService.verifyToken(tokenId, tokenValue)
+            return refreshTokenService.verifyToken(tokenId, tokenValue)
                     .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
-
-            refreshTokenService.verifyTokenValidity(oldToken);
-
-            // Créer un nouveau refresh token
-            RefreshToken newToken = refreshTokenService.rotateToken(oldToken);
-
-            // Générer le nouveau cookie avec ID et token
-            String newRefreshTokenCookie = newToken.getId() + "." + newToken.getToken();
-
-            // Générer nouveau access token
-            String newAccessToken = jwtUtil.generateAccessToken(newToken.getUser(), newToken.getDevice());
-
-            addAccessTokenCookie(response, newAccessToken);
-            addRefreshTokenCookie(response, newRefreshTokenCookie);
-
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Invalid refresh token");
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid token ID format");
         }
     }
 
+    /**
+     * Formats refresh token for cookie storage.
+     */
+    private String formatRefreshTokenCookie(RefreshToken refreshToken) {
+        return refreshToken.getId() + "." + refreshToken.getToken();
+    }
 
-    @PostMapping("/logout")
-    @Transactional
-    public ResponseEntity<?> logout(
-            @CookieValue(name = "refresh_token", required = false) String refreshTokenCookie,
-            HttpServletResponse response,
-            HttpServletRequest request
-    ) {
-        User user = null;
-        Device device = null;
+    /**
+     * Revokes refresh token during logout.
+     */
+    private void revokeRefreshToken(String refreshTokenCookie) {
+        try {
+            String[] parts = refreshTokenCookie.split("\\.", 2);
+            if (parts.length == 2) {
+                Long tokenId = Long.parseLong(parts[0]);
+                String tokenValue = parts[1];
 
-        if (refreshTokenCookie != null) {
-            try {
-                user = authService.getAuthenticatedUser();
-                device = deviceService.detectCurrentDevice(request);
-
-                // Séparer l'ID et le token
-                String[] parts = refreshTokenCookie.split("\\.");
-                if (parts.length == 2) {
-                    Long tokenId = Long.parseLong(parts[0]);
-                    String tokenValue = parts[1];
-
-                    // Vérifier et révoquer le token
-                    refreshTokenService.verifyToken(tokenId, tokenValue)
-                            .ifPresent(token -> {
-                                token.setRevoked(true);
-                                refreshTokenService.saveToken(token);
-                                log.info("Token {} révoqué avec succès", tokenId);
-                            });
-                }
-            } catch (NumberFormatException e) {
-                log.warn("Format invalide du refresh token cookie: {}", refreshTokenCookie);
-            } finally {
-                RequestContext requestContext = requestContextService.captureRequestContext(request);
-                eventPublisher.publishEvent(new UserLogoutEvent( user, device, requestContext));
+                refreshTokenService.verifyToken(tokenId, tokenValue)
+                        .ifPresent(token -> {
+                            token.setRevoked(true);
+                            refreshTokenService.saveToken(token);
+                            log.debug("Refresh token {} revoked successfully", tokenId);
+                        });
             }
+        } catch (Exception e) {
+            log.warn("Error revoking refresh token: {}", e.getMessage());
         }
-
-
-        // Supprimer les cookies côté client
-        deleteAccessTokenCookie(response);
-        deleteRefreshTokenCookie(response);
-
-        return ResponseEntity.noContent().build();
     }
 
+    // =========================================================================
+    // Private Helper Methods - Cookie Management
+    // =========================================================================
 
+    /**
+     * Sets both access and refresh token cookies.
+     */
+    private void setTokenCookies(HttpServletResponse response, String accessToken, String refreshTokenCookie) {
+        setAccessTokenCookie(response, accessToken);
+        setRefreshTokenCookie(response, refreshTokenCookie);
+    }
 
-    private void addAccessTokenCookie(HttpServletResponse response, String token) {
-        Cookie cookie = new Cookie(jwtUtil.getAccessTokenCookieName(), token);
-        configureCookie(cookie, (int) (jwtUtil.getAccessTokenExpiration() / 1000));
+    /**
+     * Sets access token cookie with appropriate security settings.
+     */
+    private void setAccessTokenCookie(HttpServletResponse response, String token) {
+        Cookie cookie = new Cookie(accessTokenCookieName, token);
+        configureCookie(cookie, (int) (accessTokenDurationMs / 1000));
         response.addCookie(cookie);
     }
 
-    private void addRefreshTokenCookie(HttpServletResponse response, String tokenId) {
-        Cookie cookie = new Cookie(jwtUtil.getRefreshTokenCookieName(), tokenId);
-        configureCookie(cookie, refreshTokenService.getRefreshTokenDurationInSeconds());
+    /**
+     * Sets refresh token cookie with appropriate security settings.
+     */
+    private void setRefreshTokenCookie(HttpServletResponse response, String tokenValue) {
+        Cookie cookie = new Cookie(refreshTokenCookieName, tokenValue);
+        configureCookie(cookie, (int) (refreshTokenDurationMs / 1000));
         response.addCookie(cookie);
     }
 
-    private void deleteAccessTokenCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie(jwtUtil.getAccessTokenCookieName(), "");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath(COOKIE_PATH);  // Utiliser le même path que lors de la création
-        cookie.setMaxAge(0);
+    /**
+     * Clears both access and refresh token cookies.
+     */
+    private void clearTokenCookies(HttpServletResponse response) {
+        clearAccessTokenCookie(response);
+        clearRefreshTokenCookie(response);
+    }
+
+    /**
+     * Clears access token cookie by setting it to expire immediately.
+     */
+    private void clearAccessTokenCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie(accessTokenCookieName, "");
+        configureCookieForDeletion(cookie);
         response.addCookie(cookie);
     }
 
-    private void deleteRefreshTokenCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie(jwtUtil.getRefreshTokenCookieName(), "");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath(COOKIE_PATH);  // Utiliser le même path que lors de la création
-        cookie.setMaxAge(0);
+    /**
+     * Clears refresh token cookie by setting it to expire immediately.
+     */
+    private void clearRefreshTokenCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie(refreshTokenCookieName, "");
+        configureCookieForDeletion(cookie);
         response.addCookie(cookie);
     }
 
+    /**
+     * Configures cookie with standard security settings.
+     */
     private void configureCookie(Cookie cookie, int maxAge) {
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
         cookie.setPath(COOKIE_PATH);
         cookie.setMaxAge(maxAge);
+    }
+
+    /**
+     * Configures cookie for deletion (maxAge = 0).
+     */
+    private void configureCookieForDeletion(Cookie cookie) {
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath(COOKIE_PATH);
+        cookie.setMaxAge(0);
+    }
+
+    // =========================================================================
+    // Private Helper Methods - Response Building
+    // =========================================================================
+
+    /**
+     * Creates standard error response structure.
+     */
+    private Map<String, Object> createErrorResponse(String error) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("error", error);
+        return response;
+    }
+
+    /**
+     * Creates detailed error response structure.
+     */
+    private Map<String, Object> createErrorResponse(String error, String message) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("error", error);
+        response.put("message", message);
+        return response;
     }
 }
