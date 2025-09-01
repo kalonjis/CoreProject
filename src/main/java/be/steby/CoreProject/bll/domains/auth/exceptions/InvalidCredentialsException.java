@@ -14,7 +14,4 @@ public class InvalidCredentialsException extends AuthenticationException {
         super(message);
     }
 
-    public InvalidCredentialsException(String message, int status) {
-        super(message, status);
-    }
 }

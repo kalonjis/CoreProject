@@ -13,8 +13,4 @@ public class DeviceSecurityException extends AuthenticationException {
     public DeviceSecurityException(String message) {
         super(message);
     }
-
-    public DeviceSecurityException(String message, int status) {
-        super(message, status);
-    }
 }

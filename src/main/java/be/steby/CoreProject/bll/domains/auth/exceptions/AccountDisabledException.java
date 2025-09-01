@@ -13,8 +13,4 @@ public class AccountDisabledException extends AuthenticationException {
     public AccountDisabledException(String message) {
         super(message);
     }
-
-    public AccountDisabledException(String message, int status) {
-        super(message, status);
-    }
 }
