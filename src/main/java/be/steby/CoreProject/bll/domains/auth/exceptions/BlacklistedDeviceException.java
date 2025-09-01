@@ -8,13 +8,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * This is a security-related exception that should result in a 403 Forbidden response.
  */
 @ResponseStatus(HttpStatus.FORBIDDEN)
-public class BlacklistedDeviceException extends AuthenticationException {
+public class BlacklistedDeviceException extends DeviceSecurityException {
 
     public BlacklistedDeviceException(String message) {
         super(message);
-    }
-
-    public BlacklistedDeviceException(String message, int status) {
-        super(message, status);
     }
 }

@@ -110,45 +110,23 @@ public class AuthController {
                                    HttpServletResponse response) {
         log.info("Processing login request for username: {}", form.username());
 
-        try {
-            // Delegate business logic to service (authentication, device detection, events)
-            User user = authService.login(form.username(), form.password(), request);
 
-            // Extract device from request attribute (set by service)
-            Device device = extractDeviceFromRequest(request);
+        // Delegate business logic to service (authentication, device detection, events)
+        User user = authService.login(form.username(), form.password(), request);
 
-            // Handle HTTP concerns: token generation and cookie management
-            handleSuccessfulLogin(user, device, response);
+        // Extract device from request attribute (set by service)
+        Device device = extractDeviceFromRequest(request);
 
-            // Build and return response
-            Map<String, Object> responseBody = buildLoginSuccessResponse(user, device);
+        // Handle HTTP concerns: token generation and cookie management
+        handleSuccessfulLogin(user, device, response);
 
-            log.info("Login successful for user: {} with device: {}",
-                    user.getUsername(), device.getId());
+        // Build and return response
+        Map<String, Object> responseBody = buildLoginSuccessResponse(user, device);
 
-            return ResponseEntity.ok(responseBody);
+        log.info("Login successful for user: {} with device: {}",
+                user.getUsername(), device.getId());
 
-        } catch (InvalidCredentialsException e) {
-            log.warn("Invalid credentials for username: {}", form.username());
-            return handleAuthenticationFailure("Invalid credentials", e.getMessage());
-
-        } catch (AccountActivationException e) {
-            log.warn("Account activation required for username: {}", form.username());
-            return handleAuthenticationFailure("Account activation required", e.getMessage());
-
-        } catch (BlacklistedDeviceException e) {
-            log.warn("Blacklisted device login attempt for username: {}", form.username());
-            return handleSecurityFailure("Device blacklisted", e.getMessage());
-
-        } catch (AccountDisabledException e) {
-            log.warn("Disabled account login attempt for username: {}", form.username());
-            return handleSecurityFailure("Account disabled", e.getMessage());
-
-        } catch (Exception e) {
-            log.error("Unexpected error during login for username: {}: {}",
-                    form.username(), e.getMessage(), e);
-            return handleGenericFailure("Login failed", "An unexpected error occurred during login");
-        }
+        return ResponseEntity.ok(responseBody);
     }
 
     /**
