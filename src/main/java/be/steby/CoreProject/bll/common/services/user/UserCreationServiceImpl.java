@@ -1,8 +1,8 @@
 package be.steby.CoreProject.bll.common.services.user;
 
-import be.steby.CoreProject.bll.common.event.user.AdminUserCreatedEvent;
-import be.steby.CoreProject.bll.common.event.user.SelfSignupUserCreatedEvent;
-import be.steby.CoreProject.bll.common.event.user.SystemUserCreatedEvent;
+import be.steby.CoreProject.bll.common.events.user.AdminUserCreatedEvent;
+import be.steby.CoreProject.bll.common.events.user.SelfSignupUserCreatedEvent;
+import be.steby.CoreProject.bll.common.events.user.SystemUserCreatedEvent;
 import be.steby.CoreProject.bll.common.exceptions.UserValidationException;
 import be.steby.CoreProject.bll.common.models.user.UserCreationMode;
 import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;

@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.common.event.user;
+package be.steby.CoreProject.bll.common.events.user;
 
 import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.User;

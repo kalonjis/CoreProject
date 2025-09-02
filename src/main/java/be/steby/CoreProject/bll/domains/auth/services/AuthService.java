@@ -12,7 +12,7 @@ public interface AuthService extends UserDetailsService {
 
     /**
      * Authenticates a user based on the provided credentials and performs complete login business logic.
-     * This includes device detection, event publishing, and security notifications.
+     * This includes device detection, events publishing, and security notifications.
      *
      * @param username The username of the user to be authenticated.
      * @param password The password of the user to be authenticated.
@@ -23,7 +23,7 @@ public interface AuthService extends UserDetailsService {
     User login(String username, String password, HttpServletRequest request);
 
     /**
-     * Performs complete logout business logic including token revocation and event publishing.
+     * Performs complete logout business logic including token revocation and events publishing.
      *
      * @param refreshTokenCookie The refresh token cookie value for token revocation
      * @param request The HTTP request for context capture and device detection

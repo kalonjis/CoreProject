@@ -90,7 +90,7 @@ public class AuthServiceImpl implements AuthService {
             if (device.isBlacklisted()) {
                 RequestContext requestContext = requestContextService.captureRequestContext(request);
 
-                // Publish security event for notification (email will be sent)
+                // Publish security events for notification (email will be sent)
                 eventPublisher.publishEvent(new DeviceSecurityEvent(
                         user,
                         device,
@@ -179,7 +179,7 @@ public class AuthServiceImpl implements AuthService {
             log.warn("Error during logout process for user {}: {}",
                     user != null ? user.getUsername() : "unknown", e.getMessage());
         } finally {
-            // 3. Always publish logout event for audit purposes
+            // 3. Always publish logout events for audit purposes
             publishLogoutEvent(user, device, request);
         }
     }
@@ -221,17 +221,17 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * Publishes logout event for audit and cleanup purposes.
+     * Publishes logout events for audit and cleanup purposes.
      */
     private void publishLogoutEvent(User user, Device device, HttpServletRequest request) {
         try {
             if (user != null) {
                 RequestContext requestContext = requestContextService.captureRequestContext(request);
                 eventPublisher.publishEvent(new UserLogoutEvent(user, device, requestContext));
-                log.debug("Logout event published for user: {}", user.getUsername());
+                log.debug("Logout events published for user: {}", user.getUsername());
             }
         } catch (Exception e) {
-            log.error("Error publishing logout event: {}", e.getMessage(), e);
+            log.error("Error publishing logout events: {}", e.getMessage(), e);
         }
     }
 

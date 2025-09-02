@@ -1,13 +1,15 @@
-package be.steby.CoreProject.bll.common.event.user;
+package be.steby.CoreProject.bll.common.events.user;
 
 import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.User;
 
+
 /**
- * Event published when a user is created by the system
+ * Event published when a user is created by a (super)admin
  */
-public record SystemUserCreatedEvent(
+public record AdminUserCreatedEvent(
         User user,
+        String confirmationToken,
         String temporaryPassword,
         RequestContext requestContext
 ) {

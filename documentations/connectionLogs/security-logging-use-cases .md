@@ -169,7 +169,7 @@ public class DeviceSecurityService {
             request
         );
         
-        // Publish event for other components
+        // Publish events for other components
         eventPublisher.publishEvent(new DeviceTrustLevelChangedEvent(deviceId, newLevel));
     }
 }
@@ -1338,7 +1338,7 @@ public class SiemIntegrationService {
     private Map<String, Object> convertLogToSiemEvent(ConnectionLog log) {
         Map<String, Object> event = new HashMap<>();
         
-        // Basic event properties
+        // Basic events properties
         event.put("timestamp", log.getTimestamp().toString());
         event.put("eventType", "security");
         event.put("actionType", log.getActionType());

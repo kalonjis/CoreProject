@@ -30,7 +30,7 @@ public class DeviceSecurityListener {
     @EventListener
     @Async("emailExecutor")
     public void handleDeviceSecurityEvent(DeviceSecurityEvent event) {
-        log.info("Processing device security event: {} for user {}",
+        log.info("Processing device security events: {} for user {}",
                 event.type(), event.user().getUsername());
 
         switch (event.type()) {
@@ -103,7 +103,7 @@ public class DeviceSecurityListener {
     /**
      * Determines whether a notification should be sent for an unconfirmed device.
      *
-     * @param event The device security event
+     * @param event The device security events
      * @return true if a notification should be sent, false otherwise
      */
     private boolean shouldSendNotificationForUnconfirmedDevice(DeviceSecurityEvent event) {

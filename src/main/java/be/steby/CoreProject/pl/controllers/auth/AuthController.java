@@ -208,7 +208,7 @@ public class AuthController {
                                     HttpServletRequest request,
                                     HttpServletResponse response) {
         try {
-            // Delegate business logic to service (token revocation, event publishing)
+            // Delegate business logic to service (token revocation, events publishing)
             authService.logout(refreshTokenCookie, request);
 
             log.info("Logout request processed successfully");

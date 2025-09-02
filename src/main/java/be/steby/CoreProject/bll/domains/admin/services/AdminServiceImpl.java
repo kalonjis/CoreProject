@@ -34,7 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Admin service implementation focused on orchestration and event publishing.
+ * Admin service implementation focused on orchestration and events publishing.
  * Delegates all business logic to UserService while handling admin-specific concerns.
  */
 @Service
@@ -129,7 +129,7 @@ public class AdminServiceImpl implements AdminService {
             userService.adminReactivateUser(target, admin);
         }
 
-        // 4. Publish appropriate event
+        // 4. Publish appropriate events
         boolean wasDeactivated = target.getDeactivatedAt() != null;
         AdminUserActivatedEvent event = wasDeactivated
                 ? AdminUserActivatedEvent.of(target, admin, true, target.getDeactivatedAt(), requestContext)
@@ -168,7 +168,7 @@ public class AdminServiceImpl implements AdminService {
         // 4. Delegate to user service
         userService.adminDeactivateUser(target, admin, deactivationCategory, adminDeactivationDetails);
 
-        // 5. Publish deactivation event
+        // 5. Publish deactivation events
         AdminUserDeactivatedEvent event = AdminUserDeactivatedEvent.simple(
                 target, admin, deactivationCategory, adminDeactivationDetails, requestContext);
         eventPublisher.publishEvent(event);
@@ -193,7 +193,7 @@ public class AdminServiceImpl implements AdminService {
         // 3. Delegate to user service
         userService.adminReactivateUser(target, admin);
 
-        // 4. Publish reactivation event
+        // 4. Publish reactivation events
         AdminUserActivatedEvent event = AdminUserActivatedEvent.of(
                 target, admin, true, target.getDeactivatedAt(), requestContext);
         eventPublisher.publishEvent(event);
