@@ -8,7 +8,7 @@ import be.steby.CoreProject.dl.entities.User;
  * Only essential methods, no over-engineering.
  */
 public sealed interface ActionLogType
-        permits AuthAction {
+        permits AuthAction, PasswordAction {
     // TODO: Add other domain enums: PasswordAction, EmailAction, AccountAction, AdminAction, DeviceAction
 
     // ================== CORE METHODS ONLY ==================

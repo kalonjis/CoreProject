@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 /**
  * Global listener that handles ALL user action events asynchronously
  * This single listener processes events from all domains: AUTH, PASSWORD, EMAIL, etc.
+ * Uses dedicated activityLogExecutor thread pool for optimal performance.
  */
 @Component
 @RequiredArgsConstructor
@@ -21,11 +22,11 @@ public class ActivityLogEventListener {
     private final ActivityLogRepository activityLogRepository;
 
     /**
-     * Handle all user action events asynchronously
+     * Handle all user action events asynchronously using dedicated activity log executor
      * This method processes events from all activity log domains
      */
     @EventListener
-    @Async
+    @Async("activityLogExecutor")  // ✅ CORRECTION: Utilise le thread pool dédié
     public void handleUserActionEvent(UserActionEvent event) {
         try {
             // Create ActivityLog using the factory method from ActionLogType
@@ -76,7 +77,7 @@ public class ActivityLogEventListener {
      * These events might need immediate attention
      */
     @EventListener
-    @Async
+    @Async("activityLogExecutor")  // ✅ CORRECTION: Utilise le thread pool dédié
     public void handleSecurityEvent(UserActionEvent event) {
         // Only process security-related events
         if (!isSecurityRelatedEvent(event)) {

@@ -1,322 +1,239 @@
-//package be.steby.CoreProject.bll.domains.password.logs;
-//
-//import be.steby.CoreProject.bll.common.models.RequestContext;
-//import be.steby.CoreProject.bll.common.services.activitylog.AbstractActivityLogService;
-//import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
-//import be.steby.CoreProject.dl.entities.ActivityLog;
-//import be.steby.CoreProject.dl.entities.Device;
-//import be.steby.CoreProject.dl.entities.User;
-//import be.steby.CoreProject.dl.enums.ActionLogType;
-//import com.fasterxml.jackson.core.JsonProcessingException;
-//import lombok.extern.slf4j.Slf4j;
-//import org.springframework.stereotype.Service;
-//import org.springframework.transaction.annotation.Transactional;
-//
-//import java.time.Instant;
-//import java.time.temporal.ChronoUnit;
-//import java.util.HashMap;
-//import java.util.List;
-//import java.util.Map;
-//
-///**
-// * Service de journalisation spécifique aux opérations liées aux mots de passe.
-// * Cette classe s'occupe de l'enregistrement et l'analyse des activités
-// * telles que les changements de mot de passe, les demandes de réinitialisation, etc.
-// */
-//@Service
-//@Slf4j
-//public class PasswordActivityLogService extends AbstractActivityLogService {
-//
-//    /**
-//     * Constructeur pour l'initialisation des dépendances.
-//     *
-//     * @param activityLogRepository Repository pour la persistance des logs d'activité
-//     */
-//    public PasswordActivityLogService(ActivityLogRepository activityLogRepository) {
-//        super(activityLogRepository);
-//    }
-//
-//    /**
-//     * Retourne le nom du domaine pour ce service.
-//     *
-//     * @return Le nom du domaine "PASSWORD"
-//     */
-//    @Override
-//    protected String getDomainName() {
-//        return "PASSWORD";
-//    }
-//
-//    @Override
-//    protected int getBaseRiskForActionType(ActionLogType actionType) {
-//        return 0;
-//    }
-//
-//    /**
-//     * Enregistre un changement de mot de passe
-//     *
-//     * @param user L'utilisateur qui a changé son mot de passe
-//     * @param device L'appareil utilisé
-//     * @param successful Si le changement a réussi
-//     * @param requestContext Le contexte de la requête
-//     * @return L'entrée de journal créée
-//     */
-//    @Transactional
-//    public ActivityLog logPasswordChange(
-//            User user,
-//            Device device,
-//            boolean successful,
-//            RequestContext requestContext) {
-//
-//        String details = successful
-//                ? "Changement de mot de passe réussi"
-//                : "Échec du changement de mot de passe";
-//
-//        String metadataJson = null;
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("isMustChangePasswordReset", user.isMustChangePassword());
-//            metadata.put("source", "user_initiated");
-//            metadataJson = objectMapper.writeValueAsString(metadata);
-//        } catch (JsonProcessingException e) {
-//            log.warn("Impossible de sérialiser les métadonnées pour le changement de mot de passe: {}", e.getMessage());
-//        }
-//
-//        return logUserAction(
-//                user,
-//                device,
-//                ActionLogType.PASSWORD_CHANGED,
-//                successful,
-//                details,
-//                metadataJson,
-//                requestContext
-//        );
-//    }
-//
-//    /**
-//     * Enregistre une demande de réinitialisation de mot de passe
-//     *
-//     * @param user L'utilisateur concerné par la demande
-//     * @param device L'appareil utilisé
-//     * @param requestContext Le contexte de la requête
-//     * @return L'entrée de journal créée
-//     */
-//    @Transactional
-//    public ActivityLog logPasswordResetRequest(
-//            User user,
-//            Device device,
-//            RequestContext requestContext) {
-//
-//        String metadataJson = null;
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("requestTime", Instant.now().toString());
-//            metadataJson = objectMapper.writeValueAsString(metadata);
-//        } catch (JsonProcessingException e) {
-//            log.warn("Impossible de sérialiser les métadonnées pour la demande de réinitialisation: {}", e.getMessage());
-//        }
-//
-//        return logUserAction(
-//                user,
-//                device,
-//                ActionLogType.PASSWORD_RESET_REQUEST,
-//                true,
-//                "Demande de réinitialisation de mot de passe effectuée",
-//                metadataJson,
-//                requestContext
-//        );
-//    }
-//
-//    /**
-//     * Enregistre un renouvellement de demande de réinitialisation de mot de passe
-//     * (quand un token a expiré et qu'un nouveau token est demandé)
-//     *
-//     * @param user L'utilisateur concerné par la demande
-//     * @param device L'appareil utilisé
-//     * @param requestContext Le contexte de la requête
-//     * @return L'entrée de journal créée
-//     */
-//    @Transactional
-//    public ActivityLog logRequestPasswordToken(
-//            User user,
-//            Device device,
-//            RequestContext requestContext) {
-//
-//        return logUserAction(
-//                user,
-//                device,
-//                ActionLogType.PASSWORD_REQUEST_TOKEN,
-//                true,
-//                "Nouvelle demande de token de réinitialisation de mot de passe",
-//                null,
-//                requestContext
-//        );
-//    }
-//
-//    /**
-//     * Enregistre une réinitialisation complète de mot de passe
-//     *
-//     * @param user L'utilisateur dont le mot de passe a été réinitialisé
-//     * @param device L'appareil utilisé
-//     * @param requestContext Le contexte de la requête
-//     * @return L'entrée de journal créée
-//     */
-//    @Transactional
-//    public ActivityLog logPasswordResetComplete(
-//            User user,
-//            Device device,
-//            RequestContext requestContext) {
-//
-//        String metadataJson = null;
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("completionTime", Instant.now().toString());
-//            if (user.isMustChangePassword()) {
-//                metadata.put("mustChangePassword", "reset");
-//            }
-//            metadataJson = objectMapper.writeValueAsString(metadata);
-//        } catch (JsonProcessingException e) {
-//            log.warn("Impossible de sérialiser les métadonnées pour la réinitialisation: {}", e.getMessage());
-//        }
-//
-//        return logUserAction(
-//                user,
-//                device,
-//                ActionLogType.PASSWORD_RESET_COMPLETE,
-//                true,
-//                "Réinitialisation de mot de passe effectuée",
-//                metadataJson,
-//                requestContext
-//        );
-//    }
-//
-//    /**
-//     * Enregistre l'expiration d'un mot de passe
-//     *
-//     * @param user L'utilisateur dont le mot de passe a expiré
-//     * @param device L'appareil utilisé
-//     * @param requestContext Le contexte de la requête
-//     * @return L'entrée de journal créée
-//     */
-//    @Transactional
-//    public ActivityLog logPasswordExpired(
-//            User user,
-//            Device device,
-//            RequestContext requestContext) {
-//
-//        return logUserAction(
-//                user,
-//                device,
-//                ActionLogType.PASSWORD_EXPIRED,
-//                true,
-//                "Mot de passe expiré",
-//                null,
-//                requestContext
-//        );
-//    }
-//
-//    /**
-//     * Enregistre un changement de mot de passe initié par un administrateur
-//     *
-//     * @param user L'utilisateur dont le mot de passe a été changé
-//     * @param adminId L'ID de l'administrateur qui a initié l'action
-//     * @param requestContext Le contexte de la requête
-//     * @return L'entrée de journal créée
-//     */
-//    @Transactional
-//    public ActivityLog logAdminPasswordReset(
-//            User user,
-//            Long adminId,
-//            RequestContext requestContext) {
-//
-//        String metadataJson = null;
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("adminId", adminId);
-//            metadata.put("source", "admin_initiated");
-//            metadataJson = objectMapper.writeValueAsString(metadata);
-//        } catch (JsonProcessingException e) {
-//            log.warn("Impossible de sérialiser les métadonnées pour la réinitialisation admin: {}", e.getMessage());
-//        }
-//
-//        return logUserAction(
-//                user,
-//                null, // Pas d'appareil associé pour une action admin
-//                ActionLogType.ADMIN_PASSWORD_RESET,
-//                true,
-//                "Réinitialisation de mot de passe par l'administrateur #" + adminId,
-//                metadataJson,
-//                requestContext
-//        );
-//    }
-//
-//    /**
-//     * Obtient l'historique des activités liées aux mots de passe d'un utilisateur
-//     *
-//     * @param user L'utilisateur dont on veut l'historique
-//     * @param days Nombre de jours d'historique à récupérer
-//     * @return Une liste d'activités liées aux mots de passe
-//     */
-//    @Transactional(readOnly = true)
-//    public List<ActivityLog> getPasswordActivityHistory(User user, int days) {
-//        Instant startDate = Instant.now().minus(days, ChronoUnit.DAYS);
-//        Instant endDate = Instant.now();
-//
-//        return activityLogRepository.findByUserAndActionTypeInAndTimestampBetween(
-//                user,
-//                List.of(
-//                        ActionLogType.PASSWORD_CHANGED,
-//                        ActionLogType.PASSWORD_RESET_REQUEST,
-//                        ActionLogType.PASSWORD_RESET_COMPLETE,
-//                        ActionLogType.PASSWORD_EXPIRED,
-//                        ActionLogType.ADMIN_PASSWORD_RESET
-//                ),
-//                startDate,
-//                endDate,
-//                null
-//        ).getContent();
-//    }
-//
-//    /**
-//     * Calcule le nombre de jours depuis le dernier changement de mot de passe
-//     *
-//     * @param user L'utilisateur pour lequel effectuer le calcul
-//     * @return Le nombre de jours depuis le dernier changement ou -1 si aucun changement trouvé
-//     */
-//    @Transactional(readOnly = true)
-//    public int daysSinceLastPasswordChange(User user) {
-//        ActivityLog lastPasswordChange = activityLogRepository.findTopByUserAndActionTypeAndSuccessfulOrderByTimestampDesc(
-//                user, ActionLogType.PASSWORD_CHANGED.name(), true);
-//
-//        if (lastPasswordChange == null) {
-//            return -1;
-//        }
-//
-//        Instant now = Instant.now();
-//        Instant lastChange = lastPasswordChange.getTimestamp();
-//
-//        return (int) ChronoUnit.DAYS.between(lastChange, now);
-//    }
-//
-//    /**
-//     * Vérifie si un utilisateur a atteint le nombre maximum de demandes de réinitialisation
-//     * dans un intervalle de temps donné
-//     *
-//     * @param user L'utilisateur à vérifier
-//     * @param maxAttempts Le nombre maximum de tentatives autorisées
-//     * @param timeframeMinutes L'intervalle de temps en minutes
-//     * @return true si l'utilisateur a dépassé le seuil, false sinon
-//     */
-//    @Transactional(readOnly = true)
-//    public boolean hasExceededResetRequestLimit(User user, int maxAttempts, int timeframeMinutes) {
-//        Instant startTime = Instant.now().minus(timeframeMinutes, ChronoUnit.MINUTES);
-//
-//        long count = activityLogRepository.countByUserAndActionTypeAndTimestampBetween(
-//                user,
-//                ActionLogType.PASSWORD_RESET_REQUEST.name(),
-//                startTime,
-//                Instant.now()
-//        );
-//
-//        return count >= maxAttempts;
-//    }
-//}
+package be.steby.CoreProject.bll.domains.password.services;
+
+import be.steby.CoreProject.bll.common.models.RequestContext;
+import be.steby.CoreProject.bll.common.services.activitylog.AbstractActivityLogService;
+import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
+import be.steby.CoreProject.dl.entities.ActivityLog;
+import be.steby.CoreProject.dl.entities.Device;
+import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.action_log_type.PasswordAction;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.List;
+
+/**
+ * Activity logging service for password domain
+ * Handles logging of password changes, resets, policy violations, etc.
+ */
+@Service
+@Slf4j
+public class PasswordActivityLogService extends AbstractActivityLogService {
+
+    public PasswordActivityLogService(ActivityLogRepository activityLogRepository,
+                                      ApplicationEventPublisher eventPublisher) {
+        super(activityLogRepository, eventPublisher);
+    }
+
+    @Override
+    protected String getDomainName() {
+        return "PASSWORD";
+    }
+
+    // ================== PASSWORD CHANGE METHODS ==================
+
+    /**
+     * Log successful password change by authenticated user
+     */
+    public void logPasswordChanged(User user, Device device, RequestContext context) {
+        validateRequiredParams(user, PasswordAction.PASSWORD_CHANGED);
+
+        String details = String.format("Password changed successfully for user %s", user.getUsername());
+        publishActionEvent(user, device, PasswordAction.PASSWORD_CHANGED, true, details, context);
+    }
+
+    /**
+     * Log failed password change attempt
+     */
+    public void logPasswordChangeFailed(User user, Device device, String failureReason, RequestContext context) {
+        validateRequiredParams(user, PasswordAction.PASSWORD_CHANGED_FAILED);
+
+        String details = String.format("Password change failed for user %s", user.getUsername());
+        publishFailureEvent(user, device, PasswordAction.PASSWORD_CHANGED_FAILED, details, failureReason, context);
+    }
+
+    /**
+     * Log current password verification failure
+     */
+    public void logCurrentPasswordIncorrect(User user, Device device, RequestContext context) {
+        validateRequiredParams(user, PasswordAction.CURRENT_PASSWORD_INCORRECT);
+
+        String details = String.format("Current password verification failed for user %s", user.getUsername());
+        publishFailureEvent(user, device, PasswordAction.CURRENT_PASSWORD_INCORRECT, details,
+                "Current password is incorrect", context);
+    }
+
+    // ================== PASSWORD RESET METHODS ==================
+
+    /**
+     * Log successful password reset via token
+     */
+    public void logPasswordReset(User user, Device device, RequestContext context) {
+        validateRequiredParams(user, PasswordAction.PASSWORD_RESET);
+
+        String details = String.format("Password reset successfully for user %s", user.getUsername());
+        publishActionEvent(user, device, PasswordAction.PASSWORD_RESET, true, details, context);
+    }
+
+    /**
+     * Log failed password reset attempt
+     */
+    public void logPasswordResetFailed(User user, Device device, String failureReason, RequestContext context) {
+        validateRequiredParams(user, PasswordAction.PASSWORD_RESET_FAILED);
+
+        String details = String.format("Password reset failed for user %s", user.getUsername());
+        publishFailureEvent(user, device, PasswordAction.PASSWORD_RESET_FAILED, details, failureReason, context);
+    }
+
+    /**
+     * Log password reset request (email sent)
+     */
+    public void logPasswordResetRequested(User user, Device device, String email, RequestContext context) {
+        validateRequiredParams(user, PasswordAction.PASSWORD_RESET_REQUESTED);
+
+        String details = String.format("Password reset requested for email %s", email);
+        publishActionEvent(user, device, PasswordAction.PASSWORD_RESET_REQUESTED, true, details, context);
+    }
+
+    /**
+     * Log password reset request by email (when user is not found)
+     */
+    public void logPasswordResetRequestedByEmail(String email, Device device, RequestContext context) {
+        // For security reasons, we log this but with minimal information
+        log.info("Password reset requested for email: {} - User lookup performed", email);
+        // Note: We don't create activity log entry for non-existent users for security reasons
+    }
+
+    /**
+     * Log new password reset token request
+     */
+    public void logPasswordResetTokenRequested(User user, Device device, RequestContext context) {
+        validateRequiredParams(user, PasswordAction.PASSWORD_RESET_TOKEN_REQUESTED);
+
+        String details = String.format("New password reset token requested for user %s", user.getUsername());
+        publishActionEvent(user, device, PasswordAction.PASSWORD_RESET_TOKEN_REQUESTED, true, details, context);
+    }
+
+    // ================== SECURITY AND POLICY METHODS ==================
+
+    /**
+     * Log password policy violation
+     */
+    public void logPasswordPolicyViolation(User user, Device device, List<String> violations, RequestContext context) {
+        validateRequiredParams(user, PasswordAction.PASSWORD_POLICY_VIOLATION);
+
+        String details = String.format("Password policy violations for user %s: %s",
+                user.getUsername(), String.join(", ", violations));
+        publishFailureEvent(user, device, PasswordAction.PASSWORD_POLICY_VIOLATION, details,
+                "Password does not meet security requirements", context);
+    }
+
+    /**
+     * Log password expiration event
+     */
+    public void logPasswordExpired(User user, Device device, RequestContext context) {
+        validateRequiredParams(user, PasswordAction.PASSWORD_EXPIRED);
+
+        String details = String.format("Password expired for user %s - change required", user.getUsername());
+        publishActionEvent(user, device, PasswordAction.PASSWORD_EXPIRED, true, details, context);
+    }
+
+    /**
+     * Log administrative password force change
+     */
+    public void logPasswordForceChanged(User user, Device device, String adminUsername, RequestContext context) {
+        validateRequiredParams(user, PasswordAction.PASSWORD_FORCE_CHANGED);
+
+        String details = String.format("Password forcibly changed for user %s by administrator %s",
+                user.getUsername(), adminUsername);
+        publishActionEvent(user, device, PasswordAction.PASSWORD_FORCE_CHANGED, true, details, context);
+    }
+
+    // ================== ANALYSIS METHODS ==================
+
+    /**
+     * Get recent password changes for a user
+     */
+    @Transactional(readOnly = true)
+    public List<ActivityLog> getRecentPasswordChanges(User user, int limit) {
+        return activityLogRepository.findTop10ByUserAndActionTypeOrderByTimestampDesc(
+                user, PasswordAction.PASSWORD_CHANGED.getName()
+        );
+    }
+
+    /**
+     * Get recent failed password attempts
+     */
+    @Transactional(readOnly = true)
+    public List<ActivityLog> getRecentFailedPasswordAttempts(User user, int limit) {
+        return activityLogRepository.findTop10ByUserAndActionTypeOrderByTimestampDesc(
+                user, PasswordAction.PASSWORD_CHANGED_FAILED.getName()
+        );
+    }
+
+    /**
+     * Check if user has changed password recently
+     */
+    public boolean hasRecentPasswordChange(User user, int daysThreshold) {
+        return hasRecentAction(user, PasswordAction.PASSWORD_CHANGED, daysThreshold);
+    }
+
+    /**
+     * Check if user has too many failed password change attempts
+     */
+    public boolean hasTooManyFailedPasswordAttempts(User user, int maxAttempts, int timeWindowHours) {
+        if (timeWindowHours < 24) {
+            Instant since = Instant.now().minusSeconds(timeWindowHours * 3600L);
+            long failedAttempts = activityLogRepository.countByUserAndActionTypeAndTimestampAfter(
+                    user, PasswordAction.PASSWORD_CHANGED_FAILED.getName(), since
+            );
+            return failedAttempts >= maxAttempts;
+        } else {
+            // For longer periods, use the inherited method
+            long failedAttempts = countActionType(user, PasswordAction.PASSWORD_CHANGED_FAILED, timeWindowHours / 24);
+            return failedAttempts >= maxAttempts;
+        }
+    }
+
+    /**
+     * Get password activity statistics for user (last 30 days)
+     */
+    public PasswordStats getPasswordStats(User user) {
+        long passwordChanges = countActionType(user, PasswordAction.PASSWORD_CHANGED, 30);
+        long failedAttempts = countActionType(user, PasswordAction.PASSWORD_CHANGED_FAILED, 30);
+        long resetRequests = countActionType(user, PasswordAction.PASSWORD_RESET_REQUESTED, 30);
+
+        return new PasswordStats(passwordChanges, failedAttempts, resetRequests);
+    }
+
+    /**
+     * Find suspicious password activities
+     * (e.g., multiple failed attempts followed by successful change)
+     */
+    @Transactional(readOnly = true)
+    public List<ActivityLog> findSuspiciousPasswordActivities(User user, int hoursWindow) {
+        Instant startTime = Instant.now().minusSeconds(hoursWindow * 3600L);
+        Instant endTime = Instant.now();
+
+        return activityLogRepository.findSuspiciousAuthActivities(user, startTime, endTime);
+    }
+
+    // ================== HELPER CLASSES ==================
+
+    /**
+     * Simple data class for password statistics
+     */
+    public record PasswordStats(long passwordChanges, long failedAttempts, long resetRequests) {
+        public long totalActivity() {
+            return passwordChanges + failedAttempts + resetRequests;
+        }
+
+        public double changeSuccessRate() {
+            if (passwordChanges + failedAttempts == 0) return 0.0;
+            return (double) passwordChanges / (passwordChanges + failedAttempts);
+        }
+    }
+}

@@ -6,8 +6,6 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.AccountTemporarilyLocked
 import be.steby.CoreProject.bll.domains.auth.exceptions.BlacklistedDeviceException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidCredentialsException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.AccountDisabledException;
-import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
-import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
 import be.steby.CoreProject.bll.domains.auth.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.common.services.context.RequestContextService;
@@ -39,9 +37,10 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final DeviceService deviceService;
     private final RefreshTokenServiceImpl refreshTokenService;
-
-    // ✅ NEW: Login attempt service for brute force protection
     private final LoginAttemptService loginAttemptService;
+
+    // ✅ AJOUT: Injection d'AuthActivityLogService
+    private final AuthActivityLogService authActivityLogService;
 
     @Value("${url.front_server}")
     private String FRONT_URL;
@@ -69,10 +68,20 @@ public class AuthServiceImpl implements AuthService {
                 if (!user.isEverActivated()) {
                     // Record failed attempt before throwing
                     loginAttemptService.recordFailedAttempt(username, clientIpAddress);
+
+                    // ✅ CORRECTION: Log failed login avec AuthActivityLogService
+                    RequestContext requestContext = requestContextService.captureRequestContext(request);
+                    authActivityLogService.logFailedLogin(user, null, "Account never activated", requestContext);
+
                     throw new AccountActivationException("Your account has never been activated. Please check your email and follow the activation instructions.");
                 } else {
                     // Record failed attempt before throwing
                     loginAttemptService.recordFailedAttempt(username, clientIpAddress);
+
+                    // ✅ CORRECTION: Log failed login avec AuthActivityLogService
+                    RequestContext requestContext = requestContextService.captureRequestContext(request);
+                    authActivityLogService.logFailedLogin(user, null, "Account disabled by administrator", requestContext);
+
                     throw new AccountDisabledException("Your account has been disabled by an administrator. Please contact support for assistance.");
                 }
             }
@@ -80,6 +89,11 @@ public class AuthServiceImpl implements AuthService {
             if (!passwordEncoder.matches(password, user.getPassword())) {
                 // ✅ NEW: Record failed attempt on invalid password
                 loginAttemptService.recordFailedAttempt(username, clientIpAddress);
+
+                // ✅ CORRECTION: Log failed login avec AuthActivityLogService
+                RequestContext requestContext = requestContextService.captureRequestContext(request);
+                authActivityLogService.logFailedLogin(user, null, "Invalid credentials", requestContext);
+
                 throw new InvalidCredentialsException("Invalid username or password. Please check your credentials and try again.");
             }
 
@@ -104,6 +118,9 @@ public class AuthServiceImpl implements AuthService {
                 // ✅ NEW: Record failed attempt for blacklisted device
                 loginAttemptService.recordFailedAttempt(username, clientIpAddress);
 
+                // ✅ CORRECTION: Log failed login avec AuthActivityLogService
+                authActivityLogService.logFailedLogin(user, device, "Blacklisted device", requestContext);
+
                 // Fail the login with domain-specific exception
                 throw new BlacklistedDeviceException("Access denied: This device has been blacklisted for security reasons. Check your email for instructions on how to restore access.");
             }
@@ -114,12 +131,9 @@ public class AuthServiceImpl implements AuthService {
                 deviceService.saveDevice(device);
             }
 
-            // 5. Event publishing for successful login
+            // 5. ✅ CORRECTION: Log successful login avec AuthActivityLogService au lieu d'événements
             RequestContext requestContext = requestContextService.captureRequestContext(request);
-
-            eventPublisher.publishEvent(new UserLoggedInEvent(
-                    user, device, true, null, requestContext
-            ));
+            authActivityLogService.logSuccessfulLogin(user, device, requestContext);
 
             // Send notification for unconfirmed devices
             if (!device.isConfirmed()) {
@@ -150,13 +164,23 @@ public class AuthServiceImpl implements AuthService {
                     !(e instanceof BlacklistedDeviceException)) {
 
                 loginAttemptService.recordFailedAttempt(username, clientIpAddress);
+
+                // ✅ CORRECTION: Log des échecs génériques
+                try {
+                    User user = userService.getUserByUsername(username);
+                    if (user != null) {
+                        RequestContext requestContext = requestContextService.captureRequestContext(request);
+                        authActivityLogService.logFailedLogin(user, null, "Authentication error: " + e.getMessage(), requestContext);
+                    }
+                } catch (Exception logException) {
+                    log.error("Failed to log authentication failure: {}", logException.getMessage());
+                }
             }
 
             // Re-throw the original exception
             throw e;
         }
     }
-
 
     @Override
     public void logout(String refreshTokenCookie, HttpServletRequest request) {
@@ -173,14 +197,17 @@ public class AuthServiceImpl implements AuthService {
                 revokeRefreshToken(refreshTokenCookie);
             }
 
-            log.info("User logout successful for: {}", user.getUsername());
+            // 3. ✅ CORRECTION: Log logout avec AuthActivityLogService au lieu d'événements
+            if (user != null) {
+                RequestContext requestContext = requestContextService.captureRequestContext(request);
+                authActivityLogService.logLogout(user, device, requestContext);
+            }
+
+            log.info("User logout successful for: {}", user != null ? user.getUsername() : "unknown");
 
         } catch (Exception e) {
             log.warn("Error during logout process for user {}: {}",
                     user != null ? user.getUsername() : "unknown", e.getMessage());
-        } finally {
-            // 3. Always publish logout events for audit purposes
-            publishLogoutEvent(user, device, request);
         }
     }
 
@@ -221,22 +248,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * Publishes logout events for audit and cleanup purposes.
+     * ✅ NEW: Helper method to build lockout message
      */
-    private void publishLogoutEvent(User user, Device device, HttpServletRequest request) {
-        try {
-            if (user != null) {
-                RequestContext requestContext = requestContextService.captureRequestContext(request);
-                eventPublisher.publishEvent(new UserLogoutEvent(user, device, requestContext));
-                log.debug("Logout events published for user: {}", user.getUsername());
-            }
-        } catch (Exception e) {
-            log.error("Error publishing logout events: {}", e.getMessage(), e);
-        }
-    }
-
-
-    // ✅ NEW: Helper method to build lockout message
     private String buildLockoutMessage(Instant unlockTime) {
         if (unlockTime == null) {
             return "Account temporarily locked due to too many failed login attempts. Please try again later.";

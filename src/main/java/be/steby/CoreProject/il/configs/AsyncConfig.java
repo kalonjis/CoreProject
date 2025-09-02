@@ -4,6 +4,7 @@ import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -13,14 +14,36 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 
 /**
- * Configuration pour l'exécution asynchrone avec pools de threads séparés
+ * Configuration for asynchronous execution with dedicated thread pools.
  */
 @Configuration
 @EnableAsync
 public class AsyncConfig implements AsyncConfigurer {
 
     /**
-     * Executor par défaut - utilisé si aucun autre n'est spécifié
+     * Creates and configures a ThreadPoolTaskExecutor with common settings.
+     *
+     * @param corePoolSize       the core number of threads.
+     * @param maxPoolSize        the maximum number of threads.
+     * @param queueCapacity      the queue capacity.
+     * @param threadNamePrefix   the thread name prefix.
+     * @param awaitTerminationSeconds the seconds to wait for shutdown.
+     * @return a configured ThreadPoolTaskExecutor.
+     */
+    private ThreadPoolTaskExecutor createExecutor(int corePoolSize, int maxPoolSize, int queueCapacity, String threadNamePrefix, int awaitTerminationSeconds) {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(corePoolSize);
+        executor.setMaxPoolSize(maxPoolSize);
+        executor.setQueueCapacity(queueCapacity);
+        executor.setThreadNamePrefix(threadNamePrefix);
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(awaitTerminationSeconds);
+        executor.initialize();
+        return executor;
+    }
+
+    /**
+     * Default executor, used when no specific executor is named.
      */
     @Override
     public Executor getAsyncExecutor() {
@@ -28,80 +51,50 @@ public class AsyncConfig implements AsyncConfigurer {
     }
 
     /**
-     * Pool de threads pour les tâches générales
+     * Thread pool for general-purpose tasks.
      */
     @Bean(name = "generalPurposeExecutor")
     public Executor generalPurposeExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(4);
-        executor.setMaxPoolSize(8);
-        executor.setQueueCapacity(200);
-        executor.setThreadNamePrefix("General-");
-        executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(30);
-        executor.initialize();
-        return executor;
+        return createExecutor(4, 8, 200, "General-", 30);
     }
 
     /**
-     * Pool de threads dédié aux envois d'emails
+     * Dedicated thread pool for email sending tasks.
      */
     @Bean(name = "emailExecutor")
     public Executor emailExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(2);
-        executor.setMaxPoolSize(5);
-        executor.setQueueCapacity(100);
-        executor.setThreadNamePrefix("Email-");
-        executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(30);
-        executor.initialize();
-        return executor;
+        return createExecutor(2, 5, 100, "Email-", 30);
     }
 
     /**
-     * Pool de threads dédié aux logs d'activité (écriture en DB)
+     * Dedicated thread pool for activity logging tasks.
      */
     @Bean(name = "activityLogExecutor")
     public Executor activityLogExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(3);
-        executor.setMaxPoolSize(6);
-        executor.setQueueCapacity(500);
-        executor.setThreadNamePrefix("ActivityLog-");
-        executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(60);
-        executor.initialize();
-        return executor;
+        return createExecutor(3, 6, 500, "ActivityLog-", 60);
     }
 
     /**
-     * Pool de threads pour les listeners d'événements
+     * Dedicated thread pool for event listener tasks.
      */
     @Bean(name = "eventListenerExecutor")
     public Executor eventListenerExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(2);
-        executor.setMaxPoolSize(4);
-        executor.setQueueCapacity(100);
-        executor.setThreadNamePrefix("EventListener-");
-        executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(30);
-        executor.initialize();
-        return executor;
+        return createExecutor(2, 4, 100, "EventListener-", 30);
     }
 
     /**
-     * Bean qui expose tous les executors pour le monitoring
+     * Bean that exposes all configured executors for monitoring.
+     * We use TaskExecutor here because it's the specific Spring interface that
+     * gives us more control over task execution than the generic Executor interface.
      */
     @Bean
-    public Map<String, ThreadPoolTaskExecutor> executors(
-            @Qualifier("emailExecutor") ThreadPoolTaskExecutor emailExecutor,
-            @Qualifier("activityLogExecutor") ThreadPoolTaskExecutor activityLogExecutor,
-            @Qualifier("eventListenerExecutor") ThreadPoolTaskExecutor eventListenerExecutor,
-            @Qualifier("generalPurposeExecutor") ThreadPoolTaskExecutor generalPurposeExecutor) {
+    public Map<String, TaskExecutor> executors(
+            @Qualifier("emailExecutor") TaskExecutor emailExecutor,
+            @Qualifier("activityLogExecutor") TaskExecutor activityLogExecutor,
+            @Qualifier("eventListenerExecutor") TaskExecutor eventListenerExecutor,
+            @Qualifier("generalPurposeExecutor") TaskExecutor generalPurposeExecutor) {
 
-        Map<String, ThreadPoolTaskExecutor> executors = new HashMap<>();
+        Map<String, TaskExecutor> executors = new HashMap<>();
         executors.put("email", emailExecutor);
         executors.put("activityLog", activityLogExecutor);
         executors.put("eventListener", eventListenerExecutor);
@@ -111,7 +104,8 @@ public class AsyncConfig implements AsyncConfigurer {
 
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
-        return new CustomAsyncExceptionHandler();
+        // You can use this to define a custom handler for exceptions in async tasks.
+        // For example, logging the exception and the task that failed.
+        return null; // Or return a custom handler like new CustomAsyncExceptionHandler();
     }
-
 }
