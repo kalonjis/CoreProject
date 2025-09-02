@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @see DeviceSecurityException
  * @see BlacklistedDeviceException
  */
-@ResponseStatus(HttpStatus.LOCKED) // 423 - Temporary lock pending verification
 public class SuspiciousDeviceException extends DeviceSecurityException {
 
     /**
@@ -35,6 +34,6 @@ public class SuspiciousDeviceException extends DeviceSecurityException {
      *                and what action the user should take
      */
     public SuspiciousDeviceException(String message) {
-        super(message);
+        super(message, 423);
     }
 }

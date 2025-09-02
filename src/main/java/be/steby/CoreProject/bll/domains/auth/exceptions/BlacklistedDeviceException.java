@@ -7,10 +7,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * Exception thrown when a user attempts to login with a blacklisted device.
  * This is a security-related exception that should result in a 403 Forbidden response.
  */
-@ResponseStatus(HttpStatus.FORBIDDEN)
 public class BlacklistedDeviceException extends DeviceSecurityException {
 
     public BlacklistedDeviceException(String message) {
-        super(message);
+        super(message, 403);
     }
 }
