@@ -1,0 +1,11 @@
+security:
+  login-attempts:
+    username:
+      max-attempts: 5
+      lockout-minutes: 15
+    ip:
+      max-attempts: 10
+      lockout-minutes: 60
+    combined:
+      max-attempts: 3
+      lockout-minutes: 5
