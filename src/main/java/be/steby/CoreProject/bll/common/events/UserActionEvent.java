@@ -1,119 +1,129 @@
 package be.steby.CoreProject.bll.common.events;
 
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.action_log_type.ActionLogType;
 
 /**
- * Event triggered when a user performs an action that needs to be logged
- * Used for asynchronous activity logging
+ * Simplified event triggered when a user performs an action that needs to be logged.
+ * Used for asynchronous activity logging with the new device caching system.
+ *
+ * RequestContext has been removed - device detection is now handled at the service layer
+ * before event publishing, making this event much simpler and more focused.
  */
 public record UserActionEvent(
         User user,
-        Device device,
+        Device device,                // May be null if device detection failed
         ActionLogType actionType,
-        boolean successful,
+        Boolean successful,           // null = unknown, true = success, false = failure
         String details,
-        String failureReason,
-        RequestContext requestContext
+        String failureReason         // Only used when successful = false
 ) {
 
     // ================== CONVENIENCE CONSTRUCTORS ==================
 
     /**
-     * Constructor without context (most common case)
+     * Constructor for successful action without failure reason
      */
     public UserActionEvent(User user, Device device, ActionLogType actionType, boolean successful, String details) {
-        this(user, device, actionType, successful, details, null, null);
+        this(user, device, actionType, successful, details, null);
     }
 
     /**
-     * Constructor for successful action with context
+     * Constructor for action with unknown success status (generic logging)
      */
-    public UserActionEvent(User user, Device device, ActionLogType actionType, boolean successful,
-                           String details, RequestContext requestContext) {
-        this(user, device, actionType, successful, details, null, requestContext);
+    public UserActionEvent(User user, Device device, ActionLogType actionType, String details) {
+        this(user, device, actionType, null, details, null);
     }
 
-    /**
-     * Constructor for failed action
-     */
-    public UserActionEvent(User user, Device device, ActionLogType actionType, boolean successful,
-                           String details, String failureReason) {
-        this(user, device, actionType, successful, details, failureReason, null);
-    }
+    // ================== STATIC FACTORY METHODS ==================
 
     /**
-     * Simple success constructor
+     * Create a successful action event
      */
     public static UserActionEvent success(User user, Device device, ActionLogType actionType, String details) {
-        return new UserActionEvent(user, device, actionType, true, details);
+        return new UserActionEvent(user, device, actionType, true, details, null);
     }
 
     /**
-     * Simple failure constructor
+     * Create a failed action event
      */
     public static UserActionEvent failure(User user, Device device, ActionLogType actionType,
                                           String details, String failureReason) {
         return new UserActionEvent(user, device, actionType, false, details, failureReason);
     }
 
-    // ================== UTILITY METHODS ==================
+    /**
+     * Create a generic action event (success status unknown)
+     */
+    public static UserActionEvent generic(User user, Device device, ActionLogType actionType, String details) {
+        return new UserActionEvent(user, device, actionType, null, details, null);
+    }
+
+    // ================== VALIDATION AND UTILITY METHODS ==================
 
     /**
-     * Check if this is a successful action
+     * Check if this event represents a successful action
      */
-    public boolean isSuccess() {
-        return successful;
+    public boolean isSuccessful() {
+        return Boolean.TRUE.equals(successful);
     }
 
     /**
-     * Check if this is a failed action
+     * Check if this event represents a failed action
      */
-    public boolean isFailure() {
-        return !successful;
+    public boolean isFailed() {
+        return Boolean.FALSE.equals(successful);
     }
 
     /**
-     * Get action category from the action type
+     * Check if this event has device information
      */
-    public String getActionCategory() {
-        return actionType.getCategory();
+    public boolean hasDevice() {
+        return device != null;
     }
 
     /**
-     * Get action description
+     * Check if this event has failure information
      */
-    public String getActionDescription() {
-        return actionType.getDescription();
+    public boolean hasFailureReason() {
+        return failureReason != null && !failureReason.trim().isEmpty();
     }
 
     /**
-     * Check if request context is available
+     * Get device ID for logging purposes
      */
-    public boolean hasRequestContext() {
-        return requestContext != null;
+    public String getDeviceIdForLogging() {
+        return device != null ? device.getId().toString() : "unknown";
     }
 
     /**
-     * Get IP address from context if available
+     * Get a formatted string for logging
      */
-    public String getClientIpAddress() {
-        return hasRequestContext() ? requestContext.getClientIp() : null;
+    public String toLogString() {
+        return String.format("UserActionEvent[user=%s, device=%s, action=%s, success=%s]",
+                user != null ? user.getUsername() : "unknown",
+                getDeviceIdForLogging(),
+                actionType,
+                successful
+        );
     }
 
-    /**
-     * Get user agent from context if available
-     */
-    public String getUserAgent() {
-        return hasRequestContext() ? requestContext.getUserAgent() : null;
-    }
+    // ================== VALIDATION ==================
 
     /**
-     * Get session ID from context if available
+     * Validate the event has required fields
      */
-    public String getSessionId() {
-        return hasRequestContext() ? requestContext.getSessionId() : null;
+    public void validate() {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null in UserActionEvent");
+        }
+        if (actionType == null) {
+            throw new IllegalArgumentException("ActionLogType cannot be null in UserActionEvent");
+        }
+        if (Boolean.FALSE.equals(successful) && (failureReason == null || failureReason.trim().isEmpty())) {
+            // This is just a warning - we don't want to break the flow
+            // but it's good to know if failure events lack failure reasons
+        }
     }
 }

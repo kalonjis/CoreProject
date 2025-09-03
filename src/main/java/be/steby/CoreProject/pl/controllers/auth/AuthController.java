@@ -266,19 +266,19 @@ public class AuthController {
      * Handles authentication failures (401 Unauthorized).
      * Used for invalid credentials and account activation issues.
      */
-    private ResponseEntity<?> handleAuthenticationFailure(String error, String message) {
-        Map<String, Object> errorResponse = createErrorResponse(error, message);
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
-    }
+//    private ResponseEntity<?> handleAuthenticationFailure(String error, String message) {
+//        Map<String, Object> errorResponse = createErrorResponse(error, message);
+//        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+//    }
 
     /**
      * Handles security-related failures (403 Forbidden).
      * Used for blacklisted devices and disabled accounts.
      */
-    private ResponseEntity<?> handleSecurityFailure(String error, String message) {
-        Map<String, Object> errorResponse = createErrorResponse(error, message);
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
-    }
+//    private ResponseEntity<?> handleSecurityFailure(String error, String message) {
+//        Map<String, Object> errorResponse = createErrorResponse(error, message);
+//        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+//    }
 
     /**
      * Handles unexpected failures (500 Internal Server Error).

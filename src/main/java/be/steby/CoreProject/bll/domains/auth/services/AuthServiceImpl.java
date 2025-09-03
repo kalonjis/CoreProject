@@ -70,8 +70,10 @@ public class AuthServiceImpl implements AuthService {
                     loginAttemptService.recordFailedAttempt(username, clientIpAddress);
 
                     // ✅ CORRECTION: Log failed login avec AuthActivityLogService
+                    log.debug("🔴 [LOGIN_FAILED] Case 1: Account never activated - Username: {}, logging failed login attempt", username);
                     RequestContext requestContext = requestContextService.captureRequestContext(request);
                     authActivityLogService.logFailedLogin(user, null, "Account never activated", requestContext);
+                    log.debug("✅ [LOGIN_FAILED] Case 1: Logged successfully for never activated account");
 
                     throw new AccountActivationException("Your account has never been activated. Please check your email and follow the activation instructions.");
                 } else {
@@ -79,8 +81,10 @@ public class AuthServiceImpl implements AuthService {
                     loginAttemptService.recordFailedAttempt(username, clientIpAddress);
 
                     // ✅ CORRECTION: Log failed login avec AuthActivityLogService
+                    log.debug("🔴 [LOGIN_FAILED] Case 2: Account disabled by admin - Username: {}, logging failed login attempt", username);
                     RequestContext requestContext = requestContextService.captureRequestContext(request);
                     authActivityLogService.logFailedLogin(user, null, "Account disabled by administrator", requestContext);
+                    log.debug("✅ [LOGIN_FAILED] Case 2: Logged successfully for disabled account");
 
                     throw new AccountDisabledException("Your account has been disabled by an administrator. Please contact support for assistance.");
                 }
@@ -91,8 +95,10 @@ public class AuthServiceImpl implements AuthService {
                 loginAttemptService.recordFailedAttempt(username, clientIpAddress);
 
                 // ✅ CORRECTION: Log failed login avec AuthActivityLogService
+                log.debug("🔴 [LOGIN_FAILED] Case 3: Invalid credentials - Username: {}, logging failed login attempt", username);
                 RequestContext requestContext = requestContextService.captureRequestContext(request);
                 authActivityLogService.logFailedLogin(user, null, "Invalid credentials", requestContext);
+                log.debug("✅ [LOGIN_FAILED] Case 3: Logged successfully for invalid credentials");
 
                 throw new InvalidCredentialsException("Invalid username or password. Please check your credentials and try again.");
             }
@@ -119,7 +125,9 @@ public class AuthServiceImpl implements AuthService {
                 loginAttemptService.recordFailedAttempt(username, clientIpAddress);
 
                 // ✅ CORRECTION: Log failed login avec AuthActivityLogService
+                log.debug("🔴 [LOGIN_FAILED] Case 4: Blacklisted device - Username: {}, Device: {}, logging failed login attempt", username, device.getId());
                 authActivityLogService.logFailedLogin(user, device, "Blacklisted device", requestContext);
+                log.debug("✅ [LOGIN_FAILED] Case 4: Logged successfully for blacklisted device");
 
                 // Fail the login with domain-specific exception
                 throw new BlacklistedDeviceException("Access denied: This device has been blacklisted for security reasons. Check your email for instructions on how to restore access.");
@@ -133,7 +141,9 @@ public class AuthServiceImpl implements AuthService {
 
             // 5. ✅ CORRECTION: Log successful login avec AuthActivityLogService au lieu d'événements
             RequestContext requestContext = requestContextService.captureRequestContext(request);
+            log.debug("🟢 [LOGIN_SUCCESS] Username: {}, Device: {}, logging successful login", username, device.getId());
             authActivityLogService.logSuccessfulLogin(user, device, requestContext);
+            log.debug("✅ [LOGIN_SUCCESS] Logged successfully for successful login");
 
             // Send notification for unconfirmed devices
             if (!device.isConfirmed()) {
@@ -156,6 +166,9 @@ public class AuthServiceImpl implements AuthService {
             return user;
 
         } catch (Exception e) {
+            log.debug("🔥 [CATCH_BLOCK] Exception caught: {} - {}", e.getClass().getSimpleName(), e.getMessage());
+            log.debug("🔥 [CATCH_BLOCK] Checking if exception needs additional logging...");
+
             // ✅ NEW: Ensure failed attempts are recorded for any authentication failure
             // Only record if not already recorded above
             if (!(e instanceof InvalidCredentialsException) &&
@@ -163,18 +176,26 @@ public class AuthServiceImpl implements AuthService {
                     !(e instanceof AccountDisabledException) &&
                     !(e instanceof BlacklistedDeviceException)) {
 
+                log.debug("🔴 [LOGIN_FAILED] Case 5: Generic authentication error - Username: {}, Exception: {}", username, e.getClass().getSimpleName());
+
                 loginAttemptService.recordFailedAttempt(username, clientIpAddress);
 
                 // ✅ CORRECTION: Log des échecs génériques
                 try {
                     User user = userService.getUserByUsername(username);
                     if (user != null) {
+                        log.debug("🔴 [LOGIN_FAILED] Case 5: User found, logging generic authentication error");
                         RequestContext requestContext = requestContextService.captureRequestContext(request);
                         authActivityLogService.logFailedLogin(user, null, "Authentication error: " + e.getMessage(), requestContext);
+                        log.debug("✅ [LOGIN_FAILED] Case 5: Logged successfully for generic authentication error");
+                    } else {
+                        log.debug("⚠️ [LOGIN_FAILED] Case 5: User not found, skipping logging");
                     }
                 } catch (Exception logException) {
                     log.error("Failed to log authentication failure: {}", logException.getMessage());
                 }
+            } else {
+                log.debug("⏭️ [CATCH_BLOCK] Exception already handled above ({}), skipping additional logging", e.getClass().getSimpleName());
             }
 
             // Re-throw the original exception

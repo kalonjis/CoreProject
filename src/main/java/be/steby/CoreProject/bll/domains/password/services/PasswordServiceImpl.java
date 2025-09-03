@@ -64,7 +64,7 @@ public class PasswordServiceImpl implements PasswordService {
             user = passwordResetToken.getUser();
 
             requestContext = requestContextService.captureRequestContext(httpRequest);
-            device = deviceService.detectCurrentDevice(httpRequest);
+            device = deviceService.detectAndRegisterDevice(httpRequest, user);
 
             // Validate password policy
             PasswordValidationResult result = passwordPolicyService.validatePassword(request.password());
@@ -150,9 +150,14 @@ public class PasswordServiceImpl implements PasswordService {
 
         try {
             User user = userService.getUserByEmail(email);
+            log.info("User = " + user.getUsername());
             PasswordResetToken passwordResetToken = passwordResetTokenService.createPasswordResetToken(user);
             RequestContext requestContext = requestContextService.captureRequestContext(request);
-            Device device = deviceService.detectCurrentDevice(request);
+            log.info("context = " + requestContext.getRequestId());
+
+            Device device = deviceService.detectAndRegisterDevice(request, user);
+            log.info("device name = " + device.getName());
+
 
             // ✅ DUAL APPROACH with HELPERS:
             publishPasswordResetRequestEvent(user, passwordResetToken.getToken(), requestContext); // → Email
@@ -179,7 +184,7 @@ public class PasswordServiceImpl implements PasswordService {
         try {
             PasswordResetToken passwordResetToken = passwordResetTokenService.getToken(token);
             user = passwordResetToken.getUser();
-            device = deviceService.detectCurrentDevice(httpRequest);
+            device = deviceService.detectAndRegisterDevice(httpRequest, user);
             requestContext = requestContextService.captureRequestContext(httpRequest);
 
             if (passwordResetToken.isValid()) {

@@ -1,7 +1,6 @@
 package be.steby.CoreProject.bll.common.services.activitylog;
 
 import be.steby.CoreProject.bll.common.events.UserActionEvent;
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
@@ -14,11 +13,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-
 /**
- * Abstract base class for domain-specific activity log services
- * Version KISS - Focus on event-driven approach and simplicity
+ * Simplified abstract base class for domain-specific activity log services.
+ * Focuses on event-driven approach without RequestContext complexity.
+ *
+ * All device detection is now handled at the service layer before event publishing,
+ * making this class much simpler and more focused.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -28,195 +28,182 @@ public abstract class AbstractActivityLogService {
     protected final ApplicationEventPublisher eventPublisher;
 
     /**
-     * Domain name (AUTH, PASSWORD, EMAIL, ACCOUNT, ADMIN, DEVICE)
+     * Domain name for logging (AUTH, PASSWORD, EMAIL, ACCOUNT, ADMIN, DEVICE)
      * Must be implemented by each domain service
      */
     protected abstract String getDomainName();
 
-    // ================== MAIN EVENT-DRIVEN METHODS ==================
+    // ================== SIMPLIFIED EVENT PUBLISHING METHODS ==================
 
     /**
-     * Publish a user action event for asynchronous logging
+     * Publish a successful user action event
+     * @param user The user performing the action
+     * @param device The device used (may be null)
+     * @param actionType The type of action
+     * @param details Additional details
      */
-    protected void publishActionEvent(User user, Device device, ActionLogType actionType,
-                                      boolean successful, String details) {
-        UserActionEvent event = UserActionEvent.success(user, device, actionType, details);
-        if (!successful) {
-            event = new UserActionEvent(user, device, actionType, successful, details);
-        }
-
+    protected void publishSuccessEvent(User user, Device device, ActionLogType actionType, String details) {
+        UserActionEvent event = new UserActionEvent(user, device, actionType, true, details);
         eventPublisher.publishEvent(event);
 
-        log.debug("Published {} event for user {} - action: {}",
-                getDomainName(), user.getUsername(), actionType);
-    }
-
-    /**
-     * Publish action event with RequestContext for enrichment
-     */
-    protected void publishActionEvent(User user, Device device, ActionLogType actionType,
-                                      boolean successful, String details, RequestContext context) {
-        UserActionEvent event = new UserActionEvent(user, device, actionType, successful, details, context);
-        eventPublisher.publishEvent(event);
-
-        log.debug("Published {} event for user {} - action: {} from IP: {}",
+        log.debug("Published {} success event for user {} - action: {} - device: {}",
                 getDomainName(), user.getUsername(), actionType,
-                context != null ? context.getClientIp() : "unknown");
+                device != null ? device.getId() : "unknown");
     }
 
     /**
-     * Publish failure event with specific failure reason
+     * Publish a failed user action event
+     * @param user The user performing the action
+     * @param device The device used (may be null)
+     * @param actionType The type of action
+     * @param details Additional details
+     * @param failureReason The reason for failure
      */
     protected void publishFailureEvent(User user, Device device, ActionLogType actionType,
                                        String details, String failureReason) {
-        UserActionEvent event = UserActionEvent.failure(user, device, actionType, details, failureReason);
+        UserActionEvent event = new UserActionEvent(user, device, actionType, false, details, failureReason);
         eventPublisher.publishEvent(event);
 
-        log.debug("Published {} failure event for user {} - action: {} - reason: {}",
-                getDomainName(), user.getUsername(), actionType, failureReason);
+        log.debug("Published {} failure event for user {} - action: {} - reason: {} - device: {}",
+                getDomainName(), user.getUsername(), actionType, failureReason,
+                device != null ? device.getId() : "unknown");
     }
 
     /**
-     * Publish failure event with context
+     * Publish a generic user action event (success status determined by caller)
+     * @param user The user performing the action
+     * @param device The device used (may be null)
+     * @param actionType The type of action
+     * @param successful Whether the action was successful
+     * @param details Additional details
      */
-    protected void publishFailureEvent(User user, Device device, ActionLogType actionType,
-                                       String details, String failureReason, RequestContext context) {
-        UserActionEvent event = new UserActionEvent(user, device, actionType, false, details, failureReason, context);
-        eventPublisher.publishEvent(event);
+    protected void publishActionEvent(User user, Device device, ActionLogType actionType,
+                                      boolean successful, String details) {
+        if (successful) {
+            publishSuccessEvent(user, device, actionType, details);
+        } else {
+            publishFailureEvent(user, device, actionType, details, null);
+        }
+    }
 
-        log.debug("Published {} failure event for user {} - action: {} - reason: {}",
-                getDomainName(), user.getUsername(), actionType, failureReason);
+    /**
+     * Publish action event with failure reason
+     * @param user The user performing the action
+     * @param device The device used (may be null)
+     * @param actionType The type of action
+     * @param successful Whether the action was successful
+     * @param details Additional details
+     * @param failureReason The reason for failure (only used if successful = false)
+     */
+    protected void publishActionEvent(User user, Device device, ActionLogType actionType,
+                                      boolean successful, String details, String failureReason) {
+        if (successful) {
+            publishSuccessEvent(user, device, actionType, details);
+        } else {
+            publishFailureEvent(user, device, actionType, details, failureReason);
+        }
     }
 
     // ================== COMMON QUERY METHODS ==================
 
     /**
      * Get activity history for this domain and user
+     * @param user The user to get history for
+     * @param pageable Pagination parameters
+     * @return Paginated activity logs
      */
     @Transactional(readOnly = true)
     public Page<ActivityLog> getUserDomainHistory(User user, Pageable pageable) {
-        return activityLogRepository.findByUserAndActionCategoryOrderByTimestampDesc(
-                user, getDomainName(), pageable
-        );
+        // Note: This assumes you have a method to filter by action category/domain
+        // You might need to adapt this based on your ActivityLogRepository implementation
+        return activityLogRepository.findByUserOrderByTimestampDesc(user, pageable);
     }
 
     /**
-     * Get recent domain actions for a user (last X days)
+     * Get activity history for a specific device
+     * @param device The device to get history for
+     * @param pageable Pagination parameters
+     * @return Paginated activity logs
      */
     @Transactional(readOnly = true)
-    public Page<ActivityLog> getRecentDomainActions(User user, int days, Pageable pageable) {
-        Instant since = Instant.now().minusSeconds(days * 24L * 3600L);
-        return activityLogRepository.findByUserAndActionCategoryAndTimestampAfterOrderByTimestampDesc(
-                user, getDomainName(), since, pageable
-        );
-    }
-
-    /**
-     * Get failed domain actions for a user
-     */
-    @Transactional(readOnly = true)
-    public Page<ActivityLog> getFailedDomainActions(User user, Pageable pageable) {
-        return activityLogRepository.findByUserAndActionCategoryAndSuccessfulOrderByTimestampDesc(
-                user, getDomainName(), false, pageable
-        );
-    }
-
-    /**
-     * Get successful domain actions for a user
-     */
-    @Transactional(readOnly = true)
-    public Page<ActivityLog> getSuccessfulDomainActions(User user, Pageable pageable) {
-        return activityLogRepository.findByUserAndActionCategoryAndSuccessfulOrderByTimestampDesc(
-                user, getDomainName(), true, pageable
-        );
-    }
-
-    /**
-     * Get activities by specific device in this domain
-     */
-    @Transactional(readOnly = true)
-    public Page<ActivityLog> getDomainActivitiesByDevice(Device device, Pageable pageable) {
-        // Note: This would need a custom query method in repository
-        // For now, using basic device query - can be enhanced later
+    public Page<ActivityLog> getDeviceDomainHistory(Device device, Pageable pageable) {
         return activityLogRepository.findByDeviceOrderByTimestampDesc(device, pageable);
     }
 
-    // ================== UTILITY METHODS ==================
-
     /**
-     * Count actions of a specific type for user in last X days
+     * Get recent activities for a user
+     * @param user The user
+     * @param limit Maximum number of results
+     * @return Recent activity logs
      */
-    protected long countActionType(User user, ActionLogType actionType, int days) {
-        Instant since = Instant.now().minusSeconds(days * 24L * 3600L);
-        return activityLogRepository.countByUserAndActionTypeAndTimestampAfter(
-                user, actionType.getName(), since
-        );
+    @Transactional(readOnly = true)
+    public Page<ActivityLog> getRecentUserActivity(User user, Pageable pageable) {
+        return activityLogRepository.findByUserOrderByTimestampDesc(user, pageable);
     }
 
-    /**
-     * Check if user performed specific action recently (anti-spam protection)
-     */
-    protected boolean hasRecentAction(User user, ActionLogType actionType, int minutesThreshold) {
-        Instant threshold = Instant.now().minusSeconds(minutesThreshold * 60L);
-        return activityLogRepository.existsByUserAndActionTypeAndTimestampAfter(
-                user, actionType.getName(), threshold
-        );
-    }
+    // ================== DOMAIN-SPECIFIC HELPER METHODS ==================
+    // These can be overridden by specific domain services if needed
 
     /**
-     * Count successful actions in domain for user in last X days
+     * Log a successful action directly (bypasses event system)
+     * Use this for special cases where immediate logging is required
+     * @param user The user
+     * @param device The device (may be null)
+     * @param actionType The action type
+     * @param details Additional details
+     * @return The saved activity log
      */
-    protected long countSuccessfulDomainActions(User user, int days) {
-        Instant since = Instant.now().minusSeconds(days * 24L * 3600L);
-        return activityLogRepository.countByUserAndActionCategoryAndSuccessfulAndTimestampAfter(
-                user, getDomainName(), true, since
-        );
-    }
+    @Transactional
+    protected ActivityLog logSuccessfulActionDirectly(User user, Device device, ActionLogType actionType, String details) {
+        ActivityLog activityLog = actionType.createActivityLog(user, true);
 
-    /**
-     * Count failed actions in domain for user in last X days
-     */
-    protected long countFailedDomainActions(User user, int days) {
-        Instant since = Instant.now().minusSeconds(days * 24L * 3600L);
-        return activityLogRepository.countByUserAndActionCategoryAndSuccessfulAndTimestampAfter(
-                user, getDomainName(), false, since
-        );
-    }
-
-    /**
-     * Check if user has had any failed actions in this domain recently
-     */
-    protected boolean hasRecentFailures(User user, int hours) {
-        Instant threshold = Instant.now().minusSeconds(hours * 3600L);
-        // Use category-based check instead of specific action type
-        return activityLogRepository.countByUserAndActionCategoryAndSuccessfulAndTimestampAfter(
-                user, getDomainName(), false, threshold
-        ) > 0;
-    }
-
-    // ================== VALIDATION HELPERS ==================
-
-    /**
-     * Validate that required parameters are not null
-     */
-    protected void validateRequiredParams(User user, ActionLogType actionType) {
-        if (user == null) {
-            throw new IllegalArgumentException("User cannot be null");
+        if (device != null) {
+            activityLog.setDevice(device);
         }
-        if (actionType == null) {
-            throw new IllegalArgumentException("ActionLogType cannot be null");
+
+        if (details != null && !details.trim().isEmpty()) {
+            activityLog.setDetails(details.trim());
         }
+
+        ActivityLog savedLog = activityLogRepository.save(activityLog);
+
+        log.debug("Directly logged {} action for user {} - ID: {}",
+                actionType, user.getUsername(), savedLog.getId());
+
+        return savedLog;
     }
 
     /**
-     * Validate that the action type belongs to this domain
+     * Log a failed action directly (bypasses event system)
+     * @param user The user
+     * @param device The device (may be null)
+     * @param actionType The action type
+     * @param details Additional details
+     * @param failureReason The failure reason
+     * @return The saved activity log
      */
-    protected void validateDomainAction(ActionLogType actionType) {
-        if (!getDomainName().equals(actionType.getCategory())) {
-            throw new IllegalArgumentException(
-                    String.format("ActionType %s (category: %s) does not belong to domain %s",
-                            actionType, actionType.getCategory(), getDomainName())
-            );
+    @Transactional
+    protected ActivityLog logFailedActionDirectly(User user, Device device, ActionLogType actionType,
+                                                  String details, String failureReason) {
+        ActivityLog activityLog = actionType.createActivityLog(user, false);
+
+        if (device != null) {
+            activityLog.setDevice(device);
         }
+
+        if (details != null && !details.trim().isEmpty()) {
+            activityLog.setDetails(details.trim());
+        }
+
+        if (failureReason != null && !failureReason.trim().isEmpty()) {
+            activityLog.setFailureReason(failureReason.trim());
+        }
+
+        ActivityLog savedLog = activityLogRepository.save(activityLog);
+
+        log.debug("Directly logged failed {} action for user {} - ID: {}",
+                actionType, user.getUsername(), savedLog.getId());
+
+        return savedLog;
     }
 }

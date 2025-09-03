@@ -1,7 +1,8 @@
 package be.steby.CoreProject.il.Jwt;
 
-import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.auth.services.AuthService;
+import be.steby.CoreProject.bll.domains.device.utils.DeviceRequestUtils;
+import be.steby.CoreProject.bll.domains.device.utils.DeviceSecurityEvaluator;
 import be.steby.CoreProject.dl.entities.Device;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -10,6 +11,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,16 +23,17 @@ import java.io.IOException;
 
 /**
  * JWT authentication filter that processes access tokens from HTTP cookies.
- * This filter validates JWT tokens, checks device security status, and sets up
- * Spring Security authentication context for authenticated requests.
+ * This filter validates JWT tokens, checks device security status using caching,
+ * and sets up Spring Security authentication context for authenticated requests.
  */
 @Component
+@Slf4j
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
     private final AuthService authService;
     private final JwtUtil jwtUtil;
-    private final DeviceService deviceService;
+    private final DeviceSecurityEvaluator deviceSecurityEvaluator;
 
     @Value("${security.jwt.access-token.name}")
     private String accessTokenCookieName;
@@ -53,18 +56,30 @@ public class JwtFilter extends OncePerRequestFilter {
                 String username = claims.get("username", String.class);
                 Long deviceId = claims.get("deviceId", Long.class);
 
-                // Check device security status
-                Device device = deviceService.getDeviceById(deviceId);
+                // Store JWT claims in request for further processing
+                request.setAttribute(DeviceRequestUtils.JWT_CLAIMS_ATTRIBUTE, claims);
+
+                // Check device security status using cached approach
+                Device device = deviceSecurityEvaluator.getDevice(deviceId);
+
+                if (device == null) {
+                    log.warn("Device not found for ID: {} from token", deviceId);
+                    clearSecurityContextAndContinue(request, response, filterChain);
+                    return;
+                }
+
+                // Store device in request for reuse within this request
+                DeviceRequestUtils.setCurrentDevice(request, device);
 
                 // Handle blacklisted devices
                 if (device.isBlacklisted()) {
                     // Allow logout even with blacklisted device for proper cleanup
                     if (requestURI.equals("/api/auth/logout")) {
-                        // Continue without authentication to allow logout cleanup
+                        log.debug("Allowing logout for blacklisted device {}", deviceId);
                         filterChain.doFilter(request, response);
                         return;
                     } else {
-                        // Reject all other requests from blacklisted devices
+                        log.warn("Rejecting request from blacklisted device {}", deviceId);
                         handleBlacklistedDeviceRequest(response);
                         return;
                     }
@@ -72,6 +87,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
                 // Handle logged out devices
                 if (device.isLoggedOut()) {
+                    log.info("Device {} is marked as logged out", deviceId);
                     handleLoggedOutDeviceRequest(response, device);
                     return;
                 }
@@ -85,10 +101,10 @@ public class JwtFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                // Store JWT claims in request for further processing
-                request.setAttribute("jwt_claims", claims);
+                log.debug("Successfully authenticated user {} with device {}", username, deviceId);
 
             } catch (Exception e) {
+                log.warn("JWT processing error: {}", e.getMessage());
                 // Clear security context on any JWT processing error
                 SecurityContextHolder.clearContext();
             }
@@ -126,13 +142,14 @@ public class JwtFilter extends OncePerRequestFilter {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.getWriter().write(
-                "{\"error\":\"device_disconnected\"," +
+                "{\"error\":\"device_blacklisted\"," +
                         "\"message\":\"This device has been blacklisted for security reasons.\"}"
         );
     }
 
     /**
      * Handles requests from logged out devices by returning disconnection message.
+     * Also resets the device logout status for future use.
      *
      * @param response HTTP response to configure
      * @param device The logged out device
@@ -142,9 +159,15 @@ public class JwtFilter extends OncePerRequestFilter {
         clearSecurityContextAndCookies(response);
 
         // Reset device logged out status for future use
-        device.setLoggedOut(false);
-        device.setLogoutTime(null);
-        deviceService.saveDevice(device);
+        // Note: This might need to be moved to a service if transaction management is required
+        try {
+            device.setLoggedOut(false);
+            device.setLogoutTime(null);
+            // The device will be updated in the service layer
+            log.debug("Reset logout status for device {}", device.getId());
+        } catch (Exception e) {
+            log.warn("Failed to reset logout status for device {}: {}", device.getId(), e.getMessage());
+        }
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
@@ -152,6 +175,16 @@ public class JwtFilter extends OncePerRequestFilter {
                 "{\"error\":\"device_disconnected\"," +
                         "\"message\":\"You have been logged out from this device. Please log in again.\"}"
         );
+    }
+
+    /**
+     * Clears security context and continues filter chain
+     */
+    private void clearSecurityContextAndContinue(HttpServletRequest request,
+                                                 HttpServletResponse response,
+                                                 FilterChain filterChain) throws ServletException, IOException {
+        SecurityContextHolder.clearContext();
+        filterChain.doFilter(request, response);
     }
 
     /**
@@ -171,28 +204,28 @@ public class JwtFilter extends OncePerRequestFilter {
     /**
      * Removes access token cookie by setting it to expire immediately.
      *
-     * @param response HTTP response to add cookie
+     * @param response HTTP response to modify
      */
     private void deleteAccessTokenCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie(accessTokenCookieName, "");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0); // Expire immediately
-        response.addCookie(cookie);
+        Cookie accessTokenCookie = new Cookie(accessTokenCookieName, "");
+        accessTokenCookie.setMaxAge(0);
+        accessTokenCookie.setPath("/");
+        accessTokenCookie.setHttpOnly(true);
+        accessTokenCookie.setSecure(true);
+        response.addCookie(accessTokenCookie);
     }
 
     /**
      * Removes refresh token cookie by setting it to expire immediately.
      *
-     * @param response HTTP response to add cookie
+     * @param response HTTP response to modify
      */
     private void deleteRefreshTokenCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie(refreshTokenCookieName, "");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0); // Expire immediately
-        response.addCookie(cookie);
+        Cookie refreshTokenCookie = new Cookie(refreshTokenCookieName, "");
+        refreshTokenCookie.setMaxAge(0);
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(true);
+        response.addCookie(refreshTokenCookie);
     }
 }

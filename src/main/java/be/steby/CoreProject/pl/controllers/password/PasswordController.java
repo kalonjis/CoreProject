@@ -10,6 +10,7 @@ import be.steby.CoreProject.pl.models.password.RequestPasswordForm;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +20,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/password")
 @RequiredArgsConstructor
+@Slf4j
 public class PasswordController {
 
   // Required dependencies for password reset functionality
@@ -34,6 +36,7 @@ public class PasswordController {
   @PostMapping("/request-password-reset")
   public ResponseEntity<Map<String, String>> requestPassword(@Valid @RequestBody RequestPasswordForm form, HttpServletRequest request) {
 
+    log.warn("hello je tente un request password reset");
     passwordService.requestPasswordReset(form.email(), request);
 
     Map<String, String> response = new HashMap<>();

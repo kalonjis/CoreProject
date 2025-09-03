@@ -71,7 +71,7 @@ public class AsyncConfig implements AsyncConfigurer {
      */
     @Bean(name = "activityLogExecutor")
     public Executor activityLogExecutor() {
-        return createExecutor(3, 6, 500, "ActivityLog-", 60);
+        return createExecutor(1, 1, 1000, "ActivityLog-", 60);
     }
 
     /**
