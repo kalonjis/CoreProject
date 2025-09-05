@@ -4,6 +4,7 @@ import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.common.utils.IpLocationUtils;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.device.events.DeviceCreatedOrUpdatedEvent;
 import be.steby.CoreProject.bll.domains.device.events.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.domains.device.utils.UserAgentUtils;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
@@ -75,8 +76,18 @@ public class DeviceServiceImpl implements DeviceService {
         UserAgent agent = userAgentAnalyzer.parse(userAgentString);
 
         Device device = deviceRepository.findByFingerprint(fingerprint)
-                .map(existingDevice -> updateExistingDevice(user, existingDevice, ipAddress))
-                .orElseGet(() -> createNewDevice(user, agent, request, fingerprint, ipAddress));
+                .map(existingDevice -> {
+                    Device updated = updateExistingDevice(user, existingDevice, ipAddress);
+                    // Publish update event for cache management
+                    eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.updated(updated));
+                    return updated;
+                })
+                .orElseGet(() -> {
+                    Device created = createNewDevice(user, agent, request, fingerprint, ipAddress);
+                    // Publish creation event for cache management
+                    eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.created(created));
+                    return created;
+                });
 
         return device;
     }
@@ -96,8 +107,18 @@ public class DeviceServiceImpl implements DeviceService {
         UserAgent agent = userAgentAnalyzer.parse(userAgentString);
 
         Device device = deviceRepository.findByFingerprint(fingerprint)
-                .map(existingDevice -> updateExistingDevice(user, existingDevice, ipAddress))
-                .orElseGet(() -> createNewDeviceFromContext(user, agent, requestContext, fingerprint, ipAddress));
+                .map(existingDevice -> {
+                    Device updated = updateExistingDevice(user, existingDevice, ipAddress);
+                    // Publish update event for cache management
+                    eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.updated(updated));
+                    return updated;
+                })
+                .orElseGet(() -> {
+                    Device created = createNewDeviceFromContext(user, agent, requestContext, fingerprint, ipAddress);
+                    // Publish creation event for cache management
+                    eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.created(created));
+                    return created;
+                });
 
         return device;
     }
@@ -133,20 +154,30 @@ public class DeviceServiceImpl implements DeviceService {
     @Override
     public void saveDevice(Device device) {
         deviceRepository.save(device);
+        // Publish update event for cache management
+        eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.updated(device));
     }
 
     @Override
     @Transactional
     public Device confirmDevice(String token) {
-        Device device = getDeviceByToken(token);
-        device.setDeviceTrustLevel(DeviceTrustLevel.BASIC);
+        DeviceConfirmationToken confirmationToken = deviceConfirmationTokenService.getToken(token);
+        deviceConfirmationTokenService.verifyTokenValidity(confirmationToken);
+
+        Device device = getDeviceById(confirmationToken.getDeviceId());
         device.setConfirmed(true);
-        if (device.isBlacklisted()) {
-            device.setBlacklisted(false);
-        }
-        deviceRepository.save(device);
-        log.info("Device {} confirmed for user {}", device.getId(), device.getUser().getUsername());
-        return device;
+        device.setDeviceTrustLevel(DeviceTrustLevel.TRUSTED);
+
+        Device savedDevice = deviceRepository.save(device);
+
+        // Publish update event for cache management
+        eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.updated(savedDevice));
+
+        // Use revokeToken instead of deleteToken
+        deviceConfirmationTokenService.revokeToken(confirmationToken);
+
+        log.info("Device {} confirmed and trust level updated to TRUSTED", device.getId());
+        return savedDevice;
     }
 
     @Override
