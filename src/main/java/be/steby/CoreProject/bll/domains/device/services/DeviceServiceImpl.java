@@ -29,8 +29,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * Service implementation for device management operations.
+ * Handles device detection, registration, security management, and lifecycle operations.
+ *
+ * This service is responsible for:
+ * - Device detection and registration from HTTP requests
+ * - Device trust level management
+ * - Device confirmation and rejection
+ * - Device disconnection and logout operations
+ * - Cache consistency through event publishing
+ */
 @Service
 @RequiredArgsConstructor
+@Transactional
 @Slf4j
 public class DeviceServiceImpl implements DeviceService {
 
@@ -134,7 +146,8 @@ public class DeviceServiceImpl implements DeviceService {
         }
 
         device.setDeviceTrustLevel(level);
-        deviceRepository.save(device);
+        // Use service method to ensure cache consistency
+        saveDevice(device);
 
         RequestContext requestContext = requestContextService.captureRequestContext(request);
 
@@ -168,16 +181,13 @@ public class DeviceServiceImpl implements DeviceService {
         device.setConfirmed(true);
         device.setDeviceTrustLevel(DeviceTrustLevel.TRUSTED);
 
-        Device savedDevice = deviceRepository.save(device);
+        // Use service method to ensure cache consistency
+        saveDevice(device);
 
-        // Publish update event for cache management
-        eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.updated(savedDevice));
-
-        // Use revokeToken instead of deleteToken
         deviceConfirmationTokenService.revokeToken(confirmationToken);
 
         log.info("Device {} confirmed and trust level updated to TRUSTED", device.getId());
-        return savedDevice;
+        return device;
     }
 
     @Override
@@ -191,7 +201,9 @@ public class DeviceServiceImpl implements DeviceService {
 
         User user = device.getUser();
         refreshTokenService.revokeDeviceTokens(user, device);
-        deviceRepository.save(device);
+
+        // Use service method to ensure cache consistency
+        saveDevice(device);
 
         log.info("Device {} rejected and blacklisted for user {}", device.getId(), user.getUsername());
     }
@@ -226,7 +238,9 @@ public class DeviceServiceImpl implements DeviceService {
         refreshTokenService.revokeDeviceTokens(currentUser, deviceToDisconnect);
         deviceToDisconnect.setLoggedOut(true);
         deviceToDisconnect.setLogoutTime(Instant.now());
-        deviceRepository.save(deviceToDisconnect);
+
+        // Use service method to ensure cache consistency
+        saveDevice(deviceToDisconnect);
 
         log.info("Device {} marked as disconnected for user {}", deviceId, currentUser.getUsername());
     }
@@ -260,33 +274,38 @@ public class DeviceServiceImpl implements DeviceService {
         return deviceRepository.count();
     }
 
+    // =========================================================================
     // Private helper methods
-    private Device getDeviceByToken(String token) {
-        DeviceConfirmationToken deviceConfirmationToken = deviceConfirmationTokenService.getToken(token);
-        deviceConfirmationTokenService.verifyTokenValidity(deviceConfirmationToken);
-        deviceConfirmationTokenService.revokeToken(deviceConfirmationToken);
-        Long deviceId = deviceConfirmationToken.getDeviceId();
-        return getDeviceById(deviceId);
-    }
+    // =========================================================================
 
-    private boolean authenticatedUserOwnsDevice(Device device) {
-        User auth = userService.getAuthenticatedUser();
-        return device.getUser().getId().equals(auth.getId());
-    }
-
-    private void validateDeviceOwnership(Device device) {
-        if (!authenticatedUserOwnsDevice(device)) {
-            throw new OwnershipException("Access denied: You can only access your own devices.");
-        }
-    }
-
+    /**
+     * Updates an existing device with new connection information.
+     *
+     * @param user The user associated with the device
+     * @param device The existing device to update
+     * @param ipAddress The current IP address
+     * @return The updated device
+     */
     private Device updateExistingDevice(User user, Device device, String ipAddress) {
         device.setLastSeen(Instant.now());
         device.setLastIpAddress(ipAddress);
         device.setLocation(IpLocationUtils.resolveLocationFromIp(ipAddress));
-        return deviceRepository.save(device);
+
+        // Use service method to ensure cache consistency
+        saveDevice(device);
+        return device;
     }
 
+    /**
+     * Creates a new device from HTTP request information.
+     *
+     * @param user The user to associate with the device
+     * @param agent Parsed user agent information
+     * @param request The HTTP request
+     * @param fingerprint The device fingerprint
+     * @param ipAddress The client IP address
+     * @return The newly created device
+     */
     private Device createNewDevice(User user, UserAgent agent, HttpServletRequest request, String fingerprint, String ipAddress) {
         Device device = Device.builder()
                 .user(user)
@@ -306,11 +325,22 @@ public class DeviceServiceImpl implements DeviceService {
             device.setFirstDeviceUsed(true);
         }
 
-        deviceRepository.save(device);
+        // Use service method to ensure cache consistency
+        saveDevice(device);
         log.info("New device created with ID {} for user {}", device.getId(), user.getUsername());
         return device;
     }
 
+    /**
+     * Creates a new device from request context information.
+     *
+     * @param user The user to associate with the device
+     * @param agent Parsed user agent information
+     * @param requestContext The request context
+     * @param fingerprint The device fingerprint
+     * @param ipAddress The client IP address
+     * @return The newly created device
+     */
     private Device createNewDeviceFromContext(User user, UserAgent agent, RequestContext requestContext, String fingerprint, String ipAddress) {
         Device device = Device.builder()
                 .user(user)
@@ -330,11 +360,57 @@ public class DeviceServiceImpl implements DeviceService {
             device.setFirstDeviceUsed(true);
         }
 
-        deviceRepository.save(device);
+        // Use service method to ensure cache consistency
+        saveDevice(device);
         log.info("New device created from context with ID {} for user {}", device.getId(), user.getUsername());
         return device;
     }
 
+    /**
+     * Retrieves a device by its confirmation token.
+     * This method validates and revokes the token before returning the device.
+     *
+     * @param token The device confirmation token
+     * @return The device associated with the token
+     */
+    private Device getDeviceByToken(String token) {
+        DeviceConfirmationToken deviceConfirmationToken = deviceConfirmationTokenService.getToken(token);
+        deviceConfirmationTokenService.verifyTokenValidity(deviceConfirmationToken);
+        deviceConfirmationTokenService.revokeToken(deviceConfirmationToken);
+        Long deviceId = deviceConfirmationToken.getDeviceId();
+        return getDeviceById(deviceId);
+    }
+
+    /**
+     * Checks if the authenticated user owns the specified device.
+     *
+     * @param device The device to check ownership for
+     * @return true if the authenticated user owns the device, false otherwise
+     */
+    private boolean authenticatedUserOwnsDevice(Device device) {
+        User auth = userService.getAuthenticatedUser();
+        return device.getUser().getId().equals(auth.getId());
+    }
+
+    /**
+     * Validates that the authenticated user owns the specified device.
+     * Throws an exception if the user does not own the device.
+     *
+     * @param device The device to validate ownership for
+     * @throws OwnershipException if the user does not own the device
+     */
+    private void validateDeviceOwnership(Device device) {
+        if (!authenticatedUserOwnsDevice(device)) {
+            throw new OwnershipException("Access denied: You can only access your own devices.");
+        }
+    }
+
+    /**
+     * Checks if this is the first device for the specified user.
+     *
+     * @param user The user to check
+     * @return true if this is the user's first device, false otherwise
+     */
     private boolean isFirstDevice(User user) {
         List<Device> devices = getUserDevice(user);
         return devices == null || devices.isEmpty();

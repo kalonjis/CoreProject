@@ -49,8 +49,8 @@ public class JwtUtil {
         // Ajouter les informations du Device
         claims.put("deviceId", device.getId());
         claims.put("deviceFingerprint", device.getFingerprint());
-        claims.put("deviceTrustLevel", device.getDeviceTrustLevel().name());
-        claims.put("deviceConfirmed", device.isConfirmed());
+//        claims.put("deviceTrustLevel", device.getDeviceTrustLevel().name());
+//        claims.put("deviceConfirmed", device.isConfirmed());
 
         return Jwts.builder()
                 .setClaims(claims)
