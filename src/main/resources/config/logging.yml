@@ -1,0 +1,6 @@
+logging:
+  level:
+    be.steby.CoreProject: DEBUG
+    # Optionnel : réduire le bruit de Hibernate si besoin
+    org.hibernate.SQL: INFO
+    org.hibernate.type: INFO

@@ -3,6 +3,7 @@ spring:
     import:
       - classpath:config/database.yml
       - classpath:config/mail.yml
+      - classpath:config/device.yml
       - classpath:config/server.yml
       - classpath:config/security/jwt.yml
       - classpath:config/security/emailAddress.yml
@@ -12,6 +13,7 @@ spring:
       - classpath:config/security/admin.yml
       - classpath:config/security/auth.yml
       - classpath:config/common-validation.yml
+      - classpath:config/logging.yml
 
 url:
   back_server: ${URL_BACK_SERVER}

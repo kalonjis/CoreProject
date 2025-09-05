@@ -3,6 +3,7 @@ package be.steby.CoreProject.il.utils;
 public class SecurityConstants {
     // Liste statique des chemins à ignorer pour la protection CSRF
     public static final String[] CSRF_IGNORE_PATHS = {
+            "/api/test/device-security/**",
             "/api/auth/**",
             "/api/user/device/current",
             "/api/user/device/my-device/**",
