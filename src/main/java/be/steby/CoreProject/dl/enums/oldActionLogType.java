@@ -4,7 +4,7 @@ package be.steby.CoreProject.dl.enums;
  * Types d'actions utilisateur à enregistrer dans les logs de connexion.
  * Format standardisé : CATEGORIE_ACTION
  */
-public enum ActionLogType {
+public enum oldActionLogType {
     // AUTHENTIFICATION
     AUTH_LOGIN("Connexion utilisateur"),
     AUTH_LOGOUT("Déconnexion utilisateur"),
@@ -92,7 +92,7 @@ public enum ActionLogType {
 
     private final String description;
 
-    ActionLogType(String description) {
+    oldActionLogType(String description) {
         this.description = description;
     }
 

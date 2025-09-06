@@ -1,6 +1,6 @@
 package be.steby.CoreProject.dl.entities;
 
-import be.steby.CoreProject.dl.enums.ActionLogType;
+import be.steby.CoreProject.dl.enums.oldActionLogType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -55,7 +55,7 @@ public class ActivityLog extends BaseEntity<Long> {
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "action_type", length = 50, nullable = false)
-    private ActionLogType actionType;  // ← ENUM au lieu de String !
+    private oldActionLogType actionType;  // ← ENUM au lieu de String !
 
     /**
      * Détails complémentaires sur l'action

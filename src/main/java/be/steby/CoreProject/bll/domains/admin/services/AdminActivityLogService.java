@@ -6,7 +6,7 @@ import be.steby.CoreProject.bll.domains.admin.events.AdminActionEvent;
 import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ActionLogType;
+import be.steby.CoreProject.dl.enums.oldActionLogType;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.UserRole;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -52,7 +52,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
     }
 
     @Override
-    protected int getBaseRiskForActionType(ActionLogType actionType) {
+    protected int getBaseRiskForActionType(oldActionLogType actionType) {
         return 0;
     }
 
@@ -76,7 +76,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
             logUserAction(
                     adminUser,
                     null, // device
-                    ActionLogType.ADMIN_USER_CREATED, // ← Enum directement !
+                    oldActionLogType.ADMIN_USER_CREATED, // ← Enum directement !
                     true, // successful
                     String.format("Création de l'utilisateur '%s' avec les rôles: %s",
                             createdUser.getUsername(), assignedRoles),
@@ -109,7 +109,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
             logUserAction(
                     adminUser,
                     null, // device
-                    ActionLogType.ROLE_GRANTED,
+                    oldActionLogType.ROLE_GRANTED,
                     true, // successful
                     String.format("Attribution du rôle '%s' à l'utilisateur '%s'",
                             grantedRole, targetUser.getUsername()),
@@ -143,7 +143,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
             logUserAction(
                     adminUser,
                     null, // device
-                    ActionLogType.ROLE_REVOKED,
+                    oldActionLogType.ROLE_REVOKED,
                     true, // successful
                     String.format("Révocation du rôle '%s' de l'utilisateur '%s'",
                             revokedRole, targetUser.getUsername()),
@@ -172,7 +172,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
             logUserAction(
                     adminUser,
                     null, // device
-                    ActionLogType.ACCOUNT_ACTIVATED,
+                    oldActionLogType.ACCOUNT_ACTIVATED,
                     true, // successful
                     String.format("Activation de l'utilisateur '%s'", targetUser.getUsername()),
                     objectMapper.writeValueAsString(metadata),
@@ -204,7 +204,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
             logUserAction(
                     adminUser,
                     null, // device
-                    ActionLogType.ACCOUNT_DEACTIVATED,
+                    oldActionLogType.ACCOUNT_DEACTIVATED,
                     true, // successful
                     String.format("Désactivation de l'utilisateur '%s' (Catégorie: %s)",
                             targetUser.getUsername(), category.getDisplayName()),
@@ -236,7 +236,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
             logUserAction(
                     adminUser,
                     null, // device
-                    ActionLogType.ADMIN_PASSWORD_RESET,
+                    oldActionLogType.ADMIN_PASSWORD_RESET,
                     true, // successful
                     String.format("Reset de mot de passe déclenché pour l'utilisateur '%s'",
                             targetUser.getUsername()),
@@ -264,7 +264,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
             logUserAction(
                     adminUser,
                     null, // device
-                    ActionLogType.ADMIN_USER_SEARCH,
+                    oldActionLogType.ADMIN_USER_SEARCH,
                     true, // successful
                     String.format("Recherche d'utilisateurs: '%s' (%d résultats)", query, totalResults),
                     objectMapper.writeValueAsString(metadata),
@@ -294,7 +294,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
             logUserAction(
                     adminUser,
                     null, // device
-                    ActionLogType.ADMIN_USER_DELETION,
+                    oldActionLogType.ADMIN_USER_DELETION,
                     true, // successful
                     String.format("Suppression de l'utilisateur '%s'%s",
                             targetUser.getUsername(),
@@ -323,7 +323,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
             logUserAction(
                     adminUser,
                     null, // device
-                    ActionLogType.ADMIN_AUDIT_ACCESS,
+                    oldActionLogType.ADMIN_AUDIT_ACCESS,
                     true, // successful
                     String.format("Accès aux logs d'audit (%s)%s",
                             accessType,
@@ -352,7 +352,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
             logUserAction(
                     adminUser,
                     null, // device
-                    ActionLogType.ADMIN_DATA_EXPORT,
+                    oldActionLogType.ADMIN_DATA_EXPORT,
                     true, // successful
                     String.format("Export de données (%s): %d enregistrements", exportType, recordCount),
                     objectMapper.writeValueAsString(metadata),
@@ -379,7 +379,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
             metadata.put("isSecurityAction", event.isSecurityAction());
             metadata.putAll(event.actionDetails());
 
-            ActionLogType logType = mapActionTypeToLogType(event.actionType());
+            oldActionLogType logType = mapActionTypeToLogType(event.actionType());
 
             logUserAction(
                     event.adminUser(),
@@ -402,7 +402,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
     /**
      * Recherche les actions d'administration par type d'action (TYPE SAFE).
      */
-    public Page<ActivityLog> getAdminActionsByType(List<ActionLogType> actionTypes, Pageable pageable) {
+    public Page<ActivityLog> getAdminActionsByType(List<oldActionLogType> actionTypes, Pageable pageable) {
         return activityLogRepository.findByActionTypeInOrderByTimestampDesc(actionTypes, pageable);
     }
 
@@ -410,7 +410,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
      * Recherche les actions d'administration effectuées par un administrateur spécifique (TYPE SAFE).
      */
     public Page<ActivityLog> getAdminActionsByUser(User adminUser, Instant from, Instant to, Pageable pageable) {
-        List<ActionLogType> adminActionTypes = getAdminActionTypes();
+        List<oldActionLogType> adminActionTypes = getAdminActionTypes();
         return activityLogRepository.findByUserAndActionTypeInAndTimestampBetween(
                 adminUser, adminActionTypes, from, to, pageable);
     }
@@ -419,7 +419,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
      * Recherche les actions sensibles (sécurité, rôles administratifs, etc.) - TYPE SAFE.
      */
     public Page<ActivityLog> getSensitiveAdminActions(Instant from, Instant to, Pageable pageable) {
-        List<ActionLogType> sensitiveActions = getSensitiveActionTypes();
+        List<oldActionLogType> sensitiveActions = getSensitiveActionTypes();
         return activityLogRepository.findByActionTypeInAndTimestampBetweenOrderByTimestampDesc(
                 sensitiveActions, from, to, pageable);
     }
@@ -428,7 +428,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
      * Recherche les échecs d'actions administratives (TYPE SAFE).
      */
     public Page<ActivityLog> getFailedAdminActions(Instant from, Instant to, Pageable pageable) {
-        List<ActionLogType> adminActions = getAdminActionTypes();
+        List<oldActionLogType> adminActions = getAdminActionTypes();
 
         return activityLogRepository.searchLogsWithEnums(
                 null, // userId
@@ -444,7 +444,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
     /**
      * Recherche les actions d'administration par utilisateur et types spécifiques (TYPE SAFE).
      */
-    public Page<ActivityLog> getAdminActionsByUserAndTypes(User adminUser, List<ActionLogType> actionTypes,
+    public Page<ActivityLog> getAdminActionsByUserAndTypes(User adminUser, List<oldActionLogType> actionTypes,
                                                            Instant from, Instant to, Pageable pageable) {
         return activityLogRepository.findByUserAndActionTypeInAndTimestampBetween(
                 adminUser, actionTypes, from, to, pageable);
@@ -453,12 +453,12 @@ public class AdminActivityLogService extends AbstractActivityLogService {
     /**
      * Obtient les statistiques d'actions d'administration pour une période (TYPE SAFE).
      */
-    public Map<ActionLogType, Long> getAdminActionStatistics(Instant from, Instant to) {
-        Map<ActionLogType, Long> stats = new HashMap<>();
+    public Map<oldActionLogType, Long> getAdminActionStatistics(Instant from, Instant to) {
+        Map<oldActionLogType, Long> stats = new HashMap<>();
 
-        List<ActionLogType> adminActions = getAdminActionTypes();
+        List<oldActionLogType> adminActions = getAdminActionTypes();
 
-        for (ActionLogType actionType : adminActions) {
+        for (oldActionLogType actionType : adminActions) {
             long count = activityLogRepository.countByActionTypeAndSuccessfulAndTimestampBetween(
                     actionType, true, from, to);
             stats.put(actionType, count); // ← Clé en ActionLogType, pas en String !
@@ -470,7 +470,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
     /**
      * Recherche flexible par critères multiples (TYPE SAFE).
      */
-    public Page<ActivityLog> searchAdminLogs(Long userId, String ipAddress, List<ActionLogType> actionTypes,
+    public Page<ActivityLog> searchAdminLogs(Long userId, String ipAddress, List<oldActionLogType> actionTypes,
                                              Boolean successful, Instant from, Instant to, Pageable pageable) {
         return activityLogRepository.searchLogsWithEnums(
                 userId, ipAddress, actionTypes, successful, from, to, pageable);
@@ -479,7 +479,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
     /**
      * Obtient les dernières actions d'un type spécifique par un admin (TYPE SAFE).
      */
-    public List<ActivityLog> getRecentAdminActionsByType(User adminUser, ActionLogType actionType, int limit) {
+    public List<ActivityLog> getRecentAdminActionsByType(User adminUser, oldActionLogType actionType, int limit) {
         Pageable pageable = PageRequest.of(0, limit);
         return activityLogRepository.findByUserAndActionTypeOrderByTimestampDesc(adminUser, actionType, pageable)
                 .getContent();
@@ -494,7 +494,7 @@ public class AdminActivityLogService extends AbstractActivityLogService {
         Map<String, Long> categoryStats = new HashMap<>();
 
         for (Object[] result : results) {
-            ActionLogType actionType = (ActionLogType) result[0];
+            oldActionLogType actionType = (oldActionLogType) result[0];
             Long count = (Long) result[1];
 
             String category = actionType.getCategory();
@@ -516,36 +516,36 @@ public class AdminActivityLogService extends AbstractActivityLogService {
     /**
      * Définit tous les types d'actions considérés comme "administratives".
      */
-    private List<ActionLogType> getAdminActionTypes() {
+    private List<oldActionLogType> getAdminActionTypes() {
         return List.of(
-                ActionLogType.ADMIN_USER_CREATED,
-                ActionLogType.ADMIN_USER_DELETION,
-                ActionLogType.ADMIN_USER_SEARCH,
-                ActionLogType.ADMIN_PASSWORD_RESET,
-                ActionLogType.ADMIN_FORCE_LOGOUT,
-                ActionLogType.ADMIN_DATA_EXPORT,
-                ActionLogType.ADMIN_AUDIT_ACCESS,
-                ActionLogType.ROLE_GRANTED,
-                ActionLogType.ROLE_REVOKED,
-                ActionLogType.ACCOUNT_ACTIVATED,
-                ActionLogType.ACCOUNT_DEACTIVATED
+                oldActionLogType.ADMIN_USER_CREATED,
+                oldActionLogType.ADMIN_USER_DELETION,
+                oldActionLogType.ADMIN_USER_SEARCH,
+                oldActionLogType.ADMIN_PASSWORD_RESET,
+                oldActionLogType.ADMIN_FORCE_LOGOUT,
+                oldActionLogType.ADMIN_DATA_EXPORT,
+                oldActionLogType.ADMIN_AUDIT_ACCESS,
+                oldActionLogType.ROLE_GRANTED,
+                oldActionLogType.ROLE_REVOKED,
+                oldActionLogType.ACCOUNT_ACTIVATED,
+                oldActionLogType.ACCOUNT_DEACTIVATED
         );
     }
 
     /**
      * Définit tous les types d'actions considérés comme "sensibles".
      */
-    private List<ActionLogType> getSensitiveActionTypes() {
+    private List<oldActionLogType> getSensitiveActionTypes() {
         return List.of(
-                ActionLogType.ROLE_GRANTED,
-                ActionLogType.ROLE_REVOKED,
-                ActionLogType.ACCOUNT_DEACTIVATED,
-                ActionLogType.ADMIN_PASSWORD_RESET,
-                ActionLogType.ADMIN_USER_CREATED,
-                ActionLogType.ADMIN_USER_DELETION,
-                ActionLogType.ADMIN_USER_SEARCH,
-                ActionLogType.ADMIN_AUDIT_ACCESS,
-                ActionLogType.SECURITY_SUSPICIOUS_ACTIVITY
+                oldActionLogType.ROLE_GRANTED,
+                oldActionLogType.ROLE_REVOKED,
+                oldActionLogType.ACCOUNT_DEACTIVATED,
+                oldActionLogType.ADMIN_PASSWORD_RESET,
+                oldActionLogType.ADMIN_USER_CREATED,
+                oldActionLogType.ADMIN_USER_DELETION,
+                oldActionLogType.ADMIN_USER_SEARCH,
+                oldActionLogType.ADMIN_AUDIT_ACCESS,
+                oldActionLogType.SECURITY_SUSPICIOUS_ACTIVITY
         );
     }
 
@@ -578,21 +578,21 @@ public class AdminActivityLogService extends AbstractActivityLogService {
     /**
      * Mappe un type d'action admin vers un type de log d'activité.
      */
-    private ActionLogType mapActionTypeToLogType(AdminActionEvent.AdminActionType actionType) {
+    private oldActionLogType mapActionTypeToLogType(AdminActionEvent.AdminActionType actionType) {
         return switch (actionType) {
-            case USER_CREATION -> ActionLogType.ADMIN_USER_CREATED;
-            case USER_DELETION -> ActionLogType.ADMIN_USER_DELETION;
-            case USER_ACTIVATION -> ActionLogType.ACCOUNT_ACTIVATED;
-            case USER_DEACTIVATION -> ActionLogType.ACCOUNT_DEACTIVATED;
-            case ROLE_GRANT -> ActionLogType.ROLE_GRANTED;
-            case ROLE_REVOKE -> ActionLogType.ROLE_REVOKED;
-            case PASSWORD_RESET -> ActionLogType.ADMIN_PASSWORD_RESET;
-            case USER_SEARCH -> ActionLogType.ADMIN_USER_SEARCH;
-            case DATA_EXPORT -> ActionLogType.ADMIN_DATA_EXPORT;
-            case SYSTEM_CONFIGURATION -> ActionLogType.SYSTEM_CONFIG_CHANGED;
-            case SECURITY_ACTION -> ActionLogType.SECURITY_SUSPICIOUS_ACTIVITY;
-            case AUDIT_ACCESS -> ActionLogType.ADMIN_AUDIT_ACCESS;
-            default -> ActionLogType.API_ACCESS;
+            case USER_CREATION -> oldActionLogType.ADMIN_USER_CREATED;
+            case USER_DELETION -> oldActionLogType.ADMIN_USER_DELETION;
+            case USER_ACTIVATION -> oldActionLogType.ACCOUNT_ACTIVATED;
+            case USER_DEACTIVATION -> oldActionLogType.ACCOUNT_DEACTIVATED;
+            case ROLE_GRANT -> oldActionLogType.ROLE_GRANTED;
+            case ROLE_REVOKE -> oldActionLogType.ROLE_REVOKED;
+            case PASSWORD_RESET -> oldActionLogType.ADMIN_PASSWORD_RESET;
+            case USER_SEARCH -> oldActionLogType.ADMIN_USER_SEARCH;
+            case DATA_EXPORT -> oldActionLogType.ADMIN_DATA_EXPORT;
+            case SYSTEM_CONFIGURATION -> oldActionLogType.SYSTEM_CONFIG_CHANGED;
+            case SECURITY_ACTION -> oldActionLogType.SECURITY_SUSPICIOUS_ACTIVITY;
+            case AUDIT_ACCESS -> oldActionLogType.ADMIN_AUDIT_ACCESS;
+            default -> oldActionLogType.API_ACCESS;
         };
     }
 }

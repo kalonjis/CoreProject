@@ -6,7 +6,7 @@ import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ActionLogType;
+import be.steby.CoreProject.dl.enums.oldActionLogType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -47,7 +47,7 @@ public class PasswordActivityLogService extends AbstractActivityLogService {
     }
 
     @Override
-    protected int getBaseRiskForActionType(ActionLogType actionType) {
+    protected int getBaseRiskForActionType(oldActionLogType actionType) {
         return 0;
     }
 
@@ -84,7 +84,7 @@ public class PasswordActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.PASSWORD_CHANGED,
+                oldActionLogType.PASSWORD_CHANGED,
                 successful,
                 details,
                 metadataJson,
@@ -118,7 +118,7 @@ public class PasswordActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.PASSWORD_RESET_REQUEST,
+                oldActionLogType.PASSWORD_RESET_REQUEST,
                 true,
                 "Demande de réinitialisation de mot de passe effectuée",
                 metadataJson,
@@ -144,7 +144,7 @@ public class PasswordActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.PASSWORD_REQUEST_TOKEN,
+                oldActionLogType.PASSWORD_REQUEST_TOKEN,
                 true,
                 "Nouvelle demande de token de réinitialisation de mot de passe",
                 null,
@@ -181,7 +181,7 @@ public class PasswordActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.PASSWORD_RESET_COMPLETE,
+                oldActionLogType.PASSWORD_RESET_COMPLETE,
                 true,
                 "Réinitialisation de mot de passe effectuée",
                 metadataJson,
@@ -206,7 +206,7 @@ public class PasswordActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.PASSWORD_EXPIRED,
+                oldActionLogType.PASSWORD_EXPIRED,
                 true,
                 "Mot de passe expiré",
                 null,
@@ -241,7 +241,7 @@ public class PasswordActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 null, // Pas d'appareil associé pour une action admin
-                ActionLogType.ADMIN_PASSWORD_RESET,
+                oldActionLogType.ADMIN_PASSWORD_RESET,
                 true,
                 "Réinitialisation de mot de passe par l'administrateur #" + adminId,
                 metadataJson,
@@ -264,11 +264,11 @@ public class PasswordActivityLogService extends AbstractActivityLogService {
         return activityLogRepository.findByUserAndActionTypeInAndTimestampBetween(
                 user,
                 List.of(
-                        ActionLogType.PASSWORD_CHANGED,
-                        ActionLogType.PASSWORD_RESET_REQUEST,
-                        ActionLogType.PASSWORD_RESET_COMPLETE,
-                        ActionLogType.PASSWORD_EXPIRED,
-                        ActionLogType.ADMIN_PASSWORD_RESET
+                        oldActionLogType.PASSWORD_CHANGED,
+                        oldActionLogType.PASSWORD_RESET_REQUEST,
+                        oldActionLogType.PASSWORD_RESET_COMPLETE,
+                        oldActionLogType.PASSWORD_EXPIRED,
+                        oldActionLogType.ADMIN_PASSWORD_RESET
                 ),
                 startDate,
                 endDate,
@@ -285,7 +285,7 @@ public class PasswordActivityLogService extends AbstractActivityLogService {
     @Transactional(readOnly = true)
     public int daysSinceLastPasswordChange(User user) {
         ActivityLog lastPasswordChange = activityLogRepository.findTopByUserAndActionTypeAndSuccessfulOrderByTimestampDesc(
-                user, ActionLogType.PASSWORD_CHANGED.name(), true);
+                user, oldActionLogType.PASSWORD_CHANGED.name(), true);
 
         if (lastPasswordChange == null) {
             return -1;
@@ -312,7 +312,7 @@ public class PasswordActivityLogService extends AbstractActivityLogService {
 
         long count = activityLogRepository.countByUserAndActionTypeAndTimestampBetween(
                 user,
-                ActionLogType.PASSWORD_RESET_REQUEST.name(),
+                oldActionLogType.PASSWORD_RESET_REQUEST.name(),
                 startTime,
                 Instant.now()
         );

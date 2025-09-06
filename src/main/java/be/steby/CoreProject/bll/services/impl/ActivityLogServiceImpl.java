@@ -8,7 +8,7 @@ import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ActionLogType;
+import be.steby.CoreProject.dl.enums.oldActionLogType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +44,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     public ActivityLog logUserAction(
             User user,
             Device device,
-            ActionLogType actionType,
+            oldActionLogType actionType,
             boolean successful,
             String details,
             String metadata,
@@ -99,7 +99,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     public ActivityLog logLogin(User user, Device device, boolean successful,
                                 String failureReason, RequestContext requestContext) {
 
-        ActionLogType actionType = successful ? ActionLogType.AUTH_LOGIN : ActionLogType.AUTH_LOGIN_FAILED;
+        oldActionLogType actionType = successful ? oldActionLogType.AUTH_LOGIN : oldActionLogType.AUTH_LOGIN_FAILED;
         String metadataJson = null;
 
         try {
@@ -142,7 +142,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         ActivityLog log = logUserAction(
                 user,
                 device,
-                ActionLogType.AUTH_LOGOUT,
+                oldActionLogType.AUTH_LOGOUT,
                 true,
                 null,
                 null,
@@ -184,7 +184,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.EMAIL_CHANGE_REQUEST,
+                oldActionLogType.EMAIL_CHANGE_REQUEST,
                 true,
                 "Demande de changement d'email de " + user.getEmail() + " vers " + newEmail,
                 metadataJson,
@@ -211,7 +211,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.EMAIL_CHANGE_CANCELLED,
+                oldActionLogType.EMAIL_CHANGE_CANCELLED,
                 true,
                 "annulation du changement de l' adresse  email vers " + newEmail + " effectué",
                 metadataJson,
@@ -241,7 +241,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.EMAIL_VERIFIED,
+                oldActionLogType.EMAIL_VERIFIED,
                 true,
                 "verification de l' adresse  email de " + newEmail + " effectué",
                 metadataJson,
@@ -271,7 +271,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.EMAIL_CHANGE_COMPLETE,
+                oldActionLogType.EMAIL_CHANGE_COMPLETE,
                 true,
                 "Changement d'email de " + oldEmail + " vers " + newEmail + " effectué",
                 metadataJson,
@@ -292,7 +292,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.ACCOUNT_CREATED,
+                oldActionLogType.ACCOUNT_CREATED,
                 true,
                 "Création du compte utilisateur",
                 null,
@@ -310,7 +310,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.ACCOUNT_ACTIVATED,
+                oldActionLogType.ACCOUNT_ACTIVATED,
                 true,
                 "Activation du nouveau compte utilisateur",
                 null,
@@ -328,7 +328,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.ACCOUNT_ACTIVATED,
+                oldActionLogType.ACCOUNT_ACTIVATED,
                 true,
                 "Réactivation du compte utilisateur",
                 null,
@@ -357,7 +357,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return logUserAction(
                 user,
                 null,
-                ActionLogType.ACCOUNT_DEACTIVATED,
+                oldActionLogType.ACCOUNT_DEACTIVATED,
                 true,
                 "Désactivation du compte utilisateur par l'administrateur #" + adminId,
                 metadataJson,
@@ -373,7 +373,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     @Override
     @Transactional
     public ActivityLog logRoleChange(User user, String role, boolean granted, Long adminId, RequestContext requestContext) {
-        ActionLogType actionType = granted ? ActionLogType.ROLE_GRANTED : ActionLogType.ROLE_REVOKED;
+        oldActionLogType actionType = granted ? oldActionLogType.ROLE_GRANTED : oldActionLogType.ROLE_REVOKED;
 
         String metadataJson = null;
         try {
@@ -423,7 +423,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.DEVICE_REGISTERED,
+                oldActionLogType.DEVICE_REGISTERED,
                 true,
                 "Nouvel appareil enregistré: " + device.getDeviceType() + " - " + device.getBrowser(),
                 metadataJson,
@@ -440,7 +440,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.DEVICE_CONFIRMED,
+                oldActionLogType.DEVICE_CONFIRMED,
                 true,
                 "Appareil confirmé: " + device.getDeviceType() + " - " + device.getBrowser(),
                 null,
@@ -457,7 +457,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.DEVICE_REJECTED,
+                oldActionLogType.DEVICE_REJECTED,
                 true,
                 "Appareil rejeté: " + device.getDeviceType() + " - " + device.getBrowser(),
                 null,
@@ -486,7 +486,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.DEVICE_TRUST_LEVEL_CHANGED,
+                oldActionLogType.DEVICE_TRUST_LEVEL_CHANGED,
                 true,
                 "Niveau de confiance de l'appareil modifié de " + oldLevel + " à " + newLevel,
                 metadataJson,
@@ -514,7 +514,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.SECURITY_SUSPICIOUS_ACTIVITY,
+                oldActionLogType.SECURITY_SUSPICIOUS_ACTIVITY,
                 true,
                 details,
                 metadataJson,
@@ -540,10 +540,10 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<ActivityLog> getUserActionHistory(User user, List<ActionLogType> actionTypes,
+    public Page<ActivityLog> getUserActionHistory(User user, List<oldActionLogType> actionTypes,
                                                   Instant startDate, Instant endDate, Pageable pageable) {
         List<String> actionTypeStrings = actionTypes != null ?
-                actionTypes.stream().map(ActionLogType::name).collect(Collectors.toList()) : null;
+                actionTypes.stream().map(oldActionLogType::name).collect(Collectors.toList()) : null;
 
         return activityLogRepository.findByUserAndActionTypeInAndTimestampBetween(
                 user, actionTypes, startDate, endDate, pageable);
@@ -556,7 +556,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     @Transactional(readOnly = true)
     public List<ActivityLog> getRecentLoginAttempts(User user) {
         return activityLogRepository.findTop10ByUserAndActionTypeOrderByTimestampDesc(
-                user, ActionLogType.AUTH_LOGIN.name());
+                user, oldActionLogType.AUTH_LOGIN.name());
     }
 
     /**
@@ -564,10 +564,10 @@ public class ActivityLogServiceImpl implements ActivityLogService {
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<ActivityLog> searchLogs(Long userId, String ipAddress, List<ActionLogType> actionTypes,
+    public Page<ActivityLog> searchLogs(Long userId, String ipAddress, List<oldActionLogType> actionTypes,
                                         Boolean successful, Instant startDate, Instant endDate, Pageable pageable) {
         List<String> actionTypeStrings = actionTypes != null ?
-                actionTypes.stream().map(ActionLogType::name).collect(Collectors.toList()) : null;
+                actionTypes.stream().map(oldActionLogType::name).collect(Collectors.toList()) : null;
 
         return activityLogRepository.searchLogs(userId, ipAddress, actionTypeStrings,
                 successful, startDate, endDate, pageable);
@@ -583,23 +583,23 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
         // Nombre total de connexions
         Long totalLogins = activityLogRepository.countByUserAndActionTypeAndSuccessfulAndTimestampBetween(
-                user, ActionLogType.AUTH_LOGIN.name(), true, startDate, endDate);
+                user, oldActionLogType.AUTH_LOGIN.name(), true, startDate, endDate);
         stats.put("totalLogins", totalLogins);
 
         // Nombre de tentatives de connexion échouées
         Long failedLogins = activityLogRepository.countByUserAndActionTypeAndSuccessfulAndTimestampBetween(
-                user, ActionLogType.AUTH_LOGIN.name(), false, startDate, endDate);
+                user, oldActionLogType.AUTH_LOGIN.name(), false, startDate, endDate);
         stats.put("failedLogins", failedLogins);
 
         // Dernière connexion réussie
         ActivityLog lastLogin = activityLogRepository.findTopByUserAndActionTypeAndSuccessfulOrderByTimestampDesc(
-                user, ActionLogType.AUTH_LOGIN.name(), true);
+                user, oldActionLogType.AUTH_LOGIN.name(), true);
         stats.put("lastLoginTime", lastLogin != null ? lastLogin.getTimestamp() : null);
         stats.put("lastLoginLocation", lastLogin != null ? lastLogin.getLocation() : null);
 
         // Nombre de changements de mot de passe
         Long passwordChanges = activityLogRepository.countByUserAndActionTypeAndTimestampBetween(
-                user, ActionLogType.PASSWORD_CHANGED.name(), startDate, endDate);
+                user, oldActionLogType.PASSWORD_CHANGED.name(), startDate, endDate);
         stats.put("passwordChanges", passwordChanges);
 
         // Nombre d'appareils distincts utilisés
@@ -626,22 +626,22 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         try {
             // Nombre total de connexions
             Long totalLogins = activityLogRepository.countByActionTypeAndSuccessfulAndTimestampBetween(
-                    ActionLogType.AUTH_LOGIN.name(), true, startDate, endDate);
+                    oldActionLogType.AUTH_LOGIN.name(), true, startDate, endDate);
             stats.put("totalLogins", totalLogins);
 
             // Nombre total de tentatives de connexion échouées
             Long failedLogins = activityLogRepository.countByActionTypeAndSuccessfulAndTimestampBetween(
-                    ActionLogType.AUTH_LOGIN.name(), false, startDate, endDate);
+                    oldActionLogType.AUTH_LOGIN.name(), false, startDate, endDate);
             stats.put("failedLogins", failedLogins);
 
             // Nombre d'utilisateurs uniques connectés
             Long uniqueUsers = activityLogRepository.countDistinctUsersByActionTypeAndTimestampBetween(
-                    ActionLogType.AUTH_LOGIN.name(), startDate, endDate);
+                    oldActionLogType.AUTH_LOGIN.name(), startDate, endDate);
             stats.put("uniqueUsers", uniqueUsers);
 
             // Nombre d'adresses IP uniques
             Long uniqueIPs = activityLogRepository.countDistinctIpAddressesByActionTypeAndTimestampBetween(
-                    ActionLogType.AUTH_LOGIN.name(), startDate, endDate);
+                    oldActionLogType.AUTH_LOGIN.name(), startDate, endDate);
             stats.put("uniqueIPs", uniqueIPs);
         } catch (Exception e) {
             // Cette méthode compile beaucoup de requêtes et est utilisée pour l'UI administrateur
@@ -776,15 +776,15 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     /**
      * Évalue le niveau de risque d'une action (0-3)
      */
-    private int evaluateRiskLevel(User user, Device device, ActionLogType actionType, RequestContext requestContext) {
+    private int evaluateRiskLevel(User user, Device device, oldActionLogType actionType, RequestContext requestContext) {
         int riskLevel = 0;
 
         // Facteurs augmentant le risque
 
         // 1. Si l'action est sensible
-        if (actionType == ActionLogType.PASSWORD_CHANGED ||
-                actionType == ActionLogType.PASSWORD_RESET_COMPLETE ||
-                actionType == ActionLogType.EMAIL_CHANGE_COMPLETE) {
+        if (actionType == oldActionLogType.PASSWORD_CHANGED ||
+                actionType == oldActionLogType.PASSWORD_RESET_COMPLETE ||
+                actionType == oldActionLogType.EMAIL_CHANGE_COMPLETE) {
             riskLevel += 1;
         }
 

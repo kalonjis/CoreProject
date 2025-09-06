@@ -4,7 +4,7 @@ import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ActionLogType;
+import be.steby.CoreProject.dl.enums.oldActionLogType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -21,7 +21,7 @@ public interface ActivityLogService {
     ActivityLog logUserAction(
             User user,
             Device device,
-            ActionLogType actionType,
+            oldActionLogType actionType,
             boolean successful,
             String details,
             String metadata,
@@ -184,7 +184,7 @@ public interface ActivityLogService {
      */
     Page<ActivityLog> getUserActionHistory(
             User user,
-            List<ActionLogType> actionTypes,
+            List<oldActionLogType> actionTypes,
             Instant startDate,
             Instant endDate,
             Pageable pageable
@@ -201,7 +201,7 @@ public interface ActivityLogService {
     Page<ActivityLog> searchLogs(
             Long userId,
             String ipAddress,
-            List<ActionLogType> actionTypes,
+            List<oldActionLogType> actionTypes,
             Boolean successful,
             Instant startDate,
             Instant endDate,

@@ -6,7 +6,7 @@ import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ActionLogType;
+import be.steby.CoreProject.dl.enums.oldActionLogType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -47,7 +47,7 @@ public class EmailActivityLogService extends AbstractActivityLogService {
     }
 
     @Override
-    protected int getBaseRiskForActionType(ActionLogType actionType) {
+    protected int getBaseRiskForActionType(oldActionLogType actionType) {
         return 0;
     }
 
@@ -83,7 +83,7 @@ public class EmailActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.EMAIL_CHANGE_REQUEST,
+                oldActionLogType.EMAIL_CHANGE_REQUEST,
                 true,
                 details,
                 metadataJson,
@@ -122,7 +122,7 @@ public class EmailActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.EMAIL_CHANGE_CANCELLED,
+                oldActionLogType.EMAIL_CHANGE_CANCELLED,
                 true,
                 details,
                 metadataJson,
@@ -161,7 +161,7 @@ public class EmailActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.EMAIL_VERIFIED,
+                oldActionLogType.EMAIL_VERIFIED,
                 true,
                 details,
                 metadataJson,
@@ -203,7 +203,7 @@ public class EmailActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.EMAIL_CHANGE_COMPLETE,
+                oldActionLogType.EMAIL_CHANGE_COMPLETE,
                 true,
                 details,
                 metadataJson,
@@ -226,10 +226,10 @@ public class EmailActivityLogService extends AbstractActivityLogService {
         return activityLogRepository.findByUserAndActionTypeInAndTimestampBetween(
                 user,
                 List.of(
-                        ActionLogType.EMAIL_CHANGE_REQUEST,
-                        ActionLogType.EMAIL_CHANGE_CANCELLED,
-                        ActionLogType.EMAIL_VERIFIED,
-                        ActionLogType.EMAIL_CHANGE_COMPLETE
+                        oldActionLogType.EMAIL_CHANGE_REQUEST,
+                        oldActionLogType.EMAIL_CHANGE_CANCELLED,
+                        oldActionLogType.EMAIL_VERIFIED,
+                        oldActionLogType.EMAIL_CHANGE_COMPLETE
                 ),
                 startDate,
                 endDate,
@@ -246,7 +246,7 @@ public class EmailActivityLogService extends AbstractActivityLogService {
     @Transactional(readOnly = true)
     public int daysSinceLastEmailChange(User user) {
         ActivityLog lastEmailChange = activityLogRepository.findTopByUserAndActionTypeAndSuccessfulOrderByTimestampDesc(
-                user, ActionLogType.EMAIL_CHANGE_COMPLETE.name(), true);
+                user, oldActionLogType.EMAIL_CHANGE_COMPLETE.name(), true);
 
         if (lastEmailChange == null) {
             return -1;
@@ -273,7 +273,7 @@ public class EmailActivityLogService extends AbstractActivityLogService {
 
         long count = activityLogRepository.countByUserAndActionTypeAndTimestampBetween(
                 user,
-                ActionLogType.EMAIL_CHANGE_REQUEST.name(),
+                oldActionLogType.EMAIL_CHANGE_REQUEST.name(),
                 startTime,
                 Instant.now()
         );
@@ -294,7 +294,7 @@ public class EmailActivityLogService extends AbstractActivityLogService {
 
         return activityLogRepository.countByUserAndActionTypeAndSuccessfulAndTimestampBetween(
                 user,
-                ActionLogType.EMAIL_CHANGE_COMPLETE.name(),
+                oldActionLogType.EMAIL_CHANGE_COMPLETE.name(),
                 true,
                 startDate,
                 Instant.now()

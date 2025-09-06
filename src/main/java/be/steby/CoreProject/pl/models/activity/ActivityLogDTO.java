@@ -1,7 +1,7 @@
 package be.steby.CoreProject.pl.models.activity;
 
 import be.steby.CoreProject.dl.entities.ActivityLog;
-import be.steby.CoreProject.dl.enums.ActionLogType;
+import be.steby.CoreProject.dl.enums.oldActionLogType;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -14,7 +14,7 @@ public record ActivityLogDTO(
         String username,
         Long deviceId,
         String deviceInfo,
-        ActionLogType actionType,
+        oldActionLogType actionType,
         String actionCategory,
         String actionDescription,
         Instant timestamp,
@@ -46,7 +46,7 @@ public record ActivityLogDTO(
         String formattedDuration = formatDuration(log.getDurationSeconds());
 
         // Essayer de convertir l'actionType en enum
-        ActionLogType actionType = log.getActionType() != null ? log.getActionType() : null ;
+        oldActionLogType actionType = log.getActionType() != null ? log.getActionType() : null ;
 
         // Obtenir la catégorie et la description
         String actionCategory = actionType != null ? actionType.getCategory() : "UNKNOWN";

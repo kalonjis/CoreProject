@@ -6,7 +6,7 @@ import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ActionLogType;
+import be.steby.CoreProject.dl.enums.oldActionLogType;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
@@ -61,7 +61,7 @@ public class AccountActivityLogService extends AbstractActivityLogService {
     }
 
     @Override
-    protected int getBaseRiskForActionType(ActionLogType actionType) {
+    protected int getBaseRiskForActionType(oldActionLogType actionType) {
         return 0;
     }
 
@@ -250,7 +250,7 @@ public class AccountActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.ACCOUNT_ACTIVATION_REQUESTED,
+                oldActionLogType.ACCOUNT_ACTIVATION_REQUESTED,
                 tokenGenerated,
                 details,
                 metadataJson,
@@ -286,7 +286,7 @@ public class AccountActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.ACCOUNT_DEACTIVATION_REQUESTED,
+                oldActionLogType.ACCOUNT_DEACTIVATION_REQUESTED,
                 tokenGenerated,
                 details,
                 metadataJson,
@@ -316,7 +316,7 @@ public class AccountActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.ACCOUNT_REACTIVATION_REQUESTED,
+                oldActionLogType.ACCOUNT_REACTIVATION_REQUESTED,
                 tokenGenerated,
                 details,
                 metadataJson,
@@ -343,7 +343,7 @@ public class AccountActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.ACCOUNT_ACTIVATED,
+                oldActionLogType.ACCOUNT_ACTIVATED,
                 true,
                 details,
                 metadataJson,
@@ -379,7 +379,7 @@ public class AccountActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.ACCOUNT_DEACTIVATED,
+                oldActionLogType.ACCOUNT_DEACTIVATED,
                 true,
                 details,
                 metadataJson,
@@ -404,7 +404,7 @@ public class AccountActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.ACCOUNT_REACTIVATION_COMPLETED,
+                oldActionLogType.ACCOUNT_REACTIVATION_COMPLETED,
                 true,
                 details,
                 metadataJson,
@@ -435,7 +435,7 @@ public class AccountActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.ACCOUNT_ACTIVATION_ATTEMPT_FAILED,
+                oldActionLogType.ACCOUNT_ACTIVATION_ATTEMPT_FAILED,
                 false,
                 details,
                 metadataJson,
@@ -464,7 +464,7 @@ public class AccountActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.ACCOUNT_DEACTIVATION_ATTEMPT_FAILED,
+                oldActionLogType.ACCOUNT_DEACTIVATION_ATTEMPT_FAILED,
                 false,
                 details,
                 metadataJson,
@@ -493,7 +493,7 @@ public class AccountActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.ACCOUNT_REACTIVATION_ATTEMPT_FAILED,
+                oldActionLogType.ACCOUNT_REACTIVATION_ATTEMPT_FAILED,
                 false,
                 details,
                 metadataJson,
@@ -533,7 +533,7 @@ public class AccountActivityLogService extends AbstractActivityLogService {
         return logUserAction(
                 user,
                 device,
-                ActionLogType.ACCOUNT_TOKEN_REVOKED,
+                oldActionLogType.ACCOUNT_TOKEN_REVOKED,
                 true,
                 details,
                 metadataJson,
@@ -553,17 +553,17 @@ public class AccountActivityLogService extends AbstractActivityLogService {
     @Transactional(readOnly = true)
     public Page<ActivityLog> getAccountActivityHistory(User user, Pageable pageable) {
         List<String> accountActionTypes = List.of(
-                ActionLogType.ACCOUNT_CREATED.name(),
-                ActionLogType.ACCOUNT_ACTIVATED.name(),
-                ActionLogType.ACCOUNT_DEACTIVATED.name(),
-                ActionLogType.ACCOUNT_ACTIVATION_REQUESTED.name(),
-                ActionLogType.ACCOUNT_DEACTIVATION_REQUESTED.name(),
-                ActionLogType.ACCOUNT_REACTIVATION_REQUESTED.name(),
-                ActionLogType.ACCOUNT_ACTIVATION_ATTEMPT_FAILED.name(),
-                ActionLogType.ACCOUNT_DEACTIVATION_ATTEMPT_FAILED.name(),
-                ActionLogType.ACCOUNT_REACTIVATION_ATTEMPT_FAILED.name(),
-                ActionLogType.ACCOUNT_REACTIVATION_COMPLETED.name(),
-                ActionLogType.ACCOUNT_TOKEN_REVOKED.name()
+                oldActionLogType.ACCOUNT_CREATED.name(),
+                oldActionLogType.ACCOUNT_ACTIVATED.name(),
+                oldActionLogType.ACCOUNT_DEACTIVATED.name(),
+                oldActionLogType.ACCOUNT_ACTIVATION_REQUESTED.name(),
+                oldActionLogType.ACCOUNT_DEACTIVATION_REQUESTED.name(),
+                oldActionLogType.ACCOUNT_REACTIVATION_REQUESTED.name(),
+                oldActionLogType.ACCOUNT_ACTIVATION_ATTEMPT_FAILED.name(),
+                oldActionLogType.ACCOUNT_DEACTIVATION_ATTEMPT_FAILED.name(),
+                oldActionLogType.ACCOUNT_REACTIVATION_ATTEMPT_FAILED.name(),
+                oldActionLogType.ACCOUNT_REACTIVATION_COMPLETED.name(),
+                oldActionLogType.ACCOUNT_TOKEN_REVOKED.name()
         );
 
         return activityLogRepository.findByUserAndActionTypeInOrderByTimestampDesc(
@@ -580,9 +580,9 @@ public class AccountActivityLogService extends AbstractActivityLogService {
     @Transactional(readOnly = true)
     public List<ActivityLog> getRecentAccountRequests(User user, int limit) {
         List<String> requestActionTypes = List.of(
-                ActionLogType.ACCOUNT_ACTIVATION_REQUESTED.name(),
-                ActionLogType.ACCOUNT_DEACTIVATION_REQUESTED.name(),
-                ActionLogType.ACCOUNT_REACTIVATION_REQUESTED.name()
+                oldActionLogType.ACCOUNT_ACTIVATION_REQUESTED.name(),
+                oldActionLogType.ACCOUNT_DEACTIVATION_REQUESTED.name(),
+                oldActionLogType.ACCOUNT_REACTIVATION_REQUESTED.name()
         );
 
         Pageable pageable = Pageable.ofSize(limit);
@@ -604,7 +604,7 @@ public class AccountActivityLogService extends AbstractActivityLogService {
         Instant cutoff = Instant.now().minus(hours, ChronoUnit.HOURS);
         return activityLogRepository.countByUserAndActionTypeAndSuccessfulAndTimestampAfter(
                 user,
-                ActionLogType.ACCOUNT_ACTIVATION_ATTEMPT_FAILED.name(),
+                oldActionLogType.ACCOUNT_ACTIVATION_ATTEMPT_FAILED.name(),
                 false,
                 cutoff
         );
@@ -622,7 +622,7 @@ public class AccountActivityLogService extends AbstractActivityLogService {
         Instant cutoff = Instant.now().minus(hours, ChronoUnit.HOURS);
         return activityLogRepository.countByUserAndActionTypeAndSuccessfulAndTimestampAfter(
                 user,
-                ActionLogType.ACCOUNT_DEACTIVATION_ATTEMPT_FAILED.name(),
+                oldActionLogType.ACCOUNT_DEACTIVATION_ATTEMPT_FAILED.name(),
                 false,
                 cutoff
         );
@@ -640,7 +640,7 @@ public class AccountActivityLogService extends AbstractActivityLogService {
         Instant cutoff = Instant.now().minus(hours, ChronoUnit.HOURS);
         return activityLogRepository.countByUserAndActionTypeAndSuccessfulAndTimestampAfter(
                 user,
-                ActionLogType.ACCOUNT_REACTIVATION_ATTEMPT_FAILED.name(),
+                oldActionLogType.ACCOUNT_REACTIVATION_ATTEMPT_FAILED.name(),
                 false,
                 cutoff
         );

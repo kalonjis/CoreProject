@@ -1,6 +1,6 @@
 package be.steby.CoreProject.il.audit;
 
-import be.steby.CoreProject.dl.enums.ActionLogType;
+import be.steby.CoreProject.dl.enums.oldActionLogType;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -18,7 +18,7 @@ public @interface LogAdminAction {
     /**
      * Type d'action à journaliser
      */
-    ActionLogType actionType() default ActionLogType.ADMIN_USER_UPDATED;
+    oldActionLogType actionType() default oldActionLogType.ADMIN_USER_UPDATED;
 
     /**
      * Description de l'action (facultative)

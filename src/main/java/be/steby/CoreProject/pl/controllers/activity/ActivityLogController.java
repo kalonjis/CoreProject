@@ -4,7 +4,7 @@ import be.steby.CoreProject.bll.services.ActivityLogService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ActionLogType;
+import be.steby.CoreProject.dl.enums.oldActionLogType;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
 import be.steby.CoreProject.il.device.RequiresDeviceTrustLevel;
 import be.steby.CoreProject.pl.assemblers.ActivityLogModelAssembler;
@@ -99,7 +99,7 @@ public class ActivityLogController {
             Pageable pageable) {
 
         User currentUser = userService.getAuthenticatedUser();
-        List<ActionLogType> actionTypes = parseActionTypes(types);
+        List<oldActionLogType> actionTypes = parseActionTypes(types);
 
         Instant startDate = from != null
                 ? from.atStartOfDay(ZoneId.systemDefault()).toInstant()
@@ -208,7 +208,7 @@ public class ActivityLogController {
             Pageable pageable) {
 
         User user = userService.getUserById(userId);
-        List<ActionLogType> actionTypes = parseActionTypes(types);
+        List<oldActionLogType> actionTypes = parseActionTypes(types);
 
         Instant startDate = from != null
                 ? from.atStartOfDay(ZoneId.systemDefault()).toInstant()
@@ -248,7 +248,7 @@ public class ActivityLogController {
             @PageableDefault(size = 20, sort = "timestamp", direction = org.springframework.data.domain.Sort.Direction.DESC)
             Pageable pageable) {
 
-        List<ActionLogType> actionTypes = parseActionTypes(types);
+        List<oldActionLogType> actionTypes = parseActionTypes(types);
 
         Instant startDate = from != null
                 ? from.atStartOfDay(ZoneId.systemDefault()).toInstant()
@@ -308,7 +308,7 @@ public class ActivityLogController {
      */
     @GetMapping("/action-types")
     public ResponseEntity<CollectionModel<EntityModel<Map<String, String>>>> getActionTypes() {
-        List<EntityModel<Map<String, String>>> actionTypesList = Arrays.stream(ActionLogType.values())
+        List<EntityModel<Map<String, String>>> actionTypesList = Arrays.stream(oldActionLogType.values())
                 .map(type -> {
                     Map<String, String> typeInfo = new HashMap<>();
                     typeInfo.put("key", type.name());
@@ -329,7 +329,7 @@ public class ActivityLogController {
     /**
      * Convertit une liste de chaînes en liste d'énumérations ActionLogType
      */
-    private List<ActionLogType> parseActionTypes(List<String> types) {
+    private List<oldActionLogType> parseActionTypes(List<String> types) {
         if (types == null || types.isEmpty()) {
             return null;
         }
@@ -337,7 +337,7 @@ public class ActivityLogController {
         return types.stream()
                 .map(type -> {
                     try {
-                        return ActionLogType.valueOf(type);
+                        return oldActionLogType.valueOf(type);
                     } catch (IllegalArgumentException e) {
                         return null;
                     }

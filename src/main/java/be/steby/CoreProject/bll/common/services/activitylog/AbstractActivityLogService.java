@@ -7,20 +7,15 @@ import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ActionLogType;
+import be.steby.CoreProject.dl.enums.oldActionLogType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * Abstract class providing basic functionality for user activity logging.
@@ -77,7 +72,7 @@ public abstract class AbstractActivityLogService {
     public ActivityLog logUserAction(
             User user,
             Device device,
-            ActionLogType actionType,
+            oldActionLogType actionType,
             boolean successful,
             String details,
             String metadata,
@@ -171,7 +166,7 @@ public abstract class AbstractActivityLogService {
      */
     protected ActivityLog logWithDeviceDetection(User user,
                                                  RequestContext requestContext,
-                                                 ActionLogType actionType,
+                                                 oldActionLogType actionType,
                                                  boolean successful,
                                                  String details,
                                                  String metadata) {
@@ -221,7 +216,7 @@ public abstract class AbstractActivityLogService {
     /**
      * Evaluates risk level based on various factors
      */
-    protected int evaluateRiskLevel(User user, Device device, ActionLogType actionType, RequestContext requestContext) {
+    protected int evaluateRiskLevel(User user, Device device, oldActionLogType actionType, RequestContext requestContext) {
         int riskLevel = 0;
 
         // Base risk by action type
@@ -249,7 +244,7 @@ public abstract class AbstractActivityLogService {
     /**
      * Returns base risk level for action type
      */
-    protected abstract int getBaseRiskForActionType(ActionLogType actionType);
+    protected abstract int getBaseRiskForActionType(oldActionLogType actionType);
 
     /**
      * Evaluates IP-related risk factors

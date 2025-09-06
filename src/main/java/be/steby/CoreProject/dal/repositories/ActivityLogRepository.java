@@ -2,7 +2,7 @@ package be.steby.CoreProject.dal.repositories;
 
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ActionLogType;
+import be.steby.CoreProject.dl.enums.oldActionLogType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -179,24 +179,24 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
     /**
      * Recherche les logs par type d'action (ENUM) - TYPE SAFE
      */
-    Page<ActivityLog> findByActionTypeOrderByTimestampDesc(ActionLogType actionType, Pageable pageable);
+    Page<ActivityLog> findByActionTypeOrderByTimestampDesc(oldActionLogType actionType, Pageable pageable);
 
     /**
      * Recherche les logs par utilisateur et type d'action (ENUM) - TYPE SAFE
      */
-    Page<ActivityLog> findByUserAndActionTypeOrderByTimestampDesc(User user, ActionLogType actionType, Pageable pageable);
+    Page<ActivityLog> findByUserAndActionTypeOrderByTimestampDesc(User user, oldActionLogType actionType, Pageable pageable);
 
     /**
      * Trouve les derniers logs d'un certain type pour un utilisateur (ENUM) - TYPE SAFE
      */
-    List<ActivityLog> findTop10ByUserAndActionTypeOrderByTimestampDesc(User user, ActionLogType actionType);
+    List<ActivityLog> findTop10ByUserAndActionTypeOrderByTimestampDesc(User user, oldActionLogType actionType);
 
     /**
      * Recherche par types d'actions multiples (ENUM) - TYPE SAFE
      */
     @Query("SELECT al FROM ActivityLog al WHERE al.actionType IN :actionTypes ORDER BY al.timestamp DESC")
     Page<ActivityLog> findByActionTypeInOrderByTimestampDesc(
-            @Param("actionTypes") List<ActionLogType> actionTypes,
+            @Param("actionTypes") List<oldActionLogType> actionTypes,
             Pageable pageable);
 
     /**
@@ -207,7 +207,7 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
             "al.timestamp BETWEEN :startDate AND :endDate " +
             "ORDER BY al.timestamp DESC")
     Page<ActivityLog> findByActionTypeInAndTimestampBetweenOrderByTimestampDesc(
-            @Param("actionTypes") List<ActionLogType> actionTypes,
+            @Param("actionTypes") List<oldActionLogType> actionTypes,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate,
             Pageable pageable);
@@ -222,7 +222,7 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
             "ORDER BY al.timestamp DESC")
     Page<ActivityLog> findByUserAndActionTypeInAndTimestampBetween(
             @Param("user") User user,
-            @Param("actionTypes") List<ActionLogType> actionTypes,
+            @Param("actionTypes") List<oldActionLogType> actionTypes,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate,
             Pageable pageable);
@@ -240,7 +240,7 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
     Page<ActivityLog> searchLogsWithEnums(
             @Param("userId") Long userId,
             @Param("ipAddress") String ipAddress,
-            @Param("actionTypes") List<ActionLogType> actionTypes,
+            @Param("actionTypes") List<oldActionLogType> actionTypes,
             @Param("successful") Boolean successful,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate,
@@ -254,7 +254,7 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
             "al.successful = :successful AND " +
             "al.timestamp BETWEEN :startDate AND :endDate")
     long countByActionTypeAndSuccessfulAndTimestampBetween(
-            @Param("actionType") ActionLogType actionType,
+            @Param("actionType") oldActionLogType actionType,
             @Param("successful") boolean successful,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate);
@@ -269,7 +269,7 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
             "al.timestamp BETWEEN :startDate AND :endDate")
     long countByUserAndActionTypeAndSuccessfulAndTimestampBetween(
             @Param("user") User user,
-            @Param("actionType") ActionLogType actionType,
+            @Param("actionType") oldActionLogType actionType,
             @Param("successful") boolean successful,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate);
@@ -278,7 +278,7 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
      * Trouve le dernier log d'un certain type pour un utilisateur avec statut - TYPE SAFE
      */
     ActivityLog findTopByUserAndActionTypeAndSuccessfulOrderByTimestampDesc(
-            User user, ActionLogType actionType, boolean successful);
+            User user, oldActionLogType actionType, boolean successful);
 
     /**
      * Statistiques par catégorie d'actions - TYPE SAFE
