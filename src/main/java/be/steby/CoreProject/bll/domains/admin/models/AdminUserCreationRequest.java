@@ -1,7 +1,6 @@
 package be.steby.CoreProject.bll.domains.admin.models;
 
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.enums.UserRole;
 import be.steby.CoreProject.pl.models.admin.UserRegisterForm;
 
@@ -46,13 +45,8 @@ public record AdminUserCreationRequest(
         /**
          * Indique si l'utilisateur doit être automatiquement activé.
          */
-        boolean autoActivate,
-
-        /**
-         * Contexte de la requête (IP, user agent, etc.) pour l'audit.
-         */
-        RequestContext requestContext
-) {
+        boolean autoActivate
+    ) {
 
     /**
      * Constructeur avec validation des données.
@@ -74,9 +68,6 @@ public record AdminUserCreationRequest(
         if (userRoles == null || userRoles.isEmpty()) {
             throw new AdminOperationException("Au moins un rôle doit être attribué à l'utilisateur");
         }
-        if (requestContext == null) {
-            throw new AdminOperationException("Le contexte de requête est requis pour l'audit");
-        }
 
         // Validation des rôles - s'assurer qu'il y a au minimum USER
         if (!userRoles.contains(UserRole.USER)) {
@@ -91,7 +82,7 @@ public record AdminUserCreationRequest(
      * @param requestContext Contexte de la requête
      * @return Une nouvelle instance d'AdminUserCreationRequest
      */
-    public static AdminUserCreationRequest fromForm(UserRegisterForm form, RequestContext requestContext) {
+    public static AdminUserCreationRequest fromForm(UserRegisterForm form) {
         return new AdminUserCreationRequest(
                 form.username(),
                 form.firstname(),
@@ -99,8 +90,7 @@ public record AdminUserCreationRequest(
                 form.email(),
                 form.phoneNumber(),
                 form.userRoles(),
-                form.autoActivate(),
-                requestContext
+                form.autoActivate()
         );
     }
 
@@ -111,11 +101,10 @@ public record AdminUserCreationRequest(
      * @param firstname Prénom
      * @param lastname Nom de famille
      * @param email Email
-     * @param requestContext Contexte de la requête
      * @return Une nouvelle instance avec les rôles par défaut (USER)
      */
     public static AdminUserCreationRequest forBasicUser(
-            String username, String firstname, String lastname, String email, RequestContext requestContext) {
+            String username, String firstname, String lastname, String email) {
         return new AdminUserCreationRequest(
                 username,
                 firstname,
@@ -123,8 +112,7 @@ public record AdminUserCreationRequest(
                 email,
                 null, // Pas de téléphone
                 Set.of(UserRole.USER), // Rôle par défaut
-                true, // Activation automatique
-                requestContext
+                true
         );
     }
 

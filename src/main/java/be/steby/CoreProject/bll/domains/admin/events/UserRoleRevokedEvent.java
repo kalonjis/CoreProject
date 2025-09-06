@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.domains.admin.events;
 
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
 
@@ -44,11 +43,6 @@ public record UserRoleRevokedEvent(
         String reason,
 
         /**
-         * Contexte de la requête (IP, User-Agent, etc.).
-         */
-        RequestContext requestContext,
-
-        /**
          * Timestamp de l'événement.
          */
         Instant timestamp
@@ -63,9 +57,8 @@ public record UserRoleRevokedEvent(
             UserRole revokedRole,
             Set<UserRole> previousRoles,
             Set<UserRole> currentRoles,
-            String reason,
-            RequestContext requestContext) {
-        this(targetUser, adminUser, revokedRole, previousRoles, currentRoles, reason, requestContext, Instant.now());
+            String reason) {
+        this(targetUser, adminUser, revokedRole, previousRoles, currentRoles, reason, Instant.now());
     }
 
     /**
@@ -86,10 +79,9 @@ public record UserRoleRevokedEvent(
             UserRole revokedRole,
             Set<UserRole> previousRoles,
             Set<UserRole> currentRoles,
-            String reason,
-            RequestContext requestContext) {
+            String reason) {
         return new UserRoleRevokedEvent(
-                targetUser, adminUser, revokedRole, previousRoles, currentRoles, reason, requestContext
+                targetUser, adminUser, revokedRole, previousRoles, currentRoles, reason
         );
     }
 

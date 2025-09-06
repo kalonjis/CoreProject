@@ -10,8 +10,6 @@ import be.steby.CoreProject.bll.domains.password.models.PasswordResetRequest;
 import be.steby.CoreProject.bll.domains.password.models.PasswordValidationResult;
 import be.steby.CoreProject.bll.exceptions.TokenValidityException;
 import be.steby.CoreProject.bll.exceptions.UserAuthenticationStateException;
-import be.steby.CoreProject.bll.common.models.RequestContext;
-import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;
@@ -32,7 +30,6 @@ public class PasswordServiceImpl implements PasswordService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
     private final PasswordPolicyService passwordPolicyService;
-    private final RequestContextService requestContextService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Value("${url.front_server}")
@@ -56,9 +53,8 @@ public class PasswordServiceImpl implements PasswordService {
                     + String.join(", ", result.errors()));
         }
 
-        RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
 
-        savePassword(request.password(), user, requestContext);
+        savePassword(request.password(), user);
 
         passwordResetTokenService.revokeToken(passwordResetToken);
     }
@@ -77,9 +73,8 @@ public class PasswordServiceImpl implements PasswordService {
                     + String.join(", ", result.errors()));
         }
 
-        RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
 
-        savePassword(request.newPassword(), authenticatedUser,requestContext);
+        savePassword(request.newPassword(), authenticatedUser);
     }
 
 
@@ -90,12 +85,11 @@ public class PasswordServiceImpl implements PasswordService {
 
         User user = userService.getUserByEmail(email);
         PasswordResetToken passwordResetToken = passwordResetTokenService.createPasswordResetToken(user);
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
 
-        eventPublisher.publishEvent(new RequestPasswordResetEvent(
-                user,
-                passwordResetToken.getToken(),
-                requestContext)
+        eventPublisher.publishEvent(
+                new RequestPasswordResetEvent(
+                    user,passwordResetToken.getToken()
+                )
         );
     }
 
@@ -112,26 +106,25 @@ public class PasswordServiceImpl implements PasswordService {
         User user = passwordResetToken.getUser();
         PasswordResetToken newToken = passwordResetTokenService.createPasswordResetToken(user);
 
-        RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
-
-        eventPublisher.publishEvent(new RequestPasswordTokenEvent(
-                user,
-                newToken.getToken(),
-                requestContext)
+        eventPublisher.publishEvent(
+                new RequestPasswordTokenEvent(
+                    user,
+                    newToken.getToken()
+                )
         );
 
         passwordResetTokenService.revokeToken(passwordResetToken);
     }
 
 
-    private void savePassword(String password, User user, RequestContext requestContext){
+    private void savePassword(String password, User user){
         user.setPassword( passwordEncoder.encode(password) );
         if(user.isMustChangePassword()){
             user.setMustChangePassword(false);
         }
         userService.saveUser(user);
 
-        eventPublisher.publishEvent(new PasswordChangedEvent(user, requestContext));
+        eventPublisher.publishEvent(new PasswordChangedEvent(user));
     }
 
     private void checkIsAnonymous(){

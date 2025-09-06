@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.domains.device.utils;
 
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.Device;
 import jakarta.servlet.http.HttpServletRequest;
 import nl.basjes.parse.useragent.UserAgent;
@@ -36,52 +35,10 @@ public class UserAgentUtils {
         device.setLanguage(extractAcceptedLanguage(request));
     }
 
-    /**
-     * Populates device information from RequestContext (for async usage)
-     */
-    public static void populateDeviceInfo(Device device, UserAgent agent, RequestContext context) {
-        RequestContext.CapturedDeviceInfo deviceInfo = context.getDeviceInfo();
-
-        if (deviceInfo != null) {
-            // Use pre-parsed info from RequestContext
-            device.setDeviceType(determineDeviceTypeFromContext(deviceInfo));
-            device.setBrowser(deviceInfo.getBrowserName());
-            device.setBrowserVersion(deviceInfo.getBrowserVersionMajor());
-            device.setOperatingSystem(deviceInfo.getOsName());
-            device.setDeviceClass(deviceInfo.getDeviceClass());
-            device.setDeviceBrand(deviceInfo.getDeviceBrand());
-
-            // Handle UNDEFINED for osVersion
-            String osVersion = deviceInfo.getOsVersionMajor();
-            device.setOsVersion(osVersion != null && !"UNDEFINED".equals(osVersion) ? osVersion : "Unknown");
-        } else {
-            // Fallback to agent parsing
-            populateDeviceInfoFromAgent(device, agent, context);
-        }
-
-        // Language from headers
-        device.setLanguage(normalizeAcceptLanguage(context.getHeaders().getAcceptLanguage()));
-
-        // CPU info not available from RequestContext
-        device.setDevice_cpu(null);
-        device.setDevice_cpu_bits(null);
-    }
 
     /**
      * Fallback method to populate from agent when RequestContext.DeviceInfo is null
      */
-    private static void populateDeviceInfoFromAgent(Device device, UserAgent agent, RequestContext context) {
-        device.setDeviceType(determineDeviceType(agent));
-        device.setBrowser(agent.getValue(UserAgent.AGENT_NAME));
-
-        String browserVersion = agent.getValue(UserAgent.AGENT_VERSION);
-        device.setBrowserVersion(browserVersion != null && !browserVersion.isEmpty() ? browserVersion : null);
-
-        device.setOperatingSystem(agent.getValue(UserAgent.OPERATING_SYSTEM_NAME));
-        device.setOsVersion(extractOsVersion(agent));
-        device.setDeviceClass(agent.getValue(UserAgent.DEVICE_CLASS));
-        device.setDeviceBrand(agent.getValue(UserAgent.DEVICE_BRAND));
-    }
 
     /**
      * Determines device type from UserAgent
@@ -121,44 +78,6 @@ public class UserAgentUtils {
         return "UNKNOWN";
     }
 
-    /**
-     * Determines device type from RequestContext.CapturedDeviceInfo
-     */
-    private static String determineDeviceTypeFromContext(RequestContext.CapturedDeviceInfo deviceInfo) {
-        if (deviceInfo.getDeviceClass() != null && !deviceInfo.getDeviceClass().isEmpty()) {
-            switch (deviceInfo.getDeviceClass().toLowerCase()) {
-                case "phone":
-                    return "MOBILE";
-                case "tablet":
-                    return "TABLET";
-                case "desktop":
-                    return "DESKTOP";
-                case "watch":
-                    return "WEARABLE";
-                case "tv":
-                case "set-top box":
-                    return "TV";
-                case "game console":
-                    return "GAME_CONSOLE";
-            }
-        }
-
-        if (deviceInfo.getDeviceType() != null && !deviceInfo.getDeviceType().isEmpty()) {
-            switch (deviceInfo.getDeviceType().toLowerCase()) {
-                case "mobile":
-                case "phone":
-                case "smartphone":
-                    return "MOBILE";
-                case "tablet":
-                    return "TABLET";
-                case "desktop":
-                case "pc":
-                    return "DESKTOP";
-            }
-        }
-
-        return "UNKNOWN";
-    }
 
     /**
      * Extracts OS version, handling various edge cases

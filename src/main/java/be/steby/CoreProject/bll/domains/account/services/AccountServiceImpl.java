@@ -9,11 +9,8 @@ import be.steby.CoreProject.bll.domains.account.models.DeactivationRequest;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationValidationResult;
 import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationAttemptServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationTokenServiceImpl;
-import be.steby.CoreProject.bll.domains.account.services.tokens.reactivation.AccountReactivationAttemptServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.reactivation.AccountReactivationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
-import be.steby.CoreProject.bll.common.models.RequestContext;
-import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.account.services.tokens.confirmation.AccountConfirmationAttemptServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.confirmation.AccountConfirmationTokenServiceImpl;
@@ -45,7 +42,6 @@ public class AccountServiceImpl implements AccountService {
 
     private final UserService userService;
     private final RefreshTokenServiceImpl refreshTokenService;
-    private final RequestContextService requestContextService;
     private final ApplicationEventPublisher eventPublisher;
 
 
@@ -63,8 +59,7 @@ public class AccountServiceImpl implements AccountService {
         accountConfirmationTokenService.revokeAllUserTokens(user);
         accountConfirmationAttemptService.clearAttempts(user);
 
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
-        AccountConfirmationEvent event = new AccountConfirmationEvent(user, requestContext);
+        AccountConfirmationEvent event = new AccountConfirmationEvent(user);
         eventPublisher.publishEvent(event);
 
         return user;
@@ -84,9 +79,8 @@ public class AccountServiceImpl implements AccountService {
         }
 
         AccountConfirmationToken accountConfirmationToken = accountConfirmationTokenService.createAccountConfirmationToken(user);
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
 
-        RequestAccountActivationEvent event = new RequestAccountActivationEvent(user, accountConfirmationToken.getToken(), requestContext);
+        RequestAccountActivationEvent event = new RequestAccountActivationEvent(user, accountConfirmationToken.getToken());
         eventPublisher.publishEvent(event);
     }
 
@@ -107,12 +101,11 @@ public class AccountServiceImpl implements AccountService {
         AccountDeactivationToken accountDeactivationToken = accountDeactivationTokenService.createAccountDeactivationToken(
                 user, deactivationRequest.deactivationReason(), deactivationRequest.reasonDetails());
 
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
         RequestAccountDeactivationEvent event = new RequestAccountDeactivationEvent(
                 user, accountDeactivationToken.getToken(),
                 deactivationRequest.deactivationReason(),
-                deactivationRequest.reasonDetails(),
-                requestContext);
+                deactivationRequest.reasonDetails()
+        );
 
         eventPublisher.publishEvent(event);
     }
@@ -135,12 +128,10 @@ public class AccountServiceImpl implements AccountService {
         refreshTokenService.revokeAllUserTokens(user);
         accountDeactivationAttemptService.clearAttempts(user);
 
-        RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
         AccountDeactivationConfirmedEvent event = new AccountDeactivationConfirmedEvent(
                 user,
                 accountDeactivationToken.getDeactivationReason(),
-                accountDeactivationToken.getReasonDetails(),
-                requestContext
+                accountDeactivationToken.getReasonDetails()
         );
         eventPublisher.publishEvent(event);
 
@@ -168,9 +159,8 @@ public class AccountServiceImpl implements AccountService {
         logReactivationAttempt(user, true);
 
         AccountReactivationToken accountReactivationToken = accountReactivationTokenService.createAccountReactivationToken(user);
-        RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
 
-        RequestAccountReactivationEvent event = new RequestAccountReactivationEvent(user, accountReactivationToken.getToken(), requestContext);
+        RequestAccountReactivationEvent event = new RequestAccountReactivationEvent(user, accountReactivationToken.getToken());
         eventPublisher.publishEvent(event);
     }
 
@@ -203,8 +193,7 @@ public class AccountServiceImpl implements AccountService {
         // ✅ Log successful reactivation with context
         logReactivationAttempt(user, false);
 
-        RequestContext requestContext = requestContextService.captureRequestContext(httpRequest);
-        AccountReactivationConfirmedEvent event = new AccountReactivationConfirmedEvent(user, requestContext);
+        AccountReactivationConfirmedEvent event = new AccountReactivationConfirmedEvent(user);
         eventPublisher.publishEvent(event);
 
         return user;

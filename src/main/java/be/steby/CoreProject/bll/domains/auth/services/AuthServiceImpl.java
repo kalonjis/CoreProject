@@ -9,8 +9,6 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.AccountDisabledException
 import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
 import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
 import be.steby.CoreProject.bll.domains.auth.events.DeviceSecurityEvent;
-import be.steby.CoreProject.bll.common.models.RequestContext;
-import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.domains.auth.services.login_attempt.LoginAttemptService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
@@ -34,7 +32,6 @@ import java.time.temporal.ChronoUnit;
 public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
-    private final RequestContextService requestContextService;
     private final ApplicationEventPublisher eventPublisher;
     private final PasswordEncoder passwordEncoder;
     private final DeviceService deviceService;
@@ -88,14 +85,12 @@ public class AuthServiceImpl implements AuthService {
 
             // 3. Security check: Reject blacklisted devices
             if (device.isBlacklisted()) {
-                RequestContext requestContext = requestContextService.captureRequestContext(request);
 
                 // Publish security events for notification (email will be sent)
                 eventPublisher.publishEvent(new DeviceSecurityEvent(
                         user,
                         device,
-                        DeviceSecurityEvent.DeviceSecurityType.BLACKLISTED_DEVICE_ATTEMPT,
-                        requestContext
+                        DeviceSecurityEvent.DeviceSecurityType.BLACKLISTED_DEVICE_ATTEMPT
                 ));
 
                 log.warn("Login attempt blocked - blacklisted device {} for user {}",
@@ -115,20 +110,16 @@ public class AuthServiceImpl implements AuthService {
             }
 
             // 5. Event publishing for successful login
-            RequestContext requestContext = requestContextService.captureRequestContext(request);
 
             eventPublisher.publishEvent(new UserLoggedInEvent(
-                    user, device, true, null, requestContext
-            ));
+                    user, device, true, null));
 
             // Send notification for unconfirmed devices
             if (!device.isConfirmed()) {
                 eventPublisher.publishEvent(new DeviceSecurityEvent(
                         user,
                         device,
-                        DeviceSecurityEvent.DeviceSecurityType.UNCONFIRMED_DEVICE,
-                        requestContext
-                ));
+                        DeviceSecurityEvent.DeviceSecurityType.UNCONFIRMED_DEVICE));
             }
 
             // 6. Store device in request for controller access
@@ -226,8 +217,7 @@ public class AuthServiceImpl implements AuthService {
     private void publishLogoutEvent(User user, Device device, HttpServletRequest request) {
         try {
             if (user != null) {
-                RequestContext requestContext = requestContextService.captureRequestContext(request);
-                eventPublisher.publishEvent(new UserLogoutEvent(user, device, requestContext));
+                eventPublisher.publishEvent(new UserLogoutEvent(user, device));
                 log.debug("Logout events published for user: {}", user.getUsername());
             }
         } catch (Exception e) {

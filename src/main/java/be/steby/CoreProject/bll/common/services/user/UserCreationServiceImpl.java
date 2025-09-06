@@ -181,19 +181,19 @@ public class UserCreationServiceImpl implements UserCreationService{
         switch (request.mode()) {
             case SELF_SIGNUP -> {
                 eventPublisher.publishEvent(
-                        new SelfSignupUserCreatedEvent(user, token, request.requestContext())
+                        new SelfSignupUserCreatedEvent(user, token)
                 );
                 log.info("Événement SelfSignupUserCreatedEvent publié pour {}", user.getUsername());
             }
             case ADMIN_CREATE -> {
                 eventPublisher.publishEvent(
-                        new AdminUserCreatedEvent(user, token, temporaryPassword, request.requestContext())
+                        new AdminUserCreatedEvent(user, token, temporaryPassword)
                 );
                 log.info("Événement AdminUserCreatedEvent publié pour {}", user.getUsername());
             }
             case SYSTEM_CREATE -> {
                 eventPublisher.publishEvent(
-                        new SystemUserCreatedEvent(user, temporaryPassword, request.requestContext())
+                        new SystemUserCreatedEvent(user, temporaryPassword)
                 );
                 log.info("Événement SystemUserCreatedEvent publié pour {}", user.getUsername());
             }

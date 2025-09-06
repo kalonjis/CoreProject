@@ -1,7 +1,5 @@
 package be.steby.CoreProject.bll.domains.device.services;
 
-import be.steby.CoreProject.bll.common.models.RequestContext;
-import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.common.utils.IpLocationUtils;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.device.events.DeviceCreatedOrUpdatedEvent;
@@ -48,7 +46,6 @@ public class DeviceServiceImpl implements DeviceService {
 
     private final DeviceRepository deviceRepository;
     private final UserAgentAnalyzer userAgentAnalyzer;
-    private final RequestContextService requestContextService;
     private final DeviceConfirmationTokenServiceImpl deviceConfirmationTokenService;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final UserService userService;
@@ -110,30 +107,6 @@ public class DeviceServiceImpl implements DeviceService {
         return detectAndRegisterDevice(request, user);
     }
 
-    @Override
-    @Transactional
-    public Device detectFromRequestContext(RequestContext requestContext, User user) {
-        String userAgentString = requestContext.getUserAgent();
-        String ipAddress = requestContext.getClientIp();
-        String fingerprint = deviceFingerprintService.generateFingerprint(requestContext, user.getId());
-        UserAgent agent = userAgentAnalyzer.parse(userAgentString);
-
-        Device device = deviceRepository.findByFingerprint(fingerprint)
-                .map(existingDevice -> {
-                    Device updated = updateExistingDevice(user, existingDevice, ipAddress);
-                    // Publish update events for cache management
-                    eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.updated(updated));
-                    return updated;
-                })
-                .orElseGet(() -> {
-                    Device created = createNewDeviceFromContext(user, agent, requestContext, fingerprint, ipAddress);
-                    // Publish creation events for cache management
-                    eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.created(created));
-                    return created;
-                });
-
-        return device;
-    }
 
     @Override
     @Transactional
@@ -149,15 +122,12 @@ public class DeviceServiceImpl implements DeviceService {
         // Use service method to ensure cache consistency
         saveDevice(device);
 
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
-
         eventPublisher.publishEvent(new DeviceTrustLevelChangedEvent(
                 device.getId(),
                 level,
                 oldLevel.name(),
                 userService.getAuthenticatedUser(),
-                device,
-                requestContext
+                device
         ));
 
         log.info("Device trust level changed from {} to {} for device {}",
@@ -331,40 +301,6 @@ public class DeviceServiceImpl implements DeviceService {
         return device;
     }
 
-    /**
-     * Creates a new device from request context information.
-     *
-     * @param user The user to associate with the device
-     * @param agent Parsed user agent information
-     * @param requestContext The request context
-     * @param fingerprint The device fingerprint
-     * @param ipAddress The client IP address
-     * @return The newly created device
-     */
-    private Device createNewDeviceFromContext(User user, UserAgent agent, RequestContext requestContext, String fingerprint, String ipAddress) {
-        Device device = Device.builder()
-                .user(user)
-                .fingerprint(fingerprint)
-                .firstSeen(Instant.now())
-                .lastSeen(Instant.now())
-                .lastIpAddress(ipAddress)
-                .location(IpLocationUtils.resolveLocationFromIp(ipAddress))
-                .deviceTrustLevel(DeviceTrustLevel.UNTRUSTED)
-                .confirmed(false)
-                .blacklisted(false)
-                .build();
-
-        UserAgentUtils.populateDeviceInfo(device, agent, requestContext);
-
-        if (isFirstDevice(user)) {
-            device.setFirstDeviceUsed(true);
-        }
-
-        // Use service method to ensure cache consistency
-        saveDevice(device);
-        log.info("New device created from context with ID {} for user {}", device.getId(), user.getUsername());
-        return device;
-    }
 
     /**
      * Retrieves a device by its confirmation token.

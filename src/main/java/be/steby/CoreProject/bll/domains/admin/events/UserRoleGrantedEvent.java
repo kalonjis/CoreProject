@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.domains.admin.events;
 
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
 
@@ -44,11 +43,6 @@ public record UserRoleGrantedEvent(
         String reason,
 
         /**
-         * Contexte de la requête (IP, User-Agent, etc.).
-         */
-        RequestContext requestContext,
-
-        /**
          * Timestamp de l'événement.
          */
         Instant timestamp
@@ -63,9 +57,8 @@ public record UserRoleGrantedEvent(
             UserRole grantedRole,
             Set<UserRole> previousRoles,
             Set<UserRole> currentRoles,
-            String reason,
-            RequestContext requestContext) {
-        this(targetUser, adminUser, grantedRole, previousRoles, currentRoles, reason, requestContext, Instant.now());
+            String reason) {
+        this(targetUser, adminUser, grantedRole, previousRoles, currentRoles, reason, Instant.now());
     }
 
     /**
@@ -77,7 +70,6 @@ public record UserRoleGrantedEvent(
      * @param previousRoles Les rôles précédents
      * @param currentRoles Les rôles actuels
      * @param reason La raison (optionnel)
-     * @param requestContext Le contexte de la requête
      * @return Nouvel événement
      */
     public static UserRoleGrantedEvent of(
@@ -86,10 +78,9 @@ public record UserRoleGrantedEvent(
             UserRole grantedRole,
             Set<UserRole> previousRoles,
             Set<UserRole> currentRoles,
-            String reason,
-            RequestContext requestContext) {
+            String reason) {
         return new UserRoleGrantedEvent(
-                targetUser, adminUser, grantedRole, previousRoles, currentRoles, reason, requestContext
+                targetUser, adminUser, grantedRole, previousRoles, currentRoles, reason
         );
     }
 

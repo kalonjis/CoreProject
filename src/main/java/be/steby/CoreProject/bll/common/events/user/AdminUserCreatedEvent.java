@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.common.events.user;
 
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.User;
 
 
@@ -10,8 +9,6 @@ import be.steby.CoreProject.dl.entities.User;
 public record AdminUserCreatedEvent(
         User user,
         String confirmationToken,
-        String temporaryPassword,
-        RequestContext requestContext
-) {
+        String temporaryPassword) {
 
 }
