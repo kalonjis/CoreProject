@@ -4,8 +4,8 @@ import be.steby.CoreProject.dl.entities.Device;
 import lombok.Value;
 
 /**
- * Domain event fired when a device is created or updated.
- * This event is used to maintain cache consistency across the application.
+ * Domain events fired when a device is created or updated.
+ * This events is used to maintain cache consistency across the application.
  */
 @Value
 public class DeviceCreatedOrUpdatedEvent {

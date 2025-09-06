@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.listeners;
+package be.steby.CoreProject.bll.domains.device.listeners;
 
 import be.steby.CoreProject.bll.domains.device.events.DeviceDetectedEvent;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;

@@ -6,7 +6,7 @@ import be.steby.CoreProject.dl.entities.User;
 
 /**
  * Event emitted when a device security issue is detected and requires user notification.
- * This event is used to trigger appropriate security alerts based on device-related scenarios.
+ * This events is used to trigger appropriate security alerts based on device-related scenarios.
  */
 public record DeviceSecurityEvent(
         User user,

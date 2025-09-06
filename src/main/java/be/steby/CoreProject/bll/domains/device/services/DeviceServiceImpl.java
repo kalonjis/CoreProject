@@ -38,7 +38,7 @@ import java.util.List;
  * - Device trust level management
  * - Device confirmation and rejection
  * - Device disconnection and logout operations
- * - Cache consistency through event publishing
+ * - Cache consistency through events publishing
  */
 @Service
 @RequiredArgsConstructor
@@ -90,13 +90,13 @@ public class DeviceServiceImpl implements DeviceService {
         Device device = deviceRepository.findByFingerprint(fingerprint)
                 .map(existingDevice -> {
                     Device updated = updateExistingDevice(user, existingDevice, ipAddress);
-                    // Publish update event for cache management
+                    // Publish update events for cache management
                     eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.updated(updated));
                     return updated;
                 })
                 .orElseGet(() -> {
                     Device created = createNewDevice(user, agent, request, fingerprint, ipAddress);
-                    // Publish creation event for cache management
+                    // Publish creation events for cache management
                     eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.created(created));
                     return created;
                 });
@@ -121,13 +121,13 @@ public class DeviceServiceImpl implements DeviceService {
         Device device = deviceRepository.findByFingerprint(fingerprint)
                 .map(existingDevice -> {
                     Device updated = updateExistingDevice(user, existingDevice, ipAddress);
-                    // Publish update event for cache management
+                    // Publish update events for cache management
                     eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.updated(updated));
                     return updated;
                 })
                 .orElseGet(() -> {
                     Device created = createNewDeviceFromContext(user, agent, requestContext, fingerprint, ipAddress);
-                    // Publish creation event for cache management
+                    // Publish creation events for cache management
                     eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.created(created));
                     return created;
                 });
@@ -167,7 +167,7 @@ public class DeviceServiceImpl implements DeviceService {
     @Override
     public void saveDevice(Device device) {
         deviceRepository.save(device);
-        // Publish update event for cache management
+        // Publish update events for cache management
         eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.updated(device));
     }
 
