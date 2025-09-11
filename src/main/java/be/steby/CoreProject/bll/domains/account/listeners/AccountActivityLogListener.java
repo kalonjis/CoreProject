@@ -7,7 +7,7 @@
 //import be.steby.CoreProject.bll.domains.account.events.RequestAccountReactivationEvent;
 //import be.steby.CoreProject.bll.domains.account.events.AccountReactivationConfirmedEvent;
 //import be.steby.CoreProject.bll.domains.device.services.DeviceService;
-//import be.steby.CoreProject.bll.events.account.SignupEvent;
+//import be.steby.CoreProject.bll.common.events.account.SignupEvent;
 //import be.steby.CoreProject.bll.domains.account.services.AccountActivityLogService;
 //import be.steby.CoreProject.dl.entities.Device;
 //import be.steby.CoreProject.dl.entities.User;
