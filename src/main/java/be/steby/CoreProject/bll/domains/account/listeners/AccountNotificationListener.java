@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.account.listeners;
 
+import be.steby.CoreProject.bll.common.events.account.SignupEvent;
 import be.steby.CoreProject.bll.domains.account.events.*;
-import be.steby.CoreProject.bll.events.account.SignupEvent;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
 import be.steby.CoreProject.bll.domains.account.services.tokens.confirmation.AccountConfirmationTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;

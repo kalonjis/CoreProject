@@ -12,6 +12,7 @@ import be.steby.CoreProject.bll.domains.auth.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.auth.services.login_attempt.LoginAttemptService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
+import be.steby.CoreProject.bll.exceptions.CoreProjectException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.Device;
 import jakarta.servlet.http.HttpServletRequest;
@@ -47,20 +48,21 @@ public class AuthServiceImpl implements AuthService {
     public User login(String username, String password, HttpServletRequest request) {
         // ✅ NEW: Extract client IP for brute force protection
         String clientIpAddress = IpLocationUtils.extractClientIp(request);
-
-        // ✅ NEW: Check if login attempts are blocked BEFORE any authentication
-        if (loginAttemptService.isBlocked(username, clientIpAddress)) {
-            Instant unlockTime = loginAttemptService.getUnlockTime(username, clientIpAddress);
-            String message = buildLockoutMessage(unlockTime);
-
-            log.warn("Login blocked - brute_force_protection - Username: {}, IP: {}", username, clientIpAddress);
-
-            throw new AccountTemporarilyLockedException(message);
-        }
+        User user = (User) loadUserByUsername(username);
+        Device device = deviceService.detectAndRegisterDevice(request, user);
 
         try {
+
+            // ✅ NEW: Check if login attempts are blocked
+            if (loginAttemptService.isBlocked(username, clientIpAddress)) {
+                Instant unlockTime = loginAttemptService.getUnlockTime(username, clientIpAddress);
+                String message = buildLockoutMessage(unlockTime);
+
+                log.warn("Login blocked - brute_force_protection - Username: {}, IP: {}", username, clientIpAddress);
+
+                throw new AccountTemporarilyLockedException(message);
+            }
             // 1. User authentication with domain-specific exceptions
-            User user = (User) loadUserByUsername(username);
 
             if (!user.isEnabled()) {
                 if (!user.isEverActivated()) {
@@ -79,9 +81,6 @@ public class AuthServiceImpl implements AuthService {
                 loginAttemptService.recordFailedAttempt(username, clientIpAddress);
                 throw new InvalidCredentialsException("Invalid username or password. Please check your credentials and try again.");
             }
-
-            // 2. Device detection and registration
-            Device device = deviceService.detectAndRegisterDevice(request, user);
 
             // 3. Security check: Reject blacklisted devices
             if (device.isBlacklisted()) {
@@ -132,18 +131,13 @@ public class AuthServiceImpl implements AuthService {
                     user.getUsername(), device.getId(), clientIpAddress);
             return user;
 
-        } catch (Exception e) {
-            // ✅ NEW: Ensure failed attempts are recorded for any authentication failure
-            // Only record if not already recorded above
-            if (!(e instanceof InvalidCredentialsException) &&
-                    !(e instanceof AccountActivationException) &&
-                    !(e instanceof AccountDisabledException) &&
-                    !(e instanceof BlacklistedDeviceException)) {
-
+        } catch (CoreProjectException e) {
+            // ✅ FAILURE - Un seul endroit pour tous les échecs
+            if (e instanceof InvalidCredentialsException) {
                 loginAttemptService.recordFailedAttempt(username, clientIpAddress);
             }
 
-            // Re-throw the original exception
+            eventPublisher.publishEvent(new UserLoggedInEvent(user, device, false, e.getMessage()));
             throw e;
         }
     }
