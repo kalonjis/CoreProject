@@ -1,8 +1,8 @@
 package be.steby.CoreProject.bll.common.services.user;
 
-import be.steby.CoreProject.bll.common.event.user.AdminUserCreatedEvent;
-import be.steby.CoreProject.bll.common.event.user.SelfSignupUserCreatedEvent;
-import be.steby.CoreProject.bll.common.event.user.SystemUserCreatedEvent;
+import be.steby.CoreProject.bll.common.events.user.AdminUserCreatedEvent;
+import be.steby.CoreProject.bll.common.events.user.SelfSignupUserCreatedEvent;
+import be.steby.CoreProject.bll.common.events.user.SystemUserCreatedEvent;
 import be.steby.CoreProject.bll.common.exceptions.UserValidationException;
 import be.steby.CoreProject.bll.common.models.user.UserCreationMode;
 import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;
@@ -181,19 +181,19 @@ public class UserCreationServiceImpl implements UserCreationService{
         switch (request.mode()) {
             case SELF_SIGNUP -> {
                 eventPublisher.publishEvent(
-                        new SelfSignupUserCreatedEvent(user, token, request.requestContext())
+                        new SelfSignupUserCreatedEvent(user, token)
                 );
                 log.info("Événement SelfSignupUserCreatedEvent publié pour {}", user.getUsername());
             }
             case ADMIN_CREATE -> {
                 eventPublisher.publishEvent(
-                        new AdminUserCreatedEvent(user, token, temporaryPassword, request.requestContext())
+                        new AdminUserCreatedEvent(user, token, temporaryPassword)
                 );
                 log.info("Événement AdminUserCreatedEvent publié pour {}", user.getUsername());
             }
             case SYSTEM_CREATE -> {
                 eventPublisher.publishEvent(
-                        new SystemUserCreatedEvent(user, temporaryPassword, request.requestContext())
+                        new SystemUserCreatedEvent(user, temporaryPassword)
                 );
                 log.info("Événement SystemUserCreatedEvent publié pour {}", user.getUsername());
             }

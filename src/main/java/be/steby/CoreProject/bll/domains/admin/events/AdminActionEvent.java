@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.domains.admin.events;
 
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.User;
 
 import java.time.Instant;
@@ -46,11 +45,6 @@ public record AdminActionEvent(
          * Détails additionnels de l'action.
          */
         Map<String, Object> actionDetails,
-
-        /**
-         * Contexte de la requête (IP, User-Agent, etc.).
-         */
-        RequestContext requestContext,
 
         /**
          * Timestamp de l'événement.
@@ -116,10 +110,9 @@ public record AdminActionEvent(
             String actionDescription,
             ActionResult result,
             String resultMessage,
-            Map<String, Object> actionDetails,
-            RequestContext requestContext) {
+            Map<String, Object> actionDetails) {
         this(adminUser, targetUser, actionType, actionDescription, result,
-                resultMessage, actionDetails, requestContext, Instant.now());
+                resultMessage, actionDetails, Instant.now());
     }
 
     /**
@@ -129,19 +122,17 @@ public record AdminActionEvent(
      * @param targetUser L'utilisateur cible (optionnel)
      * @param actionType Le type d'action
      * @param actionDescription Description de l'action
-     * @param requestContext Le contexte de la requête
      * @return Nouvel événement de succès
      */
     public static AdminActionEvent success(
             User adminUser,
             User targetUser,
             AdminActionType actionType,
-            String actionDescription,
-            RequestContext requestContext) {
+            String actionDescription) {
         return new AdminActionEvent(
                 adminUser, targetUser, actionType, actionDescription,
                 ActionResult.SUCCESS, "Action exécutée avec succès",
-                Map.of(), requestContext
+                Map.of()
         );
     }
 
@@ -161,12 +152,11 @@ public record AdminActionEvent(
             User targetUser,
             AdminActionType actionType,
             String actionDescription,
-            String errorMessage,
-            RequestContext requestContext) {
+            String errorMessage) {
         return new AdminActionEvent(
                 adminUser, targetUser, actionType, actionDescription,
                 ActionResult.FAILURE, errorMessage,
-                Map.of("error", true), requestContext
+                Map.of("error", true)
         );
     }
 
@@ -180,7 +170,6 @@ public record AdminActionEvent(
      * @param result Résultat de l'action
      * @param resultMessage Message de résultat
      * @param details Détails additionnels
-     * @param requestContext Le contexte de la requête
      * @return Nouvel événement personnalisé
      */
     public static AdminActionEvent withDetails(
@@ -190,11 +179,10 @@ public record AdminActionEvent(
             String actionDescription,
             ActionResult result,
             String resultMessage,
-            Map<String, Object> details,
-            RequestContext requestContext) {
+            Map<String, Object> details) {
         return new AdminActionEvent(
                 adminUser, targetUser, actionType, actionDescription,
-                result, resultMessage, details, requestContext
+                result, resultMessage, details
         );
     }
 

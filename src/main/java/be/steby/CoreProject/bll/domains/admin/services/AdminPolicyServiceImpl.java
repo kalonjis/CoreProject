@@ -77,11 +77,6 @@ public class AdminPolicyServiceImpl implements AdminPolicyService {
         // 3. ✅ DELEGATION: Role validation via permission service
         validateUserRoles(request.userRoles(), errors);
 
-        // 4. ✅ ADMIN BUSINESS VALUE: Request context validation (admin-specific audit)
-        if (request.requestContext() == null) {
-            errors.add("Request context is required for administrative operation auditing");
-        }
-
         // 5. ✅ ADMIN BUSINESS VALUE: Admin-specific creation business rules
         validateAdminSpecificCreationRules(request, errors);
 

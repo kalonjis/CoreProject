@@ -5,8 +5,6 @@ import be.steby.CoreProject.bll.domains.emailAddress.events.*;
 import be.steby.CoreProject.bll.domains.emailAddress.exceptions.InvalidEmailException;
 import be.steby.CoreProject.bll.domains.emailAddress.models.EmailValidationResult;
 import be.steby.CoreProject.bll.exceptions.TokenConfirmationStatusException;
-import be.steby.CoreProject.bll.common.models.RequestContext;
-import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.emailAddress.services.tokens.EmailConfirmationTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;
@@ -27,7 +25,6 @@ public class EmailAddressServiceImpl implements EmailAddressService {
     private final UserService userService;
     private final EmailConfirmationTokenServiceImpl emailConfirmationTokenService;
     private final EmailPolicyService emailPolicyService; // ← Pour validation défensive
-    private final RequestContextService requestContextService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -42,11 +39,12 @@ public class EmailAddressServiceImpl implements EmailAddressService {
         token.setNewEmailAddress(form.email());
         emailConfirmationTokenService.saveToken(token);
 
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
 
-        eventPublisher.publishEvent(new EmailChangeRequestEvent(
-                user, form.email(), token.getToken(), requestContext
-        ));
+        eventPublisher.publishEvent(
+                new EmailChangeRequestEvent(
+                    user, form.email(), token.getToken()
+                    )
+        );
     }
 
     @Override
@@ -56,12 +54,9 @@ public class EmailAddressServiceImpl implements EmailAddressService {
             emailConfirmationTokenService.revokeToken(emailConfirmationToken);
         }
 
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
-
         eventPublisher.publishEvent(new EmailChangeCancellationEvent(
                 emailConfirmationToken.getUser(),
-                emailConfirmationToken.getNewEmailAddress(),
-                requestContext
+                emailConfirmationToken.getNewEmailAddress()
         ));
     }
 
@@ -80,11 +75,8 @@ public class EmailAddressServiceImpl implements EmailAddressService {
         emailConfirmationToken.setConfirmed(true);
         emailConfirmationTokenService.saveToken(emailConfirmationToken);
 
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
-
         eventPublisher.publishEvent(new EmailChangeVerificationEvent(
                 emailConfirmationToken.getUser(),
-                requestContext,
                 emailConfirmationToken.getToken(),
                 emailConfirmationToken.getNewEmailAddress()
         ));
@@ -114,11 +106,11 @@ public class EmailAddressServiceImpl implements EmailAddressService {
         user.setEmail(newEmail);
         userService.saveUser(user);
 
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
 
-        eventPublisher.publishEvent(new EmailChangeConfirmationEvent(
-                user, token, oldEmail, newEmail, requestContext
-        ));
+        eventPublisher.publishEvent(
+                new EmailChangeConfirmationEvent(
+                    user, token, oldEmail, newEmail)
+        );
 
         emailConfirmationTokenService.revokeToken(emailConfirmationToken);
     }

@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.domains.admin.events;
 
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
 
@@ -34,11 +33,6 @@ public record UserCreatedByAdminEvent(
         boolean autoActivated,
 
         /**
-         * Contexte de la requête (IP, User-Agent, etc.).
-         */
-        RequestContext requestContext,
-
-        /**
          * Timestamp de l'événement.
          */
         Instant timestamp
@@ -51,9 +45,8 @@ public record UserCreatedByAdminEvent(
             User createdUser,
             User adminUser,
             Set<UserRole> assignedRoles,
-            boolean autoActivated,
-            RequestContext requestContext) {
-        this(createdUser, adminUser, assignedRoles, autoActivated, requestContext, Instant.now());
+            boolean autoActivated) {
+        this(createdUser, adminUser, assignedRoles, autoActivated, Instant.now());
     }
 
     /**
@@ -63,17 +56,15 @@ public record UserCreatedByAdminEvent(
      * @param adminUser L'administrateur
      * @param assignedRoles Les rôles assignés
      * @param autoActivated Si activation automatique
-     * @param requestContext Le contexte de la requête
      * @return Nouvel événement
      */
     public static UserCreatedByAdminEvent of(
             User createdUser,
             User adminUser,
             Set<UserRole> assignedRoles,
-            boolean autoActivated,
-            RequestContext requestContext) {
+            boolean autoActivated) {
         return new UserCreatedByAdminEvent(
-                createdUser, adminUser, assignedRoles, autoActivated, requestContext
+                createdUser, adminUser, assignedRoles, autoActivated
         );
     }
 

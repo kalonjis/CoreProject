@@ -216,7 +216,7 @@ For common actions, configure the `ConnectionLogAspect` to automatically log act
     returning = "result"
 )
 public void logEmailChange(JoinPoint joinPoint, Object result) {
-    // Extract relevant information and log the event
+    // Extract relevant information and log the events
 }
 ```
 

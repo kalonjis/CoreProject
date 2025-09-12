@@ -1,6 +1,5 @@
 package be.steby.CoreProject.dal;
 
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.common.models.user.UserCreationMode;
 import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;
 import be.steby.CoreProject.bll.common.services.user.UserCreationService;
@@ -16,10 +15,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.net.InetAddress;
 import java.time.Instant;
 import java.util.List;
-import java.util.Locale;
 
 @Component
 @RequiredArgsConstructor
@@ -87,7 +84,6 @@ public class DataInitializer implements CommandLineRunner {
 
         log.info("🔧 Initialisation des données système");
 
-        RequestContext systemContext = createSystemContext();
 
         List<User> users = List.of(user1, user2, user3, user4, user5);
 
@@ -96,8 +92,7 @@ public class DataInitializer implements CommandLineRunner {
                     UserCreationRequest userCreationRequest = new UserCreationRequest(
                             u,
                             u.getPassword(),
-                            UserCreationMode.SYSTEM_CREATE,
-                            systemContext
+                            UserCreationMode.SYSTEM_CREATE
                     );
                     userCreationService.createUser(userCreationRequest);
                 }
@@ -241,35 +236,6 @@ public class DataInitializer implements CommandLineRunner {
 
     }
 
-    private RequestContext createSystemContext() {
-        // Même logique que InitialAdminCreator mais avec des identifiants différents
-        try {
-            String localIP = InetAddress.getLocalHost().getHostAddress();
-            String hostname = InetAddress.getLocalHost().getHostName();
-            String osName = System.getProperty("os.name");
-            String osVersion = System.getProperty("os.version");
-
-            return RequestContext.builder()
-                    .clientIp(localIP)
-                    .userAgent("DataInitializer/" + osName)
-                    .sessionId("DATA_INIT_" + hostname)
-                    .requestId("DATA_INIT_" + System.currentTimeMillis())
-                    .headers(RequestContext.CapturedHeaders.builder()
-                            .acceptLanguage(Locale.getDefault().toLanguageTag())
-                            .xPlatform(osName + " " + osVersion)
-                            .build())
-                    .deviceInfo(RequestContext.CapturedDeviceInfo.builder()
-                            .osName(osName)
-                            .osVersionMajor(extractMajorVersion(osVersion))
-                            .deviceType("SERVER")
-                            .deviceClass("Server")
-                            .deviceBrand("development")
-                            .build())
-                    .build();
-        } catch (Exception e) {
-            return createFallbackContext();
-        }
-    }
 
     // Méthode helper pour extraire la version majeure proprement
     private String extractMajorVersion(String osVersion) {
@@ -283,19 +249,4 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
-    private RequestContext createFallbackContext() {
-        return RequestContext.builder()
-                .clientIp("127.0.0.1")
-                .userAgent("InitialAdminCreator/System")
-                .sessionId("INITIAL_ADMIN")
-                .requestId("ADMIN_INIT_" + System.currentTimeMillis())
-                .headers(RequestContext.CapturedHeaders.builder().build())
-                .deviceInfo(RequestContext.CapturedDeviceInfo.builder()
-                        .osName("Unknown")
-                        .osVersionMajor("Unknown")
-                        .deviceType("SERVER")
-                        .deviceClass("Server")
-                        .build())
-                .build();
-    }
 }

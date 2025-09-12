@@ -1,10 +1,8 @@
 package be.steby.CoreProject.bll.domains.admin.services;
 
 import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory;
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;
 import be.steby.CoreProject.bll.common.models.user.UserCreationResult;
-import be.steby.CoreProject.bll.common.services.context.RequestContextService;
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.bll.common.services.user.UserCreationService;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
@@ -34,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Admin service implementation focused on orchestration and event publishing.
+ * Admin service implementation focused on orchestration and events publishing.
  * Delegates all business logic to UserService while handling admin-specific concerns.
  */
 @Service
@@ -46,7 +44,6 @@ public class AdminServiceImpl implements AdminService {
     private final DeviceService deviceService;
     private final MailerService mailerService;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
-    private final RequestContextService requestContextService;
     private final UserCreationService userCreationService;
     private final UserPermissionService userPermissionService;
     private final AdminPolicyService adminPolicyService;
@@ -62,10 +59,7 @@ public class AdminServiceImpl implements AdminService {
         log.debug("Admin user creation request - username: {}, roles: {}",
                 user.getUsername(), user.getUserRoles());
 
-        // 1. Capture request context
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
 
-        // 2. Convert to admin creation model
         AdminUserCreationRequest adminRequest = new AdminUserCreationRequest(
                 user.getUsername(),
                 user.getFirstname(),
@@ -73,8 +67,7 @@ public class AdminServiceImpl implements AdminService {
                 user.getEmail(),
                 user.getPhoneNumber(),
                 user.getUserRoles(),
-                true,
-                requestContext
+                true
         );
 
         // 3. Validate via admin policy service
@@ -99,7 +92,7 @@ public class AdminServiceImpl implements AdminService {
         }
 
         // 6. Delegate to user creation service
-        UserCreationRequest userCreationRequest = UserCreationRequest.forAdminCreate(user, requestContext);
+        UserCreationRequest userCreationRequest = UserCreationRequest.forAdminCreate(user);
         UserCreationResult result = userCreationService.createUser(userCreationRequest);
 
         log.info("User successfully created by admin - ID: {}, username: {}",
@@ -113,10 +106,6 @@ public class AdminServiceImpl implements AdminService {
     public void activateUser(Long id, HttpServletRequest request) {
         log.debug("Admin activation request - targetId: {}", id);
 
-        // 1. Capture request context
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
-
-        // 2. Get actors
         User admin = userService.getAuthenticatedUser();
         User target = userService.getUserById(id);
 
@@ -129,11 +118,11 @@ public class AdminServiceImpl implements AdminService {
             userService.adminReactivateUser(target, admin);
         }
 
-        // 4. Publish appropriate event
+        // 4. Publish appropriate events
         boolean wasDeactivated = target.getDeactivatedAt() != null;
         AdminUserActivatedEvent event = wasDeactivated
-                ? AdminUserActivatedEvent.of(target, admin, true, target.getDeactivatedAt(), requestContext)
-                : AdminUserActivatedEvent.simple(target, admin, requestContext);
+                ? AdminUserActivatedEvent.of(target, admin, true, target.getDeactivatedAt())
+                : AdminUserActivatedEvent.simple(target, admin);
 
         eventPublisher.publishEvent(event);
 
@@ -148,10 +137,6 @@ public class AdminServiceImpl implements AdminService {
         log.debug("Admin deactivation request - targetId: {}, category: {}",
                 id, deactivationCategory);
 
-        // 1. Capture request context
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
-
-        // 2. Get actors
         User admin = userService.getAuthenticatedUser();
         User target = userService.getUserById(id);
 
@@ -168,9 +153,9 @@ public class AdminServiceImpl implements AdminService {
         // 4. Delegate to user service
         userService.adminDeactivateUser(target, admin, deactivationCategory, adminDeactivationDetails);
 
-        // 5. Publish deactivation event
+        // 5. Publish deactivation events
         AdminUserDeactivatedEvent event = AdminUserDeactivatedEvent.simple(
-                target, admin, deactivationCategory, adminDeactivationDetails, requestContext);
+                target, admin, deactivationCategory, adminDeactivationDetails);
         eventPublisher.publishEvent(event);
 
         log.info("User successfully deactivated by admin - ID: {}, deactivated by: {}, category: {}",
@@ -183,19 +168,16 @@ public class AdminServiceImpl implements AdminService {
     public void reactivateUser(Long id, HttpServletRequest request) {
         log.debug("Admin reactivation request - targetId: {}", id);
 
-        // 1. Capture request context
-        RequestContext requestContext = requestContextService.captureRequestContext(request);
 
-        // 2. Get actors
         User admin = userService.getAuthenticatedUser();
         User target = userService.getUserById(id);
 
         // 3. Delegate to user service
         userService.adminReactivateUser(target, admin);
 
-        // 4. Publish reactivation event
+        // 4. Publish reactivation events
         AdminUserActivatedEvent event = AdminUserActivatedEvent.of(
-                target, admin, true, target.getDeactivatedAt(), requestContext);
+                target, admin, true, target.getDeactivatedAt());
         eventPublisher.publishEvent(event);
 
         log.info("User successfully reactivated by admin - ID: {}, reactivated by: {}",

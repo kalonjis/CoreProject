@@ -571,7 +571,7 @@ public class SplunkIntegration {
         event.put("source", "security-logging-system");
         event.put("sourcetype", "security:audit");
         event.put("index", "security");
-        event.put("event", createEventMap(log));
+        event.put("events", createEventMap(log));
         
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Splunk " + splunkToken);
@@ -582,7 +582,7 @@ public class SplunkIntegration {
         try {
             restTemplate.postForEntity(splunkUrl, request, String.class);
         } catch (Exception e) {
-            log.error("Failed to send event to Splunk", e);
+            log.error("Failed to send events to Splunk", e);
         }
     }
     

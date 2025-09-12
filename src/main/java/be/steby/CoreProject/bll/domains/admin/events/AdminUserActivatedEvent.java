@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.domains.admin.events;
 
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.User;
 
 import java.time.Instant;
@@ -32,11 +31,6 @@ public record AdminUserActivatedEvent(
         Instant lastDeactivationDate,
 
         /**
-         * Contexte de la requête (IP, User-Agent, etc.).
-         */
-        RequestContext requestContext,
-
-        /**
          * Timestamp de l'événement.
          */
         Instant timestamp
@@ -49,9 +43,8 @@ public record AdminUserActivatedEvent(
             User targetUser,
             User adminUser,
             boolean wasPreviouslyDeactivated,
-            Instant lastDeactivationDate,
-            RequestContext requestContext) {
-        this(targetUser, adminUser, wasPreviouslyDeactivated, lastDeactivationDate, requestContext, Instant.now());
+            Instant lastDeactivationDate) {
+        this(targetUser, adminUser, wasPreviouslyDeactivated, lastDeactivationDate, Instant.now());
     }
 
     /**
@@ -61,18 +54,17 @@ public record AdminUserActivatedEvent(
      * @param adminUser L'administrateur
      * @param wasPreviouslyDeactivated Si l'utilisateur était désactivé
      * @param lastDeactivationDate Date de dernière désactivation
-     * @param requestContext Le contexte de la requête
      * @return Nouvel événement
      */
     public static AdminUserActivatedEvent of(
             User targetUser,
             User adminUser,
             boolean wasPreviouslyDeactivated,
-            Instant lastDeactivationDate,
-            RequestContext requestContext) {
-        return new AdminUserActivatedEvent(
-                targetUser, adminUser, wasPreviouslyDeactivated, lastDeactivationDate, requestContext
-        );
+            Instant lastDeactivationDate) {
+
+                return new AdminUserActivatedEvent(
+                targetUser, adminUser, wasPreviouslyDeactivated, lastDeactivationDate
+                );
     }
 
     /**
@@ -80,15 +72,13 @@ public record AdminUserActivatedEvent(
      *
      * @param targetUser L'utilisateur activé
      * @param adminUser L'administrateur
-     * @param requestContext Le contexte de la requête
      * @return Nouvel événement
      */
     public static AdminUserActivatedEvent simple(
             User targetUser,
-            User adminUser,
-            RequestContext requestContext) {
+            User adminUser) {
         return new AdminUserActivatedEvent(
-                targetUser, adminUser, false, null, requestContext
+                targetUser, adminUser, false, null
         );
     }
 

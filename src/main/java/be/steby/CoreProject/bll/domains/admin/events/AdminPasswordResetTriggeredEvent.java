@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.domains.admin.events;
 
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.User;
 
 import java.time.Instant;
@@ -42,11 +41,6 @@ public record AdminPasswordResetTriggeredEvent(
         String notificationEmail,
 
         /**
-         * Contexte de la requête (IP, User-Agent, etc.).
-         */
-        RequestContext requestContext,
-
-        /**
          * Timestamp de l'événement.
          */
         Instant timestamp
@@ -61,10 +55,9 @@ public record AdminPasswordResetTriggeredEvent(
             String reason,
             boolean forceChangeOnNextLogin,
             boolean invalidateActiveSessions,
-            String notificationEmail,
-            RequestContext requestContext) {
+            String notificationEmail) {
         this(targetUser, adminUser, reason, forceChangeOnNextLogin, invalidateActiveSessions,
-                notificationEmail, requestContext, Instant.now());
+                notificationEmail, Instant.now());
     }
 
     /**
@@ -76,7 +69,6 @@ public record AdminPasswordResetTriggeredEvent(
      * @param forceChangeOnNextLogin Si forcer le changement
      * @param invalidateActiveSessions Si invalider les sessions
      * @param notificationEmail Email de notification
-     * @param requestContext Le contexte de la requête
      * @return Nouvel événement
      */
     public static AdminPasswordResetTriggeredEvent of(
@@ -85,11 +77,10 @@ public record AdminPasswordResetTriggeredEvent(
             String reason,
             boolean forceChangeOnNextLogin,
             boolean invalidateActiveSessions,
-            String notificationEmail,
-            RequestContext requestContext) {
+            String notificationEmail) {
         return new AdminPasswordResetTriggeredEvent(
                 targetUser, adminUser, reason, forceChangeOnNextLogin,
-                invalidateActiveSessions, notificationEmail, requestContext
+                invalidateActiveSessions, notificationEmail
         );
     }
 
@@ -98,16 +89,14 @@ public record AdminPasswordResetTriggeredEvent(
      *
      * @param targetUser L'utilisateur cible
      * @param adminUser L'administrateur
-     * @param requestContext Le contexte de la requête
      * @return Nouvel événement
      */
     public static AdminPasswordResetTriggeredEvent simple(
             User targetUser,
-            User adminUser,
-            RequestContext requestContext) {
+            User adminUser) {
         return new AdminPasswordResetTriggeredEvent(
                 targetUser, adminUser, null, true, true,
-                targetUser.getEmail(), requestContext
+                targetUser.getEmail()
         );
     }
 

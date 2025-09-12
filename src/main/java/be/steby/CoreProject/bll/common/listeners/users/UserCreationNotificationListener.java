@@ -1,9 +1,9 @@
 package be.steby.CoreProject.bll.common.listeners.users;
 
 
-import be.steby.CoreProject.bll.common.event.user.AdminUserCreatedEvent;
-import be.steby.CoreProject.bll.common.event.user.SelfSignupUserCreatedEvent;
-import be.steby.CoreProject.bll.common.event.user.SystemUserCreatedEvent;
+import be.steby.CoreProject.bll.common.events.user.AdminUserCreatedEvent;
+import be.steby.CoreProject.bll.common.events.user.SelfSignupUserCreatedEvent;
+import be.steby.CoreProject.bll.common.events.user.SystemUserCreatedEvent;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

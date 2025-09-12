@@ -3,6 +3,8 @@ package be.steby.CoreProject.bll.domains.auth.listeners;
 import be.steby.CoreProject.bll.domains.auth.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceConfirmationTokenServiceImpl;
+import be.steby.CoreProject.dl.entities.Device;
+import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.DeviceConfirmationToken;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +32,7 @@ public class DeviceSecurityListener {
     @EventListener
     @Async("emailExecutor")
     public void handleDeviceSecurityEvent(DeviceSecurityEvent event) {
-        log.info("Processing device security event: {} for user {}",
+        log.info("Processing device security events: {} for user {}",
                 event.type(), event.user().getUsername());
 
         switch (event.type()) {
@@ -103,12 +105,12 @@ public class DeviceSecurityListener {
     /**
      * Determines whether a notification should be sent for an unconfirmed device.
      *
-     * @param event The device security event
+     * @param event The device security events
      * @return true if a notification should be sent, false otherwise
      */
     private boolean shouldSendNotificationForUnconfirmedDevice(DeviceSecurityEvent event) {
-        var device = event.device();
-        var user = event.user();
+        Device device = event.device();
+        User user = event.user();
 
         // Always notify if device is blacklisted
         if (device.isBlacklisted()) {

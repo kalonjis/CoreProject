@@ -1,7 +1,6 @@
 package be.steby.CoreProject.bll.domains.admin.models;
 
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.enums.UserRole;
 import be.steby.CoreProject.pl.models.admin.UserRoleForm;
 
@@ -9,8 +8,7 @@ public record UserRoleManagementRequest(
         Long userId,
         UserRole role,
         RoleOperation operation,
-        String reason,
-        RequestContext requestContext
+        String reason
 ) {
 
     public enum RoleOperation {
@@ -38,9 +36,6 @@ public record UserRoleManagementRequest(
         if (operation == null) {
             throw new AdminOperationException("L'opération ne peut pas être null");
         }
-        if (requestContext == null) {
-            throw new AdminOperationException("Le contexte de requête est requis pour l'audit");
-        }
     }
 
     // ✅ CORRECTION : Prendre userId séparément et utiliser form.userRole()
@@ -49,16 +44,14 @@ public record UserRoleManagementRequest(
      *
      * @param userId ID de l'utilisateur (vient du path parameter)
      * @param form Formulaire de gestion des rôles
-     * @param requestContext Contexte de la requête
      * @return Une nouvelle instance pour accorder un rôle
      */
-    public static UserRoleManagementRequest fromFormForGrant(Long userId, UserRoleForm form, RequestContext requestContext) {
+    public static UserRoleManagementRequest fromFormForGrant(Long userId, UserRoleForm form) {
         return new UserRoleManagementRequest(
                 userId,                    // ✅ Pris séparément
                 form.userRole(),          // ✅ Méthode correcte
                 RoleOperation.GRANT,
-                null,                     // ✅ Pas de reason pour l'instant
-                requestContext
+                null                  // ✅ Pas de reason pour l'instant
         );
     }
 
@@ -67,26 +60,24 @@ public record UserRoleManagementRequest(
      *
      * @param userId ID de l'utilisateur (vient du path parameter)
      * @param form Formulaire de gestion des rôles
-     * @param requestContext Contexte de la requête
      * @return Une nouvelle instance pour révoquer un rôle
      */
-    public static UserRoleManagementRequest fromFormForRevoke(Long userId, UserRoleForm form, RequestContext requestContext) {
+    public static UserRoleManagementRequest fromFormForRevoke(Long userId, UserRoleForm form) {
         return new UserRoleManagementRequest(
                 userId,                    // ✅ Pris séparément
                 form.userRole(),          // ✅ Méthode correcte
                 RoleOperation.REVOKE,
-                null,                     // ✅ Pas de reason pour l'instant
-                requestContext
+                null                 // ✅ Pas de reason pour l'instant
         );
     }
 
     // ✅ Méthodes statiques simples (gardées telles quelles)
-    public static UserRoleManagementRequest forGrant(Long userId, UserRole role, RequestContext requestContext) {
-        return new UserRoleManagementRequest(userId, role, RoleOperation.GRANT, null, requestContext);
+    public static UserRoleManagementRequest forGrant(Long userId, UserRole role) {
+        return new UserRoleManagementRequest(userId, role, RoleOperation.GRANT, null);
     }
 
-    public static UserRoleManagementRequest forRevoke(Long userId, UserRole role, RequestContext requestContext) {
-        return new UserRoleManagementRequest(userId, role, RoleOperation.REVOKE, null, requestContext);
+    public static UserRoleManagementRequest forRevoke(Long userId, UserRole role) {
+        return new UserRoleManagementRequest(userId, role, RoleOperation.REVOKE, null);
     }
 
     // ✅ Méthodes utilitaires (gardées telles quelles)

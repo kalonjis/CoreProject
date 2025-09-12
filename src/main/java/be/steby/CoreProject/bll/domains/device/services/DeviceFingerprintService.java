@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.domains.device.services;
 
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -93,22 +92,6 @@ public class DeviceFingerprintService {
                 request.getHeader("X-Screen-Resolution"),
                 request.getHeader("X-Timezone"),
                 request.getHeader("X-Platform"),
-                userId
-        );
-    }
-
-    /**
-     * Wrapper method for RequestContext (asynchronous usage in listeners)
-     */
-    public String generateFingerprint(RequestContext context, Long userId) {
-        RequestContext.CapturedHeaders headers = context.getHeaders();
-        return generateFingerprint(
-                context.getUserAgent(),
-                headers.getAcceptLanguage(),
-                headers.getAcceptEncoding(),
-                headers.getXScreenResolution(),
-                headers.getXTimezone(),
-                headers.getXPlatform(),
                 userId
         );
     }

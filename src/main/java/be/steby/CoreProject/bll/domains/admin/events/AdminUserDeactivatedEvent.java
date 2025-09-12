@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.domains.admin.events;
 
-import be.steby.CoreProject.bll.common.models.RequestContext;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 
@@ -43,11 +42,6 @@ public record AdminUserDeactivatedEvent(
         Instant lastActivity,
 
         /**
-         * Contexte de la requête (IP, User-Agent, etc.).
-         */
-        RequestContext requestContext,
-
-        /**
          * Timestamp de l'événement.
          */
         Instant timestamp
@@ -62,9 +56,8 @@ public record AdminUserDeactivatedEvent(
             AdminDeactivationCategory category,
             String comment,
             boolean invalidateActiveSessions,
-            Instant lastActivity,
-            RequestContext requestContext) {
-        this(targetUser, adminUser, category, comment, invalidateActiveSessions, lastActivity, requestContext, Instant.now());
+            Instant lastActivity) {
+        this(targetUser, adminUser, category, comment, invalidateActiveSessions, lastActivity, Instant.now());
     }
 
     /**
@@ -76,7 +69,6 @@ public record AdminUserDeactivatedEvent(
      * @param comment Commentaire optionnel
      * @param invalidateActiveSessions Si invalider les sessions
      * @param lastActivity Dernière activité de l'utilisateur
-     * @param requestContext Le contexte de la requête
      * @return Nouvel événement
      */
     public static AdminUserDeactivatedEvent of(
@@ -85,11 +77,11 @@ public record AdminUserDeactivatedEvent(
             AdminDeactivationCategory category,
             String comment,
             boolean invalidateActiveSessions,
-            Instant lastActivity,
-            RequestContext requestContext) {
-        return new AdminUserDeactivatedEvent(
-                targetUser, adminUser, category, comment, invalidateActiveSessions, lastActivity, requestContext
-        );
+            Instant lastActivity
+            ) {
+                return new AdminUserDeactivatedEvent(
+                    targetUser, adminUser, category, comment, invalidateActiveSessions, lastActivity
+                );
     }
 
     /**
@@ -99,18 +91,16 @@ public record AdminUserDeactivatedEvent(
      * @param adminUser L'administrateur
      * @param category La catégorie de la désactivation
      * @param adminDeactivationDetails Les commentaires de la désactivation
-     * @param requestContext Le contexte de la requête
      * @return Nouvel événement
      */
     public static AdminUserDeactivatedEvent simple(
             User targetUser,
             User adminUser,
             AdminDeactivationCategory category,
-            String adminDeactivationDetails,
-            RequestContext requestContext) {
-        return new AdminUserDeactivatedEvent(
-                targetUser, adminUser, category, adminDeactivationDetails, true, null, requestContext
-        );
+            String adminDeactivationDetails) {
+                return new AdminUserDeactivatedEvent(
+                        targetUser, adminUser, category, adminDeactivationDetails, true, null
+                );
     }
 
     /**
