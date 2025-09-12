@@ -46,45 +46,43 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public User login(String username, String password, HttpServletRequest request) {
-        // ✅ NEW: Extract client IP for brute force protection
+
+        // Extract client IP for brute force protection
         String clientIpAddress = IpLocationUtils.extractClientIp(request);
-        User user = (User) loadUserByUsername(username);
-        Device device = deviceService.detectAndRegisterDevice(request, user);
+
+        User user = null;
+        Device device = null;
 
         try {
+            // 1. Load user and create/detect device first
+            user = (User) loadUserByUsername(username);
+            device = deviceService.detectAndRegisterDevice(request, user);
 
-            // ✅ NEW: Check if login attempts are blocked
+            // 2. Check if login attempts are blocked BEFORE password validation
             if (loginAttemptService.isBlocked(username, clientIpAddress)) {
                 Instant unlockTime = loginAttemptService.getUnlockTime(username, clientIpAddress);
                 String message = buildLockoutMessage(unlockTime);
 
                 log.warn("Login blocked - brute_force_protection - Username: {}, IP: {}", username, clientIpAddress);
-
                 throw new AccountTemporarilyLockedException(message);
             }
-            // 1. User authentication with domain-specific exceptions
 
+            // 3. User account validation
             if (!user.isEnabled()) {
                 if (!user.isEverActivated()) {
-                    // Record failed attempt before throwing
-                    loginAttemptService.recordFailedAttempt(username, clientIpAddress);
                     throw new AccountActivationException("Your account has never been activated. Please check your email and follow the activation instructions.");
                 } else {
-                    // Record failed attempt before throwing
-                    loginAttemptService.recordFailedAttempt(username, clientIpAddress);
-                    throw new AccountDisabledException("Your account has been disabled by an administrator. Please contact support for assistance.");
+                    throw new AccountDisabledException("Your account has been disabled.");
                 }
             }
 
+            // 4. Password validation - CRITICAL: Do this BEFORE checking device blacklist
             if (!passwordEncoder.matches(password, user.getPassword())) {
-                // ✅ NEW: Record failed attempt on invalid password
-                loginAttemptService.recordFailedAttempt(username, clientIpAddress);
                 throw new InvalidCredentialsException("Invalid username or password. Please check your credentials and try again.");
             }
 
-            // 3. Security check: Reject blacklisted devices
+            // 5. Security check: Reject blacklisted devices (AFTER successful password validation)
             if (device.isBlacklisted()) {
-
                 // Publish security events for notification (email will be sent)
                 eventPublisher.publishEvent(new DeviceSecurityEvent(
                         user,
@@ -95,25 +93,22 @@ public class AuthServiceImpl implements AuthService {
                 log.warn("Login attempt blocked - blacklisted device {} for user {}",
                         device.getId(), user.getUsername());
 
-                // ✅ NEW: Record failed attempt for blacklisted device
-                loginAttemptService.recordFailedAttempt(username, clientIpAddress);
-
-                // Fail the login with domain-specific exception
                 throw new BlacklistedDeviceException("Access denied: This device has been blacklisted for security reasons. Check your email for instructions on how to restore access.");
             }
 
-            // 4. Handle logged out devices
+            // 6. Handle logged out devices
             if (device.isLoggedOut()) {
                 device.setLoggedOut(false);
                 deviceService.saveDevice(device);
             }
 
-            // 5. Event publishing for successful login
+            // 7. Clear failed attempts on successful login (BEFORE publishing success event)
+            loginAttemptService.clearFailedAttempts(username, clientIpAddress);
 
-            eventPublisher.publishEvent(new UserLoggedInEvent(
-                    user, device, true, null));
+            // 8. Event publishing for successful login
+            eventPublisher.publishEvent(new UserLoggedInEvent(user, device, true, null));
 
-            // Send notification for unconfirmed devices
+            // 9. Send notification for unconfirmed devices
             if (!device.isConfirmed()) {
                 eventPublisher.publishEvent(new DeviceSecurityEvent(
                         user,
@@ -121,22 +116,20 @@ public class AuthServiceImpl implements AuthService {
                         DeviceSecurityEvent.DeviceSecurityType.UNCONFIRMED_DEVICE));
             }
 
-            // 6. Store device in request for controller access
+            // 10. Store device in request for controller access
             request.setAttribute("currentDevice", device);
-
-            // ✅ NEW: Clear failed attempts on successful login
-            loginAttemptService.clearFailedAttempts(username, clientIpAddress);
 
             log.info("Login successful for user {} with device {} from IP {}",
                     user.getUsername(), device.getId(), clientIpAddress);
             return user;
 
         } catch (CoreProjectException e) {
-            // ✅ FAILURE - Un seul endroit pour tous les échecs
-            if (e instanceof InvalidCredentialsException) {
+            // Handle all authentication failures
+            if (!(e instanceof AccountActivationException || e instanceof AccountTemporarilyLockedException)) {
                 loginAttemptService.recordFailedAttempt(username, clientIpAddress);
             }
 
+            // Publish failure event for all types of failures
             eventPublisher.publishEvent(new UserLoggedInEvent(user, device, false, e.getMessage()));
             throw e;
         }
@@ -158,14 +151,14 @@ public class AuthServiceImpl implements AuthService {
                 revokeRefreshToken(refreshTokenCookie);
             }
 
+            eventPublisher.publishEvent(new UserLogoutEvent(user, device));
+
             log.info("User logout successful for: {}", user.getUsername());
+
 
         } catch (Exception e) {
             log.warn("Error during logout process for user {}: {}",
                     user != null ? user.getUsername() : "unknown", e.getMessage());
-        } finally {
-            // 3. Always publish logout events for audit purposes
-            publishLogoutEvent(user, device, request);
         }
     }
 
@@ -205,19 +198,7 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    /**
-     * Publishes logout events for audit and cleanup purposes.
-     */
-    private void publishLogoutEvent(User user, Device device, HttpServletRequest request) {
-        try {
-            if (user != null) {
-                eventPublisher.publishEvent(new UserLogoutEvent(user, device));
-                log.debug("Logout events published for user: {}", user.getUsername());
-            }
-        } catch (Exception e) {
-            log.error("Error publishing logout events: {}", e.getMessage(), e);
-        }
-    }
+
 
 
     // ✅ NEW: Helper method to build lockout message

@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.auth.listeners;
 
 import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
+import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
 import be.steby.CoreProject.bll.domains.auth.services.AuthActivityLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,24 @@ public class AuthActivityListener {
             log.debug("Login activity logged successfully for user: {}", event.user().getUsername());
         } catch (Exception e) {
             log.error("Failed to log login activity for user: {}", event.user().getUsername(), e);
+        }
+    }
+
+    /**
+     * Handle user logout events and log the activity
+     * Device is already provided in the event from AuthServiceImpl
+     */
+    @EventListener
+    @Async("activityLogExecutor")
+    public void handleUserLoggedOut(UserLogoutEvent event) {
+        try {
+            log.debug("Processing logout event for user: {}", event.user().getUsername());
+
+            authActivityLogService.logUserLogout(event);
+
+            log.debug("Logout activity logged successfully for user: {}", event.user().getUsername());
+        } catch (Exception e) {
+            log.error("Failed to log logout activity for user: {}", event.user().getUsername(), e);
         }
     }
 }

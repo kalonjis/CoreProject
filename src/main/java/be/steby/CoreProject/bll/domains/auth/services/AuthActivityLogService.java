@@ -2,8 +2,8 @@ package be.steby.CoreProject.bll.domains.auth.services;
 
 import be.steby.CoreProject.bll.common.services.activitylog.ActivityLogService;
 import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
+import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
 import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
-import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.enums.action_log_type.AuthAction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,5 +39,15 @@ public class AuthActivityLogService extends ActivityLogService {
             log.debug("Failed login logged for user: {} with reason: {}",
                     event.user().getUsername(), event.failureReason());
         }
+    }
+
+    /**
+     * Log user logout activity from logout event
+     * @param event The logout event containing user and device information
+     */
+    public void logUserLogout(UserLogoutEvent event) {
+        logUserActivity(event.user(), event.device(), AuthAction.LOGOUT, true);
+        log.debug("Logout logged for user: {} from device: {}",
+                event.user().getUsername(), event.device() != null ? event.device().getId() : "unknown");
     }
 }
