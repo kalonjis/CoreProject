@@ -8,7 +8,7 @@ import be.steby.CoreProject.dl.entities.User;
  * Only essential methods, no over-engineering.
  */
 public sealed interface ActionLogType
-        permits AuthAction {
+        permits AuthAction, SecurityAction {
 
     /**
      * Get the enum name (for database storage) - e.g. "LOGIN", "LOGOUT"

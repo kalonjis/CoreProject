@@ -50,4 +50,8 @@ public interface LoginAttemptRepository extends JpaRepository<LoginAttempt, Long
     @Modifying
     @Query("DELETE FROM LoginAttempt la WHERE la.lastAttemptTime < :cutoffTime AND la.isBlocked = false")
     int deleteOldAttempts(@Param("cutoffTime") Instant cutoffTime);
+
+    @Modifying
+    @Query("DELETE FROM LoginAttempt la WHERE la.blockedUntil < :expiredBefore")
+    int deleteByBlockedUntilBefore(@Param("expiredBefore") Instant expiredBefore);
 }

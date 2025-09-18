@@ -1,10 +1,12 @@
 package be.steby.CoreProject.bll.domains.auth.services.login_attempt;
 
+import be.steby.CoreProject.bll.domains.auth.events.IpBlockedLoginAttemptEvent;
 import be.steby.CoreProject.dl.entities.LoginAttempt;
 import be.steby.CoreProject.dl.repositories.LoginAttemptRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +17,7 @@ import java.util.Optional;
 
 /**
  * Implementation of LoginAttemptService that provides brute force protection
- * through multiple blocking strategies.
+ * through multiple blocking strategies with event publishing for security monitoring.
  */
 @Service
 @RequiredArgsConstructor
@@ -23,6 +25,7 @@ import java.util.Optional;
 public class LoginAttemptServiceImpl implements LoginAttemptService {
 
     private final LoginAttemptRepository loginAttemptRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // Configuration values - can be externalized to application.yml
     @Value("${security.login-attempts.username.max-attempts:5}")
@@ -139,7 +142,7 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
     @Override
     @Transactional(readOnly = true)
     public int getFailedAttemptsByUsername(String username) {
-        return loginAttemptRepository.findByUsernameAndAttemptType(username, USERNAME_TYPE)
+        return findAttemptByType(username, null, USERNAME_TYPE)
                 .map(LoginAttempt::getAttemptCount)
                 .orElse(0);
     }
@@ -147,7 +150,7 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
     @Override
     @Transactional(readOnly = true)
     public int getFailedAttemptsByIpAddress(String ipAddress) {
-        return loginAttemptRepository.findByIpAddressAndAttemptType(ipAddress, IP_TYPE)
+        return findAttemptByType(null, ipAddress, IP_TYPE)
                 .map(LoginAttempt::getAttemptCount)
                 .orElse(0);
     }
@@ -203,6 +206,17 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
             attempt.setIsBlocked(true);
             attempt.setBlockedUntil(now.plus(lockoutMinutes, ChronoUnit.MINUTES));
 
+            // Publish security event when blocking occurs
+            String blockReason = getBlockReasonFromType(type, attempt.getAttemptCount());
+
+            eventPublisher.publishEvent(new IpBlockedLoginAttemptEvent(
+                    username,                    // may be null for IP_TYPE
+                    ipAddress,                   // may be null for USERNAME_TYPE
+                    blockReason,
+                    attempt.getAttemptCount(),
+                    null                         // userAgent - can be added later if needed
+            ));
+
             log.warn("Login attempts blocked for {} type. Username: {}, IP: {}, Attempts: {}, Unlock time: {}",
                     type, username, ipAddress, attempt.getAttemptCount(), attempt.getBlockedUntil());
         }
@@ -210,15 +224,31 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
         loginAttemptRepository.save(attempt);
     }
 
+    private String getBlockReasonFromType(String type, int attemptCount) {
+        return switch (type) {
+            case USERNAME_TYPE -> "Username blocked after " + attemptCount + " attempts";
+            case IP_TYPE -> "IP address blocked after " + attemptCount + " attempts";
+            case COMBINED_TYPE -> "Username+IP combination blocked after " + attemptCount + " attempts";
+            default -> "Login blocked after " + attemptCount + " attempts";
+        };
+    }
+
+    private Optional<LoginAttempt> findAttemptByType(String username, String ipAddress, String type) {
+        return switch (type) {
+            case USERNAME_TYPE -> loginAttemptRepository.findByUsernameAndAttemptType(username, type);
+            case IP_TYPE -> loginAttemptRepository.findByIpAddressAndAttemptType(ipAddress, type);
+            case COMBINED_TYPE -> loginAttemptRepository.findByUsernameAndIpAddressAndAttemptType(username, ipAddress, type);
+            default -> Optional.empty();
+        };
+    }
+
+    private LoginAttempt createNewAttempt(String username, String ipAddress, String type) {
+        return new LoginAttempt(username, ipAddress, type);
+    }
+
     private void clearAttemptsByType(String username, String ipAddress, String type) {
-        findAttemptByType(username, ipAddress, type).ifPresent(attempt -> {
-            attempt.setAttemptCount(0);
-            attempt.setIsBlocked(false);
-            attempt.setBlockedUntil(null);
-            attempt.setFirstAttemptTime(null);
-            attempt.setLastAttemptTime(null);
-            loginAttemptRepository.save(attempt);
-        });
+        findAttemptByType(username, ipAddress, type)
+                .ifPresent(loginAttemptRepository::delete);
     }
 
     private Instant getUnlockTimeByType(String username, String ipAddress, String type, Instant now) {
@@ -230,49 +260,18 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
                 .orElse(null);
     }
 
-    private Optional<LoginAttempt> findAttemptByType(String username, String ipAddress, String type) {
-        switch (type) {
-            case USERNAME_TYPE:
-                return loginAttemptRepository.findByUsernameAndAttemptType(username, type);
-            case IP_TYPE:
-                return loginAttemptRepository.findByIpAddressAndAttemptType(ipAddress, type);
-            case COMBINED_TYPE:
-                return loginAttemptRepository.findByUsernameAndIpAddressAndAttemptType(username, ipAddress, type);
-            default:
-                throw new IllegalArgumentException("Unknown attempt type: " + type);
-        }
-    }
-
-    private LoginAttempt createNewAttempt(String username, String ipAddress, String type) {
-        return new LoginAttempt(username, ipAddress, type);
-    }
-
-    // =========================================================================
-    // Scheduled Cleanup Tasks
-    // =========================================================================
-
     /**
-     * Scheduled task to clear expired blocks every 5 minutes
+     * Scheduled cleanup of expired login attempts
+     * Runs every hour to clean up old blocked attempts
      */
-    @Scheduled(fixedRate = 300000) // 5 minutes
+    @Scheduled(fixedRate = 3600000) // 1 hour
     @Transactional
-    public void clearExpiredBlocks() {
-        int cleared = loginAttemptRepository.clearExpiredBlocks(Instant.now());
-        if (cleared > 0) {
-            log.debug("Cleared {} expired login attempt blocks", cleared);
-        }
-    }
+    public void cleanupExpiredAttempts() {
+        Instant now = Instant.now();
+        int deletedCount = loginAttemptRepository.deleteByBlockedUntilBefore(now);
 
-    /**
-     * Scheduled task to cleanup old attempt records daily
-     */
-    @Scheduled(fixedRate = 86400000) // 24 hours
-    @Transactional
-    public void cleanupOldAttempts() {
-        Instant cutoffTime = Instant.now().minus(7, ChronoUnit.DAYS); // Keep 7 days
-        int deleted = loginAttemptRepository.deleteOldAttempts(cutoffTime);
-        if (deleted > 0) {
-            log.info("Cleaned up {} old login attempt records", deleted);
+        if (deletedCount > 0) {
+            log.info("Cleaned up {} expired login attempts", deletedCount);
         }
     }
 }
