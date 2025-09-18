@@ -1,7 +1,8 @@
-package be.steby.CoreProject.bll.domains.auth.services;
+package be.steby.CoreProject.bll.domains.auth.services.activity_log;
 
 import be.steby.CoreProject.bll.common.services.activitylog.ActivityLogService;
 import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
+import be.steby.CoreProject.bll.domains.auth.events.UserLoginFailedEvent;
 import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
 import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.enums.action_log_type.AuthAction;
@@ -26,19 +27,23 @@ public class AuthActivityLogService extends ActivityLogService {
     }
 
     /**
-     * Log user login activity from login event
-     * @param event The login event containing user and success information
+     * Log successful user login
+     * @param event The successful login event
      */
-    public void logUserLogin(UserLoggedInEvent event) {
-        if (event.successful()) {
-            logUserActivity(event.user(), event.device(), AuthAction.LOGIN, true);
-            log.debug("Successful login logged for user: {} from device: {}",
-                    event.user().getUsername(), event.device() != null ? event.device().getId() : "unknown");
-        } else {
-            logUserActivity(event.user(), event.device(), AuthAction.LOGIN_FAILED, false, event.failureReason());
-            log.debug("Failed login logged for user: {} with reason: {}",
-                    event.user().getUsername(), event.failureReason());
-        }
+    public void logSuccessfulLogin(UserLoggedInEvent event) {
+        logUserActivity(event.user(), event.device(), AuthAction.LOGIN, true);
+        log.debug("Successful login logged for user: {} from device: {}",
+                event.user().getUsername(), event.device().getId());
+    }
+
+    /**
+     * Log failed login for known user - Important for security
+     * @param event The failed login event for an existing user
+     */
+    public void logFailedLogin(UserLoginFailedEvent event) {
+        logUserActivity(event.user(), event.device(), AuthAction.LOGIN_FAILED, false, event.failureReason());
+        log.debug("Failed login logged for known user: {} with reason: {}",
+                event.user().getUsername(), event.failureReason());
     }
 
     /**

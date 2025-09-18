@@ -75,6 +75,17 @@ public class AsyncConfig implements AsyncConfigurer {
         return executor;
     }
 
+    @Bean("securityMonitoringExecutor")
+    public Executor securityMonitoringExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(3);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("SecurityMonitoring-");
+        executor.initialize();
+        return executor;
+    }
+
     /**
      * Pool de threads pour les listeners d'événements
      */

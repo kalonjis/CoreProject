@@ -2,6 +2,7 @@ package be.steby.CoreProject.bll.domains.auth.services;
 
 import be.steby.CoreProject.bll.common.utils.IpLocationUtils;
 import be.steby.CoreProject.bll.domains.account.exceptions.AccountActivationException;
+import be.steby.CoreProject.bll.domains.auth.events.UserLoginFailedEvent;
 import be.steby.CoreProject.bll.domains.auth.exceptions.AccountTemporarilyLockedException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.BlacklistedDeviceException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidCredentialsException;
@@ -13,6 +14,7 @@ import be.steby.CoreProject.bll.domains.auth.services.login_attempt.LoginAttempt
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
+import be.steby.CoreProject.bll.exceptions.DoesntExistException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.Device;
 import jakarta.servlet.http.HttpServletRequest;
@@ -55,7 +57,7 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             // 1. Load user and create/detect device first
-            user = (User) loadUserByUsername(username);
+            user = (User) loadUserByUsername(username); // May throw DoesntExistException
             device = deviceService.detectAndRegisterDevice(request, user);
 
             // 2. Check if login attempts are blocked BEFORE password validation
@@ -102,11 +104,11 @@ public class AuthServiceImpl implements AuthService {
                 deviceService.saveDevice(device);
             }
 
-            // 7. Clear failed attempts on successful login (BEFORE publishing success event)
+            // 7. Clear failed attempts on successful login
             loginAttemptService.clearFailedAttempts(username, clientIpAddress);
 
-            // 8. Event publishing for successful login
-            eventPublisher.publishEvent(new UserLoggedInEvent(user, device, true, null));
+            // 8. ✅ Publish success event - simplified
+            eventPublisher.publishEvent(new UserLoggedInEvent(user, device));
 
             // 9. Send notification for unconfirmed devices
             if (!device.isConfirmed()) {
@@ -123,14 +125,29 @@ public class AuthServiceImpl implements AuthService {
                     user.getUsername(), device.getId(), clientIpAddress);
             return user;
 
+        } catch (DoesntExistException e) {
+            // ❌ Non-existent user - NO event published
+            // LoginAttemptService already handles security tracking
+            loginAttemptService.recordFailedAttempt(username, clientIpAddress);
+
+            log.debug("Login failed for non-existent user: {} from IP: {}", username, clientIpAddress);
+            throw e;
+
         } catch (CoreProjectException e) {
-            // Handle all authentication failures
+            // ✅ Existing user but failure - PUBLISH failure event
+            // Important for security: someone is trying to crack a known account
+
             if (!(e instanceof AccountActivationException || e instanceof AccountTemporarilyLockedException)) {
                 loginAttemptService.recordFailedAttempt(username, clientIpAddress);
             }
 
-            // Publish failure event for all types of failures
-            eventPublisher.publishEvent(new UserLoggedInEvent(user, device, false, e.getMessage()));
+            // Publish failure event for known users only
+            if (user != null) {
+                eventPublisher.publishEvent(new UserLoginFailedEvent(user, device, e.getMessage()));
+            }
+
+            log.warn("Login failed for existing user: {} from IP: {} - Reason: {}",
+                    user != null ? user.getUsername() : username, clientIpAddress, e.getMessage());
             throw e;
         }
     }

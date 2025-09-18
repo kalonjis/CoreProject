@@ -1,8 +1,9 @@
 package be.steby.CoreProject.bll.domains.auth.listeners;
 
 import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
+import be.steby.CoreProject.bll.domains.auth.events.UserLoginFailedEvent;
 import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
-import be.steby.CoreProject.bll.domains.auth.services.AuthActivityLogService;
+import be.steby.CoreProject.bll.domains.auth.services.activity_log.AuthActivityLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -23,26 +24,42 @@ public class AuthActivityListener {
     private final AuthActivityLogService authActivityLogService;
 
     /**
-     * Handle user login events and log the activity
-     * Device is already provided in the event from AuthServiceImpl
+     * Handle successful user login events
      */
     @EventListener
     @Async("activityLogExecutor")
     public void handleUserLoggedIn(UserLoggedInEvent event) {
         try {
-            log.debug("Processing login event for user: {}", event.user().getUsername());
+            log.debug("Processing successful login event for user: {}", event.user().getUsername());
 
-            authActivityLogService.logUserLogin(event);
+            authActivityLogService.logSuccessfulLogin(event);
 
-            log.debug("Login activity logged successfully for user: {}", event.user().getUsername());
+            log.debug("Successful login logged for user: {}", event.user().getUsername());
         } catch (Exception e) {
-            log.error("Failed to log login activity for user: {}", event.user().getUsername(), e);
+            log.error("Failed to log successful login for user: {}", event.user().getUsername(), e);
         }
     }
 
     /**
-     * Handle user logout events and log the activity
-     * Device is already provided in the event from AuthServiceImpl
+     * Handle failed login attempts for known users
+     * Important for security monitoring
+     */
+    @EventListener
+    @Async("activityLogExecutor")
+    public void handleUserLoginFailed(UserLoginFailedEvent event) {
+        try {
+            log.debug("Processing failed login event for user: {}", event.user().getUsername());
+
+            authActivityLogService.logFailedLogin(event);
+
+            log.debug("Failed login logged for user: {}", event.user().getUsername());
+        } catch (Exception e) {
+            log.error("Failed to log failed login for user: {}", event.user().getUsername(), e);
+        }
+    }
+
+    /**
+     * Handle user logout events
      */
     @EventListener
     @Async("activityLogExecutor")
@@ -52,9 +69,9 @@ public class AuthActivityListener {
 
             authActivityLogService.logUserLogout(event);
 
-            log.debug("Logout activity logged successfully for user: {}", event.user().getUsername());
+            log.debug("Logout logged for user: {}", event.user().getUsername());
         } catch (Exception e) {
-            log.error("Failed to log logout activity for user: {}", event.user().getUsername(), e);
+            log.error("Failed to log logout for user: {}", event.user().getUsername(), e);
         }
     }
 }
