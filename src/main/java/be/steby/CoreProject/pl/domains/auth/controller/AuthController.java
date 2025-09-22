@@ -1,18 +1,14 @@
-package be.steby.CoreProject.pl.controllers.auth;
+package be.steby.CoreProject.pl.domains.auth.controller;
 
 import be.steby.CoreProject.bll.domains.auth.services.AuthService;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.userRegistration.services.UserRegistrationService;
-import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidCredentialsException;
-import be.steby.CoreProject.bll.domains.auth.exceptions.BlacklistedDeviceException;
-import be.steby.CoreProject.bll.domains.auth.exceptions.AccountDisabledException;
-import be.steby.CoreProject.bll.domains.account.exceptions.AccountActivationException;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
 import be.steby.CoreProject.pl.models.account.UserSignupForm;
-import be.steby.CoreProject.pl.models.auth.LoginForm;
+import be.steby.CoreProject.pl.domains.auth.models.requests.LoginRequest;
 import be.steby.CoreProject.pl.models.user.UserDTO;
 import be.steby.CoreProject.pl.models.user.UserShortDTO;
 import jakarta.servlet.http.Cookie;
@@ -22,6 +18,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -98,35 +95,32 @@ public class AuthController {
      * Handles user login requests.
      * Authenticates user, detects device, generates tokens, and sets secure cookies.
      *
-     * @param form Login form containing username and password
-     * @param request HTTP request for device detection
-     * @param response HTTP response for cookie setting
+     * @param loginRequest Login request containing username and password
+     * @param httpRequest HTTP request for device detection
+     * @param httpResponse HTTP response for cookie setting
      * @return ResponseEntity with login status and user information
      */
     @PreAuthorize("isAnonymous()")
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Valid LoginForm form,
-                                   HttpServletRequest request,
-                                   HttpServletResponse response) {
-        log.info("Processing login request for username: {}", form.username());
+    public ResponseEntity<Void> login(@Valid @RequestBody LoginRequest loginRequest,
+                                      HttpServletRequest httpRequest,
+                                      HttpServletResponse httpResponse) {
 
+        log.info("Login attempt for username: {}", loginRequest.username());
 
-        // Delegate business logic to service (authentication, device detection, events)
-        User user = authService.login(form.username(), form.password(), request);
+        // BLL : authentification
+        User user = authService.login(loginRequest.username(), loginRequest.password(), httpRequest);
+        Device device = extractDeviceFromRequest(httpRequest);
 
-        // Extract device from request attribute (set by service)
-        Device device = extractDeviceFromRequest(request);
+        // PL : gestion HTTP (cookies + headers)
+        handleSuccessfulLogin(user, device, httpResponse);
 
-        // Handle HTTP concerns: token generation and cookie management
-        handleSuccessfulLogin(user, device, response);
+        // Headers informatifs minimaux
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Auth-Status", "authenticated");
 
-        // Build and return response
-        Map<String, Object> responseBody = buildLoginSuccessResponse(user, device);
-
-        log.info("Login successful for user: {} with device: {}",
-                user.getUsername(), device.getId());
-
-        return ResponseEntity.ok(responseBody);
+        log.info("Login successful for user: {}", user.getUsername());
+        return ResponseEntity.ok().headers(headers).build();
     }
 
     /**
