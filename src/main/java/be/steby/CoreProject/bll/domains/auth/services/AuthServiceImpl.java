@@ -126,8 +126,6 @@ public class AuthServiceImpl implements AuthService {
             return user;
 
         } catch (DoesntExistException e) {
-            // ❌ Non-existent user - NO event published
-            // LoginAttemptService already handles security tracking
             loginAttemptService.recordFailedAttempt(username, clientIpAddress);
 
             log.debug("Login failed for non-existent user: {} from IP: {}", username, clientIpAddress);
@@ -137,7 +135,7 @@ public class AuthServiceImpl implements AuthService {
             // ✅ Existing user but failure - PUBLISH failure event
             // Important for security: someone is trying to crack a known account
 
-            if (!(e instanceof AccountActivationException || e instanceof AccountTemporarilyLockedException)) {
+            if (!(e instanceof AccountTemporarilyLockedException)) {
                 loginAttemptService.recordFailedAttempt(username, clientIpAddress);
             }
 

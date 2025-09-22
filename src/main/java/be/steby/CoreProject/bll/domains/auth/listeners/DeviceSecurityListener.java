@@ -3,6 +3,7 @@ package be.steby.CoreProject.bll.domains.auth.listeners;
 import be.steby.CoreProject.bll.domains.auth.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceConfirmationTokenServiceImpl;
+import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.DeviceConfirmationToken;
@@ -51,17 +52,22 @@ public class DeviceSecurityListener {
         boolean shouldNotify = shouldSendNotificationForUnconfirmedDevice(event);
 
         if (shouldNotify) {
-            DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
-                    event.user(), event.device().getId());
+            try {
+                DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
+                        event.user(), event.device().getId());
 
-            if (event.device().isBlacklisted()) {
-                mailerService.sendBlacklistedDeviceAlert(
-                        event.user(), event.device(), token.getToken());
-                log.info("Blacklisted device alert sent for device: {}", event.device().getId());
-            } else {
-                mailerService.sendNewDeviceAlert(
-                        event.user(), event.device(), token.getToken());
-                log.info("New device alert sent for device: {}", event.device().getId());
+                if (event.device().isBlacklisted()) {
+                    mailerService.sendBlacklistedDeviceAlert(
+                            event.user(), event.device(), token.getToken());
+                    log.info("Blacklisted device alert sent for device: {}", event.device().getId());
+                } else {
+                    mailerService.sendNewDeviceAlert(
+                            event.user(), event.device(), token.getToken());
+                    log.info("New device alert sent for device: {}", event.device().getId());
+                }
+            } catch (MaxAttemptsReachedException e) {
+                log.warn("Device confirmation email skipped - max attempts reached for user {} device {}",
+                        event.user().getUsername(), event.device().getId());
             }
         } else {
             log.info("Device security notification skipped for unconfirmed device: {}", event.device().getId());
@@ -72,26 +78,36 @@ public class DeviceSecurityListener {
      * Handles notifications for blacklisted device attempts.
      */
     private void handleBlacklistedDevice(DeviceSecurityEvent event) {
-        DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
-                event.user(), event.device().getId());
+        try {
+            DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
+                    event.user(), event.device().getId());
 
-        mailerService.sendBlacklistedDeviceAlert(
-                event.user(), event.device(), token.getToken());
+            mailerService.sendBlacklistedDeviceAlert(
+                    event.user(), event.device(), token.getToken());
 
-        log.info("Blacklisted device attempt notification sent for user: {}", event.user().getUsername());
+            log.info("Blacklisted device attempt notification sent for user: {}", event.user().getUsername());
+        } catch (MaxAttemptsReachedException e) {
+            log.warn("Blacklisted device alert skipped - max attempts reached for user {} device {}",
+                    event.user().getUsername(), event.device().getId());
+        }
     }
 
     /**
      * Handles notifications for newly detected devices.
      */
     private void handleNewDevice(DeviceSecurityEvent event) {
-        DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
-                event.user(), event.device().getId());
+        try {
+            DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
+                    event.user(), event.device().getId());
 
-        mailerService.sendNewDeviceAlert(
-                event.user(), event.device(), token.getToken());
+            mailerService.sendNewDeviceAlert(
+                    event.user(), event.device(), token.getToken());
 
-        log.info("New device detection notification sent for user: {}", event.user().getUsername());
+            log.info("New device detection notification sent for user: {}", event.user().getUsername());
+        } catch (MaxAttemptsReachedException e) {
+            log.warn("New device alert skipped - max attempts reached for user {} device {}",
+                    event.user().getUsername(), event.device().getId());
+        }
     }
 
     /**

@@ -1,6 +1,7 @@
 // src/test/java/be/steby/CoreProject/pl/models/auth/LoginFormTest.java
 package be.steby.CoreProject.pl.models.auth;
 
+import be.steby.CoreProject.pl.domains.auth.models.requests.LoginRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
@@ -18,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * On teste ici la validation des données (annotations @NotBlank).
  */
 @DisplayName("LoginForm - Tests de validation")
-class LoginFormTest {
+class LoginRequestTest {
 
     private Validator validator;
 
@@ -33,10 +34,10 @@ class LoginFormTest {
     @DisplayName("LoginForm valide doit passer la validation")
     void validLoginForm_shouldPassValidation() {
         // ARRANGE (Préparer les données)
-        LoginForm loginForm = new LoginForm("john_doe", "password123");
+        LoginRequest loginRequest = new LoginRequest("john_doe", "password123");
 
         // ACT (Exécuter l'action)
-        Set<ConstraintViolation<LoginForm>> violations = validator.validate(loginForm);
+        Set<ConstraintViolation<LoginRequest>> violations = validator.validate(loginRequest);
 
         // ASSERT (Vérifier le résultat)
         assertThat(violations).isEmpty();
@@ -46,10 +47,10 @@ class LoginFormTest {
     @DisplayName("Username vide doit échouer la validation")
     void emptyUsername_shouldFailValidation() {
         // ARRANGE
-        LoginForm loginForm = new LoginForm("", "password123");
+        LoginRequest loginRequest = new LoginRequest("", "password123");
 
         // ACT
-        Set<ConstraintViolation<LoginForm>> violations = validator.validate(loginForm);
+        Set<ConstraintViolation<LoginRequest>> violations = validator.validate(loginRequest);
 
         // ASSERT
         assertThat(violations).hasSize(1);
@@ -63,10 +64,10 @@ class LoginFormTest {
     @DisplayName("Username null doit échouer la validation")
     void nullUsername_shouldFailValidation() {
         // ARRANGE
-        LoginForm loginForm = new LoginForm(null, "password123");
+        LoginRequest loginRequest = new LoginRequest(null, "password123");
 
         // ACT
-        Set<ConstraintViolation<LoginForm>> violations = validator.validate(loginForm);
+        Set<ConstraintViolation<LoginRequest>> violations = validator.validate(loginRequest);
 
         // ASSERT
         assertThat(violations).hasSize(1);
@@ -76,10 +77,10 @@ class LoginFormTest {
     @DisplayName("Password vide doit échouer la validation")
     void emptyPassword_shouldFailValidation() {
         // ARRANGE
-        LoginForm loginForm = new LoginForm("john_doe", "");
+        LoginRequest loginRequest = new LoginRequest("john_doe", "");
 
         // ACT
-        Set<ConstraintViolation<LoginForm>> violations = validator.validate(loginForm);
+        Set<ConstraintViolation<LoginRequest>> violations = validator.validate(loginRequest);
 
         // ASSERT
         assertThat(violations).hasSize(1);
@@ -93,10 +94,10 @@ class LoginFormTest {
     @DisplayName("Username et password vides doivent échouer la validation")
     void bothEmpty_shouldFailValidation() {
         // ARRANGE
-        LoginForm loginForm = new LoginForm("", "");
+        LoginRequest loginRequest = new LoginRequest("", "");
 
         // ACT
-        Set<ConstraintViolation<LoginForm>> violations = validator.validate(loginForm);
+        Set<ConstraintViolation<LoginRequest>> violations = validator.validate(loginRequest);
 
         // ASSERT
         assertThat(violations).hasSize(2); // 2 erreurs
@@ -106,10 +107,10 @@ class LoginFormTest {
     @DisplayName("Username avec espaces seulement doit échouer")
     void usernameWithOnlySpaces_shouldFailValidation() {
         // ARRANGE
-        LoginForm loginForm = new LoginForm("   ", "password123");
+        LoginRequest loginRequest = new LoginRequest("   ", "password123");
 
         // ACT
-        Set<ConstraintViolation<LoginForm>> violations = validator.validate(loginForm);
+        Set<ConstraintViolation<LoginRequest>> violations = validator.validate(loginRequest);
 
         // ASSERT
         assertThat(violations).hasSize(1);

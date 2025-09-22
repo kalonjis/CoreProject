@@ -1,8 +1,8 @@
-package be.steby.CoreProject.pl.models.auth;
+package be.steby.CoreProject.pl.domains.auth.models.requests;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record LoginForm(
+public record LoginRequest(
         @NotBlank
         String username,
 
