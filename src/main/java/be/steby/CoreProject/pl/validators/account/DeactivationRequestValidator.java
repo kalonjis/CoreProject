@@ -3,7 +3,7 @@ package be.steby.CoreProject.pl.validators.account;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationRequest;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationValidationResult;
 import be.steby.CoreProject.bll.domains.account.services.DeactivationPolicyService;
-import be.steby.CoreProject.pl.models.account.AccountDeactivationForm;
+import be.steby.CoreProject.pl.domains.account.models.requests.DeactivateAccountRequest;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +15,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @RequiredArgsConstructor
 @Slf4j
-public class DeactivationRequestValidator implements ConstraintValidator<ValidDeactivationRequest, AccountDeactivationForm> {
+public class DeactivationRequestValidator implements ConstraintValidator<ValidDeactivationRequest, DeactivateAccountRequest> {
 
     private final DeactivationPolicyService deactivationPolicyService;
 
@@ -25,7 +25,7 @@ public class DeactivationRequestValidator implements ConstraintValidator<ValidDe
     }
 
     @Override
-    public boolean isValid(AccountDeactivationForm form, ConstraintValidatorContext context) {
+    public boolean isValid(DeactivateAccountRequest form, ConstraintValidatorContext context) {
         if (form == null) {
             return true; // Let @NotNull handle this
         }
