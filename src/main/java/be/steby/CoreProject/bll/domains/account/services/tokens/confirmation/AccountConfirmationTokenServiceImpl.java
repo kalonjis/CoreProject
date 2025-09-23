@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.tokens.AccountConfirmationTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
+import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -55,7 +56,7 @@ public class AccountConfirmationTokenServiceImpl extends BaseTokenServiceImpl<Ac
             throw new MaxAttemptsReachedException("Too many attempts. Please try again later.");
         }
         attemptService.recordAttempt(user);
-        return super.createToken(user, accountConfirmationTokenDurationMs);
+        return super.createToken(user, TokenType.ACCOUNT_CONFIRMATION, accountConfirmationTokenDurationMs, true);
     }
 
 

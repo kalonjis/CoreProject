@@ -10,6 +10,7 @@ import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.tokens.AccountDeactivationTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountDeactivationToken;
+import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -72,7 +73,7 @@ public class AccountDeactivationTokenServiceImpl extends BaseTokenServiceImpl<Ac
         }
         attemptService.recordAttempt(user);
 
-        AccountDeactivationToken token = super.createToken(user, accountDeactivationTokenDurationMs);
+        AccountDeactivationToken token = super.createToken(user, TokenType.ACCOUNT_DEACTIVATION, accountDeactivationTokenDurationMs, true);
         token.setDeactivationReason(reason);
         token.setReasonDetails(reasonDetails);
         saveToken(token);

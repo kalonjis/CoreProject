@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.tokens.PasswordResetTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
+import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,7 +57,7 @@ public class PasswordResetTokenServiceImpl extends BaseTokenServiceImpl<Password
             throw new MaxAttemptsReachedException("Too many attempts. Please try again later.");
         }
         attemptService.recordAttempt(user);
-        return super.createToken(user, passwordResetTokenDurationMs);
+        return super.createToken(user, TokenType.PASSWORD_RESET, passwordResetTokenDurationMs, true);
     }
 
 

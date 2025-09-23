@@ -5,6 +5,7 @@ import be.steby.CoreProject.dal.repositories.tokens.RefreshTokenRepository;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
+import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -54,7 +55,7 @@ public class RefreshTokenServiceImpl extends BaseTokenServiceImpl<RefreshToken> 
     public RefreshToken createRefreshToken(User user, Device device) {
         revokeDeviceTokens(user, device);
 
-        RefreshToken token = super.createToken(user, refreshTokenDurationMs, false);
+        RefreshToken token = super.createToken(user, TokenType.REFRESH_TOKEN, refreshTokenDurationMs, false);
         token.setDevice(device);
         saveToken(token);
         return token;

@@ -6,6 +6,7 @@ import be.steby.CoreProject.bll.exceptions.TokenRevokedException;
 import be.steby.CoreProject.dal.repositories.tokens.BaseTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.BaseToken;
+import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
@@ -62,11 +63,21 @@ public abstract class BaseTokenServiceImpl<T extends BaseToken> implements BaseT
         }
     }
 
+
+    @Override
+    public T createToken(User user, TokenType tokenType, Long expirationInMillis, boolean revokeExisting ) {
+        T token =  createToken(user, expirationInMillis, revokeExisting);
+        token.setTokenType(tokenType);
+        return tokenRepository.save(token);
+    }
+
     @Override
     @Transactional
     public T createToken(User user, Long expirationInMillis) {
         return createToken(user, expirationInMillis, true);
     }
+
+
 
 
 

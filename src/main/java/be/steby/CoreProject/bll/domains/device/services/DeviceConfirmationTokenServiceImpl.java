@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.tokens.DeviceTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.DeviceConfirmationToken;
+import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,7 +57,7 @@ public class DeviceConfirmationTokenServiceImpl extends BaseTokenServiceImpl<Dev
             throw new MaxAttemptsReachedException("Too many attempts. Please try again later.");
         }
         attemptService.recordAttempt(user, deviceId);
-        DeviceConfirmationToken token = super.createToken(user, deviceconfirmationTokenDurationMs, false);
+        DeviceConfirmationToken token = super.createToken(user, TokenType.DEVICE_CONFIRMATION, deviceconfirmationTokenDurationMs, false);
         token.setDeviceId(deviceId);
         saveToken(token);
         return token;
