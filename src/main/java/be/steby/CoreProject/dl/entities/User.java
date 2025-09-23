@@ -23,7 +23,12 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
-@Table(name = "user_")
+@Table(name = "user_", indexes = {
+        @Index(name = "idx_user_public_id", columnList = "public_id"),           // UUID API
+        @Index(name = "idx_user_email", columnList = "email"),                   // Login
+        @Index(name = "idx_user_username", columnList = "username"),             // Login
+        @Index(name = "idx_user_enabled", columnList = "enabled")               // Filtres admin
+})
 @ToString(onlyExplicitlyIncluded = true)
 @EntityListeners(AuditingEntityListener.class)
 public class User extends BaseEntity<Long> implements UserDetails {
