@@ -36,9 +36,9 @@ public class SecurityConstants {
     public static final String[] PUBLIC_ROUTES = {
             "/api/auth/register",
             "/api/auth/login",
-            "/api/auth/signup",
             "/api/auth/refresh-token",
             "/api/auth/logout",
+            "/api/account/signup",
             "/api/account/activation/**",
             "api/account/activation-request/**",
             "/api/account/reactivation-request",

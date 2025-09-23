@@ -10,6 +10,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "activity_log", indexes = {
+        @Index(name = "idx_log_public_id", columnList = "public_id"),           // ✅ NOUVEAU
         @Index(name = "idx_log_user_timestamp", columnList = "user_id, timestamp"),
         @Index(name = "idx_log_action_type", columnList = "action_type"),
         @Index(name = "idx_log_action_category", columnList = "action_category")

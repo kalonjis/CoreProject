@@ -7,10 +7,8 @@ import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
-import be.steby.CoreProject.pl.models.account.UserSignupForm;
 import be.steby.CoreProject.pl.domains.auth.models.requests.LoginRequest;
 import be.steby.CoreProject.pl.models.user.UserDTO;
-import be.steby.CoreProject.pl.models.user.UserShortDTO;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,7 +25,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -71,25 +68,6 @@ public class AuthController {
     // Public Authentication Endpoints
     // =========================================================================
 
-    /**
-     * Handles user registration requests.
-     * Creates a new user account and sends activation email.
-     *
-     * @param form User signup form containing registration details
-     * @param request HTTP request for context capture
-     * @return ResponseEntity with created status and user location
-     */
-    @PostMapping("/signup")
-    public ResponseEntity<UserShortDTO> signup(@Valid @RequestBody UserSignupForm form,
-                                               HttpServletRequest request) {
-        log.info("Processing signup request for username: {}", form.username());
-
-        User user = userRegistrationService.signup(form.toEntity(), request);
-        String location = "/api/user/" + user.getId();
-
-        log.info("User registration successful for username: {}", user.getUsername());
-        return ResponseEntity.created(URI.create(location)).build();
-    }
 
     /**
      * Handles user login requests.
