@@ -73,16 +73,4 @@ public class DeviceConfirmationTokenServiceImpl extends BaseTokenServiceImpl<Dev
         return (int) durationInSeconds;
     }
 
-    /**
-     * Scheduled task to clean up expired and revoked tokens.
-     * Runs hourly to maintain database cleanliness.
-     */
-    @Scheduled(cron = "0 0 * * * *")
-    @Transactional
-    public void cleanExpiredTokens() {
-        log.info("Starting scheduled cleanup of expired tokens");
-//        passwordResetTokenRepository.deleteExpiredTokens(Instant.now());
-        log.info("Completed cleanup of expired tokens");
-    }
-
 }
