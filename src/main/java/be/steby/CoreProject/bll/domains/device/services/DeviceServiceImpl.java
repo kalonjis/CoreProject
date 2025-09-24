@@ -14,6 +14,7 @@ import be.steby.CoreProject.dal.repositories.DeviceRepository;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.DeviceConfirmationToken;
+import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -144,8 +145,7 @@ public class DeviceServiceImpl implements DeviceService {
     @Override
     @Transactional
     public Device confirmDevice(String token) {
-        DeviceConfirmationToken confirmationToken = deviceConfirmationTokenService.getToken(token);
-        deviceConfirmationTokenService.verifyTokenValidity(confirmationToken);
+        DeviceConfirmationToken confirmationToken = deviceConfirmationTokenService.getValidToken(token, TokenType.DEVICE_CONFIRMATION);
 
         Device device = getDeviceById(confirmationToken.getDeviceId());
         device.setConfirmed(true);

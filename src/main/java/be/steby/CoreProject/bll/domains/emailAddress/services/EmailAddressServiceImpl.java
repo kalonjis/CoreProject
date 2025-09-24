@@ -9,6 +9,7 @@ import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.emailAddress.services.tokens.EmailConfirmationTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.EmailConfirmationToken;
+import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import be.steby.CoreProject.pl.models.emailAddress.ChangeEmailForm;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +50,7 @@ public class EmailAddressServiceImpl implements EmailAddressService {
 
     @Override
     public void cancelEmailChange(String token, HttpServletRequest request) {
-        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getToken(token);
+        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getTokenByType(token, TokenType.EMAIL_CONFIRMATION);
         if (!emailConfirmationToken.isRevoked()) {
             emailConfirmationTokenService.revokeToken(emailConfirmationToken);
         }
@@ -62,8 +63,7 @@ public class EmailAddressServiceImpl implements EmailAddressService {
 
     @Override
     public void changeEmailVerification(String token, HttpServletRequest request) {
-        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getToken(token);
-        emailConfirmationTokenService.verifyTokenValidity(emailConfirmationToken);
+        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getValidToken(token, TokenType.EMAIL_CONFIRMATION);
 
         if (emailConfirmationToken.isConfirmed()) {
             throw new TokenConfirmationStatusException(
@@ -85,7 +85,7 @@ public class EmailAddressServiceImpl implements EmailAddressService {
     @Transactional
     @Override
     public void confirmEmail(String token, HttpServletRequest request) {
-        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getToken(token);
+        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getValidToken(token, TokenType.EMAIL_CONFIRMATION);
         emailConfirmationTokenService.verifyTokenValidity(emailConfirmationToken);
 
         User user = emailConfirmationToken.getUser();

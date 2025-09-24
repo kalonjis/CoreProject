@@ -14,6 +14,7 @@ import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
+import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,7 +43,7 @@ public class PasswordServiceImpl implements PasswordService {
     public void resetPassword(PasswordResetRequest request, String token, HttpServletRequest httpRequest) {
         checkIsAnonymous();
 
-        PasswordResetToken passwordResetToken = passwordResetTokenService.getToken(token);
+        PasswordResetToken passwordResetToken = passwordResetTokenService.getValidToken(token, TokenType.PASSWORD_RESET);
         passwordResetTokenService.verifyTokenValidity(passwordResetToken);
 
         User user = passwordResetToken.getUser();
