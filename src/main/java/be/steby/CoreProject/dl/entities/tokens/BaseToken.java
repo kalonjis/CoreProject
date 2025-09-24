@@ -67,4 +67,9 @@ public abstract class BaseToken extends BaseEntity<Long> {
     public boolean isValid(){
         return !this.revoked && !this.isExpired();
     }
+
+    @Override
+    protected boolean shouldGeneratePublicId() {
+        return false;
+    }
 }
