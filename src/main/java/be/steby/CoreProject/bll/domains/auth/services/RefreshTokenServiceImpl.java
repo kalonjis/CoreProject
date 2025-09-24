@@ -77,18 +77,6 @@ public class RefreshTokenServiceImpl extends BaseTokenServiceImpl<RefreshToken> 
         return (int) durationInSeconds;
     }
 
-    /**
-     * Scheduled task to clean up expired and revoked tokens.
-     * Runs hourly to maintain database cleanliness.
-     */
-    @Scheduled(cron = "0 0 * * * *")
-    @Transactional
-    public void cleanExpiredTokens() {
-        log.info("Starting scheduled cleanup of expired tokens");
-//        refreshTokenRepository.deleteExpiredTokens(Instant.now());
-        log.info("Completed cleanup of expired tokens");
-    }
-
 
     @Transactional(readOnly = true)
     public long countActiveUsers() {
@@ -98,12 +86,10 @@ public class RefreshTokenServiceImpl extends BaseTokenServiceImpl<RefreshToken> 
 
     @Transactional
     public void revokeDeviceTokens(User user, Device device) {
-        List<RefreshToken> tokens = refreshTokenRepository.findAllByUserAndDevice(user, device);
-        for (RefreshToken token : tokens) {
-            token.setRevoked(true);
-            refreshTokenRepository.save(token);
-        }
+        // ✅ 1 seule query UPDATE groupée
+        int revokedCount = refreshTokenRepository.revokeAllByUserAndDevice(user, device);
+
         log.info("Révocation de {} tokens pour l'appareil {} de l'utilisateur {}",
-                tokens.size(), device.getId(), user.getUsername());
+                revokedCount, device.getId(), user.getUsername());
     }
 }

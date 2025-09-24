@@ -36,5 +36,9 @@ public interface RefreshTokenRepository extends BaseTokenRepository<RefreshToken
     @Query("SELECT COUNT(DISTINCT rt.user.id) FROM RefreshToken rt WHERE rt.revoked = false AND rt.expiryDate > ?1")
     long countActiveUsers(Instant now);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE RefreshToken rt SET rt.revoked = true WHERE rt.user = ?1 AND rt.device = ?2")
+    int revokeAllByUserAndDevice(User user, Device device);
+
 
 }

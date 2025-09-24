@@ -37,6 +37,43 @@ public abstract class BaseTokenServiceImpl<T extends BaseToken> implements BaseT
 
 
     /**
+     * Gets a token by its value, ensuring type safety and validation.
+     * This method prevents cross-type token attacks and validates the token in one query.
+     *
+     * @param token the token string value
+     * @param tokenType the expected token type
+     * @return the valid token
+     * @throws DoesntExistException if token doesn't exist, has wrong type, or is invalid
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public T getValidToken(String token, TokenType tokenType) {
+        return tokenRepository.findValidTokenByTokenAndType(token, tokenType, Instant.now())
+                .orElseThrow(() -> new DoesntExistException(
+                        "Token not found, invalid, or wrong type. Expected: " + tokenType
+                ));
+    }
+
+    /**
+     * Gets a token by its value and type (without validation).
+     * Use this when you want to retrieve the token but validate separately.
+     *
+     * @param token the token string value
+     * @param tokenType the expected token type
+     * @return the token if found and type matches
+     * @throws DoesntExistException if token doesn't exist or has wrong type
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public T getTokenByType(String token, TokenType tokenType) {
+        return tokenRepository.findByTokenAndTokenType(token, tokenType)
+                .orElseThrow(() -> new DoesntExistException(
+                        "Token not found or wrong type. Expected: " + tokenType
+                ));
+    }
+
+
+    /**
      * Creates a new token for a user with specified expiration time.
      *
      * @param user The user for whom the token is being created

@@ -8,6 +8,9 @@ import java.util.Optional;
 
 public interface BaseTokenService<T extends BaseToken> {
     T getToken(String token);
+    // Nouvelles méthodes sécurisées
+    T getValidToken(String token, TokenType tokenType);
+    T getTokenByType(String token, TokenType tokenType);
     T createToken(User user, Long expirationInMillis, boolean revokeExisting);
     T createToken(User user, TokenType tokenType, Long expirationInMillis, boolean revokeExisting);
     T createToken(User user, Long expirationInMillis);

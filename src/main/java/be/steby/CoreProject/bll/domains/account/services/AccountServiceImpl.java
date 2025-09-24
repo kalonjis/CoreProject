@@ -18,6 +18,7 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.AccountDeactivationToken;
 import be.steby.CoreProject.dl.entities.tokens.AccountReactivationToken;
+import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import jakarta.servlet.http.HttpServletRequest;
@@ -47,8 +48,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public User confirmNewUserAccount(String token, HttpServletRequest request) {
-        AccountConfirmationToken accountConfirmationToken = accountConfirmationTokenService.getToken(token);
-        accountConfirmationTokenService.verifyTokenValidity(accountConfirmationToken);
+        AccountConfirmationToken accountConfirmationToken = accountConfirmationTokenService.getValidToken(token, TokenType.ACCOUNT_CONFIRMATION);
         User user = accountConfirmationToken.getUser();
 
         if (user.isEnabled()) {
@@ -70,7 +70,7 @@ public class AccountServiceImpl implements AccountService {
      */
     @Override
     public void requestActivation(String token, HttpServletRequest request) {
-        // Get user from token to create new confirmation token
+
         AccountConfirmationToken oldToken = accountConfirmationTokenService.getToken(token);
         User user = oldToken.getUser();
 
@@ -84,9 +84,6 @@ public class AccountServiceImpl implements AccountService {
         eventPublisher.publishEvent(event);
     }
 
-    /**
-     * ✅ FIXED - Parameter order matches interface: (User user, DeactivationRequest deactivationRequest, HttpServletRequest request)
-     */
     @Override
     public void requestDeactivation(User user, DeactivationRequest deactivationRequest, HttpServletRequest request) {
         if (!user.isEnabled()) {
@@ -115,8 +112,7 @@ public class AccountServiceImpl implements AccountService {
      */
     @Override
     public User deactivateAccount(String token, HttpServletRequest httpRequest) {
-        AccountDeactivationToken accountDeactivationToken = accountDeactivationTokenService.getToken(token);
-        accountDeactivationTokenService.verifyTokenValidity(accountDeactivationToken);
+        AccountDeactivationToken accountDeactivationToken = accountDeactivationTokenService.getValidToken(token, TokenType.ACCOUNT_DEACTIVATION);
         User user = accountDeactivationToken.getUser();
 
         if (!user.isEnabled()) {
@@ -138,16 +134,13 @@ public class AccountServiceImpl implements AccountService {
         return user;
     }
 
-    /**
-     * ✅ ULTRA-SIMPLIFIED - requestReactivation method (interface signature)
-     */
+
     @Override
     public void requestReactivation(User user, HttpServletRequest httpRequest) {
         if (user.isEnabled()) {
             throw new AccountAlreadyActivatedException("The user with email address " + user.getEmail() + " is already activated!");
         }
 
-        // ✅ SIMPLIFIED LOGIC with direct enum field access
         boolean canReactivate = determineReactivationEligibility(user);
 
         if (!canReactivate) {
@@ -155,7 +148,6 @@ public class AccountServiceImpl implements AccountService {
             throw new ReactivationNotAllowedException(reason);
         }
 
-        // ✅ Log reactivation request with context
         logReactivationAttempt(user, true);
 
         AccountReactivationToken accountReactivationToken = accountReactivationTokenService.createAccountReactivationToken(user);
@@ -169,8 +161,7 @@ public class AccountServiceImpl implements AccountService {
      */
     @Override
     public User reactivateAccount(String token, HttpServletRequest httpRequest) {
-        AccountReactivationToken accountReactivationToken = accountReactivationTokenService.getToken(token);
-        accountReactivationTokenService.verifyTokenValidity(accountReactivationToken);
+        AccountReactivationToken accountReactivationToken = accountReactivationTokenService.getValidToken(token, TokenType.ACCOUNT_REACTIVATION);
         User user = accountReactivationToken.getUser();
 
         if (user.isEnabled()) {
