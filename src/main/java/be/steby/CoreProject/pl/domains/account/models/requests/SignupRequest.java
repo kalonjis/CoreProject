@@ -10,36 +10,30 @@ import jakarta.validation.constraints.*;
  * Contains validation rules for user registration data.
  */
 public record SignupRequest(
-        @JsonProperty("username")
         @NotBlank(message = "Username is required")
         @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
         @Pattern(regexp = "^[a-zA-Z0-9_-]+$", message = "Username can only contain letters, numbers, underscores and hyphens")
         String username,
 
-        @JsonProperty("email")
         @NotBlank(message = "Email is required")
         @Email(message = "Email must be valid")
         @Size(max = 100, message = "Email cannot exceed 100 characters")
         String email,
 
-        @JsonProperty("password")
         @NotBlank(message = "Password is required")
         @StrongPassword
         String password,
 
-        @JsonProperty("confirm_password")
+
         @NotBlank(message = "Password confirmation is required")
         String confirmPassword,
 
-        @JsonProperty("first_name")
         @Size(max = 50, message = "First name cannot exceed 50 characters")
         String firstName,
 
-        @JsonProperty("last_name")
         @Size(max = 50, message = "Last name cannot exceed 50 characters")
         String lastName,
 
-        @JsonProperty("phone_number")
         @Pattern(regexp = "^\\+?[1-9]\\d{1,14}$", message = "Phone number must be valid international format")
         String phoneNumber
 ) {
