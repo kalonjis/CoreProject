@@ -16,6 +16,16 @@ import java.time.Instant;
  * and functionalities related to token management.
  */
 @Entity
+@Table(
+        name = "base_token",
+        indexes = {
+                @Index(name = "idx_token_unique", columnList = "token", unique = true),
+                @Index(name = "idx_user_revoked", columnList = "user_id, revoked"),
+                @Index(name = "idx_expiry_revoked", columnList = "expiry_date, revoked"),
+                @Index(name = "idx_user_token_type_revoked", columnList = "user_id, token_type, revoked"),
+                @Index(name = "idx_token_type_expiry", columnList = "token_type, expiry_date")
+        }
+)
 @EqualsAndHashCode(callSuper = false)
 @Getter
 @Setter
@@ -40,8 +50,6 @@ public abstract class BaseToken extends BaseEntity<Long> {
     @JoinColumn(nullable = false, name = "user_id")
     private User user;
 
-
-
     /**
      * Expiry date and time for the token. This ensures the token becomes invalid
      * after the specified duration.
@@ -49,10 +57,8 @@ public abstract class BaseToken extends BaseEntity<Long> {
     @Column(nullable = false)
     private Instant expiryDate;
 
-
     @Column(nullable = false)
     private boolean revoked = false;
-
 
     public boolean isExpired(){
         return this.getExpiryDate().compareTo(Instant.now()) < 0 ;
