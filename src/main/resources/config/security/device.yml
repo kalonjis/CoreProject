@@ -1,0 +1,10 @@
+security:
+
+  device-confirmation:
+    token:
+      expiration: 900000  # 15 minutes
+      #expiration: 1000  # 1 second
+    max-attempts: 3
+    lockout-minutes: 30
+    alert:
+      threshold-minutes: 10

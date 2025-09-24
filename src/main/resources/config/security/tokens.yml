@@ -1,10 +1,17 @@
-security:
+# Technical security configuration for ALL token types
+# This is cross-cutting security concern (encryption, etc.)
 
-  device-confirmation:
-    token:
-      expiration: 900000  # 15 minutes
-      #expiration: 1000  # 1 second
-    max-attempts: 3
-    lockout-minutes: 30
-    alert:
-      threshold-minutes: 10
+security:
+  tokens:
+    # URL Token Encryption (applies to all tokens sent via URLs)
+    encryption:
+      # Feature toggle - can disable if needed
+      enabled: true
+      
+      # Encryption key (32+ bytes for AES-256)
+      # Use environment variable in production
+      key: "${SECURITY_TOKEN_ENCRYPTION_KEY}"
+      
+      # Backward compatibility during migration
+      # Set to false after migration completion
+      backward-compatible: true

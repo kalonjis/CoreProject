@@ -33,7 +33,7 @@ public class DeviceSecurityService {
     private final DeviceRepository deviceRepository;
     private final Map<Long, CachedDeviceInfo> secureDeviceCache = new ConcurrentHashMap<>();
 
-    @Value("${device.cache.expiration:300000}") // 5 minutes default
+    @Value("${cache.device.expiration:300000}") // 5 minutes default
     private long cacheExpirationMs;
 
     /**

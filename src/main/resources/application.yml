@@ -3,11 +3,12 @@ spring:
     import:
       - classpath:config/database.yml
       - classpath:config/mail.yml
-      - classpath:config/device.yml
+      - classpath:config/cache.yml
       - classpath:config/server.yml
       - classpath:config/security/jwt.yml
-      - classpath:config/security/emailAddress.yml
       - classpath:config/security/tokens.yml
+      - classpath:config/security/device.yml
+      - classpath:config/security/emailAddress.yml
       - classpath:config/security/password.yml
       - classpath:config/security/account.yml
       - classpath:config/security/admin.yml
