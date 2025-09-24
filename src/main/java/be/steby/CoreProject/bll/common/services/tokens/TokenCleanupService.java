@@ -38,7 +38,7 @@ public class TokenCleanupService {
      * - AccountDeactivationTokenServiceImpl
      * - AccountReactivationTokenServiceImpl
      */
-    @Scheduled(cron = "0/10 * * * * *") // Every hour at minute 0
+    @Scheduled(cron = "0 0 * * * *") // Every hour at minute 0
     @Transactional
     public void cleanupExpiredTokens() {
         log.info("Starting unified cleanup of expired and revoked tokens");

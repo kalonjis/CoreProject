@@ -11,6 +11,7 @@ import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
 import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
 import be.steby.CoreProject.bll.domains.auth.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.auth.services.login_attempt.LoginAttemptService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
@@ -39,6 +40,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final DeviceService deviceService;
     private final RefreshTokenServiceImpl refreshTokenService;
+    private final DeviceConfirmationTokenServiceImpl deviceConfirmationTokenService;
 
     // ✅ NEW: Login attempt service for brute force protection
     private final LoginAttemptService loginAttemptService;
@@ -157,14 +159,14 @@ public class AuthServiceImpl implements AuthService {
         Device device = null;
 
         try {
-            // 1. Get user and device information for business logic
             user = getAuthenticatedUser();
             device = deviceService.detectCurrentDevice(request);
 
-            // 2. Revoke refresh token if provided
             if (refreshTokenCookie != null) {
                 revokeRefreshToken(refreshTokenCookie);
             }
+
+            revokeDeviceConfirmationTokens(user);
 
             eventPublisher.publishEvent(new UserLogoutEvent(user, device));
 
@@ -214,9 +216,24 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
+    /**
+     * Revokes all device confirmation tokens for a user during logout process.
+     * This ensures that any pending device confirmation tokens are invalidated when the user logs out.
+     */
+    private void revokeDeviceConfirmationTokens(User user) {
+        try {
+            deviceConfirmationTokenService.revokeAllUserTokens(user);
+            log.debug("Device confirmation tokens revoked for user: {}", user.getUsername());
+        } catch (Exception e) {
+            log.warn("Error revoking device confirmation tokens for user {}: {}",
+                    user.getUsername(), e.getMessage());
+        }
+    }
 
 
-    // ✅ NEW: Helper method to build lockout message
+
+
+    // Helper method to build lockout message
     private String buildLockoutMessage(Instant unlockTime) {
         if (unlockTime == null) {
             return "Account temporarily locked due to too many failed login attempts. Please try again later.";
