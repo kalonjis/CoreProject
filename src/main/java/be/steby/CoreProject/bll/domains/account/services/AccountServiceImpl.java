@@ -56,6 +56,7 @@ public class AccountServiceImpl implements AccountService {
         }
 
         userService.activateUser(user.getId());
+        userService.setUserMailVerified(user);
         accountConfirmationTokenService.revokeAllUserTokens(user);
         accountConfirmationAttemptService.clearAttempts(user);
 
