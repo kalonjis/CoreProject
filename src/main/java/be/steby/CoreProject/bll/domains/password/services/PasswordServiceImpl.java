@@ -89,7 +89,7 @@ public class PasswordServiceImpl implements PasswordService {
 
         eventPublisher.publishEvent(
                 new RequestPasswordResetEvent(
-                    user,passwordResetToken.getToken()
+                    user,passwordResetToken.getPublicId()
                 )
         );
     }
@@ -110,7 +110,7 @@ public class PasswordServiceImpl implements PasswordService {
         eventPublisher.publishEvent(
                 new RequestPasswordTokenEvent(
                     user,
-                    newToken.getToken()
+                    newToken.getPublicId()
                 )
         );
 

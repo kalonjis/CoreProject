@@ -43,7 +43,7 @@ public class EmailAddressServiceImpl implements EmailAddressService {
 
         eventPublisher.publishEvent(
                 new EmailChangeRequestEvent(
-                    user, form.email(), token.getToken()
+                    user, form.email(), token.getPublicId()
                     )
         );
     }
@@ -77,7 +77,7 @@ public class EmailAddressServiceImpl implements EmailAddressService {
 
         eventPublisher.publishEvent(new EmailChangeVerificationEvent(
                 emailConfirmationToken.getUser(),
-                emailConfirmationToken.getToken(),
+                emailConfirmationToken.getPublicId(),
                 emailConfirmationToken.getNewEmailAddress()
         ));
     }
