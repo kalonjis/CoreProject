@@ -4,6 +4,7 @@ import be.steby.CoreProject.bll.common.utils.IpLocationUtils;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.device.events.DevicePersistedEvent;
 import be.steby.CoreProject.bll.domains.device.events.DeviceTrustLevelChangedEvent;
+import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.device.utils.UserAgentUtils;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;

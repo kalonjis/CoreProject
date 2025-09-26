@@ -1,5 +1,6 @@
-package be.steby.CoreProject.bll.domains.device.services;
+package be.steby.CoreProject.bll.domains.device.services.tokens.confirmation;
 
+import be.steby.CoreProject.bll.domains.device.services.tokens.DeviceAttemptTrackerServiceImpl;
 import be.steby.CoreProject.dal.repositories.UserAttemptRepository;
 import be.steby.CoreProject.dl.enums.AttemptType;
 import org.springframework.beans.factory.annotation.Value;
