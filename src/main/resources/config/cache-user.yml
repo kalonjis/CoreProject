@@ -1,0 +1,25 @@
+user:
+  # Cache Implementation Type
+  type: memory                    # Options: memory, redis (when implemented)
+
+  # Cache Expiration (milliseconds)
+  expiration: 600000             # 10 minutes (600,000ms) - longer than device cache
+
+  # Cache Size Management
+  max-size: 5000                 # Maximum number of cached users
+  eviction-percentage: 15        # Percentage to evict when cache is full
+
+  # Monitoring and Alerting
+  monitoring:
+    log-operations: false        # Enable detailed operation logging
+    alert-threshold: 80          # Alert when cache is X% full
+
+  # Performance Tuning
+  cleanup:
+    scheduled-rate: 300000       # Scheduled cleanup every 5 minutes
+    batch-size: 100              # Process cache operations in batches
+
+  # Security Settings
+  security:
+    max-failed-validations: 5    # Max failed cache validations before DB lookup
+    validation-timeout: 30       # Seconds before cache validation times out
