@@ -1,8 +1,7 @@
 package be.steby.CoreProject.bll.domains.device.utils;
 
 import be.steby.CoreProject.bll.domains.device.models.DeviceSecurityResult;
-import be.steby.CoreProject.bll.domains.device.services.DeviceSecurityService;
-import be.steby.CoreProject.bll.domains.device.utils.DeviceContextProvider;
+import be.steby.CoreProject.bll.domains.device.services.DeviceAuthenticationService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
 import io.jsonwebtoken.Claims;
@@ -25,7 +24,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class DeviceSecurityEvaluator {
 
-    private final DeviceSecurityService deviceSecurityService;
+    private final DeviceAuthenticationService deviceAuthenticationService;
 
     /**
      * Checks if the current device meets the required trust level.
@@ -193,7 +192,7 @@ public class DeviceSecurityEvaluator {
             String fingerprint = claims.get("deviceFingerprint", String.class);
 
             if (deviceId != null && fingerprint != null) {
-                DeviceSecurityResult result = deviceSecurityService
+                DeviceSecurityResult result = deviceAuthenticationService
                         .getSecureDeviceFromCacheOrDatabase(deviceId, fingerprint);
 
                 if (result.isSuccess()) {
