@@ -26,7 +26,7 @@ public interface UserService {
 
     User getUserByEmail(String email);
 
-    void saveUser(User user);
+    User saveUser(User user);
 
     Long getTotalUsers();
 

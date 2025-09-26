@@ -12,6 +12,7 @@ import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
 import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.auth.services.login_attempt.LoginAttemptService;
 import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.user.events.UserPersistedEvent;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
@@ -111,6 +112,8 @@ public class AuthServiceImpl implements AuthService {
 
             // 8. ✅ Publish success event - simplified
             eventPublisher.publishEvent(new UserLoggedInEvent(user, device));
+
+            eventPublisher.publishEvent(new UserPersistedEvent(user)); // for cache-user
 
             // 9. Send notification for unconfirmed devices
             if (!device.isConfirmed()) {
