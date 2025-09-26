@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.account.services.tokens.deactivation;
 
 import be.steby.CoreProject.bll.common.services.tokens.BaseTokenServiceImpl;
+import be.steby.CoreProject.bll.common.services.tokens.SecureTokenService;
 import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.DeactivationTokenExpiredException;
 import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.DeactivationTokenInvalidException;
 import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.DeactivationTokenNotFoundException;
@@ -45,16 +46,16 @@ public class AccountDeactivationTokenServiceImpl extends BaseTokenServiceImpl<Ac
      */
     public AccountDeactivationTokenServiceImpl(
             @Qualifier("accountDeactivationTokenRepository") AccountDeactivationTokenRepository accountDeactivationTokenRepository,
-            AccountDeactivationAttemptServiceImpl attemptService) {
-        super(accountDeactivationTokenRepository, AccountDeactivationToken.class);
+            AccountDeactivationAttemptServiceImpl attemptService, SecureTokenService secureTokenService) {
+        super(accountDeactivationTokenRepository, AccountDeactivationToken.class, secureTokenService);
         this.attemptService = attemptService;
     }
 
     @Override
     @Transactional
-    public AccountDeactivationToken getToken(String token) {
+    public AccountDeactivationToken getSecureToken(String token) {
         try {
-            return super.getToken(token); // Délègue à la classe parent
+            return super.getSecureToken(token); // Délègue à la classe parent
         } catch (DoesntExistException e) {
             throw new DeactivationTokenNotFoundException("Deactivation token not found");
         }

@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.auth.services;
 
 import be.steby.CoreProject.bll.common.services.tokens.BaseTokenServiceImpl;
+import be.steby.CoreProject.bll.common.services.tokens.SecureTokenService;
 import be.steby.CoreProject.dal.repositories.tokens.RefreshTokenRepository;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
@@ -40,8 +41,8 @@ public class RefreshTokenServiceImpl extends BaseTokenServiceImpl<RefreshToken> 
      *                              qualified to ensure correct repository injection
      */
     public RefreshTokenServiceImpl(
-            @Qualifier("refreshTokenRepository") RefreshTokenRepository refreshTokenRepository) {
-        super(refreshTokenRepository, RefreshToken.class);
+            @Qualifier("refreshTokenRepository") RefreshTokenRepository refreshTokenRepository, SecureTokenService secureTokenService ) {
+        super(refreshTokenRepository, RefreshToken.class, secureTokenService);
         this.refreshTokenRepository = refreshTokenRepository;
     }
 

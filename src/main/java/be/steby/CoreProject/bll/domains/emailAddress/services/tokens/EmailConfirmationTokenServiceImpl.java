@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.emailAddress.services.tokens;
 
 import be.steby.CoreProject.bll.common.services.tokens.BaseTokenServiceImpl;
+import be.steby.CoreProject.bll.common.services.tokens.SecureTokenService;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.tokens.EmailConfirmationTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
@@ -39,8 +40,8 @@ public class EmailConfirmationTokenServiceImpl extends BaseTokenServiceImpl<Emai
      */
     public EmailConfirmationTokenServiceImpl(
             @Qualifier("emailConfirmationTokenRepository") EmailConfirmationTokenRepository emailConfirmationTokenRepository,
-            EmailConfirmationAttemptServiceImpl attemptService) {
-        super(emailConfirmationTokenRepository, EmailConfirmationToken.class);
+            EmailConfirmationAttemptServiceImpl attemptService, SecureTokenService secureTokenService) {
+        super(emailConfirmationTokenRepository, EmailConfirmationToken.class, secureTokenService);
         this.attemptService = attemptService;
     }
 

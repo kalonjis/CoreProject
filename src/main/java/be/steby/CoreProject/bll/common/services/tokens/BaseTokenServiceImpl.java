@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.common.services.tokens;
 
+import be.steby.CoreProject.bll.common.exceptions.TokenSecurityException;
 import be.steby.CoreProject.bll.exceptions.DoesntExistException;
 import be.steby.CoreProject.bll.exceptions.TokenExpiredException;
 import be.steby.CoreProject.bll.exceptions.TokenRevokedException;
@@ -7,7 +8,6 @@ import be.steby.CoreProject.dal.repositories.tokens.BaseTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.BaseToken;
 import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,97 +40,125 @@ public abstract class BaseTokenServiceImpl<T extends BaseToken> implements BaseT
 
     private final BaseTokenRepository<T> tokenRepository;
     private final Class<T> tokenClass;
-
-    // MANDATORY security service - must be present
-    @Autowired
-    private SecureTokenService secureTokenService;
+    private final SecureTokenService secureTokenService;
 
     // =========================================================================
-    // Public API with Integrated Security
-    // =========================================================================
+// SECURE TOKEN ACCESS METHODS - Use these instead of generic getToken()
+// =========================================================================
 
     /**
-     * Gets a token by its public_id (from URL) or plain token (internal).
-     *
-     * This method handles both:
-     * - Encrypted public_id from URLs (sec_xxx)
-     * - Plain token for internal business logic
-     *
-     * @param tokenValue The token value (encrypted public_id or plain token)
-     * @return The token entity
-     * @throws DoesntExistException if token doesn't exist
+     * Gets a token for URL/external usage - ONLY accepts secured tokens
+     * Cette méthode doit être utilisée pour tous les tokens venant d'URLs/emails
      */
-    @Override
-    @Transactional
-    public T getToken(String tokenValue) {
-        // First try: lookup by public_id (encrypted token from URL)
-        if (secureTokenService.isSecured(tokenValue)) {
-            Optional<T> tokenByPublicId = tokenRepository.findByPublicId(tokenValue);
-            if (tokenByPublicId.isPresent()) {
-                return tokenByPublicId.get();
-            }
+    @Transactional(readOnly = true)
+    public T getSecureToken(String tokenValue) {
+        if (!secureTokenService.isSecured(tokenValue)) {
+            throw new TokenSecurityException("Invalid token format - secured token required for external access");
         }
 
-        // Second try: lookup by plain token (internal usage)
-        return tokenRepository.findByToken(tokenValue)
-                .orElseThrow(() -> new DoesntExistException("Token : " + tokenValue + " does not exist"));
+        String plainToken;
+        try {
+            plainToken = secureTokenService.recoverToken(tokenValue);
+        } catch (Exception e) {
+            throw new TokenSecurityException("Failed to decrypt secured token", e);
+        }
+
+        return tokenRepository.findByToken(plainToken)
+                .orElseThrow(() -> new DoesntExistException("Token not found"));
     }
 
     /**
-     * Gets a valid token by its public_id/token and type.
-     *
-     * @param tokenValue The token string value (encrypted public_id or plain token)
-     * @param tokenType The expected token type
-     * @return The valid token
-     * @throws DoesntExistException if token doesn't exist, has wrong type, or is invalid
+     * Gets a valid token for URL/external usage - ONLY accepts secured tokens
      */
-    @Override
     @Transactional(readOnly = true)
-    public T getValidToken(String tokenValue, TokenType tokenType) {
-        // First try: lookup by public_id (encrypted token from URL)
-        if (secureTokenService.isSecured(tokenValue)) {
-            Optional<T> tokenByPublicId = tokenRepository.findByPublicIdAndTokenType(tokenValue, tokenType);
-            if (tokenByPublicId.isPresent()) {
-                T token = tokenByPublicId.get();
-                // Validate expiration and revocation
-                if (!token.isRevoked() && !token.isExpired()) {
-                    return token;
-                }
-            }
+    public T getSecureValidToken(String tokenValue, TokenType tokenType) {
+        if (!secureTokenService.isSecured(tokenValue)) {
+            throw new TokenSecurityException("Invalid token format - secured token required for external access");
         }
 
-        // Second try: lookup by plain token and validate
-        return tokenRepository.findValidTokenByTokenAndType(tokenValue, tokenType, Instant.now())
+        String plainToken;
+        try {
+            plainToken = secureTokenService.recoverToken(tokenValue);
+        } catch (Exception e) {
+            throw new TokenSecurityException("Failed to decrypt secured token", e);
+        }
+
+        return tokenRepository.findValidTokenByTokenAndType(plainToken, tokenType, Instant.now())
                 .orElseThrow(() -> new DoesntExistException(
                         "Token not found, invalid, or wrong type. Expected: " + tokenType
                 ));
     }
 
     /**
-     * Gets a token by its public_id/token and type.
-     *
-     * @param tokenValue The token string value (encrypted public_id or plain token)
-     * @param tokenType The expected token type
-     * @return The token if found and type matches
-     * @throws DoesntExistException if token doesn't exist or has wrong type
+     * Gets a token by type for URL/external usage - ONLY accepts secured tokens
      */
-    @Override
     @Transactional(readOnly = true)
-    public T getTokenByType(String tokenValue, TokenType tokenType) {
-        // First try: lookup by public_id (encrypted token from URL)
-        if (secureTokenService.isSecured(tokenValue)) {
-            Optional<T> tokenByPublicId = tokenRepository.findByPublicIdAndTokenType(tokenValue, tokenType);
-            if (tokenByPublicId.isPresent()) {
-                return tokenByPublicId.get();
-            }
+    public T getSecureTokenByType(String tokenValue, TokenType tokenType) {
+        if (!secureTokenService.isSecured(tokenValue)) {
+            throw new TokenSecurityException("Invalid token format - secured token required for external access");
         }
 
-        // Second try: lookup by plain token
-        return tokenRepository.findByTokenAndTokenType(tokenValue, tokenType)
+        String plainToken;
+        try {
+            plainToken = secureTokenService.recoverToken(tokenValue);
+        } catch (Exception e) {
+            throw new TokenSecurityException("Failed to decrypt secured token", e);
+        }
+
+        return tokenRepository.findByTokenAndTokenType(plainToken, tokenType)
                 .orElseThrow(() -> new DoesntExistException(
                         "Token not found or wrong type. Expected: " + tokenType
                 ));
     }
+
+// =========================================================================
+// INTERNAL TOKEN ACCESS METHODS - For business logic only
+// =========================================================================
+
+    /**
+     * Gets a token for internal usage - ONLY accepts plain tokens
+     * Cette méthode pour la logique métier interne uniquement
+     */
+    @Transactional(readOnly = true)
+    public T getInternalToken(String plainToken) {
+        if (secureTokenService.isSecured(plainToken)) {
+            throw new TokenSecurityException("Plain token expected for internal usage");
+        }
+
+        return tokenRepository.findByToken(plainToken)
+                .orElseThrow(() -> new DoesntExistException("Token not found"));
+    }
+
+    /**
+     * Gets a valid token for internal usage - ONLY accepts plain tokens
+     */
+    @Transactional(readOnly = true)
+    public T getInternalValidToken(String plainToken, TokenType tokenType) {
+        if (secureTokenService.isSecured(plainToken)) {
+            throw new TokenSecurityException("Plain token expected for internal usage");
+        }
+
+        return tokenRepository.findValidTokenByTokenAndType(plainToken, tokenType, Instant.now())
+                .orElseThrow(() -> new DoesntExistException(
+                        "Token not found, invalid, or wrong type. Expected: " + tokenType
+                ));
+    }
+
+    /**
+     * Gets a token by type for internal usage - ONLY accepts plain tokens
+     */
+    @Transactional(readOnly = true)
+    public T getInternalTokenByType(String plainToken, TokenType tokenType) {
+        if (secureTokenService.isSecured(plainToken)) {
+            throw new TokenSecurityException("Plain token expected for internal usage");
+        }
+
+        return tokenRepository.findByTokenAndTokenType(plainToken, tokenType)
+                .orElseThrow(() -> new DoesntExistException(
+                        "Token not found or wrong type. Expected: " + tokenType
+                ));
+    }
+
 
     /**
      * Creates a new token with automatic public_id encryption for URLs.

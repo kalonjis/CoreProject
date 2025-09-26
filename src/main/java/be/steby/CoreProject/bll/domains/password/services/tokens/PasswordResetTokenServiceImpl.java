@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.password.services.tokens;
 
 import be.steby.CoreProject.bll.common.services.tokens.BaseTokenServiceImpl;
+import be.steby.CoreProject.bll.common.services.tokens.SecureTokenService;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.tokens.PasswordResetTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
@@ -40,8 +41,8 @@ public class PasswordResetTokenServiceImpl extends BaseTokenServiceImpl<Password
     public PasswordResetTokenServiceImpl(
             @Qualifier("passwordResetTokenRepository")
             PasswordResetTokenRepository passwordResetTokenRepository,
-            PasswordResetAttemptServiceImpl attemptService) {
-        super(passwordResetTokenRepository, PasswordResetToken.class);
+            PasswordResetAttemptServiceImpl attemptService, SecureTokenService secureTokenService) {
+        super(passwordResetTokenRepository, PasswordResetToken.class, secureTokenService);
         this.attemptService = attemptService;
     }
 
