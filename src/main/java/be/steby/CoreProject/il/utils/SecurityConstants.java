@@ -31,7 +31,8 @@ public class SecurityConstants {
             "/api/admin/users/grant-role/**",
             "/api/admin/users/revoke-role/**",
             "/api/admin/users/gdpr-deletion/**",
-            "/api/admin/cache/device/**"
+            "/api/admin/cache/device/**",
+            "/api/admin/cache/use/**"
     };
 
     // Vous pouvez aussi définir d'autres constantes liées à la sécurité
@@ -60,7 +61,8 @@ public class SecurityConstants {
             "/api/device/update-trust-level/**",
             "/api/admin/users/grant-role/**",
             "/api/admin/users/revoke-role/**",
-            "/api/admin/cache/device/**"
+            "/api/admin/cache/device/**",
+            "/api/admin/cache/use/**"
 
     };
 
