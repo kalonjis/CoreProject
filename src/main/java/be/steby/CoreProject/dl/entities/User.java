@@ -116,7 +116,7 @@ public class User extends BaseEntity<Long> implements UserDetails {
 
     private Instant activatedAt;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "activated_by")
     private User activatedBy;
 
@@ -139,14 +139,14 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Column(name = "admin_deactivation_details", length = 500)
     private String adminDeactivationDetails;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "admin_deactivated_by")
     private User adminDeactivatedBy;
 
     @Column(name = "admin_deactivated_at")
     private Instant adminDeactivatedAt;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reactivated_by")
     private User reactivatedBy;
 
