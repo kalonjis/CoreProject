@@ -1,3 +1,22 @@
 cache:
   device:
-    expiration: 300000  # 5 minutes in milliseconds
+    # Durée de vie des entrées cache (en millisecondes)
+    expiration: 300000              # 5 minutes
+
+    # Limite de taille pour éviter les memory leaks
+    max-size: 10000                 # Max 10,000 devices (≈ 11MB RAM)
+
+    # Stratégie d'éviction LRU
+    eviction-percentage: 10         # Vire 10% des entrées les plus anciennes quand plein
+
+  # Configuration pour monitoring et alertes
+  monitoring:
+    enabled: true
+    alert-threshold: 80             # Alerte si cache > 80% plein (utilisé dans isNearCapacity())
+    memory-alert-mb: 50             # Alerte si cache > 50MB
+
+# Configuration pour les tâches schedulées (optionnel - utilise les valeurs par défaut du code)
+scheduling:
+  cache:
+    cleanup-interval: 300000        # Nettoyage expired toutes les 5 minutes
+    stats-log-interval: 1800000     # Log des stats toutes les 30 minutes

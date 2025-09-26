@@ -1,6 +1,6 @@
 package be.steby.CoreProject.il.Jwt;
 
-import be.steby.CoreProject.bll.domains.device.services.DeviceSecurityService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceAuthenticationService;
 import be.steby.CoreProject.bll.domains.device.models.DeviceSecurityResult;
 import be.steby.CoreProject.bll.domains.device.utils.DeviceContextProvider;
 import be.steby.CoreProject.bll.domains.auth.services.AuthService;
@@ -34,7 +34,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final AuthService authService;
     private final JwtUtil jwtUtil;
-    private final DeviceSecurityService deviceSecurityService;
+    private final DeviceAuthenticationService deviceAuthenticationService;
 
     @Value("${security.jwt.access-token.name}")
     private String accessTokenCookieName;
@@ -61,7 +61,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 String deviceFingerprint = claims.get("deviceFingerprint", String.class);
 
                 // 3. Perform secure device validation with cache optimization
-                DeviceSecurityResult deviceResult = deviceSecurityService
+                DeviceSecurityResult deviceResult = deviceAuthenticationService
                         .getSecureDeviceFromCacheOrDatabase(deviceId, deviceFingerprint);
 
                 if (!deviceResult.isSuccess()) {
