@@ -1,7 +1,6 @@
 package be.steby.CoreProject.il.configs;
 
-import be.steby.CoreProject.bll.domains.device.services.DeviceSecurityService;
-import be.steby.CoreProject.bll.domains.device.services.DeviceService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceAuthenticationService;
 import be.steby.CoreProject.bll.domains.auth.services.AuthService;
 import be.steby.CoreProject.il.Jwt.JwtFilter;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
@@ -51,8 +50,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtFilter jwtFilter(AuthService authService, JwtUtil jwtUtil, DeviceSecurityService deviceSecurityService) {
-        return new JwtFilter(authService, jwtUtil, deviceSecurityService);
+    public JwtFilter jwtFilter(AuthService authService, JwtUtil jwtUtil, DeviceAuthenticationService deviceAuthenticationService) {
+        return new JwtFilter(authService, jwtUtil, deviceAuthenticationService);
     }
 
 
