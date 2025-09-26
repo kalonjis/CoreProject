@@ -48,7 +48,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public User confirmNewUserAccount(String token, HttpServletRequest request) {
-        AccountConfirmationToken accountConfirmationToken = accountConfirmationTokenService.getValidToken(token, TokenType.ACCOUNT_CONFIRMATION);
+        AccountConfirmationToken accountConfirmationToken = accountConfirmationTokenService.getSecureValidToken(token, TokenType.ACCOUNT_CONFIRMATION);
         User user = accountConfirmationToken.getUser();
 
         if (user.isEnabled()) {
@@ -72,7 +72,7 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public void requestActivation(String token, HttpServletRequest request) {
 
-        AccountConfirmationToken oldToken = accountConfirmationTokenService.getToken(token);
+        AccountConfirmationToken oldToken = accountConfirmationTokenService.getSecureToken(token);
         User user = oldToken.getUser();
 
         if (user.isEnabled()) {
@@ -113,7 +113,7 @@ public class AccountServiceImpl implements AccountService {
      */
     @Override
     public User deactivateAccount(String token, HttpServletRequest httpRequest) {
-        AccountDeactivationToken accountDeactivationToken = accountDeactivationTokenService.getValidToken(token, TokenType.ACCOUNT_DEACTIVATION);
+        AccountDeactivationToken accountDeactivationToken = accountDeactivationTokenService.getSecureValidToken(token, TokenType.ACCOUNT_DEACTIVATION);
         User user = accountDeactivationToken.getUser();
 
         if (!user.isEnabled()) {
@@ -162,7 +162,7 @@ public class AccountServiceImpl implements AccountService {
      */
     @Override
     public User reactivateAccount(String token, HttpServletRequest httpRequest) {
-        AccountReactivationToken accountReactivationToken = accountReactivationTokenService.getValidToken(token, TokenType.ACCOUNT_REACTIVATION);
+        AccountReactivationToken accountReactivationToken = accountReactivationTokenService.getSecureValidToken(token, TokenType.ACCOUNT_REACTIVATION);
         User user = accountReactivationToken.getUser();
 
         if (user.isEnabled()) {

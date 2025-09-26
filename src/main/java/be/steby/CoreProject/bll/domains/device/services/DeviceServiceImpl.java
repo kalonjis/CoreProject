@@ -141,7 +141,7 @@ public class DeviceServiceImpl implements DeviceService {
     @Override
     @Transactional
     public Device confirmDevice(String token) {
-        DeviceConfirmationToken confirmationToken = deviceConfirmationTokenService.getValidToken(token, TokenType.DEVICE_CONFIRMATION);
+        DeviceConfirmationToken confirmationToken = deviceConfirmationTokenService.getSecureValidToken(token, TokenType.DEVICE_CONFIRMATION);
 
         Device device = getDeviceById(confirmationToken.getDeviceId());
         device.setConfirmed(true);
@@ -306,8 +306,7 @@ public class DeviceServiceImpl implements DeviceService {
      * @return The device associated with the token
      */
     private Device getDeviceByToken(String token) {
-        DeviceConfirmationToken deviceConfirmationToken = deviceConfirmationTokenService.getToken(token);
-        deviceConfirmationTokenService.verifyTokenValidity(deviceConfirmationToken);
+        DeviceConfirmationToken deviceConfirmationToken = deviceConfirmationTokenService.getSecureValidToken(token, TokenType.DEVICE_CONFIRMATION);
         deviceConfirmationTokenService.revokeToken(deviceConfirmationToken);
         Long deviceId = deviceConfirmationToken.getDeviceId();
         return getDeviceById(deviceId);
