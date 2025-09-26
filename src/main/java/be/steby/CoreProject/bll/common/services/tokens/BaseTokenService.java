@@ -7,14 +7,27 @@ import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import java.util.Optional;
 
 public interface BaseTokenService<T extends BaseToken> {
-    T getToken(String token);
-    // Nouvelles méthodes sécurisées
-    T getValidToken(String token, TokenType tokenType);
-    T getTokenByType(String token, TokenType tokenType);
+
+    // =========================================================================
+    // SECURE METHODS - For URL/external access (encrypted tokens)
+    // =========================================================================
+    T getSecureToken(String tokenValue);
+    T getSecureValidToken(String tokenValue, TokenType tokenType);
+    T getSecureTokenByType(String tokenValue, TokenType tokenType);
+
+    // =========================================================================
+    // INTERNAL METHODS - For business logic (plain tokens)
+    // =========================================================================
+    T getInternalToken(String plainToken);
+    T getInternalValidToken(String plainToken, TokenType tokenType);
+    T getInternalTokenByType(String plainToken, TokenType tokenType);
+
+    // =========================================================================
+    // TOKEN MANAGEMENT METHODS
+    // =========================================================================
     T createToken(User user, Long expirationInMillis, boolean revokeExisting);
     T createToken(User user, TokenType tokenType, Long expirationInMillis, boolean revokeExisting);
     T createToken(User user, Long expirationInMillis);
-//    T rotateToken(T oldToken);
     Optional<T> verifyToken(Long id, String token);
     T verifyTokenValidity(T token);
     void revokeAllUserTokens(User user);
