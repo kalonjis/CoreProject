@@ -56,7 +56,7 @@ public abstract class BaseEntity<T extends Serializable> {
      * Security benefit: URLs like /api/users/{uuid} instead of /api/users/123
      * Prevents attackers from guessing sequential IDs
      */
-    @Column(name = "public_id", nullable = true, unique = true, updatable = false, length = 36)
+    @Column(name = "public_id", nullable = true, unique = true, updatable = false, length = 256)
     @Setter
     private String publicId;
 

@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.device.services;
 
 import be.steby.CoreProject.bll.common.services.tokens.BaseTokenServiceImpl;
+import be.steby.CoreProject.bll.common.services.tokens.SecureTokenService;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.tokens.DeviceTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
@@ -39,8 +40,8 @@ public class DeviceConfirmationTokenServiceImpl extends BaseTokenServiceImpl<Dev
     public DeviceConfirmationTokenServiceImpl(
             @Qualifier("deviceTokenRepository")
             DeviceTokenRepository deviceTokenRepository,
-            DeviceConfirmationAttemptServiceImpl attemptService) {
-        super(deviceTokenRepository, DeviceConfirmationToken.class);
+            DeviceConfirmationAttemptServiceImpl attemptService, SecureTokenService secureTokenService) {
+        super(deviceTokenRepository, DeviceConfirmationToken.class, secureTokenService);
         this.attemptService = attemptService;
     }
 

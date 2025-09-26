@@ -13,21 +13,21 @@ import jakarta.validation.constraints.Size;
  * Contains validation rules for user-initiated account deactivation.
  */
 public record DeactivateAccountRequest(
-        @JsonProperty("reason")
+       // @JsonProperty("reason")
         @NotNull(message = "Deactivation reason is required")
         DeactivationReason reason,
 
-        @JsonProperty("reason_details")
+       // @JsonProperty("reason_details")
         @NotBlank(message = "Please provide details about your deactivation reason")
         @Size(min = 10, max = 500, message = "Reason details must be between 10 and 500 characters")
-        String reasonDetails,
+        String reasonDetails
 
-        @JsonProperty("confirmation")
-        @AssertTrue(message = "You must confirm that you want to deactivate your account")
-        boolean confirmation,
-
-        @JsonProperty("delete_data")
-        boolean deleteData
+//        @JsonProperty("confirmation")
+//        @AssertTrue(message = "You must confirm that you want to deactivate your account")
+//        boolean confirmation,
+//
+//        @JsonProperty("delete_data")
+//        boolean deleteData
 ) {
     /**
      * Converts this request to a DeactivationRequest for business logic processing.

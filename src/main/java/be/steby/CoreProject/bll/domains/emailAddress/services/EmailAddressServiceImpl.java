@@ -43,14 +43,14 @@ public class EmailAddressServiceImpl implements EmailAddressService {
 
         eventPublisher.publishEvent(
                 new EmailChangeRequestEvent(
-                    user, form.email(), token.getToken()
+                    user, form.email(), token.getPublicId()
                     )
         );
     }
 
     @Override
     public void cancelEmailChange(String token, HttpServletRequest request) {
-        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getTokenByType(token, TokenType.EMAIL_CONFIRMATION);
+        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getSecureTokenByType(token, TokenType.EMAIL_CONFIRMATION);
         if (!emailConfirmationToken.isRevoked()) {
             emailConfirmationTokenService.revokeToken(emailConfirmationToken);
         }
@@ -63,7 +63,7 @@ public class EmailAddressServiceImpl implements EmailAddressService {
 
     @Override
     public void changeEmailVerification(String token, HttpServletRequest request) {
-        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getValidToken(token, TokenType.EMAIL_CONFIRMATION);
+        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getSecureValidToken(token, TokenType.EMAIL_CONFIRMATION);
 
         if (emailConfirmationToken.isConfirmed()) {
             throw new TokenConfirmationStatusException(
@@ -77,7 +77,7 @@ public class EmailAddressServiceImpl implements EmailAddressService {
 
         eventPublisher.publishEvent(new EmailChangeVerificationEvent(
                 emailConfirmationToken.getUser(),
-                emailConfirmationToken.getToken(),
+                emailConfirmationToken.getPublicId(),
                 emailConfirmationToken.getNewEmailAddress()
         ));
     }
@@ -85,7 +85,7 @@ public class EmailAddressServiceImpl implements EmailAddressService {
     @Transactional
     @Override
     public void confirmEmail(String token, HttpServletRequest request) {
-        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getValidToken(token, TokenType.EMAIL_CONFIRMATION);
+        EmailConfirmationToken emailConfirmationToken = emailConfirmationTokenService.getSecureValidToken(token, TokenType.EMAIL_CONFIRMATION);
         emailConfirmationTokenService.verifyTokenValidity(emailConfirmationToken);
 
         User user = emailConfirmationToken.getUser();

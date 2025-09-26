@@ -19,11 +19,17 @@ import java.time.Instant;
 @Table(
         name = "base_token",
         indexes = {
+                // Index existants (à conserver)
                 @Index(name = "idx_token_unique", columnList = "token", unique = true),
                 @Index(name = "idx_user_revoked", columnList = "user_id, revoked"),
                 @Index(name = "idx_expiry_revoked", columnList = "expiry_date, revoked"),
                 @Index(name = "idx_user_token_type_revoked", columnList = "user_id, token_type, revoked"),
-                @Index(name = "idx_token_type_expiry", columnList = "token_type, expiry_date")
+                @Index(name = "idx_token_type_expiry", columnList = "token_type, expiry_date"),
+
+                // Nouveaux index pour public_id (à ajouter)
+                @Index(name = "idx_public_id_unique", columnList = "public_id", unique = true),
+                @Index(name = "idx_public_id_type", columnList = "public_id, token_type"),
+                @Index(name = "idx_public_id_revoked", columnList = "public_id, revoked")
         }
 )
 @EqualsAndHashCode(callSuper = false)

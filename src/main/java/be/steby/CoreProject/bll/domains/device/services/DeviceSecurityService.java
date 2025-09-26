@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.device.services;
 
-import be.steby.CoreProject.bll.domains.device.events.DeviceCreatedOrUpdatedEvent;
+import be.steby.CoreProject.bll.domains.device.events.DevicePersistedEvent;
 import be.steby.CoreProject.bll.domains.device.events.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.domains.device.models.DeviceSecurityResult;
 import be.steby.CoreProject.dal.repositories.DeviceRepository;
@@ -87,15 +87,15 @@ public class DeviceSecurityService {
      * Ensures cache consistency across the application.
      */
     @EventListener
-    public void handleDeviceCreatedOrUpdated(DeviceCreatedOrUpdatedEvent event) {
-        Device device = event.getDevice();
+    public void handleDeviceCreatedOrUpdated(DevicePersistedEvent event) {
+        Device device = event.device();
 
         if (device.getId() != null && device.getFingerprint() != null) {
             secureDeviceCache.put(device.getId(),
                     new CachedDeviceInfo(device, device.getFingerprint()));
 
-            log.debug("Device cache updated for device {} (action: {})",
-                    device.getId(), event.getAction());
+            log.debug("Device cache updated for device {})",
+                    device.getId());
         }
     }
 

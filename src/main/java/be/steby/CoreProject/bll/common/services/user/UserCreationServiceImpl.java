@@ -87,7 +87,7 @@ public class UserCreationServiceImpl implements UserCreationService{
 
         if(request.mode() != UserCreationMode.SYSTEM_CREATE){
             AccountConfirmationToken accountConfirmationToken = accountConfirmationTokenService.createAccountConfirmationToken(user);
-            token = accountConfirmationToken.getToken();
+            token = accountConfirmationToken.getPublicId();
         }
         // 6. Event publishing according to mode
         publishAppropriateEvent(user, request, temporaryPassword, token);

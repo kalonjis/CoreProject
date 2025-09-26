@@ -2,7 +2,7 @@ package be.steby.CoreProject.bll.domains.device.services;
 
 import be.steby.CoreProject.bll.common.utils.IpLocationUtils;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
-import be.steby.CoreProject.bll.domains.device.events.DeviceCreatedOrUpdatedEvent;
+import be.steby.CoreProject.bll.domains.device.events.DevicePersistedEvent;
 import be.steby.CoreProject.bll.domains.device.events.DeviceTrustLevelChangedEvent;
 import be.steby.CoreProject.bll.domains.device.utils.UserAgentUtils;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
@@ -88,14 +88,10 @@ public class DeviceServiceImpl implements DeviceService {
         Device device = deviceRepository.findByFingerprint(fingerprint)
                 .map(existingDevice -> {
                     Device updated = updateExistingDevice(user, existingDevice, ipAddress);
-                    // Publish update events for cache management
-                    eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.updated(updated));
                     return updated;
                 })
                 .orElseGet(() -> {
                     Device created = createNewDevice(user, agent, request, fingerprint, ipAddress);
-                    // Publish creation events for cache management
-                    eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.created(created));
                     return created;
                 });
 
@@ -139,13 +135,13 @@ public class DeviceServiceImpl implements DeviceService {
     public void saveDevice(Device device) {
         deviceRepository.save(device);
         // Publish update events for cache management
-        eventPublisher.publishEvent(DeviceCreatedOrUpdatedEvent.updated(device));
+        eventPublisher.publishEvent(new DevicePersistedEvent(device));
     }
 
     @Override
     @Transactional
     public Device confirmDevice(String token) {
-        DeviceConfirmationToken confirmationToken = deviceConfirmationTokenService.getValidToken(token, TokenType.DEVICE_CONFIRMATION);
+        DeviceConfirmationToken confirmationToken = deviceConfirmationTokenService.getSecureValidToken(token, TokenType.DEVICE_CONFIRMATION);
 
         Device device = getDeviceById(confirmationToken.getDeviceId());
         device.setConfirmed(true);
@@ -310,8 +306,7 @@ public class DeviceServiceImpl implements DeviceService {
      * @return The device associated with the token
      */
     private Device getDeviceByToken(String token) {
-        DeviceConfirmationToken deviceConfirmationToken = deviceConfirmationTokenService.getToken(token);
-        deviceConfirmationTokenService.verifyTokenValidity(deviceConfirmationToken);
+        DeviceConfirmationToken deviceConfirmationToken = deviceConfirmationTokenService.getSecureValidToken(token, TokenType.DEVICE_CONFIRMATION);
         deviceConfirmationTokenService.revokeToken(deviceConfirmationToken);
         Long deviceId = deviceConfirmationToken.getDeviceId();
         return getDeviceById(deviceId);

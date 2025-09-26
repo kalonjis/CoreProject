@@ -43,7 +43,7 @@ public class PasswordServiceImpl implements PasswordService {
     public void resetPassword(PasswordResetRequest request, String token, HttpServletRequest httpRequest) {
         checkIsAnonymous();
 
-        PasswordResetToken passwordResetToken = passwordResetTokenService.getValidToken(token, TokenType.PASSWORD_RESET);
+        PasswordResetToken passwordResetToken = passwordResetTokenService.getSecureValidToken(token, TokenType.PASSWORD_RESET);
         passwordResetTokenService.verifyTokenValidity(passwordResetToken);
 
         User user = passwordResetToken.getUser();
@@ -89,7 +89,7 @@ public class PasswordServiceImpl implements PasswordService {
 
         eventPublisher.publishEvent(
                 new RequestPasswordResetEvent(
-                    user,passwordResetToken.getToken()
+                    user,passwordResetToken.getPublicId()
                 )
         );
     }
@@ -99,7 +99,7 @@ public class PasswordServiceImpl implements PasswordService {
     public void requestPasswordToken(String token, HttpServletRequest httpRequest){
         checkIsAnonymous();
 
-        PasswordResetToken passwordResetToken = passwordResetTokenService.getToken(token);
+        PasswordResetToken passwordResetToken = passwordResetTokenService.getSecureToken(token);
         if(passwordResetToken.isValid()) {
             String url = FRONT_URL + "/api/password/reset-password?token=" + token ;
             throw new TokenValidityException("This token, is still valid. Please follow this link: " + url);
@@ -110,7 +110,7 @@ public class PasswordServiceImpl implements PasswordService {
         eventPublisher.publishEvent(
                 new RequestPasswordTokenEvent(
                     user,
-                    newToken.getToken()
+                    newToken.getPublicId()
                 )
         );
 

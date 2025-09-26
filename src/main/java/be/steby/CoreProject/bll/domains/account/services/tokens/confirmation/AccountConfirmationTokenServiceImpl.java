@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.account.services.tokens.confirmation;
 
 import be.steby.CoreProject.bll.common.services.tokens.BaseTokenServiceImpl;
+import be.steby.CoreProject.bll.common.services.tokens.SecureTokenService;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.tokens.AccountConfirmationTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
@@ -39,8 +40,8 @@ public class AccountConfirmationTokenServiceImpl extends BaseTokenServiceImpl<Ac
      */
     public AccountConfirmationTokenServiceImpl(
             @Qualifier("accountConfirmationTokenRepository") AccountConfirmationTokenRepository accountConfirmationTokenRepository,
-            AccountConfirmationAttemptServiceImpl attemptService) {
-        super(accountConfirmationTokenRepository, AccountConfirmationToken.class);
+            AccountConfirmationAttemptServiceImpl attemptService, SecureTokenService secureTokenService) {
+        super(accountConfirmationTokenRepository, AccountConfirmationToken.class, secureTokenService);
         this.attemptService = attemptService;
     }
 

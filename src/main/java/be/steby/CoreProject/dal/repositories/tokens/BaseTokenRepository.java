@@ -215,4 +215,29 @@ public interface BaseTokenRepository<T extends BaseToken> extends JpaRepository<
     // Méthode manquante pour les statistiques
     @Query("SELECT COUNT(t) FROM #{#entityName} t WHERE t.tokenType = ?1 AND (t.expiryDate < ?2 OR t.revoked = true)")
     long countExpiredTokensByType(TokenType tokenType, Instant now);
+
+    // ========== NEW PUBLIC_ID METHODS (added for URL security) ==========
+
+    /**
+     * Finds a token by its public_id (encrypted token for URLs).
+     * @param publicId the encrypted public_id from URL
+     * @return Optional containing the token if found
+     */
+    Optional<T> findByPublicId(String publicId);
+
+    /**
+     * Finds a token by public_id and type for enhanced security.
+     * @param publicId the encrypted public_id from URL
+     * @param tokenType the expected token type
+     * @return Optional containing the token if found and type matches
+     */
+    Optional<T> findByPublicIdAndTokenType(String publicId, TokenType tokenType);
+
+    /**
+     * Finds a token by ID, public_id, and ensures it's not revoked.
+     * @param id token ID
+     * @param publicId encrypted public_id string value
+     * @return Optional containing the token if found and valid
+     */
+    Optional<T> findByIdAndPublicIdAndRevokedFalse(Long id, String publicId);
 }
