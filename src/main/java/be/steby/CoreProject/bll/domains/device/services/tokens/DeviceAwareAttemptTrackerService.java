@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.device.services;
+package be.steby.CoreProject.bll.domains.device.services.tokens;
 
 import be.steby.CoreProject.bll.common.services.tokens.AttemptTrackerService;
 import be.steby.CoreProject.dl.entities.User;

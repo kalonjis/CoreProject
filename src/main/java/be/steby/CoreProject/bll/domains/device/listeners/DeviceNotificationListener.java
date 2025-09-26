@@ -2,7 +2,7 @@ package be.steby.CoreProject.bll.domains.device.listeners;
 
 import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
-import be.steby.CoreProject.bll.domains.device.services.DeviceConfirmationTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;

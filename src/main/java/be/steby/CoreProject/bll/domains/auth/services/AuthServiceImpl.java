@@ -11,7 +11,7 @@ import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
 import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
 import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.auth.services.login_attempt.LoginAttemptService;
-import be.steby.CoreProject.bll.domains.device.services.DeviceConfirmationTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
