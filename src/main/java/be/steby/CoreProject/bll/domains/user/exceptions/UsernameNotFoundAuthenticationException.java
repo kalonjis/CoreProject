@@ -1,0 +1,54 @@
+package be.steby.CoreProject.bll.domains.user.exceptions;
+
+import be.steby.CoreProject.bll.exceptions.CoreProjectException;
+
+/**
+ * Exception thrown when a username is not found during authentication.
+ * This exception extends CoreProjectException to be properly handled by the global exception advisor.
+ *
+ * Used specifically in authentication flows when a user attempts to authenticate
+ * with a username that doesn't exist in the system.
+ */
+public class UsernameNotFoundAuthenticationException extends CoreProjectException {
+
+    /**
+     * Creates a new exception for a username not found during authentication.
+     *
+     * @param username The username that was not found
+     */
+    public UsernameNotFoundAuthenticationException(String username) {
+        super("User not found: " + username, 404);
+    }
+
+    /**
+     * Creates a new exception with a custom message.
+     *
+     * @param message The detailed error message
+     */
+    public UsernameNotFoundAuthenticationException(String message, int status) {
+        super(message, status);
+    }
+
+    /**
+     * Creates a new exception with a cause.
+     *
+     * @param message The detailed error message
+     * @param cause The underlying cause of the error
+     */
+    public UsernameNotFoundAuthenticationException(String message, Throwable cause) {
+        super(message, 404);
+        initCause(cause);
+    }
+
+    /**
+     * Factory method for authentication context.
+     *
+     * @param username The username that was not found
+     * @return A new instance configured for authentication
+     */
+    public static UsernameNotFoundAuthenticationException forAuthentication(String username) {
+        return new UsernameNotFoundAuthenticationException(
+                "Authentication failed: User '" + username + "' not found in the system"
+        );
+    }
+}
