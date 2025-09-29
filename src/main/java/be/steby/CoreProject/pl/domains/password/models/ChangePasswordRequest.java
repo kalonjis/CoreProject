@@ -1,14 +1,14 @@
-package be.steby.CoreProject.pl.models.password;
+package be.steby.CoreProject.pl.domains.password.models;
 
-import be.steby.CoreProject.pl.validators.password.PasswordMatch;
-import be.steby.CoreProject.pl.validators.password.StrongPassword;
+import be.steby.CoreProject.pl.domains.password.validators.PasswordMatch;
+import be.steby.CoreProject.pl.domains.password.validators.StrongPassword;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 
 @PasswordMatch
-public record ChangePasswordForm(
+public record  ChangePasswordRequest(
         @NotBlank(message = "Le mot de passe actuel ne peut pas être vide")
         @NotNull(message = "Le mot de passe actuel est obligatoire")
         String currentPassword,

@@ -1,8 +1,7 @@
 package be.steby.CoreProject.pl.domains.account.models.requests;
 
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.pl.validators.password.StrongPassword;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import be.steby.CoreProject.pl.domains.password.validators.StrongPassword;
 import jakarta.validation.constraints.*;
 
 /**
