@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.password.models;
 
 import be.steby.CoreProject.bll.domains.password.exceptions.PasswordValidationException;
-import be.steby.CoreProject.pl.domains.password.models.ChangePasswordRequest;
+import be.steby.CoreProject.pl.domains.password.models.requests.ChangePasswordRequest;
 
 /**
  * Représente une demande de changement de mot de passe dans le domaine métier.

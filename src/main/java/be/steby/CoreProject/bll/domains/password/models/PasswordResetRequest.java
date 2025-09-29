@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.password.models;
 
 import be.steby.CoreProject.bll.domains.password.exceptions.PasswordValidationException;
-import be.steby.CoreProject.pl.domains.password.models.ResetPasswordRequest;
+import be.steby.CoreProject.pl.domains.password.models.requests.ResetPasswordRequest;
 
 public record PasswordResetRequest(
         String password
