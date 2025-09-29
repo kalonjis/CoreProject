@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.password.models;
 
 import be.steby.CoreProject.bll.domains.password.exceptions.PasswordValidationException;
-import be.steby.CoreProject.pl.models.password.ChangePasswordForm;
+import be.steby.CoreProject.pl.domains.password.models.ChangePasswordRequest;
 
 /**
  * Représente une demande de changement de mot de passe dans le domaine métier.
@@ -47,7 +47,7 @@ public record PasswordChangeRequest(
      * @param form Formulaire de changement de mot de passe provenant de la couche présentation
      * @return Une nouvelle instance de PasswordChangeRequest
      */
-    public static PasswordChangeRequest fromForm(ChangePasswordForm form) {
+    public static PasswordChangeRequest fromForm(ChangePasswordRequest form) {
         return new PasswordChangeRequest(form.currentPassword(), form.password());
     }
 }

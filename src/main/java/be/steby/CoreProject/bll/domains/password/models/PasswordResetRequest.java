@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.password.models;
 
 import be.steby.CoreProject.bll.domains.password.exceptions.PasswordValidationException;
-import be.steby.CoreProject.pl.models.password.PasswordResetForm;
+import be.steby.CoreProject.pl.domains.password.models.ResetPasswordRequest;
 
 public record PasswordResetRequest(
         String password
@@ -12,7 +12,7 @@ public record PasswordResetRequest(
         }
     }
 
-    public static PasswordResetRequest fromForm(PasswordResetForm form){
+    public static PasswordResetRequest fromForm(ResetPasswordRequest form){
         return new PasswordResetRequest(form.password());
     }
 }

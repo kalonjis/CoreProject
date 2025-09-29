@@ -1,4 +1,4 @@
-package be.steby.CoreProject.pl.validators.password;
+package be.steby.CoreProject.pl.domains.password.validators;
 
 import be.steby.CoreProject.bll.domains.password.models.PasswordValidationResult;
 import be.steby.CoreProject.bll.common.services.validation.password.PasswordPolicyService;

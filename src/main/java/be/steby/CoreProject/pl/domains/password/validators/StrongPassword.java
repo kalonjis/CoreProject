@@ -1,4 +1,4 @@
-package be.steby.CoreProject.pl.validators.password;
+package be.steby.CoreProject.pl.domains.password.validators;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
