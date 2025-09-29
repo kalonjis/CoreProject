@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -104,6 +106,47 @@ public class UserAuthenticationService {
 
         return user;
     }
+
+
+    /**
+     * Secure user loading for Spring Security authentication with caching.
+     * Used by loadUserByUsername to avoid circular dependencies.
+     *
+     * @param username The username to load
+     * @return UserDetails for Spring Security
+     * @throws UsernameNotFoundException if user not found
+     */
+    public UserDetails loadUserByUsernameWithCache(String username) throws UsernameNotFoundException {
+        try {
+            // 1. ✅ Tentative cache
+            Optional<CachedUserInfo> cached = userCacheService.get(username);
+            if (cached.isPresent()) {
+                log.debug("User {} loaded from cache for Spring Security authentication", username);
+                return cached.get().user();
+            }
+
+            // 2. ✅ Cache MISS → DB via repository (pas via UserService pour éviter circularité)
+            log.debug("Cache miss for user {} during Spring Security authentication - loading from database", username);
+
+            Optional<User> userOptional = userRepository.findByUsernameIgnoreCase(username);
+            if (userOptional.isEmpty()) {
+                throw new UsernameNotFoundException("User not found: " + username);
+            }
+
+            User user = userOptional.get();
+
+            // 3. ✅ Mise en cache immédiate
+            userCacheService.put(user);
+            log.debug("User {} cached after Spring Security authentication load", username);
+
+            return user;
+
+        } catch (Exception e) {
+            log.error("Error loading user {} for Spring Security: {}", username, e.getMessage());
+            throw new UsernameNotFoundException("Authentication failed", e);
+        }
+    }
+
 
     /**
      * Alternative method for user retrieval by ID with caching.

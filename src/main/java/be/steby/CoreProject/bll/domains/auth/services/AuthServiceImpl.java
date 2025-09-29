@@ -13,6 +13,7 @@ import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.auth.services.login_attempt.LoginAttemptService;
 import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.user.events.UserPersistedEvent;
+import be.steby.CoreProject.bll.domains.user.services.UserAuthenticationService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
@@ -37,6 +38,7 @@ import java.time.temporal.ChronoUnit;
 public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
+    private final UserAuthenticationService userAuthenticationService;
     private final ApplicationEventPublisher eventPublisher;
     private final PasswordEncoder passwordEncoder;
     private final DeviceService deviceService;
@@ -113,8 +115,6 @@ public class AuthServiceImpl implements AuthService {
             // 8. ✅ Publish success event - simplified
             eventPublisher.publishEvent(new UserLoggedInEvent(user, device));
 
-            eventPublisher.publishEvent(new UserPersistedEvent(user)); // for cache-user
-
             // 9. Send notification for unconfirmed devices
             if (!device.isConfirmed()) {
                 eventPublisher.publishEvent(new DeviceSecurityEvent(
@@ -189,7 +189,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public UserDetails loadUserByUsername(String username) {
-        return userService.getUserByUsername(username);
+        return userAuthenticationService.loadUserByUsernameWithCache(username);
     }
 
     // =========================================================================
