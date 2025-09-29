@@ -76,7 +76,6 @@ public class PasswordController {
      * @param request Contains the new password
      * @param httpRequest HTTP request for logging/auditing purposes
      * @return Success message if password was reset
-     * @throws InvalidTokenException if token is invalid or expired (caught by advisor)
      */
     @PutMapping("/reset")
     public ResponseEntity<PasswordOperationResponse> resetPassword(
@@ -128,8 +127,6 @@ public class PasswordController {
      * @param request Contains current password and new password
      * @param httpRequest HTTP request for logging/auditing purposes
      * @return Success message if password was changed
-     * @throws InvalidCurrentPasswordException if current password is wrong (caught by advisor)
-     * @throws PasswordValidationException if new password is invalid (caught by advisor)
      */
     @PutMapping("/change")
     public ResponseEntity<PasswordOperationResponse> changePassword(
