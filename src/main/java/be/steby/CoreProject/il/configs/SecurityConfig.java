@@ -38,7 +38,6 @@ public class SecurityConfig {
     @Value("${url.back_server}")
     private String BACK_URL;
 
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -54,28 +53,45 @@ public class SecurityConfig {
         return new JwtFilter(authService, jwtUtil, deviceAuthenticationService);
     }
 
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtFilter jwtFilter) throws Exception {
         http
+                // ========== CSRF Configuration ==========
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers(CSRF_IGNORE_PATHS)
+                        .ignoringRequestMatchers(CSRF_IGNORE_PATHS)  // ✅ Only public routes
                 )
+
+                // ========== CORS Configuration ==========
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(r -> r
+
+                // ========== Authorization Configuration ==========
+                .authorizeHttpRequests(auth -> auth
+                        // 1. Public routes - no authentication required
                         .requestMatchers(PUBLIC_ROUTES).permitAll()
+
+                        // 2. OPTIONS requests - allow for CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // Définir uniquement les règles basées sur les rôles
+                        // 3. Authenticated routes - require authentication but no specific role
+                        .requestMatchers(AUTHENTICATED_ROUTES).authenticated()  // ✅ Explicit!
+
+                        // 4. Admin routes - require ADMIN or SUPER_ADMIN role
                         .requestMatchers(ADMIN_ROUTES).hasAnyAuthority("SUPER_ADMIN", "ADMIN")
 
+                        // 5. All other requests - require authentication (fallback)
                         .anyRequest().authenticated()
                 )
+
+                // ========== Session Management ==========
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                .logout(logout -> logout.disable())
+
+                // ========== Logout ==========
+                .logout(logout -> logout.disable())  // Custom logout in controller
+
+                // ========== JWT Filter ==========
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
