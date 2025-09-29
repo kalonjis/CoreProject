@@ -1,6 +1,5 @@
-package be.steby.CoreProject.bll.domains.device.cache.impl;
+package be.steby.CoreProject.bll.domains.device.cache;
 
-import be.steby.CoreProject.bll.domains.device.cache.DeviceCacheService;
 import be.steby.CoreProject.bll.domains.device.cache.models.CachedDeviceInfo;
 import be.steby.CoreProject.dl.entities.Device;
 import lombok.extern.slf4j.Slf4j;
@@ -209,7 +208,7 @@ public class InMemoryDeviceCacheService implements DeviceCacheService {
     public void logCacheStats() {
         Map<String, Object> stats = getStats();
 
-        log.info("Device Cache Stats: {} entries ({} valid, {} expired), {:.1f}% full, {:.2f} MB RAM",
+        log.info("Device Cache Stats: {} entries ({} valid, {} expired), {}% full, {} MB RAM",
                 stats.get("totalEntries"),
                 stats.get("validEntries"),
                 stats.get("expiredEntries"),
@@ -219,7 +218,7 @@ public class InMemoryDeviceCacheService implements DeviceCacheService {
 
         // Alert if cache getting full
         if ((Boolean) stats.get("nearCapacity")) {
-            log.warn("⚠️  Device cache is {:.1f}% full - consider cleanup or increasing max-size",
+            log.warn("⚠️  Device cache is {}% full - consider cleanup or increasing max-size",
                     stats.get("fillPercentage"));
         }
     }
