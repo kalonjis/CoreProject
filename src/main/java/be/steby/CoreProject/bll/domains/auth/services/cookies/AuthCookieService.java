@@ -2,6 +2,7 @@ package be.steby.CoreProject.bll.domains.auth.services.cookies;
 
 import be.steby.CoreProject.bll.common.services.cookies.BaseCookieService;
 import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidRefreshTokenException;
+import be.steby.CoreProject.bll.domains.auth.models.LoginTokens;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -42,14 +43,11 @@ public class AuthCookieService {
      * Used during login and token refresh flows.
      *
      * @param response HTTP response
-     * @param accessToken JWT access token
-     * @param formattedRefreshToken Formatted refresh token (userId.deviceId.tokenValue)
+     * @param tokens LoginTokens containing all necessary token data
      */
-    public void setAuthenticationCookies(HttpServletResponse response,
-                                         String accessToken,
-                                         String formattedRefreshToken) {
-        setAccessTokenCookie(response, accessToken);
-        setRefreshTokenCookie(response, formattedRefreshToken);
+    public void setAuthenticationCookies(HttpServletResponse response, LoginTokens tokens) {
+        setAccessTokenCookie(response, tokens.accessToken());
+        setRefreshTokenCookie(response, tokens.getFormattedRefreshToken());
         log.info("Authentication cookies set successfully");
     }
 
