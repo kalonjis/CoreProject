@@ -1,9 +1,6 @@
 package be.steby.CoreProject.bll.domains.auth.exceptions;
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
-import org.springframework.http.HttpStatus;
-
-public class InvalidRefreshTokenException extends CoreProjectException {
+public class InvalidRefreshTokenException extends AuthenticationException {
 
     public InvalidRefreshTokenException(String message) {
         super(message, 400);
