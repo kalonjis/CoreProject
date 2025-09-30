@@ -1,5 +1,6 @@
 package be.steby.CoreProject.pl.domains.auth.controller;
 
+import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidRefreshTokenException;
 import be.steby.CoreProject.bll.domains.auth.services.AuthService;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.userRegistration.services.UserRegistrationService;
@@ -8,6 +9,7 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
 import be.steby.CoreProject.pl.domains.auth.models.requests.LoginRequest;
+import be.steby.CoreProject.pl.domains.auth.models.responses.AuthOperationResponse;
 import be.steby.CoreProject.pl.models.user.UserDTO;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -80,7 +82,7 @@ public class AuthController {
      */
     @PreAuthorize("isAnonymous()")
     @PostMapping("/login")
-    public ResponseEntity<Void> login(@Valid @RequestBody LoginRequest loginRequest,
+    public ResponseEntity<AuthOperationResponse> login(@Valid @RequestBody LoginRequest loginRequest,
                                       HttpServletRequest httpRequest,
                                       HttpServletResponse httpResponse) {
 
@@ -98,7 +100,10 @@ public class AuthController {
         headers.set("X-Auth-Status", "authenticated");
 
         log.info("Login successful for user: {}", user.getUsername());
-        return ResponseEntity.ok().headers(headers).build();
+        return ResponseEntity
+            .ok()
+            .headers(headers)
+            .body(AuthOperationResponse.loginSuccessful());
     }
 
     /**
@@ -134,35 +139,31 @@ public class AuthController {
      * @return ResponseEntity indicating refresh status
      */
     @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(@CookieValue(name = "refresh_token", required = false) String refreshTokenCookie,
-                                          HttpServletResponse response) {
+    public ResponseEntity<AuthOperationResponse> refreshToken(
+            @CookieValue(name = "refresh_token", required = false) String refreshTokenCookie,
+            HttpServletResponse response) {
+
         if (refreshTokenCookie == null) {
-            log.warn("Refresh token request without cookie");
-            return ResponseEntity.badRequest().body(createErrorResponse("Refresh token is required"));
+            throw new InvalidRefreshTokenException("Refresh token is required");
         }
 
-        try {
-            log.debug("Processing refresh token request");
+        log.debug("Processing refresh token request");
 
-            // Parse and validate refresh token
-            RefreshToken validatedToken = validateAndParseRefreshToken(refreshTokenCookie);
+        // Parse and validate refresh token (lance InvalidRefreshTokenException si problème)
+        RefreshToken validatedToken = validateAndParseRefreshToken(refreshTokenCookie);
 
-            // Generate new tokens
-            RefreshToken newRefreshToken = refreshTokenService.rotateToken(validatedToken);
-            String newAccessToken = jwtUtil.generateAccessToken(
-                    newRefreshToken.getUser(), newRefreshToken.getDevice());
+        // Generate new tokens
+        RefreshToken newRefreshToken = refreshTokenService.rotateToken(validatedToken);
+        String newAccessToken = jwtUtil.generateAccessToken(
+                newRefreshToken.getUser(),
+                newRefreshToken.getDevice()
+        );
 
-            // Set new cookies
-            setTokenCookies(response, newAccessToken, formatRefreshTokenCookie(newRefreshToken));
+        // Set new cookies
+        setTokenCookies(response, newAccessToken, formatRefreshTokenCookie(newRefreshToken));
 
-            log.debug("Token refresh successful for user: {}", newRefreshToken.getUser().getUsername());
-            return ResponseEntity.ok().build();
-
-        } catch (Exception e) {
-            log.warn("Refresh token validation failed: {}", e.getMessage());
-            clearTokenCookies(response);
-            return ResponseEntity.badRequest().body(createErrorResponse("Invalid refresh token"));
-        }
+        log.debug("Token refresh successful for user: {}", newRefreshToken.getUser().getUsername());
+        return ResponseEntity.ok(AuthOperationResponse.tokenRefreshed());
     }
 
     /**
@@ -176,7 +177,7 @@ public class AuthController {
      */
     @PostMapping("/logout")
     @Transactional
-    public ResponseEntity<?> logout(@CookieValue(name = "refresh_token", required = false) String refreshTokenCookie,
+    public ResponseEntity<AuthOperationResponse> logout(@CookieValue(name = "refresh_token", required = false) String refreshTokenCookie,
                                     HttpServletRequest request,
                                     HttpServletResponse response) {
         try {
@@ -191,7 +192,7 @@ public class AuthController {
             clearTokenCookies(response);
         }
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(AuthOperationResponse.logoutSuccessful());
     }
 
     // =========================================================================
@@ -290,11 +291,12 @@ public class AuthController {
 
     /**
      * Validates and parses refresh token from cookie format.
+     * @throws InvalidRefreshTokenException if token is invalid
      */
     private RefreshToken validateAndParseRefreshToken(String refreshTokenCookie) {
         String[] parts = refreshTokenCookie.split("\\.", 2);
         if (parts.length != 2) {
-            throw new IllegalArgumentException("Invalid refresh token format");
+            throw new InvalidRefreshTokenException("Invalid refresh token format");
         }
 
         try {
@@ -302,9 +304,10 @@ public class AuthController {
             String tokenValue = parts[1];
 
             return refreshTokenService.verifyToken(tokenId, tokenValue)
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
+                    .orElseThrow(() -> new InvalidRefreshTokenException("Token not found or invalid"));
+
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid token ID format");
+            throw new InvalidRefreshTokenException("Invalid token ID format");
         }
     }
 

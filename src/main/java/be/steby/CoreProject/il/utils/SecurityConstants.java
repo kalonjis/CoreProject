@@ -28,7 +28,10 @@ public class SecurityConstants {
      */
     private static final String[] AUTH_CSRF_IGNORE = {
             "/api/auth/register",
-            "/api/auth/login"
+            "/api/auth/login",
+            //TODO delete "refresh-token" and "logout" from this list
+            "/api/auth/refresh-token",
+            "/api/auth/logout"
     };
 
     // ========== ACCOUNT DOMAIN ==========
