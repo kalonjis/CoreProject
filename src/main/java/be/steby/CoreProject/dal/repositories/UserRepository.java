@@ -4,6 +4,7 @@ package be.steby.CoreProject.dal.repositories;
 import be.steby.CoreProject.dl.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.Optional;
 
@@ -45,6 +46,17 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
      * @param email of User
      */
     boolean existsByEmailIgnoreCase(String email);
+
+
+    /**
+     * Finds user by email or username.
+     * Useful for login/reactivation where user can provide either.
+     *
+     * @param identifier Email or username
+     * @return Optional containing user if found
+     */
+    @Query("SELECT u FROM User u WHERE u.email = :identifier OR u.username = :identifier")
+    Optional<User> findByEmailOrUsername(String identifier);
 
 }
 
