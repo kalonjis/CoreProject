@@ -68,7 +68,12 @@ public class SecurityConstants {
      * CSRF ignored ONLY for public routes (token-based).
      * /api/password/change keeps CSRF protection (cookies).
      */
-    private static final String[] PASSWORD_CSRF_IGNORE = PASSWORD_PUBLIC_ROUTES;
+    private static final String[] PASSWORD_CSRF_IGNORE = {
+            "/api/password/forgot",
+            "/api/password/reset",
+            "/api/password/reset/resend",
+            "/api/password/change"
+    };
 
     // ========== EMAIL CHANGE DOMAIN ==========
 
@@ -244,6 +249,7 @@ public class SecurityConstants {
      * All authenticated routes MUST have CSRF protection.
      */
     public static final String[] CSRF_IGNORE_PATHS = concatenate(
+            // TODO delete passwordauthenticatedroute from passwordcsrfignore in prod
             AUTH_CSRF_IGNORE,        // Only login/register
             ACCOUNT_CSRF_IGNORE,     // Only public routes
             PASSWORD_CSRF_IGNORE,    // Only public routes
