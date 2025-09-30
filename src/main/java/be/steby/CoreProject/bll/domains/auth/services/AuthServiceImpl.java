@@ -2,17 +2,16 @@ package be.steby.CoreProject.bll.domains.auth.services;
 
 import be.steby.CoreProject.bll.common.utils.IpLocationUtils;
 import be.steby.CoreProject.bll.domains.account.exceptions.AccountActivationException;
-import be.steby.CoreProject.bll.domains.auth.events.UserLoginFailedEvent;
 import be.steby.CoreProject.bll.domains.auth.exceptions.AccountTemporarilyLockedException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.BlacklistedDeviceException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidCredentialsException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.AccountDisabledException;
 import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
 import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
+import be.steby.CoreProject.bll.domains.auth.models.LoginTokens;
 import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.auth.services.login_attempt.LoginAttemptService;
 import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
-import be.steby.CoreProject.bll.domains.user.events.UserPersistedEvent;
 import be.steby.CoreProject.bll.domains.user.services.UserAuthenticationService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
@@ -20,6 +19,8 @@ import be.steby.CoreProject.bll.exceptions.CoreProjectException;
 import be.steby.CoreProject.bll.exceptions.DoesntExistException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.Device;
+import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
+import be.steby.CoreProject.il.Jwt.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +45,8 @@ public class AuthServiceImpl implements AuthService {
     private final DeviceService deviceService;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final DeviceConfirmationTokenServiceImpl deviceConfirmationTokenService;
+    private final JwtUtil jwtUtil;
+
 
     // ✅ NEW: Login attempt service for brute force protection
     private final LoginAttemptService loginAttemptService;
@@ -52,105 +55,40 @@ public class AuthServiceImpl implements AuthService {
     private String FRONT_URL;
 
     @Override
-    public User login(String username, String password, HttpServletRequest request) {
-
-        // Extract client IP for brute force protection
+    public LoginTokens login(String username, String password, HttpServletRequest request) {
         String clientIpAddress = IpLocationUtils.extractClientIp(request);
 
-        User user = null;
-        Device device = null;
-
         try {
-            // 1. Load user and create/detect device first
-            user = (User) loadUserByUsername(username); // May throw DoesntExistException
-            device = deviceService.detectAndRegisterDevice(request, user);
+            // 1. Load user and detect device
+            User user = loadUser(username);
+            Device device = deviceService.detectAndRegisterDevice(request, user);
 
-            // 2. Check if login attempts are blocked BEFORE password validation
-            if (loginAttemptService.isBlocked(username, clientIpAddress)) {
-                Instant unlockTime = loginAttemptService.getUnlockTime(username, clientIpAddress);
-                String message = buildLockoutMessage(unlockTime);
+            // 2. Validate all login preconditions
+            validateLoginPreconditions(username, clientIpAddress, user, device, password);
 
-                log.warn("Login blocked - brute_force_protection - Username: {}, IP: {}", username, clientIpAddress);
-                throw new AccountTemporarilyLockedException(message);
-            }
+            // 3. Handle device state (logged out devices)
+            handleDeviceState(device);
 
-            // 3. User account validation
-            if (!user.isEnabled()) {
-                if (!user.isEverActivated()) {
-                    throw new AccountActivationException("Your account has never been activated. Please check your email and follow the activation instructions.");
-                } else {
-                    throw new AccountDisabledException("Your account has been disabled.");
-                }
-            }
-
-            // 4. Password validation - CRITICAL: Do this BEFORE checking device blacklist
-            if (!passwordEncoder.matches(password, user.getPassword())) {
-                throw new InvalidCredentialsException("Invalid username or password. Please check your credentials and try again.");
-            }
-
-            // 5. Security check: Reject blacklisted devices (AFTER successful password validation)
-            if (device.isBlacklisted()) {
-                // Publish security events for notification (email will be sent)
-                eventPublisher.publishEvent(new DeviceSecurityEvent(
-                        user,
-                        device,
-                        DeviceSecurityEvent.DeviceSecurityType.BLACKLISTED_DEVICE_ATTEMPT
-                ));
-
-                log.warn("Login attempt blocked - blacklisted device {} for user {}",
-                        device.getId(), user.getUsername());
-
-                throw new BlacklistedDeviceException("Access denied: This device has been blacklisted for security reasons. Check your email for instructions on how to restore access.");
-            }
-
-            // 6. Handle logged out devices
-            if (device.isLoggedOut()) {
-                device.setLoggedOut(false);
-                deviceService.saveDevice(device);
-            }
-
-            // 7. Clear failed attempts on successful login
+            // 4. Clear failed attempts on successful validation
             loginAttemptService.clearFailedAttempts(username, clientIpAddress);
 
-            // 8. ✅ Publish success event - simplified
-            eventPublisher.publishEvent(new UserLoggedInEvent(user, device));
+            // 5. Generate authentication tokens
+            LoginTokens tokens = generateTokens(user, device);
 
-            // 9. Send notification for unconfirmed devices
-            if (!device.isConfirmed()) {
-                eventPublisher.publishEvent(new DeviceSecurityEvent(
-                        user,
-                        device,
-                        DeviceSecurityEvent.DeviceSecurityType.UNCONFIRMED_DEVICE));
-            }
-
-            // 10. Store device in request for controller access
-            request.setAttribute("currentDevice", device);
+            // 6. Publish success events and notifications
+            publishSuccessEvents(user, device);
 
             log.info("Login successful for user {} with device {} from IP {}",
                     user.getUsername(), device.getId(), clientIpAddress);
-            return user;
+
+            return tokens;
 
         } catch (DoesntExistException e) {
-            loginAttemptService.recordFailedAttempt(username, clientIpAddress);
-
-            log.debug("Login failed for non-existent user: {} from IP: {}", username, clientIpAddress);
+            handleNonExistentUser(username, clientIpAddress);
             throw e;
 
         } catch (CoreProjectException e) {
-            // ✅ Existing user but failure - PUBLISH failure event
-            // Important for security: someone is trying to crack a known account
-
-            if (!(e instanceof AccountTemporarilyLockedException)) {
-                loginAttemptService.recordFailedAttempt(username, clientIpAddress);
-            }
-
-            // Publish failure event for known users only
-            if (user != null) {
-                eventPublisher.publishEvent(new UserLoginFailedEvent(user, device, e.getMessage()));
-            }
-
-            log.warn("Login failed for existing user: {} from IP: {} - Reason: {}",
-                    user != null ? user.getUsername() : username, clientIpAddress, e.getMessage());
+            handleAuthenticationFailure(username, clientIpAddress, e);
             throw e;
         }
     }
@@ -186,6 +124,31 @@ public class AuthServiceImpl implements AuthService {
     public User getAuthenticatedUser() {
         return userService.getAuthenticatedUser();
     }
+
+
+    @Override
+    public LoginTokens refreshAuthTokens(RefreshToken validatedToken) {
+        log.debug("Refreshing auth tokens for user: {} on device: {}",
+                validatedToken.getUser().getUsername(),
+                validatedToken.getDevice().getId());
+
+        // Rotate refresh token
+        RefreshToken newRefreshToken = refreshTokenService.rotateToken(validatedToken);
+
+        String newAccessToken = jwtUtil.generateAccessToken(
+                newRefreshToken.getUser(),
+                newRefreshToken.getDevice()
+        );
+
+        return new LoginTokens(
+                newAccessToken,
+                newRefreshToken.getToken(),
+                newRefreshToken.getUser().getId(),
+                newRefreshToken.getDevice().getId()
+        );
+    }
+
+
 
     @Override
     public UserDetails loadUserByUsername(String username) {
@@ -234,8 +197,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
-
-
     // Helper method to build lockout message
     private String buildLockoutMessage(Instant unlockTime) {
         if (unlockTime == null) {
@@ -254,5 +215,206 @@ public class AuthServiceImpl implements AuthService {
         } else {
             return String.format("Account temporarily locked due to too many failed login attempts. Try again in %d minutes.", minutesUntilUnlock);
         }
+    }
+
+
+    // =========================================================================
+// Private Helper Methods - User Loading
+// =========================================================================
+
+    /**
+     * Loads user by username.
+     *
+     * @param username Username to load
+     * @return User entity
+     * @throws DoesntExistException if user not found
+     */
+    private User loadUser(String username) {
+        return (User) loadUserByUsername(username);
+    }
+
+// =========================================================================
+// Private Helper Methods - Validation
+// =========================================================================
+
+    /**
+     * Validates all login preconditions in the correct order:
+     * 1. Brute force protection
+     * 2. Account status
+     * 3. Password validation
+     * 4. Device security
+     *
+     * @throws AccountTemporarilyLockedException if account is locked
+     * @throws AccountActivationException if account not activated
+     * @throws AccountDisabledException if account is disabled
+     * @throws InvalidCredentialsException if password is invalid
+     * @throws BlacklistedDeviceException if device is blacklisted
+     */
+    private void validateLoginPreconditions(String username, String clientIpAddress,
+                                            User user, Device device, String password) {
+        // 1. Check brute force protection FIRST
+        validateBruteForceProtection(username, clientIpAddress);
+
+        // 2. Validate account status
+        validateAccountStatus(user);
+
+        // 3. Validate password - CRITICAL: Before device check
+        validatePassword(password, user);
+
+        // 4. Validate device security - AFTER password validation
+        validateDeviceSecurity(user, device);
+    }
+
+    /**
+     * Checks if login attempts are blocked due to brute force protection.
+     */
+    private void validateBruteForceProtection(String username, String clientIpAddress) {
+        if (loginAttemptService.isBlocked(username, clientIpAddress)) {
+            Instant unlockTime = loginAttemptService.getUnlockTime(username, clientIpAddress);
+            String message = buildLockoutMessage(unlockTime);
+
+            log.warn("Login blocked - brute force protection - Username: {}, IP: {}",
+                    username, clientIpAddress);
+            throw new AccountTemporarilyLockedException(message);
+        }
+    }
+
+    /**
+     * Validates account is enabled and activated.
+     */
+    private void validateAccountStatus(User user) {
+        if (!user.isEnabled()) {
+            if (!user.isEverActivated()) {
+                throw new AccountActivationException(
+                        "Your account has never been activated. Please check your email and follow the activation instructions."
+                );
+            }
+            throw new AccountDisabledException("Your account has been disabled.");
+        }
+    }
+
+    /**
+     * Validates password matches.
+     */
+    private void validatePassword(String password, User user) {
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new InvalidCredentialsException(
+                    "Invalid username or password. Please check your credentials and try again."
+            );
+        }
+    }
+
+    /**
+     * Validates device is not blacklisted.
+     * Publishes security event if blacklisted device attempts login.
+     */
+    private void validateDeviceSecurity(User user, Device device) {
+        if (device.isBlacklisted()) {
+            // Publish security event for notification
+            eventPublisher.publishEvent(new DeviceSecurityEvent(
+                    user,
+                    device,
+                    DeviceSecurityEvent.DeviceSecurityType.BLACKLISTED_DEVICE_ATTEMPT
+            ));
+
+            log.warn("Login attempt blocked - blacklisted device {} for user {}",
+                    device.getId(), user.getUsername());
+
+            throw new BlacklistedDeviceException(
+                    "Access denied: This device has been blacklisted for security reasons. " +
+                            "Check your email for instructions on how to restore access."
+            );
+        }
+    }
+
+// =========================================================================
+// Private Helper Methods - Device Management
+// =========================================================================
+
+    /**
+     * Handles device state for logged out devices.
+     * Reactivates device if it was previously logged out.
+     */
+    private void handleDeviceState(Device device) {
+        if (device.isLoggedOut()) {
+            device.setLoggedOut(false);
+            deviceService.saveDevice(device);
+            log.debug("Device {} reactivated after logout", device.getId());
+        }
+    }
+
+// =========================================================================
+// Private Helper Methods - Token Generation
+// =========================================================================
+
+    /**
+     * Generates access and refresh tokens for successful login.
+     *
+     * @param user Authenticated user
+     * @param device User's device
+     * @return LoginTokens containing access token and refresh token data
+     */
+    private LoginTokens generateTokens(User user, Device device) {
+        String accessToken = jwtUtil.generateAccessToken(user, device);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, device);
+
+        return new LoginTokens(
+                accessToken,
+                refreshToken.getToken(),
+                user.getId(),
+                device.getId()
+        );
+    }
+
+// =========================================================================
+// Private Helper Methods - Event Publishing
+// =========================================================================
+
+    /**
+     * Publishes success events and notifications after successful login.
+     * - Always publishes UserLoggedInEvent for activity logging
+     * - Publishes DeviceSecurityEvent if device is unconfirmed
+     */
+    private void publishSuccessEvents(User user, Device device) {
+        // Publish login success event for activity logging
+        eventPublisher.publishEvent(new UserLoggedInEvent(user, device));
+
+        // Notify user if device is not confirmed
+        if (!device.isConfirmed()) {
+            eventPublisher.publishEvent(new DeviceSecurityEvent(
+                    user,
+                    device,
+                    DeviceSecurityEvent.DeviceSecurityType.UNCONFIRMED_DEVICE
+            ));
+        }
+    }
+
+// =========================================================================
+// Private Helper Methods - Failure Handling
+// =========================================================================
+
+    /**
+     * Handles login failure for non-existent users.
+     * Records failed attempt to prevent username enumeration attacks.
+     */
+    private void handleNonExistentUser(String username, String clientIpAddress) {
+        loginAttemptService.recordFailedAttempt(username, clientIpAddress);
+        log.debug("Login failed - non-existent user: {} from IP: {}", username, clientIpAddress);
+    }
+
+    /**
+     * Handles authentication failures for existing users.
+     * Records failed attempt unless account is already locked.
+     * Publishes failure event for security monitoring.
+     */
+    private void handleAuthenticationFailure(String username, String clientIpAddress,
+                                             CoreProjectException e) {
+        // Don't record attempt if account is already locked (avoid double-counting)
+        if (!(e instanceof AccountTemporarilyLockedException)) {
+            loginAttemptService.recordFailedAttempt(username, clientIpAddress);
+        }
+
+        log.warn("Login failed for user: {} from IP: {} - Reason: {}",
+                username, clientIpAddress, e.getMessage());
     }
 }
