@@ -1,13 +1,14 @@
 package be.steby.CoreProject.bll.domains.account.services;
 
 import be.steby.CoreProject.bll.domains.account.models.DeactivationRequest;
+import be.steby.CoreProject.bll.domains.account.models.ReactivationRequest;
 import be.steby.CoreProject.dl.entities.User;
 import jakarta.servlet.http.HttpServletRequest;
 
 public interface AccountService {
     User confirmNewUserAccount(String token, HttpServletRequest request);
 
-    void requestActivation(String token, HttpServletRequest request);
+    void resendActivation(String token, HttpServletRequest request);
 
     void requestDeactivation(User user, DeactivationRequest deactivationRequest, HttpServletRequest request);
 
@@ -15,5 +16,5 @@ public interface AccountService {
 
     User reactivateAccount(String token, HttpServletRequest httpRequest);
 
-    void requestReactivation(User user,HttpServletRequest httpRequest);
+    void requestReactivation(ReactivationRequest reactivationRequest, HttpServletRequest httpRequest);
 }

@@ -7,10 +7,12 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.pl.domains.account.models.requests.DeactivateAccountRequest;
 import be.steby.CoreProject.pl.domains.account.models.requests.ReactivateAccountRequest;
 import be.steby.CoreProject.pl.domains.account.models.requests.SignupRequest;
+import be.steby.CoreProject.pl.domains.account.models.responses.AccountOperationResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -47,7 +49,7 @@ public class AccountController {
      */
     @PostMapping("/signup")
     @PreAuthorize("isAnonymous()")
-    public ResponseEntity<Void> signup(@Valid @RequestBody SignupRequest request,
+    public ResponseEntity<AccountOperationResponse> signup(@Valid @RequestBody SignupRequest request,
                                        HttpServletRequest httpRequest) {
         log.info("Processing account signup request for username: {}", request.username());
 
@@ -55,7 +57,9 @@ public class AccountController {
         String location = "/api/account/" + user.getId();
 
         log.info("Account signup successful for username: {}", user.getUsername());
-        return ResponseEntity.created(URI.create(location)).build();
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(AccountOperationResponse.accountCreated());
     }
 
     /**
@@ -68,14 +72,14 @@ public class AccountController {
      */
     @GetMapping("/activate")
     @PreAuthorize("isAnonymous()")
-    public ResponseEntity<Void> activate(@RequestParam String token,
-                                         HttpServletRequest request) {
+    public ResponseEntity<AccountOperationResponse> activate(@RequestParam String token,
+                                                             HttpServletRequest request) {
         log.info("Processing account activation request with token");
 
         accountService.confirmNewUserAccount(token, request);
 
         log.info("Account activation successful");
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(AccountOperationResponse.accountActivated());
     }
 
     /**
@@ -85,16 +89,16 @@ public class AccountController {
      * @param request HTTP request for context capture
      * @return ResponseEntity with 204 No Content status
      */
-    @PostMapping("/request-activation")
+    @GetMapping("/resend-activation")
     @PreAuthorize("isAnonymous()")
-    public ResponseEntity<Void> requestActivation(@RequestParam String token,
+    public ResponseEntity<AccountOperationResponse> requestActivation(@RequestParam String token,
                                                   HttpServletRequest request) {
         log.info("Processing request for new activation token");
 
-        accountService.requestActivation(token, request);
+        accountService.resendActivation(token, request);
 
         log.info("New activation token request processed");
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(AccountOperationResponse.activationRequested());
     }
 
     // =========================================================================
@@ -111,7 +115,7 @@ public class AccountController {
      * @return ResponseEntity with 204 No Content status
      */
     @PostMapping("/request-deactivation")
-    public ResponseEntity<Void> requestDeactivation(@Valid @RequestBody DeactivateAccountRequest request,
+    public ResponseEntity<AccountOperationResponse> requestDeactivation(@Valid @RequestBody DeactivateAccountRequest request,
                                                     @AuthenticationPrincipal User user,
                                                     HttpServletRequest httpRequest) {
         log.info("Processing account deactivation request for user: {}", user.getUsername());
@@ -119,7 +123,7 @@ public class AccountController {
         accountService.requestDeactivation(user, request.toBusiness(), httpRequest);
 
         log.info("Account deactivation request processed for user: {}", user.getUsername());
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(AccountOperationResponse.deactivationRequested());
     }
 
     /**
@@ -130,15 +134,15 @@ public class AccountController {
      * @param request HTTP request for context capture
      * @return ResponseEntity with 200 OK status
      */
-    @PostMapping("/confirm-deactivation")
-    public ResponseEntity<Void> confirmDeactivation(@RequestParam String token,
+    @GetMapping("/confirm-deactivation")
+    public ResponseEntity<AccountOperationResponse> confirmDeactivation(@RequestParam String token,
                                                     HttpServletRequest request) {
         log.info("Processing account deactivation confirmation");
 
         accountService.deactivateAccount(token, request);
 
         log.info("Account deactivation confirmed and processed");
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(AccountOperationResponse.accountDeactivated());
     }
 
     /**
@@ -146,20 +150,18 @@ public class AccountController {
      * Sends reactivation confirmation email to user.
      *
      * @param request Reactivation request containing reason and confirmation
-     * @param user Currently authenticated user
      * @param httpRequest HTTP request for context capture
      * @return ResponseEntity with 204 No Content status
      */
     @PostMapping("/request-reactivation")
-    public ResponseEntity<Void> requestReactivation(@Valid @RequestBody ReactivateAccountRequest request,
-                                                    @AuthenticationPrincipal User user,
+    public ResponseEntity<AccountOperationResponse> requestReactivation(@Valid @RequestBody ReactivateAccountRequest request,
                                                     HttpServletRequest httpRequest) {
-        log.info("Processing account reactivation request for user: {}", user.getUsername());
+        log.info("Processing account reactivation request for user: {}", request.identifier());
 
-        accountService.requestReactivation(user, httpRequest);
+        accountService.requestReactivation(request.toBusiness(), httpRequest);
 
-        log.info("Account reactivation request processed for user: {}", user.getUsername());
-        return ResponseEntity.noContent().build();
+        log.info("Account reactivation request processed for user: {}", request.identifier());
+        return ResponseEntity.ok(AccountOperationResponse.reactivationRequested());
     }
 
     /**
@@ -170,14 +172,14 @@ public class AccountController {
      * @param request HTTP request for context capture
      * @return ResponseEntity with 200 OK status
      */
-    @PostMapping("/confirm-reactivation")
-    public ResponseEntity<Void> confirmReactivation(@RequestParam String token,
+    @GetMapping("/confirm-reactivation")
+    public ResponseEntity<AccountOperationResponse> confirmReactivation(@RequestParam String token,
                                                     HttpServletRequest request) {
         log.info("Processing account reactivation confirmation");
 
         accountService.reactivateAccount(token, request);
 
         log.info("Account reactivation confirmed and processed");
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(AccountOperationResponse.accountReactivated());
     }
 }

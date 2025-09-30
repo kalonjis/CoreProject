@@ -16,10 +16,14 @@ public class SecurityConstants {
     // ========== AUTH DOMAIN ==========
 
     private static final String[] AUTH_PUBLIC_ROUTES = {
-            "/api/auth/register",
             "/api/auth/login",
             "/api/auth/refresh-token",
-            "/api/auth/logout"
+    };
+
+    private static final String[] AUTH_AUTHENTICATED_ROUTES = {
+            "/api/auth/logout",
+            "/api/auth/me",
+            "/api/auth/status"
     };
 
     /**
@@ -27,11 +31,12 @@ public class SecurityConstants {
      * refresh-token and logout keep CSRF protection (use cookies).
      */
     private static final String[] AUTH_CSRF_IGNORE = {
-            "/api/auth/register",
             "/api/auth/login",
-            //TODO delete "refresh-token" and "logout" from this list
             "/api/auth/refresh-token",
-            "/api/auth/logout"
+            //TODO delete "me", "status" and "logout" from this list in prod
+            "/api/auth/logout",
+            "/api/auth/me",
+            "/api/auth/status"
     };
 
     // ========== ACCOUNT DOMAIN ==========
@@ -39,21 +44,30 @@ public class SecurityConstants {
     private static final String[] ACCOUNT_PUBLIC_ROUTES = {
             "/api/account/signup",
             "/api/account/activate/**",
-            "/api/account/activation-request/**",
-            "/api/account/reactivation-request",
-            "/api/account/reactivation/**"
+            "/api/account/resend-activation/**",
+            "/api/account/request-reactivation",
+            "/api/account/confirm-reactivation/**"
     };
 
     private static final String[] ACCOUNT_AUTHENTICATED_ROUTES = {
             "/api/account/request-deactivation",
-            "/api/account/confirm-deactivation"
+            "/api/account/confirm-deactivation/**"
     };
 
     /**
      * CSRF ignored ONLY for public routes (token-based).
      * Authenticated routes keep CSRF protection (cookies).
      */
-    private static final String[] ACCOUNT_CSRF_IGNORE = ACCOUNT_PUBLIC_ROUTES;
+    private static final String[] ACCOUNT_CSRF_IGNORE = {
+            "/api/account/signup",
+            "/api/account/activate/**",
+            "/api/account/resend-activation/**",
+            "/api/account/request-reactivation",
+            "/api/account/confirm-reactivation/**",
+            // TODO remove "request-deactivation", "confirm-deactivation" in prod
+            "/api/account/request-deactivation",
+            "/api/account/confirm-deactivation/**"
+    };
 
     // ========== PASSWORD DOMAIN ==========
 
@@ -75,6 +89,7 @@ public class SecurityConstants {
             "/api/password/forgot",
             "/api/password/reset",
             "/api/password/reset/resend",
+            // TODO delete "change" from passwordcsrfignore in prod
             "/api/password/change"
     };
 
@@ -226,6 +241,7 @@ public class SecurityConstants {
      * These routes use cookies and have CSRF protection (not in CSRF_IGNORE).
      */
     public static final String[] AUTHENTICATED_ROUTES = concatenate(
+            AUTH_AUTHENTICATED_ROUTES,
             ACCOUNT_AUTHENTICATED_ROUTES,
             PASSWORD_AUTHENTICATED_ROUTES,
             EMAIL_CHANGE_AUTHENTICATED_ROUTES,
@@ -252,8 +268,7 @@ public class SecurityConstants {
      * All authenticated routes MUST have CSRF protection.
      */
     public static final String[] CSRF_IGNORE_PATHS = concatenate(
-            // TODO delete passwordauthenticatedroute from passwordcsrfignore in prod
-            AUTH_CSRF_IGNORE,        // Only login/register
+            AUTH_CSRF_IGNORE,        // Only public routes
             ACCOUNT_CSRF_IGNORE,     // Only public routes
             PASSWORD_CSRF_IGNORE,    // Only public routes
             DEVICE_CSRF_IGNORE,      // Only public routes

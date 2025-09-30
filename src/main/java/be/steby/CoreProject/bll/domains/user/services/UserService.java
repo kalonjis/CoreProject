@@ -8,6 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public interface UserService {
 
@@ -25,6 +27,8 @@ public interface UserService {
     User getUserByUsername(String username);
 
     User getUserByEmail(String email);
+
+    User getUserByUsernameOrByEmail(String identifier);
 
     User saveUser(User user);
 

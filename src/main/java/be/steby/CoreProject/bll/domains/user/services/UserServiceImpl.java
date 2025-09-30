@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -95,6 +96,13 @@ public class UserServiceImpl implements UserService {
     public User getUserByEmail(String email) {
         return userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new DoesntExistException("User with email address " + email + " not found"));
+    }
+
+
+    @Override
+    public User getUserByUsernameOrByEmail(String identifier) {
+        return userRepository.findByEmailOrUsername(identifier)
+                .orElseThrow(()-> new DoesntExistException("User account with identifier: " + identifier + " not found"));
     }
 
     /**

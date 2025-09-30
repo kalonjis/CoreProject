@@ -1,4 +1,4 @@
-package be.steby.CoreProject.pl.validators.account;
+package be.steby.CoreProject.pl.domains.account.validators;
 
 import be.steby.CoreProject.bll.domains.account.models.DeactivationRequest;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationValidationResult;

@@ -7,6 +7,7 @@ import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.InvalidD
 import be.steby.CoreProject.bll.domains.account.exceptions.reactivation.ReactivationNotAllowedException;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationRequest;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationValidationResult;
+import be.steby.CoreProject.bll.domains.account.models.ReactivationRequest;
 import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationAttemptServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.reactivation.AccountReactivationTokenServiceImpl;
@@ -70,7 +71,7 @@ public class AccountServiceImpl implements AccountService {
      * ✅ FIXED - Method signature matches interface: requestActivation
      */
     @Override
-    public void requestActivation(String token, HttpServletRequest request) {
+    public void resendActivation(String token, HttpServletRequest request) {
 
         AccountConfirmationToken oldToken = accountConfirmationTokenService.getSecureToken(token);
         User user = oldToken.getUser();
@@ -137,7 +138,9 @@ public class AccountServiceImpl implements AccountService {
 
 
     @Override
-    public void requestReactivation(User user, HttpServletRequest httpRequest) {
+    public void requestReactivation(ReactivationRequest reactivationRequest, HttpServletRequest httpRequest) {
+
+        User user = userService.getUserByUsernameOrByEmail(reactivationRequest.identifier());
         if (user.isEnabled()) {
             throw new AccountAlreadyActivatedException("The user with email address " + user.getEmail() + " is already activated!");
         }
