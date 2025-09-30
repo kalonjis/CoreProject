@@ -1,9 +1,8 @@
-package be.steby.CoreProject.bll.domains.auth.services.cookies;
+package be.steby.CoreProject.bll.domains.auth.services;
 
 import be.steby.CoreProject.bll.common.services.cookies.BaseCookieService;
 import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidRefreshTokenException;
 import be.steby.CoreProject.bll.domains.auth.models.LoginTokens;
-import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -127,25 +126,6 @@ public class AuthCookieService {
     public void clearRefreshTokenCookie(HttpServletResponse response) {
         baseCookieService.deleteHttpOnlyCookie(response, refreshTokenCookieName);
         log.debug("Refresh token cookie cleared");
-    }
-
-    /**
-     * Formats a RefreshToken entity into the cookie value format.
-     * Format: userId.deviceId.tokenValue
-     * This format allows easy parsing and validation on the server side.
-     *
-     * @param refreshToken RefreshToken entity
-     * @return Formatted string for cookie storage
-     */
-    public String formatRefreshTokenForCookie(RefreshToken refreshToken) {
-        String formattedValue = String.format("%d.%d.%s",
-                refreshToken.getUser().getId(),
-                refreshToken.getDevice().getId(),
-                refreshToken.getToken()
-        );
-
-        log.debug("Refresh token formatted for cookie storage");
-        return formattedValue;
     }
 
     /**
