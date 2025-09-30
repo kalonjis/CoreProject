@@ -1,12 +1,12 @@
 package be.steby.CoreProject.bll.domains.auth.exceptions;
 
-public class InvalidRefreshTokenException extends AuthenticationException {
+public class InvalidRefreshTokenException extends InvalidTokenException {
 
     public InvalidRefreshTokenException(String message) {
-        super(message, 400);
+        super(message);
     }
 
     public InvalidRefreshTokenException() {
-        super("Invalid or expired refresh token", 400);
+        super("Invalid or expired refresh token");
     }
 }
