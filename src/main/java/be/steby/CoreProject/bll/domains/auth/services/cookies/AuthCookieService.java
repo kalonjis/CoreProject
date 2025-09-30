@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.auth.services;
+package be.steby.CoreProject.bll.domains.auth.services.cookies;
 
 import be.steby.CoreProject.bll.common.services.cookies.BaseCookieService;
 import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidRefreshTokenException;
