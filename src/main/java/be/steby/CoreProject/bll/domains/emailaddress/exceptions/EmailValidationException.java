@@ -1,0 +1,27 @@
+package be.steby.CoreProject.bll.domains.emailaddress.exceptions;
+
+/**
+ * Exception lancée lors de problèmes de validation structurelle des adresses email,
+ * comme un email manquant, vide ou mal formaté.
+ */
+public class EmailValidationException extends EmailDomainException {
+
+    /**
+     * Crée une nouvelle exception avec un message spécifique.
+     *
+     * @param message Message décrivant le problème de validation
+     */
+    public EmailValidationException(String message) {
+        super(message);
+    }
+
+    /**
+     * Crée une nouvelle exception avec un message et un code de statut spécifique.
+     *
+     * @param message Message décrivant le problème de validation
+     * @param status Code de statut HTTP
+     */
+    public EmailValidationException(String message, int status) {
+        super(message, status);
+    }
+}

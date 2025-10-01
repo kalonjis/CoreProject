@@ -95,15 +95,26 @@ public class SecurityConstants {
 
     // ========== EMAIL CHANGE DOMAIN ==========
 
+    private static final String[] EMAIL_CHANGE_PUBLIC_ROUTES = {
+            "/api/email-address-change/cancel",
+            "/api/email-address-change/verification",
+            "/api/email-address-change/confirmation"
+    };
+
+    private static final String[] EMAIL_CHANGE_CSRF_IGNORE = {
+            "/api/email-address-change/cancel",
+            "/api/email-address-change/verification",
+            "/api/email-address-change/confirmation",
+            // TODO remove "change/request" in prod
+            "/api/email-address-change/request"
+    };
     /**
      * All email change routes require authentication and use cookies.
      * CSRF protection ACTIVE for all routes (not in CSRF_IGNORE).
      */
     private static final String[] EMAIL_CHANGE_AUTHENTICATED_ROUTES = {
             "/api/email-address-change/request",
-            "/api/email-address-change/cancel",
-            "/api/email-address-change/verification",
-            "/api/email-address-change/confirmation"
+
     };
 
     // No EMAIL_CHANGE_CSRF_IGNORE - all routes keep CSRF protection ✅
@@ -231,6 +242,7 @@ public class SecurityConstants {
             AUTH_PUBLIC_ROUTES,
             ACCOUNT_PUBLIC_ROUTES,
             PASSWORD_PUBLIC_ROUTES,
+            EMAIL_CHANGE_PUBLIC_ROUTES,
             DEVICE_PUBLIC_ROUTES,
             SWAGGER_ROUTES,
             DEBUG_ROUTES
@@ -272,6 +284,7 @@ public class SecurityConstants {
             ACCOUNT_CSRF_IGNORE,     // Only public routes
             PASSWORD_CSRF_IGNORE,    // Only public routes
             DEVICE_CSRF_IGNORE,      // Only public routes
+            EMAIL_CHANGE_CSRF_IGNORE, // Only public routes
             DEBUG_ROUTES             // Only for development
     );
 

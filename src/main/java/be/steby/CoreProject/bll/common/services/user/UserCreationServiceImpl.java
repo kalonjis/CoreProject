@@ -9,7 +9,7 @@ import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;
 import be.steby.CoreProject.bll.common.models.user.UserCreationResult;
 import be.steby.CoreProject.bll.common.models.user.UserValidationResult;
 import be.steby.CoreProject.bll.domains.account.services.tokens.confirmation.AccountConfirmationTokenServiceImpl;
-import be.steby.CoreProject.bll.domains.emailAddress.models.EmailValidationResult;
+import be.steby.CoreProject.bll.domains.emailaddress.models.EmailValidationResult;
 import be.steby.CoreProject.bll.common.services.validation.email.EmailPolicyService;
 import be.steby.CoreProject.bll.domains.password.models.PasswordValidationResult;
 import be.steby.CoreProject.bll.common.services.validation.password.PasswordPolicyService;

@@ -5,9 +5,8 @@ import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory
 import be.steby.CoreProject.bll.common.models.reactivation.ReactivationEligibility;
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.bll.common.services.reactivation.ReactivationPolicyService;
-import be.steby.CoreProject.bll.domains.emailAddress.exceptions.EmailAlreadyUsedException;
+import be.steby.CoreProject.bll.domains.emailaddress.exceptions.EmailAlreadyUsedException;
 import be.steby.CoreProject.bll.domains.user.events.UserPersistedEvent;
-import be.steby.CoreProject.bll.domains.user.services.UserAuthenticationService;
 import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.specifications.UserSpecification;
 import be.steby.CoreProject.dal.repositories.UserRepository;
@@ -21,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -29,9 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.HashSet;
 
 /**
  * Updated UserService implementation with intelligent caching integration.
