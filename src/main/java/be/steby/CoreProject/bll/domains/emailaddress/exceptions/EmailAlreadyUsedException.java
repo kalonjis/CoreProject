@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.emailAddress.exceptions;
+package be.steby.CoreProject.bll.domains.emailaddress.exceptions;
 
 
 

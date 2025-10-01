@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.emailAddress.services.tokens;
+package be.steby.CoreProject.bll.domains.emailaddress.services.tokens;
 
 import be.steby.CoreProject.bll.common.services.tokens.BaseAttemptTrackerServiceImpl;
 import be.steby.CoreProject.dal.repositories.UserAttemptRepository;

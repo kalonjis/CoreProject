@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.common.services.validation.email;
 
-import be.steby.CoreProject.bll.domains.emailAddress.models.EmailValidationResult;
+import be.steby.CoreProject.bll.domains.emailaddress.models.EmailValidationResult;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.il.configs.EmailSecurityProperties;
 import lombok.RequiredArgsConstructor;

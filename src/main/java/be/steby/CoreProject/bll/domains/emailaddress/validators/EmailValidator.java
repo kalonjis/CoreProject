@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.emailAddress.validators;
+package be.steby.CoreProject.bll.domains.emailaddress.validators;
 
 import be.steby.CoreProject.bll.common.validators.ValidatorResult;
 

@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.emailAddress.events;
+package be.steby.CoreProject.bll.domains.emailaddress.events;
 
 import be.steby.CoreProject.dl.entities.User;
 

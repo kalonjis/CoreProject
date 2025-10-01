@@ -6,7 +6,7 @@ import be.steby.CoreProject.bll.common.services.validation.textField.TextFieldVa
 import be.steby.CoreProject.bll.domains.admin.models.AdminDeactivationRequest;
 import be.steby.CoreProject.bll.domains.admin.models.AdminUserCreationRequest;
 import be.steby.CoreProject.bll.domains.admin.models.AdminValidationResult;
-import be.steby.CoreProject.bll.domains.emailAddress.models.EmailValidationResult;
+import be.steby.CoreProject.bll.domains.emailaddress.models.EmailValidationResult;
 import be.steby.CoreProject.dl.enums.UserRole;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import lombok.RequiredArgsConstructor;

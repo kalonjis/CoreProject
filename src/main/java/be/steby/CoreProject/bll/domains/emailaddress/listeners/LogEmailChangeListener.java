@@ -1,10 +1,10 @@
-//package be.steby.CoreProject.bll.domains.emailAddress.listeners;
+//package be.steby.CoreProject.bll.domains.emailaddress.listeners;
 //
 //
-//import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeCancellationEvent;
-//import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeConfirmationEvent;
-//import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeRequestEvent;
-//import be.steby.CoreProject.bll.domains.emailAddress.events.EmailChangeVerificationEvent;
+//import be.steby.CoreProject.bll.domains.emailaddress.events.EmailChangeCancellationEvent;
+//import be.steby.CoreProject.bll.domains.emailaddress.events.EmailChangeConfirmationEvent;
+//import be.steby.CoreProject.bll.domains.emailaddress.events.EmailChangeRequestEvent;
+//import be.steby.CoreProject.bll.domains.emailaddress.events.EmailChangeVerificationEvent;
 //import be.steby.CoreProject.bll.common.models.RequestContext;
 //import be.steby.CoreProject.bll.services.ActivityLogService;
 //import be.steby.CoreProject.bll.domains.device.services.DeviceService;

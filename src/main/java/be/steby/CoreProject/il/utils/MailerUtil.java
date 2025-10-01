@@ -1,6 +1,6 @@
 package be.steby.CoreProject.il.utils;
 
-import be.steby.CoreProject.bll.domains.emailAddress.exceptions.EmailSendingException;
+import be.steby.CoreProject.bll.domains.emailaddress.exceptions.EmailSendingException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;

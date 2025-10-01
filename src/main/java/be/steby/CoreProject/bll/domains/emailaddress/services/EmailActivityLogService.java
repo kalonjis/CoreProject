@@ -1,4 +1,4 @@
-//package be.steby.CoreProject.bll.domains.emailAddress.services;
+//package be.steby.CoreProject.bll.domains.emailaddress.services;
 //
 //import be.steby.CoreProject.bll.common.models.RequestContext;
 //import be.steby.CoreProject.bll.common.services.activitylog.AbstractActivityLogService;

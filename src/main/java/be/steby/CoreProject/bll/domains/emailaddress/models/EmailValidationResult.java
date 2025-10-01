@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.emailAddress.models;
+package be.steby.CoreProject.bll.domains.emailaddress.models;
 
 import java.util.List;
 

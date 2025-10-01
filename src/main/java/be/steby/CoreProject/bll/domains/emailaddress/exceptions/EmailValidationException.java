@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.emailAddress.exceptions;
+package be.steby.CoreProject.bll.domains.emailaddress.exceptions;
 
 /**
  * Exception lancée lors de problèmes de validation structurelle des adresses email,
