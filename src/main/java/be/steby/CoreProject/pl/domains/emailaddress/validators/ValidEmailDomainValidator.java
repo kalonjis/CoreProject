@@ -1,6 +1,6 @@
-package be.steby.CoreProject.pl.validators.email;
+package be.steby.CoreProject.pl.domains.emailaddress.validators;
 
-import be.steby.CoreProject.bll.domains.emailAddress.models.EmailValidationResult;
+import be.steby.CoreProject.bll.domains.emailaddress.models.EmailValidationResult;
 import be.steby.CoreProject.bll.common.services.validation.email.EmailPolicyService;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;

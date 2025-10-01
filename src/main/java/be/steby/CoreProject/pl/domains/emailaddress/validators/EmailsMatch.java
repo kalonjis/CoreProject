@@ -1,4 +1,4 @@
-package be.steby.CoreProject.pl.validators.email;
+package be.steby.CoreProject.pl.domains.emailaddress.validators;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
