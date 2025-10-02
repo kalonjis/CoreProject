@@ -1,6 +1,7 @@
 package be.steby.CoreProject.pl.domains.account.controller;
 
 import be.steby.CoreProject.bll.domains.account.services.AccountService;
+import be.steby.CoreProject.bll.domains.auth.services.cookies.AuthCookieService;
 import be.steby.CoreProject.bll.domains.userRegistration.services.UserRegistrationService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.User;
@@ -9,6 +10,7 @@ import be.steby.CoreProject.pl.domains.account.models.requests.ReactivateAccount
 import be.steby.CoreProject.pl.domains.account.models.requests.SignupRequest;
 import be.steby.CoreProject.pl.domains.account.models.responses.AccountOperationResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +36,7 @@ public class AccountController {
 
     private final UserRegistrationService userRegistrationService;
     private final AccountService accountService;
+    private final AuthCookieService authCookieService;
 
     // =========================================================================
     // PUBLIC ACCOUNT ENDPOINTS
@@ -136,10 +139,12 @@ public class AccountController {
      */
     @GetMapping("/confirm-deactivation")
     public ResponseEntity<AccountOperationResponse> confirmDeactivation(@RequestParam String token,
-                                                    HttpServletRequest request) {
+                                                    HttpServletRequest request, HttpServletResponse response) {
         log.info("Processing account deactivation confirmation");
 
         accountService.deactivateAccount(token, request);
+
+        authCookieService.clearAuthenticationCookies(response);
 
         log.info("Account deactivation confirmed and processed");
         return ResponseEntity.ok(AccountOperationResponse.accountDeactivated());
@@ -174,10 +179,11 @@ public class AccountController {
      */
     @GetMapping("/confirm-reactivation")
     public ResponseEntity<AccountOperationResponse> confirmReactivation(@RequestParam String token,
-                                                    HttpServletRequest request) {
+                                                                        HttpServletRequest request) {
         log.info("Processing account reactivation confirmation");
 
         accountService.reactivateAccount(token, request);
+
 
         log.info("Account reactivation confirmed and processed");
         return ResponseEntity.ok(AccountOperationResponse.accountReactivated());
