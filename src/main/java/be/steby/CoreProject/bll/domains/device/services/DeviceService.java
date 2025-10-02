@@ -42,4 +42,6 @@ public interface DeviceService {
     void disconnectDevice(Long deviceId, HttpServletRequest request);
 
     void disconnectAllOtherDevices(HttpServletRequest request);
+
+    int disconnectAllDevicesForUser(User user);
 }
