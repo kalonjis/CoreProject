@@ -122,8 +122,9 @@ public class AccountServiceImpl implements AccountService {
         }
 
         userService.deactivateUser(user.getId(), accountDeactivationToken.getDeactivationReason(), accountDeactivationToken.getReasonDetails());
+
         accountDeactivationTokenService.revokeAllUserTokens(user);
-        refreshTokenService.revokeAllUserTokens(user);
+
         accountDeactivationAttemptService.clearAttempts(user);
 
         AccountDeactivationConfirmedEvent event = new AccountDeactivationConfirmedEvent(
