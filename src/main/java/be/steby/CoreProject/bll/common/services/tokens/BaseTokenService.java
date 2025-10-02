@@ -33,4 +33,5 @@ public interface BaseTokenService<T extends BaseToken> {
     void revokeAllUserTokens(User user);
     void revokeToken(T token);
     void saveToken(T token);
+    int revokeAllTokensForUser(Long userId);
 }
