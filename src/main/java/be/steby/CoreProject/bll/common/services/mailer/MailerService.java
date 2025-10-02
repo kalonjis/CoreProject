@@ -15,6 +15,9 @@ public interface MailerService {
 
   void sendAccountConfirmation(String token, User user, String temporaryPassword);
 
+
+  void sendSignUpConfirmation(String token, User user);
+
   void sendNewAccountConfirmation(String token, User user);
 
   void sendWelcome(User user);
@@ -63,7 +66,6 @@ public interface MailerService {
 
   void sendChangeEmailConfirmation(String token, User user, String newEmail, String email);
 
-  void sendSignUpConfirmation(String token, User user);
 
   void sendNewDeviceAlert(User user, Device device, String token);
 
