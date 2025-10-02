@@ -6,6 +6,7 @@ import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
@@ -120,6 +121,23 @@ public interface BaseTokenRepository<T extends BaseToken> extends JpaRepository<
     @Modifying
     @Query("UPDATE #{#entityName} t SET t.revoked = true WHERE t.tokenType = ?1")
     void revokeAllTokensByType(TokenType tokenType);
+
+
+    /**
+     * Revokes all tokens belonging to a specific user by user ID.
+     * This method updates all token records for the given user, setting their
+     * revoked status to true. It works across all token types that extend BaseToken.
+     *
+     * The method uses JPQL's #{#entityName} placeholder which dynamically resolves
+     * to the actual entity type at runtime (e.g., RefreshToken, PasswordResetToken, etc.).
+     * This allows the same query to work polymorphically across all token repositories.
+     *
+     * @param userId the ID of the user whose tokens should be revoked
+     * @return the number of tokens that were revoked
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE #{#entityName} t SET t.revoked = true WHERE t.user.id = :userId")
+    int revokeAllTokensForUser(@Param("userId") Long userId);
 
     // ========== TOKEN TYPE-AWARE CLEANUP METHODS ==========
 

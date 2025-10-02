@@ -290,6 +290,24 @@ public abstract class BaseTokenServiceImpl<T extends BaseToken> implements BaseT
         tokenRepository.save(token);
     }
 
+
+
+    /**
+     * Revokes all tokens for a specific user by userId.
+     * This is a convenience method that works across all token types.
+     *
+     * @param userId the user ID whose tokens should be revoked
+     * @return number of tokens that were revoked
+     */
+    @Override
+    @Transactional
+    public int revokeAllTokensForUser(Long userId) {
+        int revokedCount = tokenRepository.revokeAllTokensForUser(userId);
+        log.debug("Revoked {} tokens of type {} for user ID: {}",
+                revokedCount, tokenClass.getSimpleName(), userId);
+        return revokedCount;
+    }
+
     /**
      * Generates a secure random token (unchanged).
      */

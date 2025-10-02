@@ -236,6 +236,28 @@ public class DeviceServiceImpl implements DeviceService {
         log.info("{} devices successfully disconnected for user {}", count, currentUser.getUsername());
     }
 
+
+    @Override
+    @Transactional
+    public int disconnectAllDevicesForUser(User user) {
+        log.info("Disconnecting all devices for user: {}", user.getUsername());
+
+        List<Device> userDevices = getUserDevice(user);
+        int disconnectedCount = 0;
+
+        for (Device device : userDevices) {
+            if (!device.isLoggedOut()) {
+                device.setLoggedOut(true);
+                device.setLogoutTime(Instant.now());
+                saveDevice(device);
+                disconnectedCount++;
+            }
+        }
+
+        log.info("Disconnected {} devices for user: {}", disconnectedCount, user.getUsername());
+        return disconnectedCount;
+    }
+
     @Override
     public Long getTotalDevices() {
         return deviceRepository.count();

@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory
 import be.steby.CoreProject.bll.common.models.reactivation.ReactivationEligibility;
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.bll.common.services.reactivation.ReactivationPolicyService;
+import be.steby.CoreProject.bll.domains.account.events.UserDeactivatedEvent;
 import be.steby.CoreProject.bll.domains.emailaddress.exceptions.EmailAlreadyUsedException;
 import be.steby.CoreProject.bll.domains.user.events.UserPersistedEvent;
 import be.steby.CoreProject.bll.exceptions.*;
@@ -224,8 +225,9 @@ public class UserServiceImpl implements UserService {
 
         // ✅ Use saveUser() instead of direct repository save
         saveUser(user);
-
         log.info("User {} self-deactivated with reason: {}", user.getUsername(), reason);
+
+        eventPublisher.publishEvent(new UserDeactivatedEvent(user));
     }
 
     @Override
@@ -283,6 +285,8 @@ public class UserServiceImpl implements UserService {
 
         log.info("User {} administratively deactivated by admin {} with category: {}",
                 target.getUsername(), admin.getUsername(), deactivationCategory);
+
+        eventPublisher.publishEvent(new UserDeactivatedEvent(target));
     }
 
     // ===============================
