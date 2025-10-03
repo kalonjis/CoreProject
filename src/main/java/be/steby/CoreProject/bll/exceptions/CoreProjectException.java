@@ -44,6 +44,25 @@ public class CoreProjectException extends RuntimeException {
 
 
     /**
+     *
+     */
+    public CoreProjectException(String message, Throwable cause) {
+        super(message, cause);  // Pass cause to RuntimeException
+        this.message = message;
+        this.status = 500;
+    }
+
+    /**
+     *
+     */
+    public CoreProjectException(String message, int status, Throwable cause) {
+        super(message, cause);  // Pass cause to RuntimeException
+        this.message = message;
+        this.status = status;
+    }
+
+
+    /**
      * Returns a {@code string representation} of this {@code exception}.
      * The string includes the {@code class name}, {@code method name}, {@code file name}, {@code line number}, and {@code message}.
      *
