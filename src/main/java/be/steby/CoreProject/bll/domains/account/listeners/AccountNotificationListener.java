@@ -23,17 +23,13 @@ import org.springframework.stereotype.Component;
 public class AccountNotificationListener {
 
     private final AccountMailerService accountMailerService;
-    private final AccountConfirmationTokenServiceImpl accountConfirmationTokenService;
 
     @EventListener
     @Async("emailExecutor")
-    public void handleSignupEvent(SignupEvent event){
+    public void handleSignupEvent(SelfSignupCompletedEvent event){
         log.debug("Handling SignupEvent for user: {}", event.user().getEmail());
 
-        AccountConfirmationToken token = accountConfirmationTokenService
-                .createAccountConfirmationToken(event.user());
-
-        accountMailerService.sendSignUpConfirmation(token.getToken(), event.user());
+        accountMailerService.sendSignUpConfirmation(event.activationToken(), event.user());
     }
 
     @EventListener
