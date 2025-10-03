@@ -1,40 +1,31 @@
 package be.steby.CoreProject.pl.domains.account.models.requests;
 
-import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.bll.domains.account.models.SelfSignupRequest;
+import be.steby.CoreProject.pl.domains.emailaddress.validators.ValidEmailDomain;
 import be.steby.CoreProject.pl.domains.password.validators.StrongPassword;
 import jakarta.validation.constraints.*;
 
 /**
- * Request model for account signup operations.
- * Contains validation rules for user registration data.
+ * Minimal signup request - only essential credentials.
+ * Profile information (username, firstname, lastname, etc.) is collected separately
+ * after account creation via profile completion flow.
+ *
+ * This follows modern industry patterns where signup is kept minimal to reduce friction,
+ * and additional information is collected during onboarding.
  */
 public record SignupRequest(
-        @NotBlank(message = "Username is required")
-        @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
-        @Pattern(regexp = "^[a-zA-Z0-9_-]+$", message = "Username can only contain letters, numbers, underscores and hyphens")
-        String username,
-
         @NotBlank(message = "Email is required")
         @Email(message = "Email must be valid")
         @Size(max = 100, message = "Email cannot exceed 100 characters")
+        @ValidEmailDomain
         String email,
 
         @NotBlank(message = "Password is required")
         @StrongPassword
         String password,
 
-
         @NotBlank(message = "Password confirmation is required")
-        String confirmPassword,
-
-        @Size(max = 50, message = "First name cannot exceed 50 characters")
-        String firstName,
-
-        @Size(max = 50, message = "Last name cannot exceed 50 characters")
-        String lastName,
-
-        @Pattern(regexp = "^\\+?[1-9]\\d{1,14}$", message = "Phone number must be valid international format")
-        String phoneNumber
+        String confirmPassword
 ) {
     /**
      * Custom validation to ensure passwords match.
@@ -45,18 +36,9 @@ public record SignupRequest(
     }
 
     /**
-     * Converts this request to a User entity for business logic processing.
-     *
-     * @return User entity with data from this request
+     *  Converts PL DTO to BLL DTO (not to entity!)
      */
-    public User toEntity() {
-        User user = new User();
-        user.setUsername(username);
-        user.setEmail(email);
-        user.setPassword(password); // Will be encoded by business logic
-        user.setFirstname(firstName);
-        user.setLastname(lastName);
-        user.setPhoneNumber(phoneNumber);
-        return user;
+    public SelfSignupRequest toBllModel() {
+        return new SelfSignupRequest(email, password);
     }
 }
