@@ -1,10 +1,10 @@
 package be.steby.CoreProject.bll.common.services.validation.password;
 
-
 import be.steby.CoreProject.bll.domains.password.models.PasswordValidationResult;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -47,35 +47,35 @@ public class PasswordPolicyServiceImpl implements PasswordPolicyService {
     @Override
     public PasswordValidationResult validatePassword(String password) {
         if (password == null) {
-            return new PasswordValidationResult(false, List.of("Le mot de passe ne peut pas être null"));
+            return new PasswordValidationResult(false, List.of("Password cannot be null"));
         }
 
         List<String> validationErrors = new ArrayList<>();
 
         // Check length requirements
         if (password.length() < minLength) {
-            validationErrors.add("Le mot de passe doit contenir au moins " + minLength + " caractères");
+            validationErrors.add("Password must be at least " + minLength + " characters long");
         }
 
         if (password.length() > maxLength) {
-            validationErrors.add("Le mot de passe ne peut pas dépasser " + maxLength + " caractères");
+            validationErrors.add("Password cannot exceed " + maxLength + " characters");
         }
 
         // Check character requirements
         if (requireUppercase && !UPPERCASE_PATTERN.matcher(password).matches()) {
-            validationErrors.add("Le mot de passe doit contenir au moins une lettre majuscule");
+            validationErrors.add("Password must contain at least one uppercase letter");
         }
 
         if (requireLowercase && !LOWERCASE_PATTERN.matcher(password).matches()) {
-            validationErrors.add("Le mot de passe doit contenir au moins une lettre minuscule");
+            validationErrors.add("Password must contain at least one lowercase letter");
         }
 
         if (requireDigit && !DIGIT_PATTERN.matcher(password).matches()) {
-            validationErrors.add("Le mot de passe doit contenir au moins un chiffre");
+            validationErrors.add("Password must contain at least one digit");
         }
 
         if (requireSpecialChar && !containsSpecialChar(password)) {
-            validationErrors.add("Le mot de passe doit contenir au moins un caractère spécial");
+            validationErrors.add("Password must contain at least one special character");
         }
 
         // Additional validation rules could be added here
@@ -99,59 +99,60 @@ public class PasswordPolicyServiceImpl implements PasswordPolicyService {
      * Generates a secure random password that meets all policy requirements.
      * Useful for generating temporary passwords.
      *
-     * @return A random password that meets all policy requirements
+     * @return A randomly generated password that satisfies all policy requirements
      */
     @Override
     public String generateSecurePassword() {
-        // Minimum length for generated password (at least minLength, but can be longer)
-        int length = Math.max(minLength, 12); // Use at least 12 chars for generated passwords
-
+        SecureRandom random = new SecureRandom();
         StringBuilder password = new StringBuilder();
-        java.security.SecureRandom random = new java.security.SecureRandom();
 
-        // Define character pools
-        String upperCaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        String lowerCaseLetters = "abcdefghijklmnopqrstuvwxyz";
+        // Character pools
+        String uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String lowercase = "abcdefghijklmnopqrstuvwxyz";
         String digits = "0123456789";
+        String special = specialChars;
 
-        // Ensure at least one of each required character type
+        // Ensure at least one character from each required category
         if (requireUppercase) {
-            password.append(upperCaseLetters.charAt(random.nextInt(upperCaseLetters.length())));
+            password.append(uppercase.charAt(random.nextInt(uppercase.length())));
         }
-
         if (requireLowercase) {
-            password.append(lowerCaseLetters.charAt(random.nextInt(lowerCaseLetters.length())));
+            password.append(lowercase.charAt(random.nextInt(lowercase.length())));
         }
-
         if (requireDigit) {
             password.append(digits.charAt(random.nextInt(digits.length())));
         }
-
-        if (requireSpecialChar && !specialChars.isEmpty()) {
-            password.append(specialChars.charAt(random.nextInt(specialChars.length())));
+        if (requireSpecialChar) {
+            password.append(special.charAt(random.nextInt(special.length())));
         }
 
-        // Fill the rest with random characters from all allowed types
-        String allChars = "";
-        if (requireUppercase) allChars += upperCaseLetters;
-        if (requireLowercase) allChars += lowerCaseLetters;
-        if (requireDigit) allChars += digits;
-        if (requireSpecialChar) allChars += specialChars;
+        // Fill the rest with random characters from all pools
+        String allChars = uppercase + lowercase + digits + special;
+        int remainingLength = minLength - password.length();
 
-        while (password.length() < length) {
+        for (int i = 0; i < remainingLength; i++) {
             password.append(allChars.charAt(random.nextInt(allChars.length())));
         }
 
-        // Shuffle the password to avoid predictable pattern
-        char[] passwordArray = password.toString().toCharArray();
-        for (int i = passwordArray.length - 1; i > 0; i--) {
-            int index = random.nextInt(i + 1);
-            char temp = passwordArray[index];
-            passwordArray[index] = passwordArray[i];
-            passwordArray[i] = temp;
-        }
-
-        return new String(passwordArray);
+        // Shuffle the password to avoid predictable patterns
+        return shuffleString(password.toString(), random);
     }
 
+    /**
+     * Shuffles the characters in a string randomly.
+     *
+     * @param input The string to shuffle
+     * @param random The SecureRandom instance to use
+     * @return The shuffled string
+     */
+    private String shuffleString(String input, SecureRandom random) {
+        char[] characters = input.toCharArray();
+        for (int i = characters.length - 1; i > 0; i--) {
+            int j = random.nextInt(i + 1);
+            char temp = characters[i];
+            characters[i] = characters[j];
+            characters[j] = temp;
+        }
+        return new String(characters);
+    }
 }
