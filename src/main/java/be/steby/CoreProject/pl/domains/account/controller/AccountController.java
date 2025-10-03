@@ -54,12 +54,10 @@ public class AccountController {
     @PreAuthorize("isAnonymous()")
     public ResponseEntity<AccountOperationResponse> signup(@Valid @RequestBody SignupRequest request,
                                        HttpServletRequest httpRequest) {
-        log.info("Processing account signup request for username: {}", request.username());
+        log.info("Processing account signup request for username: {}", request.email());
 
-        User user = userRegistrationService.signup(request.toEntity(), httpRequest);
-        String location = "/api/account/" + user.getId();
+        accountService.signup(request.toBllModel(), httpRequest);
 
-        log.info("Account signup successful for username: {}", user.getUsername());
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(AccountOperationResponse.accountCreated());
