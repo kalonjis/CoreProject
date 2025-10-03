@@ -15,7 +15,6 @@ import jakarta.validation.constraints.*;
  */
 public record SignupRequest(
         @NotBlank(message = "Email is required")
-        @Email(message = "Email must be valid")
         @Size(max = 100, message = "Email cannot exceed 100 characters")
         @ValidEmailDomain
         String email,

@@ -20,7 +20,7 @@ public class EmailPolicyServiceImpl implements EmailPolicyService {
     private final UserService userService;
     private final EmailSecurityProperties emailSecurityProperties;
 
-    // Pattern regex pour la validation d'email (RFC 5322 simplifié)
+    // Email validation regex pattern (simplified RFC 5322)
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$"
     );
@@ -28,45 +28,45 @@ public class EmailPolicyServiceImpl implements EmailPolicyService {
     @Override
     public EmailValidationResult validateEmail(String email) {
         if (email == null || email.isBlank()) {
-            return EmailValidationResult.invalid("L'adresse email ne peut pas être vide");
+            return EmailValidationResult.invalid("Email address cannot be empty");
         }
 
         List<String> validationErrors = new ArrayList<>();
 
-        // Validation du format
+        // Format validation
         if (!EMAIL_PATTERN.matcher(email).matches()) {
-            validationErrors.add("L'adresse email n'est pas dans un format valide");
+            validationErrors.add("Email address is not in a valid format");
         }
 
-        // Validation de la longueur
-        if (email.length() > 254) { // RFC 5321 limite
-            validationErrors.add("L'adresse email ne peut pas dépasser 254 caractères");
+        // Length validation
+        if (email.length() > 254) { // RFC 5321 limit
+            validationErrors.add("Email address cannot exceed 254 characters");
         }
 
-        // Validation du domaine
+        // Domain validation
         String domain = extractDomain(email);
         if (domain != null) {
-            log.debug("Validation de l'email '{}' avec domaine '{}'", email, domain);
-            log.debug("Domaines blacklistés configurés: {}", emailSecurityProperties.getBlacklistedDomains());
+            log.debug("Validating email '{}' with domain '{}'", email, domain);
+            log.debug("Configured blacklisted domains: {}", emailSecurityProperties.getBlacklistedDomains());
 
-            // Vérifier si le domaine est dans la liste noire
+            // Check if domain is blacklisted
             if (isEmailDomainBlacklisted(email)) {
-                validationErrors.add("Le domaine " + domain + " n'est pas autorisé");
-                log.warn("Domaine blacklisté détecté: {} pour l'email {}", domain, email);
+                validationErrors.add("The domain " + domain + " is not allowed");
+                log.warn("Blacklisted domain detected: {} for email {}", domain, email);
             }
 
-            // Vérifier si le domaine est autorisé (si la whitelist est activée)
+            // Check if domain is whitelisted (if whitelist is enabled)
             if (emailSecurityProperties.isRequireDomainWhitelist() && !isEmailDomainAllowed(email)) {
-                validationErrors.add("Le domaine " + domain + " n'est pas dans la liste des domaines autorisés");
+                validationErrors.add("The domain " + domain + " is not in the list of allowed domains");
             }
         }
 
-        // Vérifier la disponibilité
+        // Check availability
         if (validationErrors.isEmpty() && !isEmailAvailable(email)) {
-            validationErrors.add("Cette adresse email est déjà utilisée par un autre utilisateur");
+            validationErrors.add("This email address is already used by another user");
         }
 
-        log.debug("Résultat de validation pour '{}': valide={}, erreurs={}",
+        log.debug("Validation result for '{}': valid={}, errors={}",
                 email, validationErrors.isEmpty(), validationErrors);
 
         return new EmailValidationResult(validationErrors.isEmpty(), validationErrors);
@@ -81,12 +81,12 @@ public class EmailPolicyServiceImpl implements EmailPolicyService {
     public boolean isEmailDomainAllowed(String email) {
         Set<String> allowedDomains = emailSecurityProperties.getAllowedDomains();
         if (allowedDomains == null || allowedDomains.isEmpty()) {
-            return true; // Pas de whitelist configurée
+            return true; // No whitelist configured
         }
 
         String domain = extractDomain(email);
         boolean isAllowed = domain != null && allowedDomains.contains(domain.toLowerCase());
-        log.debug("Vérification whitelist pour domaine '{}': autorisé={}", domain, isAllowed);
+        log.debug("Whitelist check for domain '{}': allowed={}", domain, isAllowed);
         return isAllowed;
     }
 
@@ -94,22 +94,22 @@ public class EmailPolicyServiceImpl implements EmailPolicyService {
     public boolean isEmailDomainBlacklisted(String email) {
         Set<String> blacklistedDomains = emailSecurityProperties.getBlacklistedDomains();
         if (blacklistedDomains == null || blacklistedDomains.isEmpty()) {
-            log.debug("Aucun domaine blacklisté configuré");
-            return false; // Pas de blacklist configurée
+            log.debug("No blacklisted domains configured");
+            return false; // No blacklist configured
         }
 
         String domain = extractDomain(email);
         boolean isBlacklisted = domain != null && blacklistedDomains.contains(domain.toLowerCase());
-        log.debug("Vérification blacklist pour domaine '{}': blacklisté={}, liste={}",
+        log.debug("Blacklist check for domain '{}': blacklisted={}, list={}",
                 domain, isBlacklisted, blacklistedDomains);
         return isBlacklisted;
     }
 
     /**
-     * Extrait le domaine d'une adresse email.
+     * Extracts the domain from an email address.
      *
-     * @param email L'adresse email
-     * @return Le domaine ou null si l'email est invalide
+     * @param email The email address
+     * @return The domain or null if the email is invalid
      */
     private String extractDomain(String email) {
         if (email == null || !email.contains("@")) {
