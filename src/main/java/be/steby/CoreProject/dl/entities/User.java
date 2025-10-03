@@ -75,6 +75,25 @@ public class User extends BaseEntity<Long> implements UserDetails {
     private String password;
 
     /**
+     * Whether the user has completed their profile according to application requirements.
+     * Used to enforce profile completion during onboarding.
+     */
+    @Column(nullable = false)
+    private boolean profileComplete = false;
+
+    /**
+     * User biography (optional profile field).
+     */
+    @Column(length = 500)
+    private String bio;
+
+    /**
+     * User avatar URL (optional profile field).
+     */
+    @Column(length = 500)
+    private String avatarUrl;
+
+    /**
      * The Role associated with the user.
      */
     @ElementCollection(fetch = FetchType.EAGER)
