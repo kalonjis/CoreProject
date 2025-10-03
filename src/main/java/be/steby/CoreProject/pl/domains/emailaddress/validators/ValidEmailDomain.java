@@ -11,7 +11,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidEmailDomain {
 
-    String message() default "Domaine d'email non autorisé";
+    String message() default "Email domain not allowed";
 
     Class<?>[] groups() default {};
 
