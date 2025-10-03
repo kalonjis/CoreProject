@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.admin.services;
 
+import be.steby.CoreProject.bll.domains.admin.models.AdminUserCreationRequest;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
@@ -24,11 +25,11 @@ public interface AdminService {
     /**
      * Creates a new user account as an admin.
      *
-     * @param user The user to create
-     * @param request HTTP request for context capture
+     * @param request Admin user creation request from BLL
+     * @param httpRequest HTTP request for context capture
      * @return The created user
      */
-    User createUser(User user, HttpServletRequest request);
+    User createUser(AdminUserCreationRequest request, HttpServletRequest httpRequest);
 
     /**
      * Activates or reactivates a user account as an admin.

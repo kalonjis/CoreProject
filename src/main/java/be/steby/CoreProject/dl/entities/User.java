@@ -5,6 +5,10 @@ import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategor
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.springframework.security.core.GrantedAuthority;
@@ -192,6 +196,18 @@ public class User extends BaseEntity<Long> implements UserDetails {
     }
 
 
+    public User(String firstname, String lastname, String email, String phoneNumber) {
+        this.firstname = firstname;
+        this.lastname = lastname;
+        this.email = email;
+        this.phoneNumber = phoneNumber;
+        this.enabled = false;
+        this.emailVerified = false;
+        this.mustChangePassword = true;
+    }
+
+
+
     /**
      * Constructor to initialize common fields (used by admin creation).
      */
@@ -215,6 +231,7 @@ public class User extends BaseEntity<Long> implements UserDetails {
         this(username, firstname, lastname, email, phoneNumber, userRoles);
         this.password = password;
     }
+
 
     // endregion
 
@@ -296,6 +313,15 @@ public class User extends BaseEntity<Long> implements UserDetails {
             return deactivationReason.getDisplayName();
         }
         return null;
+    }
+
+
+    public boolean wasCreatedByAdmin() {
+        return createdBy != null;  // Simple et clean maintenant !
+    }
+
+    public boolean isSelfSignup() {
+        return createdBy == null;
     }
 
 }

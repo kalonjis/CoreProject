@@ -66,7 +66,7 @@ public abstract class BaseEntity<T extends Serializable> {
      */
     @CreatedBy
     @Column(name = "created_by", updatable = false, length = 50)
-    private String createdBy;
+    protected String createdBy;
 
     /**
      * Timestamp when this entity was created.
@@ -83,7 +83,7 @@ public abstract class BaseEntity<T extends Serializable> {
      */
     @LastModifiedBy
     @Column(name = "updated_by", insertable = false, length = 50)
-    private String updatedBy;
+    protected String updatedBy;
 
     /**
      * Timestamp when this entity was last updated.

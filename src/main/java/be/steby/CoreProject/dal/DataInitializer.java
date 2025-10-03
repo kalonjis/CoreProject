@@ -12,7 +12,6 @@ import be.steby.CoreProject.dl.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -25,7 +24,6 @@ public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final DeviceRepository deviceRepository;
-    private final PasswordEncoder passwordEncoder;
     private final UserCreationService userCreationService;
 
 

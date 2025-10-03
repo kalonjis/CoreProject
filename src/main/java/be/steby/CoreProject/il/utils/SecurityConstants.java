@@ -282,6 +282,7 @@ public class SecurityConstants {
     public static final String[] CSRF_IGNORE_PATHS = concatenate(
             AUTH_CSRF_IGNORE,        // Only public routes
             ACCOUNT_CSRF_IGNORE,     // Only public routes
+            ADMIN_DOMAIN_ROUTES, // TODO delete in prod
             PASSWORD_CSRF_IGNORE,    // Only public routes
             DEVICE_CSRF_IGNORE,      // Only public routes
             EMAIL_CHANGE_CSRF_IGNORE, // Only public routes
