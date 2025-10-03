@@ -51,22 +51,25 @@ public class AdminPolicyServiceImpl implements AdminPolicyService {
 
     /**
      * Complex user creation validation.
-     * ✅ BUSINESS VALUE: Orchestrates validations and admin-specific business rules
+     * ✅ BUSINESS VALUE: Orchestrates data validations ONLY
+     * ❌ Does NOT validate permissions - that's UserPermissionService's job in AdminService
      */
     @Override
     public AdminValidationResult validateUserCreation(AdminUserCreationRequest request) {
         if (logAllOperations) {
-            log.debug("Validating user creation - username: {}, email: {}",
-                    request.username(), request.email());
+            log.debug("Validating user creation - firstname: {}, lastname: {}, email: {}",
+                    request.firstname(), request.lastname(), request.email());
         }
 
         List<String> errors = new ArrayList<>();
 
-        // 1. ✅ DELEGATION: Basic text field validation via common service
-        textFieldValidationService.validateUsername(request.username(), errors);
+        // 1. ✅ DELEGATION: Basic text field validation
         textFieldValidationService.validateFirstname(request.firstname(), errors);
         textFieldValidationService.validateLastname(request.lastname(), errors);
-        textFieldValidationService.validatePhoneNumber(request.phoneNumber(), errors);
+
+        if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
+            textFieldValidationService.validatePhoneNumber(request.phoneNumber(), errors);
+        }
 
         // 2. ✅ DELEGATION: Email validation via specialized service
         EmailValidationResult emailResult = emailPolicyService.validateEmail(request.email());
@@ -74,11 +77,11 @@ public class AdminPolicyServiceImpl implements AdminPolicyService {
             errors.addAll(emailResult.errors());
         }
 
-        // 3. ✅ DELEGATION: Role validation via permission service
-        validateUserRoles(request.userRoles(), errors);
-
-        // 5. ✅ ADMIN BUSINESS VALUE: Admin-specific creation business rules
-        validateAdminSpecificCreationRules(request, errors);
+        // 3. ✅ Basic role validation (not empty, not null)
+        // Permission checks are done in AdminService.createUser() via UserPermissionService
+        if (request.userRoles() == null || request.userRoles().isEmpty()) {
+            errors.add("At least one role must be assigned to the user");
+        }
 
         if (logAllOperations) {
             log.debug("User creation validation completed - {} errors", errors.size());
@@ -158,7 +161,7 @@ public class AdminPolicyServiceImpl implements AdminPolicyService {
         // Validate role coherence
         if (request.userRoles().contains(UserRole.ADMIN) &&
                 request.userRoles().contains(UserRole.USER)) {
-            log.warn("User {} being created with both ADMIN and USER roles", request.username());
+            log.warn("User {} being created with both ADMIN and USER roles", request.email());
         }
 
         // This method contains the real business value of AdminPolicyService

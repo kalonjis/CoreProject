@@ -53,25 +53,31 @@ public class AccountMailerService extends BaseMailerService {
     }
 
     /**
-     * Sends account confirmation email for admin-created users with temporary password.
+     * Sends welcome email to admin-created user with temporary password.
      *
-     * @param token The confirmation token
+     * This email is sent when an administrator creates a user account.
+     * The user receives their temporary password and must log in to activate
+     * their account and change the password.
+     *
      * @param user The user created by admin
      * @param temporaryPassword The temporary password to include in email
      */
     @Async("emailExecutor")
-    public void sendAccountConfirmation(String token, User user, String temporaryPassword) {
-        log.info("Sending account confirmation email with temporary password to: {}", user.getEmail());
+    public void sendAdminCreatedUserEmail(User user, String temporaryPassword) {
+        log.info("Sending admin creation email with temporary password to: {}", user.getEmail());
 
-        String confirmationUrl = buildUrl("/auth/account-confirmation", "token", token);
+        String loginUrl = buildUrl("/login"); // Just the login page, no token
 
         Context context = createBaseContext(user);
         context.setVariable("temporaryPassword", temporaryPassword);
-        context.setVariable("url", confirmationUrl);
+        context.setVariable("loginUrl", loginUrl);
 
-        sendEmail("Account confirmation", "accounts/accountConfirmation", context, user.getEmail());
+        sendEmail("Welcome - Your Account Has Been Created",
+                "accounts/adminCreatedUser",
+                context,
+                user.getEmail());
 
-        log.debug("Account confirmation email sent successfully to: {}", user.getEmail());
+        log.debug("Admin creation email sent successfully to: {}", user.getEmail());
     }
 
     /**

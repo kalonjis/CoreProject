@@ -1,13 +1,12 @@
 package be.steby.CoreProject.pl.controllers.admin;
 
 import be.steby.CoreProject.bll.domains.admin.services.AdminService;
-import be.steby.CoreProject.bll.domains.user.services.UserService;
-import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.admin.deactivation.DeactivationMainCategory;
+import be.steby.CoreProject.pl.domains.account.models.responses.AccountOperationResponse;
+import be.steby.CoreProject.pl.models.admin.AdminUserCreateRequest;
 import be.steby.CoreProject.pl.models.admin.UserDeactivationForm;
-import be.steby.CoreProject.pl.models.admin.UserRegisterForm;
 import be.steby.CoreProject.pl.models.admin.UserRoleForm;
 import be.steby.CoreProject.pl.models.user.UserDTO;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,19 +19,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
 
-/**
- * Contrôleur admin amélioré selon le pattern du projet.
- * Suit le modèle de PasswordController : léger, conversion propre, réponses informatives.
- */
 @RestController
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('ADMIN')")
@@ -41,9 +36,47 @@ import java.util.Map;
 public class AdminUserController {
 
     private final AdminService adminService;
-    private final UserService userService;
-    private final RefreshTokenServiceImpl refreshTokenService;
     private final PagedResourcesAssembler<User> pagedResourcesAssembler;
+
+
+    @PostMapping
+    public ResponseEntity<AccountOperationResponse> createUser(
+            @Valid @RequestBody AdminUserCreateRequest request,
+            HttpServletRequest httpRequest) {
+
+        log.info("Admin user creation request for email: {}", request.email());
+
+        // Call admin service
+        adminService.createUser(request.toBLL(), httpRequest);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "User created successfully");
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(AccountOperationResponse.accountCreated());
+    }
+
+
+//    @PostMapping
+//    public ResponseEntity<Map<String, String>> createUser(
+//            @Valid @RequestBody UserRegisterForm form,
+//            HttpServletRequest request) {
+//
+//        log.info("Création d'utilisateur par admin: {}", form.email());
+//
+//        User user = form.toEntity();
+//        User createdUser = adminService.createUser(user, request);
+//
+//        Map<String, String> response = new HashMap<>();
+//        response.put("message", "Utilisateur créé avec succès");
+//        response.put("userId", createdUser.getId().toString());
+//        response.put("username", createdUser.getUsername());
+//
+//        return ResponseEntity.created(
+//                URI.create("/api/admin/users/" + createdUser.getId())
+//        ).body(response);
+//    }
 
     /**
      * Endpoint de désactivation amélioré selon pattern projet.
@@ -249,28 +282,6 @@ public class AdminUserController {
         return ResponseEntity.ok(users);
     }
 
-    /**
-     * Endpoint de création d'utilisateur.
-     */
-    @PostMapping
-    public ResponseEntity<Map<String, String>> createUser(
-            @Valid @RequestBody UserRegisterForm form,
-            HttpServletRequest request) {
-
-        log.info("Création d'utilisateur par admin: {}", form.username());
-
-        User user = form.toEntity();
-        User createdUser = adminService.createUser(user, request);
-
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Utilisateur créé avec succès");
-        response.put("userId", createdUser.getId().toString());
-        response.put("username", createdUser.getUsername());
-
-        return ResponseEntity.created(
-                URI.create("/api/admin/users/" + createdUser.getId())
-        ).body(response);
-    }
 
     /**
      * Endpoint d'informations sur les statistiques admin.

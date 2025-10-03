@@ -1,134 +1,37 @@
 package be.steby.CoreProject.bll.domains.user.services;
 
-import be.steby.CoreProject.dal.repositories.UserRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
-import java.security.SecureRandom;
-import java.util.UUID;
-
 /**
- * Service responsible for generating unique usernames.
- * Uses Discord-style approach: base name + random suffix.
- * Ensures uniqueness through database checks.
+ * Service for generating usernames based on different contexts.
+ * Provides multiple generation strategies depending on the user creation mode.
  */
-@Service
-@RequiredArgsConstructor
-@Slf4j
-public class UsernameGeneratorService {
-
-    private final UserRepository userRepository;
-    private static final SecureRandom RANDOM = new SecureRandom();
-
-    // Character set for random suffix (no ambiguous chars like 0/O, 1/I/l)
-    private static final String CHARSET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
-    private static final int SUFFIX_LENGTH = 4;
-    private static final int MAX_ATTEMPTS = 10;
+public interface UsernameGeneratorService {
 
     /**
-     * Generates a unique username from email address.
-     * Format: emailPrefix_XXXX (Discord-style)
-     * Example: john.doe@example.com → johndoe_A3K9
+     * Generates username from email address.
+     * Used for self-signup where only email is provided.
      *
-     * @param email User's email address
-     * @return Unique username
+     * Strategy: Extract local part, sanitize, add random suffix if needed.
+     * Example: john.doe@example.com → johndoe123
+     *
+     * @param email The user's email address
+     * @return A unique generated username
      */
-    public String generateFromEmail(String email) {
-        if (email == null || email.isBlank()) {
-            return generateRandom();
-        }
-
-        // Extract email prefix (before @)
-        String emailPrefix = email.substring(0, email.indexOf('@'))
-                .replaceAll("[^a-zA-Z0-9]", "") // Remove special chars
-                .toLowerCase();
-
-        // Ensure minimum length
-        if (emailPrefix.length() < 3) {
-            emailPrefix = "user" + emailPrefix;
-        }
-
-        // Truncate if too long (leave room for separator and suffix)
-        int maxPrefixLength = 50 - 1 - SUFFIX_LENGTH; // username max = 50
-        if (emailPrefix.length() > maxPrefixLength) {
-            emailPrefix = emailPrefix.substring(0, maxPrefixLength);
-        }
-
-        return generateUniqueUsername(emailPrefix);
-    }
+    String generateFromEmail(String email);
 
     /**
-     * Generates a completely random username.
-     * Format: user_XXXXXXXX
-     * Used as fallback when email is not available.
+     * Generates username from full name.
+     * Used for admin creation where firstname and lastname are provided.
      *
-     * @return Unique random username
-     */
-    public String generateRandom() {
-        String randomId = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        return generateUniqueUsername("user_" + randomId);
-    }
-
-    /**
-     * Generates unique username by appending random suffix.
-     * Retries if collision occurs (max 10 attempts).
+     * Strategy: lastname + firstname initial, incrementally add more letters if taken.
+     * Examples:
+     * - Dupont, Jean → dupontj
+     * - If taken → dupontje
+     * - If taken → dupontjea
+     * - etc.
      *
-     * @param baseUsername Base username (from email or "user")
-     * @return Unique username with suffix
+     * @param firstname The user's first name
+     * @param lastname The user's last name
+     * @return A unique generated username
      */
-    private String generateUniqueUsername(String baseUsername) {
-        for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-            String suffix = generateRandomSuffix();
-            String username = baseUsername + "_" + suffix;
-
-            // Check uniqueness
-            if (!userRepository.existsByUsernameIgnoreCase(username)) {
-                log.debug("Generated unique username: {} (attempt {})", username, attempt + 1);
-                return username;
-            }
-
-            log.debug("Username collision: {} - retrying", username);
-        }
-
-        // Fallback: use UUID if all attempts failed
-        String fallback = baseUsername + "_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        log.warn("Max attempts reached for username generation. Using UUID fallback: {}", fallback);
-        return fallback;
-    }
-
-    /**
-     * Generates random alphanumeric suffix.
-     * Uses secure random and non-ambiguous characters.
-     *
-     * @return Random suffix (e.g., "A3K9")
-     */
-    private String generateRandomSuffix() {
-        StringBuilder suffix = new StringBuilder(SUFFIX_LENGTH);
-        for (int i = 0; i < SUFFIX_LENGTH; i++) {
-            suffix.append(CHARSET.charAt(RANDOM.nextInt(CHARSET.length())));
-        }
-        return suffix.toString();
-    }
-
-    /**
-     * Validates if a username is auto-generated (contains underscore + suffix pattern).
-     *
-     * @param username Username to check
-     * @return true if auto-generated, false if user-chosen
-     */
-    public boolean isAutoGenerated(String username) {
-        if (username == null || username.isBlank()) {
-            return false;
-        }
-
-        // Check if it matches pattern: prefix_SUFFIX
-        int lastUnderscore = username.lastIndexOf('_');
-        if (lastUnderscore == -1 || lastUnderscore == username.length() - 1) {
-            return false;
-        }
-
-        String suffix = username.substring(lastUnderscore + 1);
-        return suffix.length() == SUFFIX_LENGTH && suffix.matches("[A-Z0-9]+");
-    }
+    String generateFromFullName(String firstname, String lastname);
 }

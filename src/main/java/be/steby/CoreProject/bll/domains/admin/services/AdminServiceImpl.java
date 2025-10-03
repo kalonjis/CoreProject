@@ -1,16 +1,14 @@
 package be.steby.CoreProject.bll.domains.admin.services;
 
 import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory;
-import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;
-import be.steby.CoreProject.bll.common.models.user.UserCreationResult;
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
-import be.steby.CoreProject.bll.common.services.user.UserCreationService;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
 import be.steby.CoreProject.bll.domains.admin.events.AdminUserActivatedEvent;
 import be.steby.CoreProject.bll.domains.admin.events.AdminUserDeactivatedEvent;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
 import be.steby.CoreProject.bll.domains.admin.models.AdminDeactivationRequest;
 import be.steby.CoreProject.bll.domains.admin.models.AdminUserCreationRequest;
+import be.steby.CoreProject.bll.domains.admin.models.AdminUserCreationResult;
 import be.steby.CoreProject.bll.domains.admin.models.AdminValidationResult;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
@@ -44,7 +42,7 @@ public class AdminServiceImpl implements AdminService {
     private final DeviceService deviceService;
     private final MailerService mailerService;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
-    private final UserCreationService userCreationService;
+    private final AdminUserCreationService adminUserCreationService;
     private final UserPermissionService userPermissionService;
     private final AdminPolicyService adminPolicyService;
     private final ApplicationEventPublisher eventPublisher;
@@ -53,25 +51,37 @@ public class AdminServiceImpl implements AdminService {
     // USER MANAGEMENT
     // ===============================
 
+    /**
+     * Creates a new user account as an admin.
+     * Accepts AdminUserCreationRequest from BLL layer.
+     *
+     * @param request Admin user creation request (from BLL)
+     * @param httpRequest HTTP request for context capture
+     * @return The created user
+     */
     @Override
     @Transactional
-    public User createUser(User user, HttpServletRequest request) {
-        log.debug("Admin user creation request - username: {}, roles: {}",
-                user.getUsername(), user.getUserRoles());
+    public User createUser(AdminUserCreationRequest request, HttpServletRequest httpRequest) {
+        log.debug("Admin user creation request - email: {}, roles: {}",
+                request.email(), request.userRoles());
 
+        // 1. Get admin actor FIRST (for permission checks)
+        User actor = userService.getAuthenticatedUser();
 
-        AdminUserCreationRequest adminRequest = new AdminUserCreationRequest(
-                user.getUsername(),
-                user.getFirstname(),
-                user.getLastname(),
-                user.getEmail(),
-                user.getPhoneNumber(),
-                user.getUserRoles(),
-                true
-        );
+        // 2. Check role granting permissions BEFORE validation
+        // This is the critical security check that must happen first
+        for (UserRole role : request.userRoles()) {
+            if (!userPermissionService.canGrantRole(actor, null, role)) {
+                log.warn("Admin {} attempted to grant role {} without permission",
+                        actor.getUsername(), role);
+                throw UserPermissionExceptionFactory.forInsufficientPermissions(
+                        userPermissionService.getHighestRole(actor),
+                        "grant role " + role);
+            }
+        }
 
-        // 3. Validate via admin policy service
-        AdminValidationResult validation = adminPolicyService.validateUserCreation(adminRequest);
+        // 3. Validate data (email, names, phone) - NO permission validation here
+        AdminValidationResult validation = adminPolicyService.validateUserCreation(request);
         if (!validation.isValid()) {
             String errorMessage = "User creation validation failed: " +
                     String.join(", ", validation.errors());
@@ -79,29 +89,16 @@ public class AdminServiceImpl implements AdminService {
             throw new AdminOperationException(errorMessage);
         }
 
-        // 4. Get admin actor for permission checks
-        User actor = userService.getAuthenticatedUser();
+        // 4. ✅ Delegate to AdminUserCreationService
+        AdminUserCreationResult result = adminUserCreationService.createUserByAdmin(request);
 
-        // 5. Check role granting permissions
-        for (UserRole role : user.getUserRoles()) {
-            if (!userPermissionService.canGrantRole(actor, user, role)) {
-                throw UserPermissionExceptionFactory.forInsufficientPermissions(
-                        userPermissionService.getHighestRole(actor),
-                        "grant role " + role);
-            }
-        }
-
-        // 6. Delegate to user creation service
-        UserCreationRequest userCreationRequest = UserCreationRequest.forAdminCreate(user);
-        UserCreationResult result = userCreationService.createUser(userCreationRequest);
-
-        log.info("User successfully created by admin - ID: {}, username: {}",
-                result.user().getId(), result.user().getUsername());
+        log.info("User successfully created by admin - ID: {}, username: {}, created by: {}",
+                result.user().getId(), result.user().getUsername(), actor.getUsername());
 
         return result.user();
     }
 
-    @Override
+     @Override
     @Transactional
     public void activateUser(Long id, HttpServletRequest request) {
         log.debug("Admin activation request - targetId: {}", id);

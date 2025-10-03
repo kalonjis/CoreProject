@@ -2,8 +2,6 @@ package be.steby.CoreProject.pl.domains.account.controller;
 
 import be.steby.CoreProject.bll.domains.account.services.AccountService;
 import be.steby.CoreProject.bll.domains.auth.services.cookies.AuthCookieService;
-import be.steby.CoreProject.bll.domains.userRegistration.services.UserRegistrationService;
-import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.pl.domains.account.models.requests.DeactivateAccountRequest;
 import be.steby.CoreProject.pl.domains.account.models.requests.ReactivateAccountRequest;
@@ -34,7 +32,6 @@ import java.net.URI;
 @Slf4j
 public class AccountController {
 
-    private final UserRegistrationService userRegistrationService;
     private final AccountService accountService;
     private final AuthCookieService authCookieService;
 
