@@ -22,4 +22,26 @@ public abstract class AccountDomainException extends CoreProjectException {
     public AccountDomainException(String message, int status) {
         super(message, status);
     }
+
+
+    /**
+     * Creates a new exception with a message, cause, and default status 400.
+     *
+     * @param message Error message
+     * @param cause Root cause
+     */
+    public AccountDomainException(String message, Throwable cause) {
+        super(message, 400, cause);
+    }
+
+    /**
+     * Creates a new exception with a message, cause, and specific status code.
+     *
+     * @param message Error message
+     * @param status HTTP status code
+     * @param cause Root cause
+     */
+    public AccountDomainException(String message, int status, Throwable cause) {
+        super(message, status, cause);
+    }
 }
