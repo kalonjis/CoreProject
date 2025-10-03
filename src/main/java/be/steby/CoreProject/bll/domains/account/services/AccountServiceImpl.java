@@ -1,37 +1,54 @@
 package be.steby.CoreProject.bll.domains.account.services;
 
+import be.steby.CoreProject.bll.common.services.validation.email.EmailPolicyService;
+import be.steby.CoreProject.bll.common.services.validation.password.PasswordPolicyService;
 import be.steby.CoreProject.bll.domains.account.events.*;
 import be.steby.CoreProject.bll.domains.account.exceptions.AccountAlreadyActivatedException;
+import be.steby.CoreProject.bll.domains.account.exceptions.SignupValidationException;
 import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.AccountAlreadyDeactivatedException;
 import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.InvalidDeactivationRequestException;
 import be.steby.CoreProject.bll.domains.account.exceptions.reactivation.ReactivationNotAllowedException;
-import be.steby.CoreProject.bll.domains.account.models.DeactivationRequest;
-import be.steby.CoreProject.bll.domains.account.models.DeactivationValidationResult;
-import be.steby.CoreProject.bll.domains.account.models.ReactivationRequest;
+import be.steby.CoreProject.bll.domains.account.models.*;
 import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationAttemptServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.reactivation.AccountReactivationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.emailaddress.models.EmailValidationResult;
+import be.steby.CoreProject.bll.domains.password.models.PasswordValidationResult;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.account.services.tokens.confirmation.AccountConfirmationAttemptServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.confirmation.AccountConfirmationTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.user.services.UsernameGeneratorService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.AccountDeactivationToken;
 import be.steby.CoreProject.dl.entities.tokens.AccountReactivationToken;
 import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
+import be.steby.CoreProject.dl.enums.UserRole;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 @RequiredArgsConstructor
 @Service
 @Slf4j
 public class AccountServiceImpl implements AccountService {
+
+    private final UsernameGeneratorService usernameGeneratorService;
+    private final PasswordEncoder passwordEncoder;
+
+    private final PasswordPolicyService passwordPolicyService;  // from bll.common.services.validation.password
+    private final EmailPolicyService emailPolicyService;
 
     private final AccountConfirmationTokenServiceImpl accountConfirmationTokenService;
     private final AccountConfirmationAttemptServiceImpl accountConfirmationAttemptService;
@@ -46,6 +63,132 @@ public class AccountServiceImpl implements AccountService {
     private final RefreshTokenServiceImpl refreshTokenService;
     private final ApplicationEventPublisher eventPublisher;
 
+
+    /**
+     * Handles complete self-signup process.
+     * Validates, creates user, generates token, and publishes event for email sending.
+     */
+    @Override
+    @Transactional
+    public User signup(SelfSignupRequest request, HttpServletRequest httpRequest) {
+        log.info("Processing self-signup for username: {}", request.email());
+
+        User user = request.toEntity();
+
+        // 1. Validate signup data (delegates to existing domain policies)
+        SignupValidationResult validation = validateSignupData(user);
+        if (!validation.isValid()) {
+            log.warn("Signup validation failed for {}: {}",
+                    user.getUsername(), validation.errors());
+            throw new SignupValidationException(
+                    "Signup validation failed: " + String.join(", ", validation.errors())
+            );
+        }
+
+        // 2. Prepare user for self-signup mode
+        prepareUserForSelfSignup(user);
+
+        // 3. Save user
+        userService.saveUser(user);
+        log.info("User {} successfully created via self-signup", user.getUsername());
+
+        // 4. Generate activation token
+        AccountConfirmationToken token =
+                accountConfirmationTokenService.createAccountConfirmationToken(user);
+
+        // 5. Publish event for email sending
+        publishSignupEvent(user, token);
+
+        return user;
+    }
+
+    /**
+     * Validates all signup data.
+     * ✅ DRY: Delegates to existing EmailPolicyService and PasswordPolicyService
+     */
+    private SignupValidationResult validateSignupData(User user) {
+        log.debug("Validating signup data for username: {}", user.getUsername());
+        List<String> errors = new ArrayList<>();
+
+        // 1. Check if user already exists (username or email)
+        try {
+            userService.checkIfUserExists(user);
+        } catch (Exception e) {
+            errors.add(e.getMessage());
+        }
+
+        // 2. ✅ DELEGATION: Validate email using EmailPolicyService (password domain)
+        EmailValidationResult emailResult = emailPolicyService.validateEmail(user.getEmail());
+        if (!emailResult.isValid()) {
+            errors.addAll(emailResult.errors());
+        }
+
+        // 3. ✅ DELEGATION: Validate password using PasswordPolicyService (password domain)
+        if (user.getPassword() == null || user.getPassword().isBlank()) {
+            errors.add("Password is required");
+        } else {
+            PasswordValidationResult passwordResult =
+                    passwordPolicyService.validatePassword(user.getPassword());
+            if (!passwordResult.isValid()) {
+                errors.addAll(passwordResult.errors());
+            }
+        }
+
+        boolean isValid = errors.isEmpty();
+        log.debug("Signup validation result for {}: valid={}, errors={}",
+                user.getUsername(), isValid, errors);
+
+        return new SignupValidationResult(isValid, errors);
+    }
+
+    /**
+     * Prepares user entity for self-signup mode.
+     * Auto-generates username if not provided (Discord-style).
+     * Encodes password and sets appropriate account states.
+     */
+    private void prepareUserForSelfSignup(User user) {
+        log.debug("Preparing user for self-signup mode");
+
+        // Auto-generate username if not provided (NOT NULL constraint)
+        if (user.getUsername() == null || user.getUsername().isBlank()) {
+            String generatedUsername = usernameGeneratorService.generateFromEmail(user.getEmail());
+            user.setUsername(generatedUsername);
+            log.info("Auto-generated username: {}", generatedUsername);
+        } else {
+            log.debug("Using provided username: {}", user.getUsername());
+        }
+
+        // Encode password
+        String encodedPassword = passwordEncoder.encode(user.getPassword());
+        user.setPassword(encodedPassword);
+
+        // Set USER role if not already set
+        if (user.getUserRoles() == null || user.getUserRoles().isEmpty()) {
+            user.setUserRoles(Set.of(UserRole.USER));
+        }
+
+        // Configure account states for self-signup
+        user.setEnabled(false);                  // Disabled until email confirmation
+        user.setEmailVerified(false);            // Email not yet verified
+        user.setEverActivated(false);            // Never activated yet
+        user.setMustChangePassword(false);       // User chose their password
+        user.setProfileComplete(false);          // Profile not yet complete
+
+        log.debug("User {} configured for self-signup: enabled=false, profileComplete=false",
+                user.getUsername());
+    }
+
+    /**
+     * Publishes signup event for async email sending.
+     */
+    private void publishSignupEvent(User user, AccountConfirmationToken token) {
+        SelfSignupCompletedEvent event = new SelfSignupCompletedEvent(
+                user,
+                token.getPublicId()
+        );
+        eventPublisher.publishEvent(event);
+        log.info("SelfSignupCompletedEvent published for user: {}", user.getUsername());
+    }
 
     @Override
     public User confirmNewUserAccount(String token, HttpServletRequest request) {
