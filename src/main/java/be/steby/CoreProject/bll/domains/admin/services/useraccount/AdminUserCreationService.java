@@ -1,8 +1,9 @@
-package be.steby.CoreProject.bll.domains.admin.services;
+package be.steby.CoreProject.bll.domains.admin.services.useraccount;
 
 import be.steby.CoreProject.bll.common.services.validation.email.EmailPolicyService;
 import be.steby.CoreProject.bll.common.services.validation.password.PasswordPolicyService;
 import be.steby.CoreProject.bll.common.services.validation.textField.TextFieldValidationService;
+import be.steby.CoreProject.bll.domains.emailaddress.exceptions.EmailAlreadyUsedException;
 import be.steby.CoreProject.bll.domains.emailaddress.models.EmailValidationResult;
 import be.steby.CoreProject.bll.domains.admin.events.AdminUserCreatedEvent;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
@@ -21,20 +22,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Service responsible for admin-initiated user creation.
  * Part of the Admin domain, handles the complete admin user creation flow.
  *
- * Flow:
- * 1. Validate admin request data
- * 2. Create user entity with admin-specific configuration
+ * Flow (refactored for permission checks):
+ * 1. Build user entity from request (NOT saved yet)
+ * 2. Validate request data
  * 3. Generate temporary password
- * 4. Save user to database
- * 5. Publish AdminUserCreatedEvent for email notification
+ * 4. Return built user for permission checks in AdminService
+ * 5. Complete creation (save + publish events) after permission validation
  *
  * No confirmation token needed - user confirms by first login.
  */
@@ -51,26 +50,24 @@ public class AdminUserCreationService {
     private final TextFieldValidationService textFieldValidationService;
     private final ApplicationEventPublisher eventPublisher;
 
+    // ===============================
+    // PUBLIC API - NEW SPLIT FLOW
+    // ===============================
+
     /**
-     * Creates a new user account initiated by an administrator.
+     * Builds user from request WITHOUT saving (for permission checks).
+     * This allows AdminService to validate permissions on the built user
+     * before committing to database.
      *
-     * Admin creation characteristics:
-     * - Email is considered verified (admin verified identity)
-     * - Account disabled until first login
-     * - Temporary password generated automatically
-     * - User must change password on first login
-     * - Profile complete (firstname/lastname provided by admin)
-     * - No confirmation token - user confirms by logging in
-     *
-     * @param request Admin user creation request with all required data
-     * @return AdminUserCreationResult containing created user and temporary password
+     * @param request Admin user creation request
+     * @return AdminUserCreationResult with built user and temporary password
      * @throws AdminOperationException if validation fails
      */
-    @Transactional
-    public AdminUserCreationResult createUserByAdmin(AdminUserCreationRequest request) {
-        log.info("Processing admin user creation for email: {}", request.email());
+    @Transactional(readOnly = true)
+    public AdminUserCreationResult buildUserFromRequest(AdminUserCreationRequest request) {
+        log.debug("Building user from request for email: {}", request.email());
 
-        // 1. Validate request data
+        // 1. Validate request data (email, names, phone, roles)
         AdminValidationResult validation = validateAdminUserCreation(request);
         if (!validation.isValid()) {
             log.warn("Admin user creation validation failed: {}", validation.errors());
@@ -79,32 +76,84 @@ public class AdminUserCreationService {
             );
         }
 
-        // 2. Build user entity from request
-        User user = buildUserFromRequest(request);
+        // 2. Build user entity from request (NOT SAVED YET)
+        User user = buildUserEntityFromRequest(request);
 
-        // 3. Check if user already exists
-        userService.checkIfUserExists(user);
-
-        // 4. Generate temporary password
+        // 3. Generate temporary password
         String temporaryPassword = passwordPolicyService.generateSecurePassword();
         log.debug("Temporary password generated for user: {}", user.getUsername());
 
-        // 5. Prepare user for admin creation
-        prepareUserForAdminCreation(user, temporaryPassword);
-
-        // 6. Save user
-        userService.saveUser(user);
-        log.info("User {} successfully created by admin", user.getUsername());
-
-        // 7. Publish event for email sending (no token needed!)
-        publishAdminCreationEvent(user, temporaryPassword);
-
+        // 4. Return result with user NOT YET SAVED
+        log.debug("User {} built successfully (not saved) - ready for permission checks",
+                user.getUsername());
         return new AdminUserCreationResult(user, temporaryPassword);
     }
 
     /**
+     * Completes user creation by preparing, saving, and publishing events.
+     * Called AFTER permission checks have passed in AdminService.
+     *
+     * @param user The built user (not yet saved)
+     * @param temporaryPassword The temporary password
+     * @return The saved user with ID
+     */
+    @Transactional
+    public User completeUserCreation(User user, String temporaryPassword) {
+        log.info("Completing user creation for: {}", user.getUsername());
+
+        // 1. Prepare user for admin creation (set flags, encode password)
+        prepareUserForAdminCreation(user, temporaryPassword);
+
+        // 2. Save user to database
+        userService.saveUser(user);
+        log.info("User {} successfully created by admin with ID: {}",
+                user.getUsername(), user.getId());
+
+        // 3. Publish event for email notification
+        publishAdminCreationEvent(user, temporaryPassword);
+
+        return user;
+    }
+
+    // ===============================
+    // DEPRECATED - OLD SINGLE-STEP METHOD
+    // ===============================
+
+    /**
+     * @deprecated Use {@link #buildUserFromRequest(AdminUserCreationRequest)}
+     *             followed by {@link #completeUserCreation(User, String)}
+     *             to enable permission checks on the built user before saving.
+     *
+     * Creates a new user account initiated by an administrator (old flow).
+     * This method is kept for backwards compatibility but should not be used
+     * for new code as it doesn't allow permission validation before saving.
+     *
+     * @param request Admin user creation request with all required data
+     * @return AdminUserCreationResult containing created user and temporary password
+     * @throws AdminOperationException if validation fails
+     */
+    @Deprecated
+    @Transactional
+    public AdminUserCreationResult createUserByAdmin(AdminUserCreationRequest request) {
+        log.warn("Using deprecated createUserByAdmin method - consider using split flow");
+
+        // Redirect to new split flow
+        AdminUserCreationResult buildResult = buildUserFromRequest(request);
+        User savedUser = completeUserCreation(buildResult.user(), buildResult.temporaryPassword());
+
+        return new AdminUserCreationResult(savedUser, buildResult.temporaryPassword());
+    }
+
+    // ===============================
+    // PRIVATE HELPER METHODS
+    // ===============================
+
+    /**
      * Validates all admin user creation data.
      * Delegates to specialized validation services for each field type.
+     *
+     * @param request The request to validate
+     * @return Validation result with errors if any
      */
     private AdminValidationResult validateAdminUserCreation(AdminUserCreationRequest request) {
         log.debug("Validating admin user creation data for email: {}", request.email());
@@ -140,11 +189,23 @@ public class AdminUserCreationService {
 
     /**
      * Builds User entity from AdminUserCreationRequest.
+     * This is an internal method - use buildUserFromRequest() publicly.
+     *
+     * @param request The admin creation request
+     * @return A new User entity (not yet saved)
      */
-    private User buildUserFromRequest(AdminUserCreationRequest request) {
+    private User buildUserEntityFromRequest(AdminUserCreationRequest request) {
         User user = new User();
 
-        // Auto-generate professional username from full name
+        // 1. ✅ CHECK EMAIL FIRST (fail fast - 1 requête DB)
+        if (userService.existsByEmail(request.email())) {
+            log.warn("Email already exists: {}", request.email());
+            throw new EmailAlreadyUsedException(
+                    "User account with email address: " + request.email() + " already exists"
+            );
+        }
+
+        // 2. ✅ Generate username (déjà garantit unique par UsernameGeneratorService)
         String generatedUsername = usernameGeneratorService.generateFromFullName(
                 request.firstname(),
                 request.lastname()
@@ -152,22 +213,25 @@ public class AdminUserCreationService {
         user.setUsername(generatedUsername);
         log.debug("Auto-generated professional username: {}", generatedUsername);
 
-        // Set user data from request
+        // 3. Set user data
         user.setEmail(request.email());
         user.setFirstname(request.firstname());
         user.setLastname(request.lastname());
         user.setPhoneNumber(request.phoneNumber());
 
-        // Set roles EXACTLY as requested (don't use UserRole.setRoles() for admin creation)
-        // Admin explicitly chooses which roles to assign
-        user.setUserRoles(new HashSet<>(request.userRoles()));
+        // 4. Apply role hierarchy
+        UserRole highestRole = UserRole.getHighestRole(request.userRoles());
+        user.setUserRoles(UserRole.setRoles(highestRole));
+
+        log.debug("Built user entity: username={}, email={}, highest role={}, effective roles={}",
+                user.getUsername(), user.getEmail(), highestRole, user.getUserRoles());
 
         return user;
     }
 
     /**
      * Prepares user entity for admin creation mode.
-     * Sets all appropriate flags for admin-created users.
+     * Sets all appropriate flags and encodes password.
      *
      * Admin-created user characteristics:
      * - emailVerified = true (admin verified identity)
@@ -175,6 +239,9 @@ public class AdminUserCreationService {
      * - everActivated = false (first activation pending)
      * - mustChangePassword = true (must change temp password)
      * - profileComplete = true (admin provided firstname/lastname)
+     *
+     * @param user The user to prepare
+     * @param temporaryPassword The temporary password (plain text)
      */
     private void prepareUserForAdminCreation(User user, String temporaryPassword) {
         log.debug("Preparing user for admin creation mode");
@@ -187,7 +254,7 @@ public class AdminUserCreationService {
         user.setEnabled(false);                  // ❌ Until first login
         user.setEverActivated(false);            // First activation pending
         user.setMustChangePassword(true);        // ✅ Must change temporary password
-        user.setProfileComplete(true);           // ✅ Admin provided firstname/lastname
+        user.setProfileComplete(true);           // ✅ Admin provided firstname/lastname TODO: check in prod which data is needed to have a completed profile
 
         log.debug("User {} configured for admin creation: emailVerified=true, enabled=false, " +
                 "mustChangePassword=true, profileComplete=true", user.getUsername());
@@ -196,6 +263,9 @@ public class AdminUserCreationService {
     /**
      * Publishes AdminUserCreatedEvent for async email notification.
      * No confirmation token needed - user confirms by logging in with temporary password.
+     *
+     * @param user The created user
+     * @param temporaryPassword The temporary password (will be sent via email)
      */
     private void publishAdminCreationEvent(User user, String temporaryPassword) {
         User admin = userService.getAuthenticatedUser();
