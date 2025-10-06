@@ -23,15 +23,6 @@ public interface AdminService {
     // ===============================
 
     /**
-     * Creates a new user account as an admin.
-     *
-     * @param request Admin user creation request from BLL
-     * @param httpRequest HTTP request for context capture
-     * @return The created user
-     */
-    User createUser(AdminUserCreationRequest request, HttpServletRequest httpRequest);
-
-    /**
      * Activates or reactivates a user account as an admin.
      * Automatically determines whether it's first activation or reactivation.
      *
