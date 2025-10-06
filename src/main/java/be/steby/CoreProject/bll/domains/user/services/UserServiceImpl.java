@@ -8,6 +8,7 @@ import be.steby.CoreProject.bll.common.services.reactivation.ReactivationPolicyS
 import be.steby.CoreProject.bll.domains.account.events.UserDeactivatedEvent;
 import be.steby.CoreProject.bll.domains.emailaddress.exceptions.EmailAlreadyUsedException;
 import be.steby.CoreProject.bll.domains.user.events.UserPersistedEvent;
+import be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException;
 import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.specifications.UserSpecification;
 import be.steby.CoreProject.dal.repositories.UserRepository;
@@ -79,26 +80,26 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUserById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new DoesntExistException("User with id " + id + " does not exist"));
+                .orElseThrow(() -> UserNotFoundException.byId(id));
     }
 
     @Override
     public User getUserByUsername(String username) {
         return userRepository.findByUsernameIgnoreCase(username)
-                .orElseThrow(() -> new DoesntExistException("User account with username: " + username + " not found"));
+                .orElseThrow(() -> UserNotFoundException.byUsername(username));
     }
 
     @Override
     public User getUserByEmail(String email) {
         return userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new DoesntExistException("User with email address " + email + " not found"));
+                .orElseThrow(() -> UserNotFoundException.byEmail(email));
     }
 
 
     @Override
     public User getUserByUsernameOrByEmail(String identifier) {
         return userRepository.findByEmailOrUsername(identifier)
-                .orElseThrow(()-> new DoesntExistException("User account with identifier: " + identifier + " not found"));
+                .orElseThrow(()-> UserNotFoundException.byIdentifier(identifier));
     }
 
     /**
