@@ -1,6 +1,7 @@
 package be.steby.CoreProject.pl.controllers.admin;
 
 import be.steby.CoreProject.bll.domains.admin.services.AdminService;
+import be.steby.CoreProject.bll.domains.admin.services.useraccount.AdminUserAccountService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.admin.deactivation.DeactivationMainCategory;
@@ -36,6 +37,7 @@ import java.util.Map;
 public class AdminUserController {
 
     private final AdminService adminService;
+    private final AdminUserAccountService adminUserAccountService;
     private final PagedResourcesAssembler<User> pagedResourcesAssembler;
 
 
@@ -47,7 +49,7 @@ public class AdminUserController {
         log.info("Admin user creation request for email: {}", request.email());
 
         // Call admin service
-        adminService.createUser(request.toBLL(), httpRequest);
+        adminUserAccountService.createUser(request.toBLL(), httpRequest);
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "User created successfully");
