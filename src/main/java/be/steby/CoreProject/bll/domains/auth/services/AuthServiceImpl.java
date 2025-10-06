@@ -17,6 +17,7 @@ import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
 import be.steby.CoreProject.bll.exceptions.DoesntExistException;
+import be.steby.CoreProject.bll.domains.user.exceptions.UsernameNotFoundAuthenticationException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
@@ -227,7 +228,7 @@ public class AuthServiceImpl implements AuthService {
      *
      * @param username Username to load
      * @return User entity
-     * @throws DoesntExistException if user not found
+     * @throws UsernameNotFoundAuthenticationException if user not found
      */
     private User loadUser(String username) {
         return (User) loadUserByUsername(username);

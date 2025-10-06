@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.domains.admin.services;
 
-import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.bll.common.services.validation.email.EmailPolicyService;
 import be.steby.CoreProject.bll.common.services.validation.textField.TextFieldValidationService;
 import be.steby.CoreProject.bll.domains.admin.models.AdminDeactivationRequest;
@@ -31,10 +30,8 @@ import java.util.Set;
 @Slf4j
 public class AdminPolicyServiceImpl implements AdminPolicyService {
 
-    // ✅ COMMON VALIDATION SERVICES - avoiding duplication
     private final EmailPolicyService emailPolicyService;
-    private final UserPermissionService userPermissionService;
-    private final TextFieldValidationService textFieldValidationService; // ← NEW
+    private final TextFieldValidationService textFieldValidationService;
 
     // Admin-specific configuration (keep only what's truly admin-specific)
     @Value("${security.admin.validation.details.min-length:10}")
@@ -51,22 +48,20 @@ public class AdminPolicyServiceImpl implements AdminPolicyService {
 
     /**
      * Complex user creation validation.
-     * ✅ BUSINESS VALUE: Orchestrates data validations ONLY
-     * ❌ Does NOT validate permissions - that's UserPermissionService's job in AdminService
+     * ✅ BUSINESS VALUE: Orchestrates validations and admin-specific business rules
      */
     @Override
     public AdminValidationResult validateUserCreation(AdminUserCreationRequest request) {
         if (logAllOperations) {
-            log.debug("Validating user creation - firstname: {}, lastname: {}, email: {}",
+            log.debug("Validating user creation - firstname: {}, lastname: {},email: {}",
                     request.firstname(), request.lastname(), request.email());
         }
 
         List<String> errors = new ArrayList<>();
 
-        // 1. ✅ DELEGATION: Basic text field validation
+        // 1. ✅ DELEGATION: Basic text field validation via common service
         textFieldValidationService.validateFirstname(request.firstname(), errors);
         textFieldValidationService.validateLastname(request.lastname(), errors);
-
         if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
             textFieldValidationService.validatePhoneNumber(request.phoneNumber(), errors);
         }
@@ -77,11 +72,11 @@ public class AdminPolicyServiceImpl implements AdminPolicyService {
             errors.addAll(emailResult.errors());
         }
 
-        // 3. ✅ Basic role validation (not empty, not null)
-        // Permission checks are done in AdminService.createUser() via UserPermissionService
-        if (request.userRoles() == null || request.userRoles().isEmpty()) {
-            errors.add("At least one role must be assigned to the user");
-        }
+        // 3. ✅ DELEGATION: Role validation via permission service
+        validateUserRoles(request.userRoles(), errors);
+
+        // 5. ✅ ADMIN BUSINESS VALUE: Admin-specific creation business rules
+        validateAdminSpecificCreationRules(request, errors);
 
         if (logAllOperations) {
             log.debug("User creation validation completed - {} errors", errors.size());
@@ -137,9 +132,6 @@ public class AdminPolicyServiceImpl implements AdminPolicyService {
             errors.add("At least one role must be assigned to the user");
             return;
         }
-
-        // UserRole enum already guarantees valid roles, so we focus on business rules
-        // Add any admin-specific role validation rules here if needed
 
         log.debug("Validating {} user roles for admin creation", userRoles.size());
     }
