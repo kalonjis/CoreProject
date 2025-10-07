@@ -1,187 +1,242 @@
 package be.steby.CoreProject.bll.domains.admin.events;
 
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.admin.AdminPasswordResetStrategy;
 
 import java.time.Instant;
 
 /**
- * Événement émis lorsqu'un administrateur déclenche un reset de mot de passe pour un utilisateur.
- * Cet événement contient toutes les informations nécessaires pour l'audit
- * et les notifications liées aux resets de mot de passe déclenchés par un admin.
+ * Event emitted when an administrator triggers a password reset for a user.
+ * This event contains all information necessary for audit trail and notifications
+ * related to admin-initiated password resets.
+ *
+ * The event includes the reset strategy which determines:
+ * - How the reset is processed
+ * - What notifications are sent
+ * - What security measures are applied
+ * - Priority level for handling
  */
 public record AdminPasswordResetTriggeredEvent(
         /**
-         * L'utilisateur pour qui le reset de mot de passe est déclenché.
+         * The user for whom the password reset is triggered.
          */
         User targetUser,
 
         /**
-         * L'administrateur qui a déclenché le reset.
+         * The administrator who triggered the reset.
          */
         User adminUser,
 
         /**
-         * Raison du reset de mot de passe (optionnel).
+         * Reason for the password reset (required for audit).
          */
         String reason,
 
         /**
-         * Indique si l'utilisateur sera forcé de changer son mot de passe à la prochaine connexion.
+         * Reset strategy determining how the operation is executed.
+         */
+        AdminPasswordResetStrategy strategy,
+
+        /**
+         * Whether user will be forced to change password on next login.
+         * True for TEMPORARY_PASSWORD and FORCE_EXPIRE strategies.
          */
         boolean forceChangeOnNextLogin,
 
         /**
-         * Indique si les sessions actives doivent être invalidées.
+         * Whether active sessions should be invalidated.
+         * Always true for SECURITY_BREACH strategy.
          */
         boolean invalidateActiveSessions,
 
         /**
-         * Email de notification envoyé à l'utilisateur.
+         * Email address where notification was sent.
+         * May be different from user's primary email for alternative delivery.
          */
         String notificationEmail,
 
         /**
-         * Timestamp de l'événement.
+         * Event timestamp.
          */
         Instant timestamp
 ) {
 
     /**
-     * Constructeur avec timestamp automatique.
+     * Constructor with automatic timestamp.
      */
     public AdminPasswordResetTriggeredEvent(
             User targetUser,
             User adminUser,
             String reason,
+            AdminPasswordResetStrategy strategy,
             boolean forceChangeOnNextLogin,
             boolean invalidateActiveSessions,
             String notificationEmail) {
-        this(targetUser, adminUser, reason, forceChangeOnNextLogin, invalidateActiveSessions,
-                notificationEmail, Instant.now());
+        this(targetUser, adminUser, reason, strategy, forceChangeOnNextLogin,
+                invalidateActiveSessions, notificationEmail, Instant.now());
     }
 
     /**
-     * Crée un événement de reset de mot de passe déclenché par admin.
+     * Creates an admin password reset event.
      *
-     * @param targetUser L'utilisateur cible
-     * @param adminUser L'administrateur
-     * @param reason La raison du reset
-     * @param forceChangeOnNextLogin Si forcer le changement
-     * @param invalidateActiveSessions Si invalider les sessions
-     * @param notificationEmail Email de notification
-     * @return Nouvel événement
+     * @param targetUser Target user
+     * @param adminUser Administrator
+     * @param reason Reset reason
+     * @param strategy Reset strategy
+     * @param forceChangeOnNextLogin Whether to force password change
+     * @param invalidateActiveSessions Whether to invalidate sessions
+     * @param notificationEmail Notification email address
+     * @return New event instance
      */
     public static AdminPasswordResetTriggeredEvent of(
             User targetUser,
             User adminUser,
             String reason,
+            AdminPasswordResetStrategy strategy,
             boolean forceChangeOnNextLogin,
             boolean invalidateActiveSessions,
             String notificationEmail) {
         return new AdminPasswordResetTriggeredEvent(
-                targetUser, adminUser, reason, forceChangeOnNextLogin,
+                targetUser, adminUser, reason, strategy, forceChangeOnNextLogin,
                 invalidateActiveSessions, notificationEmail
         );
     }
 
     /**
-     * Crée un événement de reset simple.
+     * Creates a simple reset event with default settings.
      *
-     * @param targetUser L'utilisateur cible
-     * @param adminUser L'administrateur
-     * @return Nouvel événement
+     * @param targetUser Target user
+     * @param adminUser Administrator
+     * @return New event instance with STANDARD_RESET strategy
      */
     public static AdminPasswordResetTriggeredEvent simple(
             User targetUser,
             User adminUser) {
         return new AdminPasswordResetTriggeredEvent(
-                targetUser, adminUser, null, true, true,
-                targetUser.getEmail()
+                targetUser, adminUser, "Admin-initiated password reset",
+                AdminPasswordResetStrategy.STANDARD_RESET,
+                false, false, targetUser.getEmail()
         );
     }
 
+    // ===============================
+    // BUSINESS LOGIC METHODS
+    // ===============================
+
     /**
-     * Vérifie si le reset est pour des raisons de sécurité.
+     * Checks if the reset is for security reasons.
+     * True if strategy is SECURITY_BREACH or reason contains security keywords.
      *
-     * @return true si la raison suggère un problème de sécurité
+     * @return true if security-related
      */
     public boolean isSecurityRelated() {
+        if (strategy == AdminPasswordResetStrategy.SECURITY_BREACH) {
+            return true;
+        }
+
         if (reason == null) return false;
+
         String lowerReason = reason.toLowerCase();
-        return lowerReason.contains("sécurité") ||
-                lowerReason.contains("security") ||
-                lowerReason.contains("compromis") ||
+        return lowerReason.contains("security") ||
                 lowerReason.contains("breach") ||
-                lowerReason.contains("suspicious");
+                lowerReason.contains("compromised") ||
+                lowerReason.contains("suspicious") ||
+                lowerReason.contains("hack") ||
+                lowerReason.contains("unauthorized") ||
+                lowerReason.contains("attack");
     }
 
     /**
-     * Vérifie si c'est un reset urgent.
+     * Checks if this is an urgent reset requiring immediate attention.
+     * True for SECURITY_BREACH with session invalidation.
      *
-     * @return true si c'est un reset urgent (sécurité + invalidation sessions)
+     * @return true if urgent reset
      */
     public boolean isUrgentReset() {
-        return isSecurityRelated() && invalidateActiveSessions;
+        return strategy == AdminPasswordResetStrategy.SECURITY_BREACH
+                && invalidateActiveSessions;
     }
 
     /**
-     * Obtient l'ID de l'utilisateur cible.
+     * Checks if this is a security breach reset.
      *
-     * @return ID de l'utilisateur cible
+     * @return true if strategy is SECURITY_BREACH
+     */
+    public boolean isSecurityBreach() {
+        return strategy == AdminPasswordResetStrategy.SECURITY_BREACH;
+    }
+
+    /**
+     * Checks if a temporary password was generated.
+     *
+     * @return true if strategy is TEMPORARY_PASSWORD
+     */
+    public boolean isTemporaryPassword() {
+        return strategy == AdminPasswordResetStrategy.TEMPORARY_PASSWORD;
+    }
+
+    // ===============================
+    // GETTER CONVENIENCE METHODS
+    // ===============================
+
+    /**
+     * Gets target user ID.
+     *
+     * @return Target user ID
      */
     public Long getTargetUserId() {
         return targetUser.getId();
     }
 
     /**
-     * Obtient l'ID de l'administrateur.
+     * Gets admin user ID.
      *
-     * @return ID de l'administrateur
+     * @return Admin user ID
      */
     public Long getAdminUserId() {
         return adminUser.getId();
     }
 
     /**
-     * Obtient le nom d'utilisateur de l'utilisateur cible.
+     * Gets target username.
      *
-     * @return Nom d'utilisateur cible
+     * @return Target username
      */
     public String getTargetUsername() {
         return targetUser.getUsername();
     }
 
     /**
-     * Obtient le nom d'utilisateur de l'administrateur.
+     * Gets admin username.
      *
-     * @return Nom d'utilisateur de l'admin
+     * @return Admin username
      */
     public String getAdminUsername() {
         return adminUser.getUsername();
     }
 
     /**
-     * Vérifie si une raison a été fournie.
+     * Checks if a reason was provided.
      *
-     * @return true si une raison est présente
+     * @return true if reason is present
      */
     public boolean hasReason() {
         return reason != null && !reason.isBlank();
     }
 
     /**
-     * Vérifie si un email de notification a été spécifié.
+     * Checks if a notification email was specified.
      *
-     * @return true si un email est spécifié
+     * @return true if email is present
      */
     public boolean hasNotificationEmail() {
         return notificationEmail != null && !notificationEmail.isBlank();
     }
 
     /**
-     * Vérifie si le reset concerne un utilisateur avec des rôles administratifs.
+     * Checks if reset concerns a user with administrative roles.
      *
-     * @return true si l'utilisateur a des rôles d'administration
+     * @return true if user has admin roles
      */
     public boolean isAdministrativeUser() {
         return targetUser.getUserRoles().stream().anyMatch(role ->
@@ -189,70 +244,87 @@ public record AdminPasswordResetTriggeredEvent(
         );
     }
 
+    // ===============================
+    // DESCRIPTION AND SUMMARY METHODS
+    // ===============================
+
     /**
-     * Crée une description textuelle de l'événement.
+     * Creates a textual description of the event.
      *
-     * @return Description de l'événement
+     * @return Event description
      */
     public String getDescription() {
-        String base = String.format(
-                "Reset de mot de passe déclenché pour l'utilisateur '%s' par l'administrateur '%s'",
-                getTargetUsername(),
-                getAdminUsername()
+        StringBuilder desc = new StringBuilder(
+                String.format("Password reset triggered for user '%s' by administrator '%s'",
+                        getTargetUsername(), getAdminUsername())
         );
 
+        desc.append(" [Strategy: ").append(strategy.name()).append("]");
+
         if (hasReason()) {
-            base += ". Raison: " + reason;
+            desc.append(". Reason: ").append(reason);
         }
 
         if (forceChangeOnNextLogin) {
-            base += " - Changement obligatoire à la prochaine connexion";
+            desc.append(" - Password change required on next login");
         }
 
         if (invalidateActiveSessions) {
-            base += " - Sessions actives invalidées";
+            desc.append(" - Active sessions invalidated");
         }
 
-        return base;
+        return desc.toString();
     }
 
     /**
-     * Obtient le niveau de priorité du reset.
+     * Gets the priority level of the reset.
      *
-     * @return Niveau de priorité (LOW, MEDIUM, HIGH, URGENT)
+     * @return Priority level (LOW, MEDIUM, HIGH, URGENT)
      */
     public String getPriorityLevel() {
-        if (isUrgentReset()) {
-            return "URGENT";
-        } else if (isSecurityRelated()) {
-            return "HIGH";
-        } else if (forceChangeOnNextLogin) {
-            return "MEDIUM";
-        } else {
-            return "LOW";
-        }
+        return switch (strategy) {
+            case SECURITY_BREACH -> invalidateActiveSessions ? "URGENT" : "HIGH";
+            case TEMPORARY_PASSWORD -> "MEDIUM";
+            case FORCE_EXPIRE -> "LOW-MEDIUM";
+            case STANDARD_RESET -> "LOW";
+        };
     }
 
     /**
-     * Crée un résumé des actions effectuées.
+     * Creates a summary of actions performed.
      *
-     * @return Résumé des actions
+     * @return Action summary
      */
     public String getActionSummary() {
-        StringBuilder summary = new StringBuilder("Reset de mot de passe");
+        StringBuilder summary = new StringBuilder("Password reset");
+
+        summary.append(" [").append(strategy.name()).append("]");
+
+        if (strategy == AdminPasswordResetStrategy.SECURITY_BREACH) {
+            summary.append(" + Password revoked");
+        }
 
         if (forceChangeOnNextLogin) {
-            summary.append(" + Changement forcé");
+            summary.append(" + Forced password change");
         }
 
         if (invalidateActiveSessions) {
-            summary.append(" + Invalidation sessions");
+            summary.append(" + Sessions invalidated");
         }
 
         if (hasNotificationEmail()) {
-            summary.append(" + Notification email");
+            summary.append(" + Email notification");
         }
 
         return summary.toString();
+    }
+
+    /**
+     * Gets security level description.
+     *
+     * @return Security level
+     */
+    public String getSecurityLevel() {
+        return strategy.getSecurityLevel();
     }
 }
