@@ -29,7 +29,7 @@ public interface AdminService {
      * @param id User ID to activate
      * @param request HTTP request for context capture
      */
-    void activateUser(Long id, HttpServletRequest request);
+    //void activateUser(Long id, HttpServletRequest request);
 
     /**
      * Deactivates a user account as an admin.
@@ -39,8 +39,8 @@ public interface AdminService {
      * @param adminDeactivationDetails Admin deactivation details
      * @param request HTTP request for context capture
      */
-    void deactivateUser(Long id, AdminDeactivationCategory deactivationCategory,
-                        String adminDeactivationDetails, HttpServletRequest request);
+    //void deactivateUser(Long id, AdminDeactivationCategory deactivationCategory,
+                        //String adminDeactivationDetails, HttpServletRequest request);
 
     /**
      * Reactivates a previously deactivated user account as an admin.
@@ -48,21 +48,21 @@ public interface AdminService {
      * @param id User ID to reactivate
      * @param request HTTP request for context capture
      */
-    void reactivateUser(Long id, HttpServletRequest request);
+    //void reactivateUser(Long id, HttpServletRequest request);
 
     /**
      * Permanently deletes a user account (super admin only).
      *
      * @param id User ID to delete
      */
-    void deleteUser(Long id);
+    //void deleteUser(Long id);
 
     /**
      * GDPR compliant user deletion with data anonymization (super admin only).
      *
      * @param user User to delete
      */
-    void gdprUserDelete(User user);
+   // void gdprUserDelete(User user);
 
     // ===============================
     // ROLE MANAGEMENT
@@ -74,7 +74,7 @@ public interface AdminService {
      * @param id User ID
      * @param role Role to grant
      */
-    void grantUserRole(Long id, UserRole role);
+   // void grantUserRole(Long id, UserRole role);
 
     /**
      * Revokes a role from a user as an admin.
@@ -82,7 +82,7 @@ public interface AdminService {
      * @param id User ID
      * @param role Role to revoke
      */
-    void revokeUserRole(Long id, UserRole role);
+    //void revokeUserRole(Long id, UserRole role);
 
     // ===============================
     // PASSWORD MANAGEMENT

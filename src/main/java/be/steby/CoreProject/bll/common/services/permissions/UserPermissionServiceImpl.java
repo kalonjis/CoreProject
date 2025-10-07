@@ -134,11 +134,8 @@ public class UserPermissionServiceImpl implements UserPermissionService {
      *
      * Permission rules:
      * - SUPER_ADMIN can grant any role to anyone
-     * - ADMIN can grant MODERATOR and USER roles (but not ADMIN or SUPER_ADMIN)
+     * - ADMIN can grant MODERATOR and USER roles to anyone (but cannot grant ADMIN or SUPER_ADMIN)
      * - MODERATOR and USER cannot grant any roles
-     *
-     * Additional security:
-     * - Cannot grant role to user who already has a higher role
      *
      * @param actor The user attempting to grant the role
      * @param target The user who will receive the role
@@ -154,7 +151,6 @@ public class UserPermissionServiceImpl implements UserPermissionService {
         }
 
         UserRole actorHighestRole = getHighestRole(actor);
-        UserRole targetHighestRole = getHighestRole(target);
 
         // SUPER_ADMIN can grant any role to anyone
         if (actorHighestRole == UserRole.SUPER_ADMIN) {
@@ -165,14 +161,14 @@ public class UserPermissionServiceImpl implements UserPermissionService {
 
         // ADMIN can grant MODERATOR and USER roles (but not ADMIN or SUPER_ADMIN)
         if (actorHighestRole == UserRole.ADMIN) {
-            // Security check: Cannot grant role to user with higher existing role
-            if (targetHighestRole == UserRole.SUPER_ADMIN || targetHighestRole == UserRole.ADMIN) {
-                log.debug("Admin {} cannot grant {} to user {} with higher role {}",
-                        actor.getUsername(), roleToGrant, target.getUsername(), targetHighestRole);
+            // Check the ROLE being granted, not the target's existing roles
+            if (roleToGrant == UserRole.SUPER_ADMIN || roleToGrant == UserRole.ADMIN) {
+                log.debug("Admin {} cannot grant administrative role {} to any user",
+                        actor.getUsername(), roleToGrant);
                 return false;
             }
 
-            // Can only grant MODERATOR or USER roles
+            // Can grant MODERATOR or USER roles to anyone
             boolean canGrant = roleToGrant == UserRole.MODERATOR || roleToGrant == UserRole.USER;
             log.debug("Admin {} {} grant role {} to user {}",
                     actor.getUsername(), canGrant ? "can" : "cannot",
@@ -188,7 +184,12 @@ public class UserPermissionServiceImpl implements UserPermissionService {
 
     /**
      * Checks if an actor can revoke a specific role from a target user.
-     * Uses the same permission logic as granting roles.
+     *
+     * Permission rules:
+     * - SUPER_ADMIN can revoke any role from anyone
+     * - ADMIN can revoke MODERATOR and USER roles, but ONLY from users with lower hierarchy
+     * - ADMIN cannot revoke roles from other ADMINs or SUPER_ADMINs
+     * - MODERATOR and USER cannot revoke any roles
      *
      * @param actor The user attempting to revoke the role
      * @param target The user losing the role
@@ -197,14 +198,43 @@ public class UserPermissionServiceImpl implements UserPermissionService {
      */
     @Override
     public boolean canRevokeRole(User actor, User target, UserRole roleToRevoke) {
-        // For revocation, we need an existing target (cannot revoke from non-existent user)
+        // All parameters are required
         if (actor == null || target == null || roleToRevoke == null) {
             log.warn("Cannot check role revoke permission: actor, target, or role is null");
             return false;
         }
 
-        // Same logic as granting
-        return canGrantRole(actor, target, roleToRevoke);
+        UserRole actorHighestRole = getHighestRole(actor);
+        UserRole targetHighestRole = getHighestRole(target);
+
+        // SUPER_ADMIN can revoke any role from anyone
+        if (actorHighestRole == UserRole.SUPER_ADMIN) {
+            log.debug("SUPER_ADMIN {} can revoke role {} from user {}",
+                    actor.getUsername(), roleToRevoke, target.getUsername());
+            return true;
+        }
+
+        // ADMIN can revoke MODERATOR and USER roles, but ONLY from lower hierarchy users
+        if (actorHighestRole == UserRole.ADMIN) {
+            // Cannot touch SUPER_ADMIN or other ADMINs
+            if (targetHighestRole == UserRole.SUPER_ADMIN || targetHighestRole == UserRole.ADMIN) {
+                log.debug("Admin {} cannot revoke {} from user {} with equal/higher role {}",
+                        actor.getUsername(), roleToRevoke, target.getUsername(), targetHighestRole);
+                return false;
+            }
+
+            // Can only revoke MODERATOR or USER roles
+            boolean canRevoke = roleToRevoke == UserRole.MODERATOR || roleToRevoke == UserRole.USER;
+            log.debug("Admin {} {} revoke role {} from user {}",
+                    actor.getUsername(), canRevoke ? "can" : "cannot",
+                    roleToRevoke, target.getUsername());
+            return canRevoke;
+        }
+
+        // Other roles (MODERATOR, USER) cannot revoke any roles
+        log.debug("User {} with role {} cannot revoke role {}",
+                actor.getUsername(), actorHighestRole, roleToRevoke);
+        return false;
     }
 
     // ===============================

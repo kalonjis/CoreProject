@@ -1,4 +1,4 @@
-package be.steby.CoreProject.pl.models.admin;
+package be.steby.CoreProject.pl.domains.admin.models;
 
 import be.steby.CoreProject.bll.domains.admin.models.AdminUserCreationRequest;
 import be.steby.CoreProject.dl.enums.UserRole;

@@ -4,7 +4,7 @@ import be.steby.CoreProject.bll.domains.admin.exceptions.AdminDeactivationValida
 
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import be.steby.CoreProject.dl.enums.admin.deactivation.DeactivationMainCategory;
-import be.steby.CoreProject.pl.models.admin.UserDeactivationForm;
+import be.steby.CoreProject.pl.domains.admin.models.UserDeactivationForm;
 
 /**
  * Représente une demande de désactivation admin dans le domaine métier - Version finale.

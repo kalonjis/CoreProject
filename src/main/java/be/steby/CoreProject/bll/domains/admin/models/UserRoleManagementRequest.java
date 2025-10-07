@@ -2,7 +2,7 @@ package be.steby.CoreProject.bll.domains.admin.models;
 
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
 import be.steby.CoreProject.dl.enums.UserRole;
-import be.steby.CoreProject.pl.models.admin.UserRoleForm;
+import be.steby.CoreProject.pl.domains.admin.models.UserRoleForm;
 
 public record UserRoleManagementRequest(
         Long userId,
