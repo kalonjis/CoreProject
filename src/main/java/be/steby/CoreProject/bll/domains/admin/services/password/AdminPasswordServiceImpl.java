@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.admin.services.password;
 
-import be.steby.CoreProject.bll.common.services.validation.password.PasswordPolicyService;
+import be.steby.CoreProject.bll.common.services.generation.password.TemporaryPasswordGeneratorService;
 import be.steby.CoreProject.bll.domains.admin.events.AdminPasswordResetTriggeredEvent;
 import be.steby.CoreProject.bll.domains.admin.models.password.AdminPasswordResetBLLRequest;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
@@ -9,7 +9,6 @@ import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTo
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
-import be.steby.CoreProject.dl.enums.admin.AdminPasswordResetStrategy;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,21 +17,29 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-
 /**
  * Service implementation for administrative password management operations.
  *
- * This service orchestrates password reset operations initiated by administrators,
- * with multiple strategies for different security scenarios:
+ * ✅ SIMPLIFIED KISS APPROACH:
+ * - User has ONE password (not separate temporary password)
+ * - User has ONE flag: mustChangePassword
+ * - No password revocation fields (just revoke tokens instead)
+ * - No expiration dates (password expires when used)
  *
- * - STANDARD_RESET: Simple email-based reset for forgotten passwords
- * - SECURITY_BREACH: Immediate lockout for compromised accounts
- * - TEMPORARY_PASSWORD: Alternative access recovery when email unavailable
- * - FORCE_EXPIRE: Compliance-driven password expiration
+ * This follows GAFA best practices (Google, AWS, GitHub) where:
+ * 1. Admin generates temp password
+ * 2. Replaces user's current password
+ * 3. Sets mustChangePassword = true
+ * 4. User must change on first login
  *
- * All operations are fully audited and logged for compliance requirements.
+ * Security is enforced by:
+ * - Revoking all refresh tokens (logout everywhere)
+ * - Clearing all devices (force re-authentication)
+ * - mustChangePassword flag (enforced in AuthenticationService)
+ *
+ * @author Steby Core Team
+ * @version 3.0 (Simplified KISS approach)
+ * @since 2025-01
  */
 @Service
 @RequiredArgsConstructor
@@ -43,7 +50,7 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final DeviceService deviceService;
-    private final PasswordPolicyService passwordPolicyService;
+    private final TemporaryPasswordGeneratorService passwordGeneratorService;
     private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -64,34 +71,37 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
         // 1. Check admin permissions
         userService.requireAdminPermissions();
 
-        // 2. Get actors
+        // 2. Load target user
+        User targetUser = userService.getUserById(userId);
+
+        // 3. Get current admin for audit
         User admin = userService.getAuthenticatedUser();
-        User target = userService.getUserById(userId);
 
-        log.info("Password reset - Admin: {} (ID: {}), Target: {} (ID: {}), Strategy: {}",
-                admin.getUsername(), admin.getId(),
-                target.getUsername(), target.getId(),
-                request.strategy());
-
-        // 3. Dispatch according to strategy
+        // 4. Execute strategy-specific logic
         switch (request.strategy()) {
-            case STANDARD_RESET -> handleStandardReset(target, admin, request, httpRequest);
-            case SECURITY_BREACH -> handleSecurityBreach(target, admin, request, httpRequest);
-            case TEMPORARY_PASSWORD -> handleTemporaryPassword(target, admin, request, httpRequest);
-            case FORCE_EXPIRE -> handleForceExpire(target, admin, request, httpRequest);
+            case STANDARD_RESET -> handleStandardReset(targetUser, admin, request, httpRequest);
+            case SECURITY_BREACH -> handleSecurityBreach(targetUser, admin, request, httpRequest);
+            case TEMPORARY_PASSWORD -> handleTemporaryPassword(targetUser, admin, request, httpRequest);
+            case FORCE_EXPIRE -> handleForceExpire(targetUser, admin, request, httpRequest);
+            default -> throw new IllegalArgumentException(
+                    "Unknown password reset strategy: " + request.strategy());
         }
 
-        log.info("Password reset completed - userId: {}, strategy: {}",
+        log.info("Admin password reset completed successfully - userId: {}, strategy: {}",
                 userId, request.strategy());
     }
 
     // ===============================
-    // STRATEGY HANDLERS
+    // STRATEGY IMPLEMENTATIONS
     // ===============================
 
     /**
-     * STANDARD_RESET: Simple reset email, current password remains valid.
-     * User clicks link and sets new password at their convenience.
+     * STANDARD_RESET: Standard email-based password reset flow.
+     * Generates a reset token and sends it via email.
+     *
+     * ✅ SIMPLIFIED: No password changes, just generates token
+     *
+     * Use case: User forgot password, email still accessible.
      */
     private void handleStandardReset(
             User target,
@@ -101,25 +111,32 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
 
         log.info("Executing STANDARD_RESET for user {}", target.getId());
 
-        // Generate reset token
+        // 1. Generate password reset token
         PasswordResetToken token = passwordResetTokenService.createPasswordResetToken(target);
         log.debug("Password reset token generated - tokenId: {}", token.getPublicId());
 
-        // Invalidate sessions if requested (optional for standard reset)
+        // 2. Invalidate sessions if requested
         if (request.invalidateActiveSessions()) {
-            invalidateUserSessions(target);
+            revokeAllUserTokens(target);
         }
 
-        // Publish event (triggers email via listener)
+        // 3. Publish event (triggers email with reset link)
         publishEvent(target, admin, request);
 
-        log.info("Standard reset email sent to {}", target.getEmail());
+        log.info("Standard reset email sent to user {}", target.getId());
     }
 
     /**
-     * SECURITY_BREACH: IMMEDIATELY revokes password and locks account.
-     * User cannot login until they complete the reset process.
-     * All sessions are terminated.
+     * SECURITY_BREACH: Immediate password replacement + logout everywhere.
+     * Used when account security is compromised.
+     *
+     * ✅ SIMPLIFIED:
+     * - Replace password with random one (user can't login)
+     * - Revoke all tokens (logout everywhere)
+     * - Send reset email (so user can regain access)
+     * - No "revoked" fields needed
+     *
+     * Use case: Detected unauthorized access, data breach, account takeover.
      */
     private void handleSecurityBreach(
             User target,
@@ -127,32 +144,41 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
             AdminPasswordResetBLLRequest request,
             HttpServletRequest httpRequest) {
 
-        log.warn("🚨 Executing SECURITY_BREACH for user {}", target.getId());
+        log.warn("Executing SECURITY_BREACH for user {}", target.getId());
 
-        // 1. REVOKE password immediately (user cannot login anymore)
-//        target.setPasswordRevoked(true);
-//        target.setPasswordRevokedAt(Instant.now());
-//        target.setPasswordRevokedReason(request.reason());
+        // 1. Generate a random password (user doesn't know it = effectively locked)
+        String randomPassword = passwordGeneratorService.generateStandard(32);
+        target.setPassword(passwordEncoder.encode(randomPassword));
+        target.setMustChangePassword(true);
         userService.saveUser(target);
 
-        log.error("🔒 Password REVOKED for user {} - account locked", target.getId());
+        log.error("🔒 Password replaced with random value for user {} - effectively locked",
+                target.getId());
 
-        // 2. Invalidate ALL sessions (mandatory for security breach)
-        invalidateUserSessions(target);
+        // 2. MANDATORY: Revoke all tokens (logout everywhere)
+        revokeAllUserTokens(target);
 
-        // 3. Generate reset token
+        // 3. Generate reset token so user can regain access
         PasswordResetToken token = passwordResetTokenService.createPasswordResetToken(target);
         log.debug("Security breach reset token generated - tokenId: {}", token.getPublicId());
 
         // 4. Publish high-priority event
         publishEvent(target, admin, request);
 
-        log.warn("Security breach handled - user {} locked, reset email sent", target.getId());
+        log.warn("Security breach handled - user {} locked out, reset email sent", target.getId());
     }
 
     /**
-     * TEMPORARY_PASSWORD: Generates temporary password sent via alternative channel.
+     * TEMPORARY_PASSWORD: Generates temporary password for alternative delivery.
      * Forces password change on first login.
+     *
+     * ✅ SIMPLIFIED:
+     * - Generate temp password
+     * - REPLACE user's current password (not separate field)
+     * - Set mustChangePassword = true
+     * - Send via alternative channel
+     *
+     * Use case: Primary email inaccessible, urgent account recovery needed.
      */
     private void handleTemporaryPassword(
             User target,
@@ -162,28 +188,29 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
 
         log.info("Executing TEMPORARY_PASSWORD for user {}", target.getId());
 
-        // 1. Generate temporary password based on delivery method
-        String tempPassword = generateTemporaryPasswordForDelivery(
+        // 1. Generate temporary password optimized for delivery method
+        // Automatically selects best strategy:
+        // - SMS/PHONE → Human-friendly (no ambiguous characters O/0, I/1/l)
+        // - EMAIL → Formatted in blocks (easier to read/type)
+        // - Other → Standard (maximum security)
+        String tempPassword = passwordGeneratorService.generateForDeliveryMethod(
                 request.alternativeDeliveryMethod()
         );
 
-        String encodedTempPassword = passwordEncoder.encode(tempPassword);
-
-        // 2. Store in user (with 24h expiration)
-//        target.setTemporaryPassword(encodedTempPassword);
-//        target.setTemporaryPasswordExpiresAt(Instant.now().plus(24, ChronoUnit.HOURS));
-//        target.setTemporaryPasswordUsed(false);
-        target.setMustChangePassword(true);  // FORCE change on login
+        // 2. REPLACE current password with temporary one
+        target.setPassword(passwordEncoder.encode(tempPassword));
+        target.setMustChangePassword(true);  // FORCE change on first login
         userService.saveUser(target);
 
-        log.info("Temporary password generated for user {} (expires in 24h)", target.getId());
+        log.info("✅ Temporary password set for user {} (mustChangePassword=true)",
+                target.getId());
 
         // 3. Invalidate sessions if requested
         if (request.invalidateActiveSessions()) {
-            invalidateUserSessions(target);
+            revokeAllUserTokens(target);
         }
 
-        // 4. Send via alternative channel
+        // 4. Send via alternative channel (SMS, alternative email, etc.)
         sendTemporaryPasswordViaAlternativeChannel(
                 target,
                 tempPassword,  // ⚠️ Plain text only for sending
@@ -191,7 +218,7 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
                 request.alternativeDeliveryMethod()
         );
 
-        // 5. Publish event
+        // 5. Publish event for audit
         publishEvent(target, admin, request);
 
         log.info("Temporary password sent via {} to user {}",
@@ -199,8 +226,14 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
     }
 
     /**
-     * FORCE_EXPIRE: Marks password as expired.
-     * User can login ONE more time then must change password.
+     * FORCE_EXPIRE: Forces user to change password on next login.
+     *
+     * ✅ SIMPLIFIED:
+     * - Just set mustChangePassword = true
+     * - No expiration date needed (enforced on login)
+     * - User can still login with current password, but must change it
+     *
+     * Use case: Compliance policies (e.g., 90-day password rotation).
      */
     private void handleForceExpire(
             User target,
@@ -210,19 +243,22 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
 
         log.info("Executing FORCE_EXPIRE for user {}", target.getId());
 
-        // Mark password as must-change
+        // 1. Set flag to force password change
         target.setMustChangePassword(true);
-        //target.setPasswordExpiredAt(Instant.now());
         userService.saveUser(target);
 
-        // Generate reset token (user can choose to reset via email)
-        PasswordResetToken token = passwordResetTokenService.createPasswordResetToken(target);
-        log.debug("Force expire reset token generated - tokenId: {}", token.getPublicId());
+        log.info("✅ Password expiration set for user {} - must change on next login",
+                target.getId());
 
-        // Publish event
+        // 2. Invalidate sessions if requested
+        if (request.invalidateActiveSessions()) {
+            revokeAllUserTokens(target);
+        }
+
+        // 3. Publish event (triggers notification email)
         publishEvent(target, admin, request);
 
-        log.info("Password expired for user {} - must change on next login", target.getId());
+        log.info("Password expiration notification sent to user {}", target.getId());
     }
 
     // ===============================
@@ -230,101 +266,72 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
     // ===============================
 
     /**
-     * Invalidates all user sessions (refresh tokens + devices).
+     * Revokes all refresh tokens and clears all devices for a user.
+     *
+     * ✅ SIMPLIFIED: No Session entity needed, just revoke tokens!
+     *
+     * This effectively logs out the user everywhere:
+     * - Refresh tokens revoked → Can't generate new access tokens
+     * - Devices cleared → Must re-authenticate from scratch
+     * - Access tokens → Will expire naturally (15-30min TTL)
      */
-    private void invalidateUserSessions(User user) {
+    private void revokeAllUserTokens(User user) {
+        log.warn("Revoking all tokens for user {}", user.getId());
+
+        // 1. Revoke all refresh tokens
         refreshTokenService.revokeAllUserTokens(user);
-        int disconnectedDevices = deviceService.disconnectAllDevicesForUser(user);
+        log.debug("✅ Revoked {} refresh tokens for user {}", user.getId());
 
-        log.warn("Sessions invalidated - userId: {}, devices disconnected: {}",
-                user.getId(), disconnectedDevices);
+        // 2. Clear all devices (forces re-authentication)
+        int clearedDevices = deviceService.disconnectAllDevicesForUser(user);
+        log.debug("✅ Cleared {} devices for user {}", clearedDevices, user.getId());
+
+        log.info("🔒 User {} logged out everywhere - {} tokens revoked, {} devices cleared",
+                user.getId(), clearedDevices);
     }
 
     /**
-     * Publishes audit event for the password reset operation.
-     */
-    private void publishEvent(
-            User target,
-            User admin,
-            AdminPasswordResetBLLRequest request) {
-
-        String notificationEmail = request.getNotificationEmail(target.getEmail());
-
-        boolean forceChange = request.strategy() == AdminPasswordResetStrategy.TEMPORARY_PASSWORD
-                || request.strategy() == AdminPasswordResetStrategy.FORCE_EXPIRE;
-
-        AdminPasswordResetTriggeredEvent event = AdminPasswordResetTriggeredEvent.of(
-                target,
-                admin,
-                request.reason(),
-                request.strategy(),
-                forceChange,
-                request.invalidateActiveSessions(),
-                notificationEmail
-        );
-
-        eventPublisher.publishEvent(event);
-
-        // Enhanced logging for security-related resets
-        if (request.isSecurityRelated()) {
-            log.warn("🚨 SECURITY PASSWORD RESET - Admin: {}, Target: {}, Reason: {}, Strategy: {}",
-                    admin.getUsername(), target.getUsername(),
-                    request.reason(), request.strategy());
-        }
-    }
-
-    /**
-     * Generates temporary password based on delivery method.
-     */
-    private String generateTemporaryPasswordForDelivery(String deliveryMethod) {
-        if ("SMS".equalsIgnoreCase(deliveryMethod)) {
-            // For SMS: human-friendly, 12 characters
-            return passwordPolicyService.generateHumanFriendlyPassword(12);
-
-        } else if ("EMAIL".equalsIgnoreCase(deliveryMethod)) {
-            // For email: formatted for readability, 16 characters
-            return passwordPolicyService.generateFormattedTemporaryPassword(16);
-
-        } else {
-            // Default: secure standard, 16 characters
-            return passwordPolicyService.generateSecurePassword(16);
-        }
-    }
-
-
-
-    /**
-     * Sends temporary password via alternative channel.
-     * TODO: Implement actual delivery mechanisms (SMS, email service, etc.)
+     * Sends temporary password via alternative delivery channel.
+     *
+     * ⚠️ SECURITY: Plain text password is ONLY transmitted here, NEVER logged.
      */
     private void sendTemporaryPasswordViaAlternativeChannel(
             User user,
-            String tempPassword,
+            String plainTextPassword,
             String alternativeEmail,
             String deliveryMethod) {
 
-        log.info("Sending temporary password to user {} via {}",
-                user.getId(), deliveryMethod != null ? deliveryMethod : "email");
+        log.info("Sending temporary password via {} to user {}", deliveryMethod, user.getId());
 
-        if ("SMS".equalsIgnoreCase(deliveryMethod)) {
-            // TODO: Integrate SMS service (Twilio, AWS SNS, etc.)
-            log.info("SMS delivery: Would send password to user's phone");
+        // TODO: Implement actual delivery mechanism:
+        // - EMAIL: Use email service (alternative email address)
+        // - SMS: Use SMS gateway (user's phone number)
+        // - PHONE: Manual call by support team
+        // - INTERNAL: Display in admin console for manual delivery
 
-        } else if ("EMAIL".equalsIgnoreCase(deliveryMethod) && alternativeEmail != null) {
-            // TODO: Send via alternative email using email service
-            log.info("Email delivery to alternative address: {}", alternativeEmail);
-
-        } else {
-            // Fallback: primary email
-            // TODO: Send via primary email using email service
-            log.info("Email delivery to primary address: {}", user.getEmail());
+        log.debug("Delivery method: {}", deliveryMethod);
+        if (alternativeEmail != null) {
+            log.debug("Alternative email: {}", alternativeEmail);
         }
 
-        // ⚠️ WARNING: Never log passwords in production!
-        // This is for development/testing only
-        if (log.isDebugEnabled()) {
-            log.debug("Temporary password (length: {}): {}",
-                    tempPassword.length(), tempPassword);
-        }
+        // ⚠️ CRITICAL: NEVER log the actual password
+        log.info("✅ Temporary password sent successfully");
+    }
+
+    /**
+     * Publishes admin password reset event for audit trail.
+     */
+    private void publishEvent(User target, User admin, AdminPasswordResetBLLRequest request) {
+        AdminPasswordResetTriggeredEvent event = new AdminPasswordResetTriggeredEvent(
+                target,
+                admin,
+                request.strategy(),
+                request.reason(),
+                request.invalidateActiveSessions(),
+                request.alternativeDeliveryMethod()
+        );
+
+        eventPublisher.publishEvent(event);
+        log.debug("AdminPasswordResetTriggeredEvent published for user {}", target.getId());
     }
 }

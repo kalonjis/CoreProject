@@ -30,7 +30,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('ADMIN')")
-@RequestMapping("/api/admin/users/{userId}/password")
+@RequestMapping("/api/admin/password-reset")
 @Slf4j
 public class AdminPasswordController {
 
@@ -43,7 +43,6 @@ public class AdminPasswordController {
 /**
  * Forces a password reset for a user as an administrator.
  *
- * PATCH /api/admin/users/{userId}/password/force-reset
  *
  * This endpoint provides admin-controlled password reset with multiple strategies:
  *
@@ -77,7 +76,7 @@ public class AdminPasswordController {
  * @param httpRequest HTTP request for context capture (IP, user agent)
  * @return 200 OK with operation details
  */
-@PatchMapping("/force-reset")
+@PatchMapping("/{userId})")
 public ResponseEntity<Map<String, String>> forcePasswordReset(
         @PathVariable Long userId,
         @Valid @RequestBody AdminPasswordResetRequest request,
