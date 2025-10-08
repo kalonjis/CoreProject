@@ -166,6 +166,12 @@ public class SecurityConstants {
             "/api/admin/users/deactivation-categories"    // GET deactivation categories
     };
 
+
+    private static final String[] ADMIN_PASSWORD_ROUTES = {
+            "/api/admin/password-reset/**"               // POST force password reset
+            // Future routes will be under same base path
+    };
+
     // Admin Cache Management - Device
     private static final String[] ADMIN_CACHE_DEVICE_ROUTES = {
             "/api/admin/cache/device/stats",              // GET cache stats
@@ -205,7 +211,8 @@ public class SecurityConstants {
             ADMIN_CACHE_DEVICE_ROUTES,
             ADMIN_CACHE_USER_ROUTES,
             ADMIN_SECURITY_ROUTES,
-            ADMIN_DEVICE_ROUTES
+            ADMIN_DEVICE_ROUTES,
+            ADMIN_PASSWORD_ROUTES
     );
 
     /**
@@ -282,7 +289,7 @@ public class SecurityConstants {
     public static final String[] CSRF_IGNORE_PATHS = concatenate(
             AUTH_CSRF_IGNORE,        // Only public routes
             ACCOUNT_CSRF_IGNORE,     // Only public routes
-            ADMIN_DOMAIN_ROUTES, // TODO delete in prod
+            ADMIN_DOMAIN_ROUTES,// TODO delete in prod
             PASSWORD_CSRF_IGNORE,    // Only public routes
             DEVICE_CSRF_IGNORE,      // Only public routes
             EMAIL_CHANGE_CSRF_IGNORE, // Only public routes

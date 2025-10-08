@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.admin.services.useraccount;
 
+import be.steby.CoreProject.bll.common.services.generation.password.TemporaryPasswordGeneratorService;
 import be.steby.CoreProject.bll.common.services.validation.email.EmailPolicyService;
 import be.steby.CoreProject.bll.common.services.validation.password.PasswordPolicyService;
 import be.steby.CoreProject.bll.common.services.validation.textField.TextFieldValidationService;
@@ -46,6 +47,7 @@ public class AdminUserCreationService {
     private final UsernameGeneratorService usernameGeneratorService;
     private final PasswordEncoder passwordEncoder;
     private final PasswordPolicyService passwordPolicyService;
+    private final TemporaryPasswordGeneratorService temporaryPasswordGeneratorService;
     private final EmailPolicyService emailPolicyService;
     private final TextFieldValidationService textFieldValidationService;
     private final ApplicationEventPublisher eventPublisher;
@@ -80,7 +82,7 @@ public class AdminUserCreationService {
         User user = buildUserEntityFromRequest(request);
 
         // 3. Generate temporary password
-        String temporaryPassword = passwordPolicyService.generateSecurePassword();
+        String temporaryPassword = temporaryPasswordGeneratorService.generateFormatted(12,4);
         log.debug("Temporary password generated for user: {}", user.getUsername());
 
         // 4. Return result with user NOT YET SAVED

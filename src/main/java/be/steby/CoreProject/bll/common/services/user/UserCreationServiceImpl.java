@@ -8,6 +8,7 @@ import be.steby.CoreProject.bll.common.models.user.UserCreationMode;
 import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;
 import be.steby.CoreProject.bll.common.models.user.UserCreationResult;
 import be.steby.CoreProject.bll.common.models.user.UserValidationResult;
+import be.steby.CoreProject.bll.common.services.generation.password.TemporaryPasswordGeneratorService;
 import be.steby.CoreProject.bll.domains.account.services.tokens.confirmation.AccountConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.emailaddress.models.EmailValidationResult;
 import be.steby.CoreProject.bll.common.services.validation.email.EmailPolicyService;
@@ -37,6 +38,7 @@ public class UserCreationServiceImpl implements UserCreationService{
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final PasswordPolicyService passwordPolicyService;
+    private final TemporaryPasswordGeneratorService temporaryPasswordGeneratorService;
     private final EmailPolicyService emailPolicyService;
     private final AccountConfirmationTokenServiceImpl accountConfirmationTokenService;
     private final ApplicationEventPublisher eventPublisher;
@@ -66,7 +68,7 @@ public class UserCreationServiceImpl implements UserCreationService{
         String temporaryPassword = null;
 
         if((request.mode() == UserCreationMode.ADMIN_CREATE || request.mode() == UserCreationMode.SYSTEM_CREATE) && finalPassword == null){
-            temporaryPassword = passwordPolicyService.generateSecurePassword();
+            temporaryPassword = temporaryPasswordGeneratorService.generateStandard();
             finalPassword = temporaryPassword;
             log.debug("Temporary password generated for user {}", request.user().getUsername());
         }

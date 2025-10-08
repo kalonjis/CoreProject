@@ -2,6 +2,8 @@ package be.steby.CoreProject.pl.domains.admin.models;
 
 import be.steby.CoreProject.bll.domains.admin.models.password.AdminPasswordResetBLLRequest;
 import be.steby.CoreProject.dl.enums.admin.AdminPasswordResetStrategy;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -23,6 +25,7 @@ import jakarta.validation.constraints.Size;
 public record AdminPasswordResetRequest(
 
         @NotNull(message = "Reset strategy is required")
+        @Enumerated(EnumType.STRING)
         AdminPasswordResetStrategy strategy,
 
         @NotBlank(message = "Reason is required for audit purposes")
@@ -35,6 +38,8 @@ public record AdminPasswordResetRequest(
         String alternativeNotificationEmail,
 
         String alternativeDeliveryMethod
+
+
 
 ) {
     /**
