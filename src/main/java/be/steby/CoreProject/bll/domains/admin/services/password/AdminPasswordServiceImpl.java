@@ -1,16 +1,17 @@
 package be.steby.CoreProject.bll.domains.admin.services.password;
 
 import be.steby.CoreProject.bll.common.services.passwordgenerator.TemporaryPasswordGeneratorService;
-import be.steby.CoreProject.bll.domains.admin.events.AdminPasswordRequestWithTokenEvent;
+import be.steby.CoreProject.bll.domains.admin.events.AdminPasswordResetLinkEvent;
 import be.steby.CoreProject.bll.domains.admin.events.AdminPasswordResetTriggeredEvent;
 import be.steby.CoreProject.bll.domains.admin.models.password.AdminPasswordResetBLLRequest;
+import be.steby.CoreProject.bll.domains.admin.services.AdminValidationService;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
-import be.steby.CoreProject.pl.domains.admin.models.AdminPasswordRequestWithToken;
+import be.steby.CoreProject.pl.domains.admin.models.requests.AdminPasswordResetLinkRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +51,7 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
 
 
     private final UserService userService;
+    private final AdminValidationService adminValidationService;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final DeviceService deviceService;
@@ -62,15 +64,20 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
     // ===============================
 
     @Override
-    public void resetPasswordWithToken(String  userPublicId, HttpServletRequest httpRequest) {
-        User user = userService.getUserByPublicId(userPublicId);
-        PasswordResetToken token = passwordResetTokenService.createPasswordResetToken(user);
+    public void sendPasswordResetLink(String userPublicId, AdminPasswordResetLinkRequest request, HttpServletRequest httpRequest) {
+        User admin = userService.getAuthenticatedUser();
+        User target = userService.getUserByPublicId(userPublicId);
+
+        adminValidationService.validateBasicAdminAction(admin, target, true, "sendPasswordResetLink");
+
+        PasswordResetToken token = passwordResetTokenService.createPasswordResetToken(target);
+
         eventPublisher.publishEvent(
-                new AdminPasswordRequestWithTokenEvent(
-                    user, token.getPublicId()
-                )
+                new AdminPasswordResetLinkEvent(target, admin, token.getPublicId(), request.reason())
         );
-        log.info("Hello Steby I love you 'cause u r tha best !!!!");
+
+        log.info("Admin {} sent password reset link to user {} - reason: {}",
+                admin.getUsername(), target.getEmail(), request.reason());
     }
 
 

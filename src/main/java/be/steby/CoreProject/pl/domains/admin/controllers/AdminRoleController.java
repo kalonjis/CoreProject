@@ -1,7 +1,7 @@
 package be.steby.CoreProject.pl.domains.admin.controllers;
 
 import be.steby.CoreProject.bll.domains.admin.services.role.AdminRoleService;
-import be.steby.CoreProject.pl.domains.admin.models.UserRoleForm;
+import be.steby.CoreProject.pl.domains.admin.models.requests.UserRoleForm;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

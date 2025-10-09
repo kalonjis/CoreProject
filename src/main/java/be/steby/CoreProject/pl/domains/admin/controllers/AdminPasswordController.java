@@ -1,8 +1,9 @@
 package be.steby.CoreProject.pl.domains.admin.controllers;
 
 import be.steby.CoreProject.bll.domains.admin.services.password.AdminPasswordService;
-import be.steby.CoreProject.pl.domains.admin.models.AdminPasswordRequestWithToken;
-import be.steby.CoreProject.pl.domains.admin.models.AdminPasswordResetRequest;
+import be.steby.CoreProject.pl.domains.admin.models.requests.AdminPasswordResetLinkRequest;
+import be.steby.CoreProject.pl.domains.admin.models.requests.AdminPasswordResetRequest;
+import be.steby.CoreProject.pl.domains.admin.models.responses.AdminPasswordOperationResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -124,16 +125,17 @@ public ResponseEntity<Map<String, String>> forcePasswordReset(
 }
 
 
-@PostMapping("/with-token/{userPublicId}")
-public ResponseEntity<Void> resetPasswordWithToken(
+@PostMapping("/send-reset-link/{userPublicId}")
+public ResponseEntity<AdminPasswordOperationResponse> sendPasswordResetLink(
         @PathVariable String userPublicId,
-        //@Valid @RequestBody AdminPasswordRequestWithToken request,
-        HttpServletRequest httpRequest){
+        @Valid @RequestBody AdminPasswordResetLinkRequest request,
+        HttpServletRequest httpRequest) {
 
-    adminPasswordService.resetPasswordWithToken(userPublicId, httpRequest);
+    adminPasswordService.sendPasswordResetLink(userPublicId, request, httpRequest);
 
-    return ResponseEntity.noContent().build();
-
+    return ResponseEntity.ok(
+            AdminPasswordOperationResponse.resetLinkSent()
+    );
 }
 
     // ===============================

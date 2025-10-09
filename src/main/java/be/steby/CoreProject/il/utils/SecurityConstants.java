@@ -169,7 +169,7 @@ public class SecurityConstants {
 
     private static final String[] ADMIN_PASSWORD_ROUTES = {
             "/api/admin/password-reset/**",            // POST force password reset
-            "/api/admin/password-reset/with-token/**"  // POST password reset
+            "/api/admin/password-reset/send-reset-link/**"  // POST password reset
             // Future routes will be under same base path
     };
 
