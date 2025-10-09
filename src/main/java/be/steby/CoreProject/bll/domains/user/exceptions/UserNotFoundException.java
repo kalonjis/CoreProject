@@ -29,6 +29,16 @@ public class UserNotFoundException extends UserDomainException {
     }
 
     /**
+     * Creates a new exception for a user not found by ID.
+     *
+     * @param publicId The user publicId that was not found
+     * @return A new exception instance
+     */
+    public static UserNotFoundException byPublicId(String publicId) {
+        return new UserNotFoundException("User not found with publicId: " + publicId);
+    }
+
+    /**
      * Creates a new exception for a user not found by username.
      *
      * @param username The username that was not found

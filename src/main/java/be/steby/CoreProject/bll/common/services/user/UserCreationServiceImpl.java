@@ -8,7 +8,7 @@ import be.steby.CoreProject.bll.common.models.user.UserCreationMode;
 import be.steby.CoreProject.bll.common.models.user.UserCreationRequest;
 import be.steby.CoreProject.bll.common.models.user.UserCreationResult;
 import be.steby.CoreProject.bll.common.models.user.UserValidationResult;
-import be.steby.CoreProject.bll.common.services.generation.password.TemporaryPasswordGeneratorService;
+import be.steby.CoreProject.bll.common.services.passwordgenerator.TemporaryPasswordGeneratorService;
 import be.steby.CoreProject.bll.domains.account.services.tokens.confirmation.AccountConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.emailaddress.models.EmailValidationResult;
 import be.steby.CoreProject.bll.common.services.validation.email.EmailPolicyService;

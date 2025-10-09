@@ -1,6 +1,7 @@
 package be.steby.CoreProject.pl.domains.admin.controllers;
 
 import be.steby.CoreProject.bll.domains.admin.services.password.AdminPasswordService;
+import be.steby.CoreProject.pl.domains.admin.models.AdminPasswordRequestWithToken;
 import be.steby.CoreProject.pl.domains.admin.models.AdminPasswordResetRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -76,7 +77,7 @@ public class AdminPasswordController {
  * @param httpRequest HTTP request for context capture (IP, user agent)
  * @return 200 OK with operation details
  */
-@PatchMapping("/{userId})")
+@PatchMapping("/{userId}")
 public ResponseEntity<Map<String, String>> forcePasswordReset(
         @PathVariable Long userId,
         @Valid @RequestBody AdminPasswordResetRequest request,
@@ -120,6 +121,19 @@ public ResponseEntity<Map<String, String>> forcePasswordReset(
             userId, request.strategy());
 
     return ResponseEntity.ok(response);
+}
+
+
+@PostMapping("/with-token/{userPublicId}")
+public ResponseEntity<Void> resetPasswordWithToken(
+        @PathVariable String userPublicId,
+        //@Valid @RequestBody AdminPasswordRequestWithToken request,
+        HttpServletRequest httpRequest){
+
+    adminPasswordService.resetPasswordWithToken(userPublicId, httpRequest);
+
+    return ResponseEntity.noContent().build();
+
 }
 
     // ===============================

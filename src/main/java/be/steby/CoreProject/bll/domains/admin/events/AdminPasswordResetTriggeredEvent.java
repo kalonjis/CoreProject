@@ -162,10 +162,10 @@ public record AdminPasswordResetTriggeredEvent(
      * Checks if user will be forced to change password.
      * True for TEMPORARY_PASSWORD and FORCE_EXPIRE strategies.
      */
-    public boolean forceChangeOnNextLogin() {
-        return strategy == AdminPasswordResetStrategy.TEMPORARY_PASSWORD
-                || strategy == AdminPasswordResetStrategy.FORCE_EXPIRE;
-    }
+//    public boolean forceChangeOnNextLogin() {
+//        return strategy == AdminPasswordResetStrategy.TEMPORARY_PASSWORD
+//                || strategy == AdminPasswordResetStrategy.FORCE_EXPIRE;
+//    }
 
     // ===============================
     // GETTER CONVENIENCE METHODS
@@ -214,10 +214,6 @@ public record AdminPasswordResetTriggeredEvent(
             desc.append(". Reason: ").append(reason);
         }
 
-        if (forceChangeOnNextLogin()) {
-            desc.append(" - Password change required on next login");
-        }
-
         if (invalidateActiveSessions) {
             desc.append(" - Active sessions invalidated");
         }
@@ -232,21 +228,21 @@ public record AdminPasswordResetTriggeredEvent(
     /**
      * Gets the priority level of the reset.
      */
-    public String getPriorityLevel() {
-        return switch (strategy) {
-            case SECURITY_BREACH -> invalidateActiveSessions ? "URGENT" : "HIGH";
-            case TEMPORARY_PASSWORD -> "MEDIUM";
-            case FORCE_EXPIRE -> "LOW-MEDIUM";
-            case STANDARD_RESET -> "LOW";
-        };
-    }
+//    public String getPriorityLevel() {
+//        return switch (strategy) {
+//            case SECURITY_BREACH -> invalidateActiveSessions ? "URGENT" : "HIGH";
+//            case TEMPORARY_PASSWORD -> "MEDIUM";
+//            case FORCE_EXPIRE -> "LOW-MEDIUM";
+//            case STANDARD_RESET -> "LOW";
+//        };
+//    }
 
     /**
      * Gets security level description.
      */
-    public String getSecurityLevel() {
-        return strategy.getSecurityLevel();
-    }
+//    public String getSecurityLevel() {
+//        return strategy.getSecurityLevel();
+//    }
 
     /**
      * Creates a summary of actions performed.
@@ -258,10 +254,6 @@ public record AdminPasswordResetTriggeredEvent(
 
         if (strategy == AdminPasswordResetStrategy.SECURITY_BREACH) {
             summary.append(" + Account locked");
-        }
-
-        if (forceChangeOnNextLogin()) {
-            summary.append(" + Forced password change");
         }
 
         if (invalidateActiveSessions) {

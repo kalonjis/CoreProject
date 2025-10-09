@@ -84,6 +84,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public User getUserByPublicId(String public_id) {
+        return userRepository.findByPublicId(public_id)
+                .orElseThrow(() -> UserNotFoundException.byPublicId(public_id));
+    }
+
+    @Override
     public User getUserByUsername(String username) {
         return userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> UserNotFoundException.byUsername(username));

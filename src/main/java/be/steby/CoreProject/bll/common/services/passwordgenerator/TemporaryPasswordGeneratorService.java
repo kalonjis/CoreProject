@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.common.services.generation.password;
+package be.steby.CoreProject.bll.common.services.passwordgenerator;
 
 /**
  * Service for generating temporary passwords with multiple strategies.

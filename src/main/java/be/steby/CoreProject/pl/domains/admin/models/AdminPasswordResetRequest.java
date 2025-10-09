@@ -20,7 +20,6 @@ import jakarta.validation.constraints.Size;
  * - STANDARD_RESET: Simple email reset
  * - SECURITY_BREACH: Immediate lockout + session invalidation
  * - TEMPORARY_PASSWORD: Generate temp password for alternative delivery
- * - FORCE_EXPIRE: Mark password as expired
  */
 public record AdminPasswordResetRequest(
 

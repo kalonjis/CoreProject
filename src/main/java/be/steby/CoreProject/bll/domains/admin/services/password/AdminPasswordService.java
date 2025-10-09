@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.admin.services.password;
 
 import be.steby.CoreProject.bll.domains.admin.models.password.AdminPasswordResetBLLRequest;
+import be.steby.CoreProject.pl.domains.admin.models.AdminPasswordRequestWithToken;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
@@ -46,4 +47,7 @@ public interface AdminPasswordService {
     void forcePasswordReset(Long userId,
                             AdminPasswordResetBLLRequest request,
                             HttpServletRequest httpRequest);
+
+
+    void resetPasswordWithToken(String  userPublicId, HttpServletRequest httpRequest);
 }

@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.admin.services.password;
 
-import be.steby.CoreProject.bll.common.services.generation.password.TemporaryPasswordGeneratorService;
+import be.steby.CoreProject.bll.common.services.passwordgenerator.TemporaryPasswordGeneratorService;
+import be.steby.CoreProject.bll.domains.admin.events.AdminPasswordRequestWithTokenEvent;
 import be.steby.CoreProject.bll.domains.admin.events.AdminPasswordResetTriggeredEvent;
 import be.steby.CoreProject.bll.domains.admin.models.password.AdminPasswordResetBLLRequest;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
@@ -9,6 +10,7 @@ import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTo
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
+import be.steby.CoreProject.pl.domains.admin.models.AdminPasswordRequestWithToken;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +48,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class AdminPasswordServiceImpl implements AdminPasswordService {
 
+
     private final UserService userService;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
     private final RefreshTokenServiceImpl refreshTokenService;
@@ -57,6 +60,19 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
     // ===============================
     // PUBLIC API
     // ===============================
+
+    @Override
+    public void resetPasswordWithToken(String  userPublicId, HttpServletRequest httpRequest) {
+        User user = userService.getUserByPublicId(userPublicId);
+        PasswordResetToken token = passwordResetTokenService.createPasswordResetToken(user);
+        eventPublisher.publishEvent(
+                new AdminPasswordRequestWithTokenEvent(
+                    user, token.getPublicId()
+                )
+        );
+        log.info("Hello Steby I love you 'cause u r tha best !!!!");
+    }
+
 
     @Override
     @Transactional
