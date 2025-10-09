@@ -1,4 +1,4 @@
-package be.steby.CoreProject.pl.domains.admin.models;
+package be.steby.CoreProject.pl.domains.admin.models.requests;
 
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import jakarta.validation.constraints.NotBlank;

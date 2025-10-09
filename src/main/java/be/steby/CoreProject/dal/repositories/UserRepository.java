@@ -58,5 +58,14 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     @Query("SELECT u FROM User u WHERE u.email = :identifier OR u.username = :identifier")
     Optional<User> findByEmailOrUsername(String identifier);
 
+
+    /**
+     * Finds a token by its public_id (encrypted token for URLs).
+     * @param publicId the encrypted public_id from URL
+     * @return Optional containing the token if found
+     */
+    @Query("SELECT u FROM User u WHERE u.publicId = :publicId")
+    Optional<User> findByPublicId(String publicId);
+
 }
 

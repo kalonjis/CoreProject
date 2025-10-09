@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.admin.services.useraccount;
 
-import be.steby.CoreProject.bll.common.services.generation.password.TemporaryPasswordGeneratorService;
+import be.steby.CoreProject.bll.common.services.passwordgenerator.TemporaryPasswordGeneratorService;
 import be.steby.CoreProject.bll.common.services.validation.email.EmailPolicyService;
 import be.steby.CoreProject.bll.common.services.validation.password.PasswordPolicyService;
 import be.steby.CoreProject.bll.common.services.validation.textField.TextFieldValidationService;

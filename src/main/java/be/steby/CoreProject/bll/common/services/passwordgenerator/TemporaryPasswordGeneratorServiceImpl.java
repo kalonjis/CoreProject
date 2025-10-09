@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.common.services.generation.password;
+package be.steby.CoreProject.bll.common.services.passwordgenerator;
 
 import be.steby.CoreProject.bll.common.services.validation.password.PasswordPolicyService;
 import be.steby.CoreProject.bll.domains.password.models.PasswordValidationResult;

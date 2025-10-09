@@ -2,8 +2,8 @@ package be.steby.CoreProject.pl.domains.admin.controllers;
 
 import be.steby.CoreProject.bll.domains.admin.services.useraccount.AdminUserAccountService;
 import be.steby.CoreProject.pl.domains.account.models.responses.AccountOperationResponse;
-import be.steby.CoreProject.pl.domains.admin.models.AdminUserCreateRequest;
-import be.steby.CoreProject.pl.domains.admin.models.UserDeactivationForm;
+import be.steby.CoreProject.pl.domains.admin.models.requests.AdminUserCreateRequest;
+import be.steby.CoreProject.pl.domains.admin.models.requests.UserDeactivationForm;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

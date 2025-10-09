@@ -7,9 +7,9 @@
 //import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 //import be.steby.CoreProject.dl.enums.admin.deactivation.DeactivationMainCategory;
 //import be.steby.CoreProject.pl.domains.account.models.responses.AccountOperationResponse;
-//import be.steby.CoreProject.pl.domains.admin.models.AdminUserCreateRequest;
-//import be.steby.CoreProject.pl.domains.admin.models.UserDeactivationForm;
-//import be.steby.CoreProject.pl.domains.admin.models.UserRoleForm;
+//import be.steby.CoreProject.pl.domains.admin.models.requests.AdminUserCreateRequest;
+//import be.steby.CoreProject.pl.domains.admin.models.requests.UserDeactivationForm;
+//import be.steby.CoreProject.pl.domains.admin.models.requests.UserRoleForm;
 //import be.steby.CoreProject.pl.models.user.UserDTO;
 //import jakarta.servlet.http.HttpServletRequest;
 //import jakarta.validation.Valid;

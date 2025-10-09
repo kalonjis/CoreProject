@@ -26,4 +26,10 @@ public abstract class AdminDomainException extends CoreProjectException {
     public AdminDomainException(String message, int status) {
         super(message, status);
     }
+
+
+    public AdminDomainException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
 }
