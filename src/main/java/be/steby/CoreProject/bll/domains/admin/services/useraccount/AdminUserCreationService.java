@@ -6,10 +6,10 @@ import be.steby.CoreProject.bll.common.services.validation.password.PasswordPoli
 import be.steby.CoreProject.bll.common.services.validation.textField.TextFieldValidationService;
 import be.steby.CoreProject.bll.domains.emailaddress.exceptions.EmailAlreadyUsedException;
 import be.steby.CoreProject.bll.domains.emailaddress.models.EmailValidationResult;
-import be.steby.CoreProject.bll.domains.admin.events.AdminUserCreatedEvent;
+import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserCreatedEvent;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
-import be.steby.CoreProject.bll.domains.admin.models.AdminUserCreationRequest;
-import be.steby.CoreProject.bll.domains.admin.models.AdminUserCreationResult;
+import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationRequest;
+import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationResult;
 import be.steby.CoreProject.bll.domains.admin.models.AdminValidationResult;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.user.services.UsernameGeneratorService;

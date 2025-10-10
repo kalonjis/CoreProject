@@ -1,9 +1,7 @@
-package be.steby.CoreProject.bll.domains.admin.events;
+package be.steby.CoreProject.bll.domains.admin.models.role;
 
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
-
-import java.time.Instant;
 
 /**
  * Event published when a role is revoked from a user by an administrator.

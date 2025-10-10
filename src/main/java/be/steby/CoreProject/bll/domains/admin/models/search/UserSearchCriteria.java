@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.admin.models;
+package be.steby.CoreProject.bll.domains.admin.models.search;
 
 import be.steby.CoreProject.dl.enums.UserRole;
 import org.springframework.data.domain.Pageable;

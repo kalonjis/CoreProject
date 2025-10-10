@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.admin.services.useraccount;
 
-import be.steby.CoreProject.bll.domains.admin.models.AdminDeactivationRequest;
-import be.steby.CoreProject.bll.domains.admin.models.AdminUserCreationRequest;
+import be.steby.CoreProject.bll.domains.admin.models.account.AdminDeactivationRequest;
+import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationRequest;
 import be.steby.CoreProject.bll.common.exceptions.UserPermissionException;
 import be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;

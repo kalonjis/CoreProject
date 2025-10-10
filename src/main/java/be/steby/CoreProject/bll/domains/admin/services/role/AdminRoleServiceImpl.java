@@ -2,8 +2,8 @@ package be.steby.CoreProject.bll.domains.admin.services.role;
 
 import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory;
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
-import be.steby.CoreProject.bll.domains.admin.events.AdminRoleGrantedEvent;
-import be.steby.CoreProject.bll.domains.admin.events.AdminRoleRevokedEvent;
+import be.steby.CoreProject.bll.domains.admin.models.role.AdminRoleGrantedEvent;
+import be.steby.CoreProject.bll.domains.admin.models.role.AdminRoleRevokedEvent;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;

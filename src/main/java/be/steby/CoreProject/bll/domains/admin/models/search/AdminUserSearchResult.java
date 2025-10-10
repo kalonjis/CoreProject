@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.admin.models;
+package be.steby.CoreProject.bll.domains.admin.models.search;
 
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
@@ -6,7 +6,6 @@ import org.springframework.data.domain.Page;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Représente le résultat d'une recherche d'utilisateurs par un administrateur.

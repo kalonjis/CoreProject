@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.admin.listeners;
 
 import be.steby.CoreProject.bll.domains.account.services.AccountMailerService;
-import be.steby.CoreProject.bll.domains.admin.events.AdminUserCreatedEvent;
+import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
