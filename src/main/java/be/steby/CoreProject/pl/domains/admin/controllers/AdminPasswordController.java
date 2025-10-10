@@ -131,7 +131,7 @@ public ResponseEntity<AdminPasswordOperationResponse> sendPasswordResetLink(
         @Valid @RequestBody AdminPasswordResetLinkRequest request,
         HttpServletRequest httpRequest) {
 
-    adminPasswordService.sendPasswordResetLink(userPublicId, request, httpRequest);
+    adminPasswordService.sendPasswordResetLink(userPublicId, request.toBLL(), httpRequest);
 
     return ResponseEntity.ok(
             AdminPasswordOperationResponse.resetLinkSent()

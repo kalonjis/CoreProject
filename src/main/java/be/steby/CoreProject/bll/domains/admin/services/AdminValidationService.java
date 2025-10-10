@@ -21,7 +21,7 @@ public class AdminValidationService {
      * Basic admin validation - Admin can only act on USER/MODERATOR
      * ADMIN cannot act on other ADMIN or SUPER_ADMIN
      */
-    public void validateBasicAdminAction(User actor, User target, boolean allowSelfTargeting, String action) {
+    public void validateStrictHierarchy (User actor, User target, boolean allowSelfTargeting, String action) {
         // 1. Verify actor has admin privileges
         if (!userPermissionService.hasAdminPrivileges(actor)) {
             throw AdminPermissionExceptionFactory.forInsufficientAdminPrivileges(action);
@@ -32,9 +32,9 @@ public class AdminValidationService {
             throw AdminPermissionExceptionFactory.forSelfTargeting(action);
         }
 
-        // 3. Basic restriction: cannot act on ADMIN or SUPER_ADMIN
-        UserRole targetRole = userPermissionService.getHighestRole(target);
-        if (targetRole == UserRole.ADMIN || targetRole == UserRole.SUPER_ADMIN) {
+        // 3. CORRECTED: Use role hierarchy instead of absolute restriction
+        if (!userPermissionService.canActOnUser(actor, target)) {
+            UserRole targetRole = userPermissionService.getHighestRole(target);
             throw AdminPermissionExceptionFactory.forUnauthorizedTargetRole(action, targetRole);
         }
     }
