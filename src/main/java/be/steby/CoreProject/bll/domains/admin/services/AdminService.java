@@ -1,11 +1,7 @@
 package be.steby.CoreProject.bll.domains.admin.services;
 
-import be.steby.CoreProject.bll.domains.admin.models.AdminUserCreationRequest;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
-import be.steby.CoreProject.dl.enums.UserRole;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

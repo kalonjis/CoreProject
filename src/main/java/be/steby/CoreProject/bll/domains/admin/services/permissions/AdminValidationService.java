@@ -1,8 +1,6 @@
-package be.steby.CoreProject.bll.domains.admin.services;
+package be.steby.CoreProject.bll.domains.admin.services.permissions;
 
-import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory;
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
-import be.steby.CoreProject.bll.common.exceptions.UserPermissionException;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminPermissionExceptionFactory;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
@@ -18,8 +16,9 @@ public class AdminValidationService {
     private final UserPermissionService userPermissionService;
 
     /**
-     * Basic admin validation - Admin can only act on USER/MODERATOR
-     * ADMIN cannot act on other ADMIN or SUPER_ADMIN
+     * Basic admin validation - Admin can only act on GHEST/USER/MODERATOR
+     * ADMIN cannot act on other ADMIN
+     * SUPER_ADMIN can only act on ADMIN/USER/MODERATOR/GHEST not on SUPER_ADMIN
      */
     public void validateStrictHierarchy (User actor, User target, boolean allowSelfTargeting, String action) {
         // 1. Verify actor has admin privileges

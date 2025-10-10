@@ -128,10 +128,9 @@ public ResponseEntity<Map<String, String>> forcePasswordReset(
 @PostMapping("/send-reset-link/{userPublicId}")
 public ResponseEntity<AdminPasswordOperationResponse> sendPasswordResetLink(
         @PathVariable String userPublicId,
-        @Valid @RequestBody AdminPasswordResetLinkRequest request,
-        HttpServletRequest httpRequest) {
+        @Valid @RequestBody AdminPasswordResetLinkRequest request) {
 
-    adminPasswordService.sendPasswordResetLink(userPublicId, request.toBLL(), httpRequest);
+    adminPasswordService.sendPasswordResetLink(userPublicId, request.toBLL());
 
     return ResponseEntity.ok(
             AdminPasswordOperationResponse.resetLinkSent()

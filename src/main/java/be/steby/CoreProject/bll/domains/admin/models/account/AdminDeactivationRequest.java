@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.admin.models;
+package be.steby.CoreProject.bll.domains.admin.models.account;
 
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminDeactivationValidationException;
 

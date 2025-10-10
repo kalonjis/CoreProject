@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.admin.events;
+package be.steby.CoreProject.bll.domains.admin.events.account;
 
 import be.steby.CoreProject.dl.entities.User;
 

@@ -1,11 +1,13 @@
 package be.steby.CoreProject.bll.domains.admin.services.password;
 
 import be.steby.CoreProject.bll.common.services.passwordgenerator.TemporaryPasswordGeneratorService;
-import be.steby.CoreProject.bll.domains.admin.events.AdminPasswordResetLinkEvent;
-import be.steby.CoreProject.bll.domains.admin.events.AdminPasswordResetTriggeredEvent;
+import be.steby.CoreProject.bll.domains.admin.events.password.AdminPasswordResetLinkEvent;
+import be.steby.CoreProject.bll.domains.admin.events.password.AdminPasswordResetTriggeredEvent;
+import be.steby.CoreProject.bll.domains.admin.events.password.AdminTemporaryPasswordSentEvent;
 import be.steby.CoreProject.bll.domains.admin.models.password.AdminPasswordResetBLLRequest;
 import be.steby.CoreProject.bll.domains.admin.models.password.AdminPasswordResetLinkBLLRequest;
-import be.steby.CoreProject.bll.domains.admin.services.AdminValidationService;
+import be.steby.CoreProject.bll.domains.admin.models.password.AdminTemporaryPasswordBLLRequest;
+import be.steby.CoreProject.bll.domains.admin.services.permissions.AdminValidationService;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTokenServiceImpl;
@@ -64,11 +66,12 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
     // ===============================
 
     @Override
-    public void sendPasswordResetLink(String userPublicId, AdminPasswordResetLinkBLLRequest request, HttpServletRequest httpRequest) {
+    public void sendPasswordResetLink(String userPublicId, AdminPasswordResetLinkBLLRequest request) {
         User admin = userService.getAuthenticatedUser();
         User target = userService.getUserByPublicId(userPublicId);
 
-        adminValidationService.validateStrictHierarchy (admin, target, false, "sendPasswordResetLink");
+        // check permissions
+        adminValidationService.validateAdminActionOnAllUsers (admin, target, false, "sendPasswordResetLink"); // can act on All users except him self 'cause he 's connected -> go to profile/change-password
 
         PasswordResetToken token = passwordResetTokenService.createPasswordResetToken(target);
 
@@ -77,6 +80,33 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
         );
 
         log.info("Admin {} sent password reset link to user {} - reason: {}",
+                admin.getUsername(), target.getEmail(), request.reason());
+    }
+
+
+    @Override
+    @Transactional
+    public void sendTemporaryPassword(String userPublicId, AdminTemporaryPasswordBLLRequest request) {
+        User admin = userService.getAuthenticatedUser();
+        User target = userService.getUserByPublicId(userPublicId);
+
+        adminValidationService.validateStrictHierarchy(admin, target, false, "sendTemporaryPassword");
+
+        // 1. Sécurité FIRST : logout everywhere
+        revokeAllUserTokens(target);
+
+        // 2. Générer et SET le nouveau password
+        String tempPassword = passwordGeneratorService.generateStandard(12);
+        target.setPassword(passwordEncoder.encode(tempPassword));
+        target.setMustChangePassword(true);
+        userService.saveUser(target);
+
+        // 3. Envoyer par email (canal habituel)
+        eventPublisher.publishEvent(
+                new AdminTemporaryPasswordSentEvent(target, admin, tempPassword, request.reason())
+        );
+
+        log.info("Admin {} sent temporary password to user {} - reason: {}",
                 admin.getUsername(), target.getEmail(), request.reason());
     }
 

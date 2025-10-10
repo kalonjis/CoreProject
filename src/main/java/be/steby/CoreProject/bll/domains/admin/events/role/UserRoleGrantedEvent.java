@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.admin.events;
+package be.steby.CoreProject.bll.domains.admin.events.role;
 
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
@@ -7,38 +7,38 @@ import java.time.Instant;
 import java.util.Set;
 
 /**
- * Événement émis lorsqu'un rôle est révoqué d'un utilisateur par un administrateur.
+ * Événement émis lorsqu'un rôle est accordé à un utilisateur par un administrateur.
  * Cet événement contient toutes les informations nécessaires pour l'audit
- * et les notifications liées à la révocation de rôles.
+ * et les notifications liées à l'attribution de rôles.
  */
-public record UserRoleRevokedEvent(
+public record UserRoleGrantedEvent(
         /**
-         * L'utilisateur dont le rôle est révoqué.
+         * L'utilisateur qui reçoit le nouveau rôle.
          */
         User targetUser,
 
         /**
-         * L'administrateur qui révoque le rôle.
+         * L'administrateur qui accorde le rôle.
          */
         User adminUser,
 
         /**
-         * Le rôle qui vient d'être révoqué.
+         * Le rôle qui vient d'être accordé.
          */
-        UserRole revokedRole,
+        UserRole grantedRole,
 
         /**
-         * Les rôles de l'utilisateur avant la révocation.
+         * Les rôles de l'utilisateur avant l'attribution.
          */
         Set<UserRole> previousRoles,
 
         /**
-         * Les rôles de l'utilisateur après la révocation.
+         * Les rôles de l'utilisateur après l'attribution.
          */
         Set<UserRole> currentRoles,
 
         /**
-         * Raison de la révocation du rôle (optionnel).
+         * Raison de l'attribution du rôle (optionnel).
          */
         String reason,
 
@@ -51,79 +51,69 @@ public record UserRoleRevokedEvent(
     /**
      * Constructeur avec timestamp automatique.
      */
-    public UserRoleRevokedEvent(
+    public UserRoleGrantedEvent(
             User targetUser,
             User adminUser,
-            UserRole revokedRole,
+            UserRole grantedRole,
             Set<UserRole> previousRoles,
             Set<UserRole> currentRoles,
             String reason) {
-        this(targetUser, adminUser, revokedRole, previousRoles, currentRoles, reason, Instant.now());
+        this(targetUser, adminUser, grantedRole, previousRoles, currentRoles, reason, Instant.now());
     }
 
     /**
-     * Crée un événement de révocation de rôle.
+     * Crée un événement d'attribution de rôle.
      *
      * @param targetUser L'utilisateur cible
      * @param adminUser L'administrateur
-     * @param revokedRole Le rôle révoqué
+     * @param grantedRole Le rôle accordé
      * @param previousRoles Les rôles précédents
      * @param currentRoles Les rôles actuels
      * @param reason La raison (optionnel)
-     * @param requestContext Le contexte de la requête
      * @return Nouvel événement
      */
-    public static UserRoleRevokedEvent of(
+    public static UserRoleGrantedEvent of(
             User targetUser,
             User adminUser,
-            UserRole revokedRole,
+            UserRole grantedRole,
             Set<UserRole> previousRoles,
             Set<UserRole> currentRoles,
             String reason) {
-        return new UserRoleRevokedEvent(
-                targetUser, adminUser, revokedRole, previousRoles, currentRoles, reason
+        return new UserRoleGrantedEvent(
+                targetUser, adminUser, grantedRole, previousRoles, currentRoles, reason
         );
     }
 
     /**
-     * Vérifie si le rôle révoqué était un rôle administratif.
+     * Vérifie si le rôle accordé est un rôle administratif.
      *
-     * @return true si le rôle révoqué était ADMIN, SUPER_ADMIN ou MODERATOR
+     * @return true si le rôle accordé est ADMIN, SUPER_ADMIN ou MODERATOR
      */
     public boolean isAdministrativeRole() {
-        return revokedRole == UserRole.ADMIN ||
-                revokedRole == UserRole.SUPER_ADMIN ||
-                revokedRole == UserRole.MODERATOR;
+        return grantedRole == UserRole.ADMIN ||
+                grantedRole == UserRole.SUPER_ADMIN ||
+                grantedRole == UserRole.MODERATOR;
     }
 
     /**
-     * Vérifie si le rôle révoqué était SUPER_ADMIN.
+     * Vérifie si le rôle accordé est SUPER_ADMIN.
      *
-     * @return true si le rôle révoqué était SUPER_ADMIN
+     * @return true si le rôle accordé est SUPER_ADMIN
      */
     public boolean isSuperAdminRole() {
-        return revokedRole == UserRole.SUPER_ADMIN;
+        return grantedRole == UserRole.SUPER_ADMIN;
     }
 
     /**
-     * Vérifie si l'utilisateur perd tous ses privilèges administratifs.
+     * Vérifie si l'utilisateur devient administrateur pour la première fois.
      *
-     * @return true si l'utilisateur n'a plus de rôles administratifs
+     * @return true si c'est son premier rôle administratif
      */
-    public boolean losesAllAdministrativeRoles() {
-        return isAdministrativeRole() &&
-                currentRoles.stream().noneMatch(role ->
-                        role == UserRole.ADMIN || role == UserRole.SUPER_ADMIN || role == UserRole.MODERATOR
-                );
-    }
-
-    /**
-     * Vérifie si l'utilisateur devient un utilisateur standard.
-     *
-     * @return true si l'utilisateur n'a plus que le rôle USER
-     */
-    public boolean becomesStandardUser() {
-        return currentRoles.size() == 1 && currentRoles.contains(UserRole.USER);
+    public boolean isFirstAdministrativeRole() {
+        boolean hadAdminRole = previousRoles.stream().anyMatch(role ->
+                role == UserRole.ADMIN || role == UserRole.SUPER_ADMIN || role == UserRole.MODERATOR
+        );
+        return !hadAdminRole && isAdministrativeRole();
     }
 
     /**
@@ -178,8 +168,8 @@ public record UserRoleRevokedEvent(
      */
     public String getDescription() {
         String base = String.format(
-                "Rôle '%s' révoqué de l'utilisateur '%s' par l'administrateur '%s'",
-                revokedRole,
+                "Rôle '%s' accordé à l'utilisateur '%s' par l'administrateur '%s'",
+                grantedRole,
                 getTargetUsername(),
                 getAdminUsername()
         );
@@ -198,10 +188,10 @@ public record UserRoleRevokedEvent(
      */
     public String getRoleChangeSummary() {
         return String.format(
-                "Rôles: %s → %s (- %s)",
+                "Rôles: %s → %s (+ %s)",
                 previousRoles,
                 currentRoles,
-                revokedRole
+                grantedRole
         );
     }
 }

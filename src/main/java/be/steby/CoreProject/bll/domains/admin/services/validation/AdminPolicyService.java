@@ -1,7 +1,7 @@
-package be.steby.CoreProject.bll.domains.admin.services;
+package be.steby.CoreProject.bll.domains.admin.services.validation;
 
-import be.steby.CoreProject.bll.domains.admin.models.AdminDeactivationRequest;
-import be.steby.CoreProject.bll.domains.admin.models.AdminUserCreationRequest;
+import be.steby.CoreProject.bll.domains.admin.models.account.AdminDeactivationRequest;
+import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationRequest;
 import be.steby.CoreProject.bll.domains.admin.models.AdminValidationResult;
 
 /**

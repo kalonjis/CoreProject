@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.admin.models;
+package be.steby.CoreProject.bll.domains.admin.models.role;
 
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
 import be.steby.CoreProject.dl.enums.UserRole;
