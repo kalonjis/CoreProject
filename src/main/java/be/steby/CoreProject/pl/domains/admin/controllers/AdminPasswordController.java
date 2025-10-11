@@ -1,8 +1,10 @@
 package be.steby.CoreProject.pl.domains.admin.controllers;
 
 import be.steby.CoreProject.bll.domains.admin.services.password.AdminPasswordService;
-import be.steby.CoreProject.pl.domains.admin.models.requests.AdminPasswordResetLinkRequest;
-import be.steby.CoreProject.pl.domains.admin.models.requests.AdminPasswordResetRequest;
+import be.steby.CoreProject.pl.domains.admin.models.requests.AdminAlternativeChannelPasswordRequest;
+import be.steby.CoreProject.pl.domains.admin.models.requests.password.AdminPasswordResetLinkRequest;
+import be.steby.CoreProject.pl.domains.admin.models.requests.password.AdminPasswordResetRequest;
+import be.steby.CoreProject.pl.domains.admin.models.requests.password.AdminTemporaryPasswordRequest;
 import be.steby.CoreProject.pl.domains.admin.models.responses.AdminPasswordOperationResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -136,6 +138,92 @@ public ResponseEntity<AdminPasswordOperationResponse> sendPasswordResetLink(
             AdminPasswordOperationResponse.resetLinkSent()
     );
 }
+
+
+    /**
+     * Sends a temporary password to a user via email.
+     *
+     * This endpoint:
+     * - Generates a secure temporary password
+     * - Replaces the user's current password with the temporary one
+     * - Sets mustChangePassword flag to true
+     * - Revokes all active sessions (user must re-authenticate)
+     * - Sends the temporary password via email
+     *
+     * Use cases:
+     * - User locked out of account
+     * - User needs immediate access
+     * - Admin-assisted password recovery
+     *
+     * Security notes:
+     * - User will be forced to change password on next login
+     * - All active sessions are terminated
+     * - Operation is fully audited
+     *
+     * @param userPublicId User's public ID requiring temporary password
+     * @param request Request containing reason for audit trail
+     * @return 200 OK with operation confirmation
+     */
+    @PostMapping("/send-temporary-password/{userPublicId}")
+    public ResponseEntity<AdminPasswordOperationResponse> sendTemporaryPassword(
+            @PathVariable String userPublicId,
+            @Valid @RequestBody AdminTemporaryPasswordRequest request) {
+
+        log.warn("Admin temporary password request - userPublicId: {}, reason: {}",
+                userPublicId, request.reason());
+
+        adminPasswordService.sendTemporaryPassword(userPublicId, request.toBLL());
+
+        return ResponseEntity.ok(
+                AdminPasswordOperationResponse.temporaryPasswordSent()
+        );
+    }
+
+
+    // Dans AdminPasswordController.java
+
+    /**
+     * Sends temporary password via ALTERNATIVE CHANNEL (email or SMS).
+     *
+     * ⚠️ USE CASE: Primary email/phone is compromised or inaccessible.
+     *
+     * IMPORTANT SECURITY NOTES:
+     * - This is a GENERIC implementation for flexibility
+     * - In production, alternative channels should be PRE-VERIFIED from user profile
+     * - Never accept arbitrary email/phone without verification process
+     * - Consider implementing:
+     *   - 30-day grace period after channel changes
+     *   - Multi-factor verification using immutable data
+     *   - Physical verification for high-security accounts
+     *
+     * This endpoint:
+     * - Generates secure temporary password
+     * - Revokes ALL active sessions
+     * - Sets mustChangePassword flag
+     * - Sends password via alternative channel(s)
+     * - Fully audited with reason
+     *
+     * @param userPublicId User's public ID
+     * @param request Request with reason and alternative channel(s)
+     * @return 200 OK with operation confirmation
+     */
+    @PostMapping("/send-via-alternative-channel/{userPublicId}")
+    public ResponseEntity<AdminPasswordOperationResponse> sendViaAlternativeChannel(
+            @PathVariable String userPublicId,
+            @Valid @RequestBody AdminAlternativeChannelPasswordRequest request) {
+
+        log.warn("⚠️ Admin alternative channel password request - userPublicId: {}, reason: {}",
+                userPublicId, request.reason());
+
+        adminPasswordService.sendTemporaryPasswordViaAlternativeChannel(userPublicId, request.toBLL());
+
+        return ResponseEntity.ok(
+                AdminPasswordOperationResponse.alternativeChannelPasswordSent(
+                        request.useAlternativeEmail(),
+                        request.useAlternativePhone()
+                )
+        );
+    }
 
     // ===============================
     // FUTURE: PASSWORD POLICY OPERATIONS

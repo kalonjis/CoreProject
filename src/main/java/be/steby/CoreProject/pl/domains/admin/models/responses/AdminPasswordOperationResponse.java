@@ -8,7 +8,37 @@ public record AdminPasswordOperationResponse(
 ) {
     public static AdminPasswordOperationResponse resetLinkSent() {
         return new AdminPasswordOperationResponse(
-                "An email with a password reset link has been sent successfully"
+                "An email with a password reset link has been successfully sent"
+        );
+    }
+
+
+    public static AdminPasswordOperationResponse temporaryPasswordSent() {
+        return new AdminPasswordOperationResponse(
+                "An email with a temporary password has been successfully sent"
+        );
+    }
+
+    public static AdminPasswordOperationResponse alternativeChannelPasswordSent(
+            boolean sentToEmail,
+            boolean sentToSMS) {
+
+        String channels = "";
+        if (sentToEmail && sentToSMS) {
+            channels = "alternative email and SMS";
+        } else if (sentToEmail) {
+            channels = "alternative email";
+        } else {
+            channels = "SMS";
+        }
+
+        return new AdminPasswordOperationResponse(
+                String.format(
+                        "A temporary password has been generated and sent via %s. " +
+                            "The user must change this password on next login. " +
+                                "All active sessions have been terminated.",
+                        channels
+                )
         );
     }
 
