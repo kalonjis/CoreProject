@@ -3,6 +3,7 @@ package be.steby.CoreProject.pl.domains.emailaddress.models.requests;
 import be.steby.CoreProject.bll.domains.emailaddress.models.EmailChangeRequest;
 import be.steby.CoreProject.pl.domains.emailaddress.validators.EmailsMatch;
 import be.steby.CoreProject.pl.domains.emailaddress.validators.ValidEmailDomain;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -26,7 +27,6 @@ import jakarta.validation.constraints.Size;
 @EmailsMatch
 public record ChangeEmailRequest(
         @NotBlank(message = "Email address cannot be empty")
-        @Email(message = "Invalid email format")
         @Size(max = 254, message = "Email cannot exceed 254 characters")
         @ValidEmailDomain
         String email,
@@ -36,6 +36,15 @@ public record ChangeEmailRequest(
         @Size(max = 254, message = "Email confirmation cannot exceed 254 characters")
         String confirmEmail
 ) {
+    /**
+     * Custom validation to ensure passwords match.
+     */
+    @AssertTrue(message = "email and  do not match")
+    public boolean isEmailsMatch() {
+        return email != null && email.equals(confirmEmail);
+    }
+
+
     /**
      * Converts this PL request model to the ChangeEmailForm expected by the service layer.
      *

@@ -46,4 +46,72 @@ public class AdminMailerService extends BaseMailerService {
 
         log.debug("Admin-initiated password reset link email sent successfully to: {}", targetUser.getEmail());
     }
+
+
+    /**
+     * Sends temporary password email to user (initiated by admin).
+     *
+     * @param temporaryPassword The temporary password (plain text)
+     * @param targetUser The user who will receive the temporary password
+     * @param adminUser The administrator who initiated the password reset
+     * @param reason The reason for the temporary password
+     */
+    @Async("emailExecutor")
+    public void sendTemporaryPassword(String temporaryPassword, User targetUser, User adminUser, String reason) {
+        log.info("Sending admin-initiated temporary password email to: {} (initiated by: {})",
+                targetUser.getEmail(), adminUser.getUsername());
+
+        Context context = createBaseContext(targetUser);
+        context.setVariable("temporaryPassword", temporaryPassword);
+        context.setVariable("adminUsername", defineUsername(adminUser));
+        context.setVariable("reason", reason);
+
+        sendEmail("Temporary Password - Action Required", "admin/temporaryPassword", context, targetUser.getEmail());
+
+        log.debug("Admin-initiated temporary password email sent successfully to: {}", targetUser.getEmail());
+    }
+
+
+
+    /**
+     * Sends temporary password to ALTERNATIVE email address.
+     * Used when primary email is compromised.
+     *
+     * @param temporaryPassword The temporary password (plain text)
+     * @param targetUser The user who will receive the temporary password
+     * @param adminUser The administrator who initiated the password reset
+     * @param reason The reason for the temporary password
+     * @param alternativeEmail The alternative email address to send to
+     */
+    @Async("emailExecutor")
+    public void sendTemporaryPasswordToAlternativeEmail(
+            String temporaryPassword,
+            User targetUser,
+            User adminUser,
+            String reason,
+            String alternativeEmail) {
+
+        log.warn("⚠️ Sending temporary password to ALTERNATIVE email: {} for user: {} (initiated by: {})",
+                alternativeEmail, targetUser.getEmail(), adminUser.getUsername());
+
+        Context context = createBaseContext(targetUser);
+        context.setVariable("temporaryPassword", temporaryPassword);
+        context.setVariable("adminUsername", defineUsername(adminUser));
+        context.setVariable("reason", reason);
+        context.setVariable("alternativeEmail", alternativeEmail);
+        context.setVariable("primaryEmail", targetUser.getEmail());
+        context.setVariable("securityWarning",
+                "This password was sent to an alternative email address because the primary email may be compromised.");
+
+        sendEmail(
+                "⚠️ SECURITY ALERT - Temporary Password (Alternative Channel)",
+                "admin/temporaryPasswordAlternative",
+                context,
+                alternativeEmail // ← Envoi à l'email ALTERNATIF
+        );
+
+        log.debug("✅ Temporary password sent to alternative email: {}", alternativeEmail);
+    }
+
+
 }

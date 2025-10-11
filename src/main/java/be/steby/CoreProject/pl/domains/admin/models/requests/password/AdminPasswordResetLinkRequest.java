@@ -1,4 +1,4 @@
-package be.steby.CoreProject.pl.domains.admin.models.requests;
+package be.steby.CoreProject.pl.domains.admin.models.requests.password;
 
 import be.steby.CoreProject.bll.domains.admin.models.password.AdminPasswordResetLinkBLLRequest;
 import jakarta.validation.constraints.NotBlank;

@@ -16,6 +16,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -43,8 +44,34 @@ public class User extends BaseEntity<Long> implements UserDetails {
      * The email address of the user.
      * This is unique for each user.
      */
-    @Column(unique = true, nullable = false, length = 50)
+    @Column(unique = true, nullable = false, length = 254)
     private String email;
+
+    /**
+     * The recovery email address of the user.
+     * This is unique for each user (when provided).
+     * Used only in case of primary email address compromise.
+     *
+     * SECURITY NOTES:
+     * - Should be verified before being used for password recovery
+     * - Changes should have a 30-day grace period before becoming usable
+     * - User should be notified on both primary and recovery email when changed
+     */
+    @Column(name = "recovery_email", unique = true, length = 254)
+    private String recoveryEmail;
+
+    /**
+     * Timestamp when recovery email was last changed.
+     * Used to enforce grace period before recovery email can be used.
+     */
+    @Column(name = "recovery_email_changed_at")
+    private Instant recoveryEmailChangedAt;
+
+    /**
+     * Previous recovery email (for audit trail and rollback).
+     */
+    @Column(name = "recovery_email_previous", length = 254)
+    private String recoveryEmailPrevious;
 
     /**
      * The username of the user.
@@ -322,6 +349,55 @@ public class User extends BaseEntity<Long> implements UserDetails {
 
     public boolean isSelfSignup() {
         return createdBy == null;
+    }
+
+
+    /**
+     * Calculates the number of days since the recovery email was last changed.
+     * Returns null if recovery email was never changed.
+     *
+     * @return Number of days since last change, or null if never changed
+     */
+    public Long getDaysSinceRecoveryEmailChanged() {
+        if (recoveryEmailChangedAt == null) {
+            return null;
+        }
+        return ChronoUnit.DAYS.between(recoveryEmailChangedAt, Instant.now());
+    }
+
+    /**
+     * Checks if recovery email is within the grace period (30 days by default).
+     * If recovery email was never changed, returns false (safe to use).
+     *
+     * @return true if within grace period and should not be used yet
+     */
+    public boolean isRecoveryEmailInGracePeriod() {
+        return isRecoveryEmailInGracePeriod(30);
+    }
+
+    /**
+     * Checks if recovery email is within a custom grace period.
+     *
+     * @param gracePeriodDays Number of days for grace period
+     * @return true if within grace period
+     */
+    public boolean isRecoveryEmailInGracePeriod(int gracePeriodDays) {
+        if (recoveryEmailChangedAt == null) {
+            return false; // Never changed = safe to use
+        }
+        Long daysSinceChange = getDaysSinceRecoveryEmailChanged();
+        return daysSinceChange != null && daysSinceChange < gracePeriodDays;
+    }
+
+    /**
+     * Checks if recovery email can be safely used for password recovery.
+     *
+     * @return true if recovery email exists and is not in grace period
+     */
+    public boolean canUseRecoveryEmail() {
+        return recoveryEmail != null
+                && !recoveryEmail.isBlank()
+                && !isRecoveryEmailInGracePeriod();
     }
 
 }

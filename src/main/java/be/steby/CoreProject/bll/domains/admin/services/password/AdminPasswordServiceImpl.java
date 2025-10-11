@@ -1,9 +1,12 @@
 package be.steby.CoreProject.bll.domains.admin.services.password;
 
 import be.steby.CoreProject.bll.common.services.passwordgenerator.TemporaryPasswordGeneratorService;
+import be.steby.CoreProject.bll.domains.admin.events.password.AdminAlternativeChannelPasswordEvent;
 import be.steby.CoreProject.bll.domains.admin.events.password.AdminPasswordResetLinkEvent;
 import be.steby.CoreProject.bll.domains.admin.events.password.AdminPasswordResetTriggeredEvent;
 import be.steby.CoreProject.bll.domains.admin.events.password.AdminTemporaryPasswordSentEvent;
+import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
+import be.steby.CoreProject.bll.domains.admin.models.password.AdminAlternativeChannelPasswordBLLRequest;
 import be.steby.CoreProject.bll.domains.admin.models.password.AdminPasswordResetBLLRequest;
 import be.steby.CoreProject.bll.domains.admin.models.password.AdminPasswordResetLinkBLLRequest;
 import be.steby.CoreProject.bll.domains.admin.models.password.AdminTemporaryPasswordBLLRequest;
@@ -108,6 +111,100 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
 
         log.info("Admin {} sent temporary password to user {} - reason: {}",
                 admin.getUsername(), target.getEmail(), request.reason());
+    }
+
+
+    @Override
+    @Transactional
+    public void sendTemporaryPasswordViaAlternativeChannel(
+            String userPublicId,
+            AdminAlternativeChannelPasswordBLLRequest request) {
+
+        log.warn("⚠️ SECURITY EMERGENCY - Admin alternative channel password reset - userPublicId: {}, channels: email={}, phone={}",
+                userPublicId,
+                request.useAlternativeEmail(),
+                request.useAlternativePhone());
+
+        User target = userService.getUserByPublicId(userPublicId);
+        User admin = userService.getAuthenticatedUser();
+
+        adminValidationService.validateAdminActionOnAllUsers(admin, target, false, "sendTemporaryPasswordViaAlternativeChannel");
+
+        log.warn("⚠️ Admin {} initiating alternative channel password reset for user {} (security emergency - hierarchy bypassed)",
+                admin.getUsername(), target.getUsername());
+
+        // VALIDATE: User has the requested alternative channels
+        if (request.useAlternativeEmail()) {
+            // Check if recovery email exists
+            if (target.getRecoveryEmail() == null || target.getRecoveryEmail().isBlank()) {
+                log.error("User {} has no recovery email registered", target.getId());
+                throw new AdminOperationException(
+                        "User does not have a recovery email registered. Cannot send temporary password via alternative email."
+                );
+            }
+
+            // Check grace period (security measure)
+            if (target.isRecoveryEmailInGracePeriod()) {
+                Long daysSinceChange = target.getDaysSinceRecoveryEmailChanged();
+                log.warn("User {} recovery email is in grace period ({} days old, need 30 days)",
+                        target.getId(), daysSinceChange);
+                throw new AdminOperationException(
+                        String.format(
+                                "Recovery email was changed %d days ago. " +
+                                        "For security reasons, it cannot be used for password recovery until 30 days have passed. " +
+                                        "Please wait %d more days or use another recovery method.",
+                                daysSinceChange,
+                                30 - daysSinceChange
+                        )
+                );
+            }
+
+            log.info("✅ Recovery email validated for user {} (changed {} days ago)",
+                    target.getId(), target.getDaysSinceRecoveryEmailChanged());
+        }
+
+        if (request.useAlternativePhone()) {
+            if (target.getPhoneNumber() == null || target.getPhoneNumber().isBlank()) {
+                log.error("User {} has no phone number registered", target.getId());
+                throw new AdminOperationException(
+                        "User does not have a phone number registered. Cannot send temporary password via SMS."
+                );
+            }
+
+            log.info("✅ Phone number validated for user {}", target.getId());
+        }
+
+        // SECURITY: Revoke all tokens and disconnect all devices
+        log.warn("⚠️ Revoking all tokens for user {} (alternative channel reset - security emergency)", target.getId());
+        revokeAllUserTokens(target);
+
+        // Generate temporary password
+        String tempPassword = passwordGeneratorService.generateStandard(12);
+        target.setPassword(passwordEncoder.encode(tempPassword));
+        target.setMustChangePassword(true);
+        userService.saveUser(target);
+
+        // Get actual channels from user profile
+        String alternativeEmail = request.useAlternativeEmail() ? target.getRecoveryEmail() : null;
+        String alternativePhone = request.useAlternativePhone() ? target.getPhoneNumber() : null;
+
+        // Publish event for delivery
+        AdminAlternativeChannelPasswordEvent event = new AdminAlternativeChannelPasswordEvent(
+                target,
+                admin,
+                tempPassword,
+                request.reason(),
+                alternativeEmail,
+                alternativePhone,
+                request.getDeliveryMethod()
+        );
+        eventPublisher.publishEvent(event);
+
+        log.warn("⚠️ SECURITY: Admin {} sent temporary password via ALTERNATIVE CHANNEL ({}) to user {} - reason: {}",
+                admin.getUsername(),
+                request.getDeliveryMethod(),
+                target.getEmail(),
+                request.reason());
     }
 
 
