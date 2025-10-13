@@ -8,7 +8,7 @@ import be.steby.CoreProject.bll.domains.admin.models.AdminValidationResult;
  * Interface de service pour la validation des politiques administratives.
  * Version hybride : se concentre sur les validation où AdminPolicyService apporte une vraie valeur ajoutée.
  */
-public interface AdminPolicyService {
+public interface AdminActionPolicyService {
 
     /**
      * Valide une demande de création d'utilisateur par un administrateur.

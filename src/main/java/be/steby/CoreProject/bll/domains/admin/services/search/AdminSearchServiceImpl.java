@@ -117,7 +117,7 @@ public class AdminSearchServiceImpl implements AdminSearchService {
         User user = userService.getUserById(userId);
 
         // Delegate to device service
-        List<Device> devices = deviceService.getUserDevice(user);
+        List<Device> devices = deviceService.getUserDevices(user);
 
         log.info("Admin retrieved devices for user {} - {} device(s) found",
                 user.getUsername(), devices.size());

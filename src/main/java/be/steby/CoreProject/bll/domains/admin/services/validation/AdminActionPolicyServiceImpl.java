@@ -28,7 +28,7 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class AdminPolicyServiceImpl implements AdminPolicyService {
+public class AdminActionPolicyServiceImpl implements AdminActionPolicyService {
 
     private final EmailPolicyService emailPolicyService;
     private final TextFieldValidationService textFieldValidationService;

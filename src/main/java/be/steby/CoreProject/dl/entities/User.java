@@ -262,6 +262,54 @@ public class User extends BaseEntity<Long> implements UserDetails {
 
     // endregion
 
+    // region check role
+    /**
+     * Checks if this user has the SUPER_ADMIN role.
+     * @return true if user is a super admin
+     */
+    public boolean isSuperAdmin() {
+        return this.userRoles.contains(UserRole.SUPER_ADMIN);
+    }
+
+    /**
+     * Checks if this user has the ADMIN role (but not necessarily SUPER_ADMIN).
+     * @return true if user is an admin
+     */
+    public boolean isAdmin() {
+        return this.userRoles.contains(UserRole.ADMIN);
+    }
+
+    /**
+     * Checks if this user has admin privileges (ADMIN or SUPER_ADMIN).
+     * @return true if user has admin privileges
+     */
+    public boolean hasAdminPrivileges() {
+        return isAdmin() || isSuperAdmin();
+    }
+
+    /**
+     * Checks if this user has a specific role.
+     * @param role the role to check
+     * @return true if user has the role
+     */
+    public boolean hasRole(UserRole role) {
+        return this.userRoles.contains(role);
+    }
+
+
+    /**
+     * Gets the highest role of this user.
+     * Useful for logging and permission checks.
+     */
+    public UserRole getHighestRole() {
+        if (isSuperAdmin()) return UserRole.SUPER_ADMIN;
+        if (isAdmin()) return UserRole.ADMIN;
+        if (hasRole(UserRole.MODERATOR)) return UserRole.MODERATOR;
+        if (hasRole(UserRole.USER)) return UserRole.USER;
+        return UserRole.GUEST;
+    }
+    // endregion
+
 
     // region UserDetails methods implementation
     /**

@@ -9,7 +9,7 @@ import be.steby.CoreProject.bll.domains.admin.models.account.AdminDeactivationRe
 import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationRequest;
 import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationResult;
 import be.steby.CoreProject.bll.domains.admin.models.AdminValidationResult;
-import be.steby.CoreProject.bll.domains.admin.services.validation.AdminPolicyService;
+import be.steby.CoreProject.bll.domains.admin.services.validation.AdminActionPolicyService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.User;
@@ -47,7 +47,7 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
     private final UserService userService;
     private final AdminUserCreationService adminUserCreationService;
     private final UserPermissionService userPermissionService;
-    private final AdminPolicyService adminPolicyService;
+    private final AdminActionPolicyService adminActionPolicyService;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -66,7 +66,7 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
         log.debug("User creation initiated by admin: {}", actor.getUsername());
 
         // 2. Validate request data (email format, names, phone)
-        AdminValidationResult validation = adminPolicyService.validateUserCreation(request);
+        AdminValidationResult validation = adminActionPolicyService.validateUserCreation(request);
         if (!validation.isValid()) {
             String errorMessage = "User creation validation failed: " +
                     String.join(", ", validation.errors());
@@ -170,7 +170,7 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
                 userId, deactivationCategory, adminDeactivationDetails);
 
         AdminValidationResult validationResult =
-                adminPolicyService.validateDeactivationDetails(deactivationRequest);
+                adminActionPolicyService.validateDeactivationDetails(deactivationRequest);
 
         if (!validationResult.isValid()) {
             throw new AdminOperationException(

@@ -45,9 +45,9 @@ public class ReactivationPolicyServiceImpl implements ReactivationPolicyService 
     public boolean canReactivateWithPolicy(ReactivationPolicy policy, User actor, User target) {
         return switch (policy) {
             case NEVER -> false;
-            case SELF_SERVICE -> actor.equals(target) || userPermissionService.hasAdminPrivileges(actor);
-            case ADMIN_ONLY -> userPermissionService.hasAdminPrivileges(actor);
-            case SUPER_ADMIN_ONLY -> userPermissionService.hasSuperAdminPrivileges(actor);
+            case SELF_SERVICE -> actor.equals(target) || actor.hasAdminPrivileges();
+            case ADMIN_ONLY -> actor.hasAdminPrivileges();
+            case SUPER_ADMIN_ONLY -> actor.isSuperAdmin();
         };
     }
 
@@ -74,7 +74,7 @@ public class ReactivationPolicyServiceImpl implements ReactivationPolicyService 
 
     private ReactivationEligibility checkSelfDeactivationEligibility(User user, User actor) {
         // Self-deactivation peut toujours être réactivée par l'utilisateur ou un admin
-        if (actor == null || actor.equals(user) || userPermissionService.hasAdminPrivileges(actor)) {
+        if (actor == null || actor.equals(user) || actor.hasAdminPrivileges()) {
             return ReactivationEligibility.eligible();
         }
         return ReactivationEligibility.insufficientPermissions("Self-deactivation requires self or admin");

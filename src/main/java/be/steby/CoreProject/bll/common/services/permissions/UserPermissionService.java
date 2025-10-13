@@ -41,19 +41,5 @@ public interface UserPermissionService {
      */
     boolean canActOnUser(User actor, User target);
 
-    /**
-     * Obtient le rôle le plus élevé d'un utilisateur.
-     */
-    UserRole getHighestRole(User user);
-
-    /**
-     * Vérifie si un utilisateur a des privilèges administratifs.
-     */
-    boolean hasAdminPrivileges(User user);
-
-    /**
-     * Vérifie si un utilisateur a des privilèges de super admin.
-     */
-    boolean hasSuperAdminPrivileges(User user);
 
 }

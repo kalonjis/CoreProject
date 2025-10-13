@@ -79,20 +79,18 @@ public class UserPermissionServiceImpl implements UserPermissionService {
             return false;
         }
 
-        Set<UserRole> userRoles = user.getUserRoles();
-
         // Check role-specific rules (from highest to lowest)
-        if (userRoles.contains(UserRole.SUPER_ADMIN)) {
+        if (user.isSuperAdmin()) {
             log.debug("Super-admin self-deactivation allowed: {}", allowSuperAdminSelfDeactivation);
             return allowSuperAdminSelfDeactivation;
         }
 
-        if (userRoles.contains(UserRole.ADMIN)) {
+        if (user.isAdmin()) {
             log.debug("Admin self-deactivation allowed: {}", allowAdminSelfDeactivation);
             return allowAdminSelfDeactivation;
         }
 
-        if (userRoles.contains(UserRole.MODERATOR)) {
+        if (user.hasRole(UserRole.MODERATOR)) {
             log.debug("Moderator self-deactivation allowed: {}", allowModeratorSelfDeactivation);
             return allowModeratorSelfDeactivation;
         }
@@ -150,7 +148,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
             return false;
         }
 
-        UserRole actorHighestRole = getHighestRole(actor);
+        UserRole actorHighestRole = actor.getHighestRole();
 
         // SUPER_ADMIN can grant any role to anyone
         if (actorHighestRole == UserRole.SUPER_ADMIN) {
@@ -204,22 +202,22 @@ public class UserPermissionServiceImpl implements UserPermissionService {
             return false;
         }
 
-        UserRole actorHighestRole = getHighestRole(actor);
-        UserRole targetHighestRole = getHighestRole(target);
+        UserRole actorRole = actor.getHighestRole();
+        UserRole targetRole = target.getHighestRole();
 
         // SUPER_ADMIN can revoke any role from anyone
-        if (actorHighestRole == UserRole.SUPER_ADMIN) {
+        if (actorRole == UserRole.SUPER_ADMIN) {
             log.debug("SUPER_ADMIN {} can revoke role {} from user {}",
                     actor.getUsername(), roleToRevoke, target.getUsername());
             return true;
         }
 
         // ADMIN can revoke MODERATOR and USER roles, but ONLY from lower hierarchy users
-        if (actorHighestRole == UserRole.ADMIN) {
+        if (actorRole == UserRole.ADMIN) {
             // Cannot touch SUPER_ADMIN or other ADMINs
-            if (targetHighestRole == UserRole.SUPER_ADMIN || targetHighestRole == UserRole.ADMIN) {
+            if (targetRole == UserRole.SUPER_ADMIN || targetRole == UserRole.ADMIN) {
                 log.debug("Admin {} cannot revoke {} from user {} with equal/higher role {}",
-                        actor.getUsername(), roleToRevoke, target.getUsername(), targetHighestRole);
+                        actor.getUsername(), roleToRevoke, target.getUsername(), targetRole);
                 return false;
             }
 
@@ -233,7 +231,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
 
         // Other roles (MODERATOR, USER) cannot revoke any roles
         log.debug("User {} with role {} cannot revoke role {}",
-                actor.getUsername(), actorHighestRole, roleToRevoke);
+                actor.getUsername(), actorRole, roleToRevoke);
         return false;
     }
 
@@ -261,8 +259,8 @@ public class UserPermissionServiceImpl implements UserPermissionService {
             return false;
         }
 
-        UserRole actorRole = getHighestRole(actor);
-        UserRole targetRole = getHighestRole(target);
+        UserRole actorRole = actor.getHighestRole();
+        UserRole targetRole = target.getHighestRole();
 
         // SUPER_ADMIN can act on everyone (self-targeting handled in specific methods)
         if (actorRole == UserRole.SUPER_ADMIN) {
@@ -286,83 +284,5 @@ public class UserPermissionServiceImpl implements UserPermissionService {
         return false;
     }
 
-    // ===============================
-    // ROLE UTILITY METHODS
-    // ===============================
 
-    /**
-     * Gets the highest role of a user from their role set.
-     *
-     * Hierarchy (highest to lowest):
-     * SUPER_ADMIN > ADMIN > MODERATOR > USER
-     *
-     * @param user The user to check
-     * @return The highest role, or USER if user has no roles
-     */
-    @Override
-    public UserRole getHighestRole(User user) {
-        if (user == null || user.getUserRoles() == null || user.getUserRoles().isEmpty()) {
-            log.debug("User has no roles, defaulting to USER");
-            return UserRole.USER; // Default role
-        }
-
-        Set<UserRole> roles = user.getUserRoles();
-
-        // Check in descending hierarchy order
-        if (roles.contains(UserRole.SUPER_ADMIN)) {
-            log.trace("User {} highest role: SUPER_ADMIN", user.getUsername());
-            return UserRole.SUPER_ADMIN;
-        }
-        if (roles.contains(UserRole.ADMIN)) {
-            log.trace("User {} highest role: ADMIN", user.getUsername());
-            return UserRole.ADMIN;
-        }
-        if (roles.contains(UserRole.MODERATOR)) {
-            log.trace("User {} highest role: MODERATOR", user.getUsername());
-            return UserRole.MODERATOR;
-        }
-
-        log.trace("User {} highest role: USER", user.getUsername());
-        return UserRole.USER;
-    }
-
-    /**
-     * Checks if a user has administrative privileges.
-     * Administrative privileges = ADMIN or SUPER_ADMIN role.
-     *
-     * @param user The user to check
-     * @return true if user has ADMIN or SUPER_ADMIN role, false otherwise
-     */
-    @Override
-    public boolean hasAdminPrivileges(User user) {
-        if (user == null) {
-            log.debug("Cannot check admin privileges: user is null");
-            return false;
-        }
-
-        UserRole highestRole = getHighestRole(user);
-        boolean hasPrivileges = highestRole == UserRole.ADMIN || highestRole == UserRole.SUPER_ADMIN;
-
-        log.debug("User {} has admin privileges: {}", user.getUsername(), hasPrivileges);
-        return hasPrivileges;
-    }
-
-    /**
-     * Checks if a user has super admin privileges.
-     * Only users with SUPER_ADMIN role have these privileges.
-     *
-     * @param user The user to check
-     * @return true if user has SUPER_ADMIN role, false otherwise
-     */
-    @Override
-    public boolean hasSuperAdminPrivileges(User user) {
-        if (user == null) {
-            log.debug("Cannot check super admin privileges: user is null");
-            return false;
-        }
-
-        boolean hasPrivileges = getHighestRole(user) == UserRole.SUPER_ADMIN;
-        log.debug("User {} has super admin privileges: {}", user.getUsername(), hasPrivileges);
-        return hasPrivileges;
-    }
 }

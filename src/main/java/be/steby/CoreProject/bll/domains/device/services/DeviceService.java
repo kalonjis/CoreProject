@@ -11,11 +11,13 @@ public interface DeviceService {
 
     Device getDeviceById(Long id);
 
+    Device getDeviceByPublicId(String publicId);
+
     Device getMyDevice(Long deviceId);
 
     List<Device> getMyDeviceList();
 
-    List<Device> getUserDevice(User user);
+    List<Device> getUserDevices(User user);
 
     /**
      * Detects and registers a device based on the HTTP request.
