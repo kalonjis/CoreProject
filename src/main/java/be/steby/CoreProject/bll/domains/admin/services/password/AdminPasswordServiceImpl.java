@@ -10,7 +10,7 @@ import be.steby.CoreProject.bll.domains.admin.models.password.AdminAlternativeCh
 import be.steby.CoreProject.bll.domains.admin.models.password.AdminPasswordResetBLLRequest;
 import be.steby.CoreProject.bll.domains.admin.models.password.AdminPasswordResetLinkBLLRequest;
 import be.steby.CoreProject.bll.domains.admin.models.password.AdminTemporaryPasswordBLLRequest;
-import be.steby.CoreProject.bll.domains.admin.services.permissions.AdminValidationService;
+import be.steby.CoreProject.bll.domains.admin.services.permissions.AdminPermissionValidator;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTokenServiceImpl;
@@ -56,7 +56,7 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
 
 
     private final UserService userService;
-    private final AdminValidationService adminValidationService;
+    private final AdminPermissionValidator adminPermissionValidator;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final DeviceService deviceService;
@@ -74,7 +74,7 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
         User target = userService.getUserByPublicId(userPublicId);
 
         // check permissions
-        adminValidationService.validateAdminActionOnAllUsers (admin, target, false, "sendPasswordResetLink"); // can act on All users except him self 'cause he 's connected -> go to profile/change-password
+        adminPermissionValidator.validateAdminActionOnAllUsers (admin, target, false, "sendPasswordResetLink"); // can act on All users except him self 'cause he 's connected -> go to profile/change-password
 
         PasswordResetToken token = passwordResetTokenService.createPasswordResetToken(target);
 
@@ -93,7 +93,7 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
         User admin = userService.getAuthenticatedUser();
         User target = userService.getUserByPublicId(userPublicId);
 
-        adminValidationService.validateStrictHierarchy(admin, target, false, "sendTemporaryPassword");
+        adminPermissionValidator.validateStrictHierarchy(admin, target, false, "sendTemporaryPassword");
 
         // 1. Sécurité FIRST : logout everywhere
         revokeAllUserTokens(target);
@@ -128,7 +128,7 @@ public class AdminPasswordServiceImpl implements AdminPasswordService {
         User target = userService.getUserByPublicId(userPublicId);
         User admin = userService.getAuthenticatedUser();
 
-        adminValidationService.validateAdminActionOnAllUsers(admin, target, false, "sendTemporaryPasswordViaAlternativeChannel");
+        adminPermissionValidator.validateAdminActionOnAllUsers(admin, target, false, "sendTemporaryPasswordViaAlternativeChannel");
 
         log.warn("⚠️ Admin {} initiating alternative channel password reset for user {} (security emergency - hierarchy bypassed)",
                 admin.getUsername(), target.getUsername());

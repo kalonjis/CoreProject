@@ -2,6 +2,7 @@ package be.steby.CoreProject.bll.domains.admin.services.permissions;
 
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminPermissionExceptionFactory;
+import be.steby.CoreProject.bll.domains.admin.exceptions.AdminPermissionException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
 import lombok.RequiredArgsConstructor;
@@ -11,29 +12,21 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class AdminValidationService {
+public class AdminPermissionValidator {
 
     private final UserPermissionService userPermissionService;
 
     /**
-     * Basic admin validation - Admin can only act on GHEST/USER/MODERATOR
+     * Basic admin validation - Admin can only act on MODERATOR/USER/GHEST
      * ADMIN cannot act on other ADMIN
-     * SUPER_ADMIN can only act on ADMIN/USER/MODERATOR/GHEST not on SUPER_ADMIN
+     * SUPER_ADMIN can only act on ADMIN/MODERATOR/USER/GHEST not on SUPER_ADMIN
      */
     public void validateStrictHierarchy (User actor, User target, boolean allowSelfTargeting, String action) {
-        // 1. Verify actor has admin privileges
-        if (!userPermissionService.hasAdminPrivileges(actor)) {
-            throw AdminPermissionExceptionFactory.forInsufficientAdminPrivileges(action);
-        }
+        validateBasicAdminAction(actor, target, allowSelfTargeting, action);
 
-        // 2. Self-targeting check
-        if (!allowSelfTargeting && actor.getId().equals(target.getId())) {
-            throw AdminPermissionExceptionFactory.forSelfTargeting(action);
-        }
-
-        // 3. CORRECTED: Use role hierarchy instead of absolute restriction
+        //Use role hierarchy instead of absolute restriction
         if (!userPermissionService.canActOnUser(actor, target)) {
-            UserRole targetRole = userPermissionService.getHighestRole(target);
+            UserRole targetRole = target.getHighestRole();
             throw AdminPermissionExceptionFactory.forUnauthorizedTargetRole(action, targetRole);
         }
     }
@@ -43,20 +36,10 @@ public class AdminValidationService {
      * ADMIN can act on USER/MODERATOR/other ADMIN but NOT SUPER_ADMIN
      */
     public void validateAdminActionExceptSuperAdmin(User actor, User target, boolean allowSelfTargeting, String action) {
-        // 1. Verify actor has admin privileges
-        if (!userPermissionService.hasAdminPrivileges(actor)) {
-            throw AdminPermissionExceptionFactory.forInsufficientAdminPrivileges(action);
-        }
+        validateBasicAdminAction(actor, target, allowSelfTargeting, action);
 
-        // 2. Self-targeting check
-        if (!allowSelfTargeting && actor.getId().equals(target.getId())) {
-            throw AdminPermissionExceptionFactory.forSelfTargeting(action);
-        }
-
-        // 3. Use existing canActOnUser logic (ADMIN can't touch SUPER_ADMIN)
-        if (!userPermissionService.canActOnUser(actor, target)) {
-            UserRole targetRole = userPermissionService.getHighestRole(target);
-            throw AdminPermissionExceptionFactory.forUnauthorizedTargetRole(action, targetRole);
+        if (target.isSuperAdmin()) {
+            throw AdminPermissionExceptionFactory.forUnauthorizedTargetRole(action, UserRole.SUPER_ADMIN);
         }
     }
 
@@ -67,14 +50,7 @@ public class AdminValidationService {
      */
     public void validateAdminActionOnAllUsers(User actor, User target, boolean allowSelfTargeting, String action) {
         // 1. Verify actor has admin privileges (ADMIN or SUPER_ADMIN)
-        if (!userPermissionService.hasAdminPrivileges(actor)) {
-            throw AdminPermissionExceptionFactory.forInsufficientAdminPrivileges(action);
-        }
-
-        // 2. Self-targeting check
-        if (!allowSelfTargeting && actor.getId().equals(target.getId())) {
-            throw AdminPermissionExceptionFactory.forSelfTargeting(action);
-        }
+        validateBasicAdminAction(actor, target, allowSelfTargeting, action);
 
         // 3. No role hierarchy checks - admin can act on everyone
         log.debug("Admin validation successful - actor: {} can {} on target: {} (no role restrictions)",
@@ -87,7 +63,7 @@ public class AdminValidationService {
      */
     public void validateSuperAdminAction(User actor, User target, boolean allowSelfTargeting, String action) {
         // 1. Verify actor has SUPER_ADMIN privileges
-        if (!userPermissionService.hasSuperAdminPrivileges(actor)) {
+        if (!actor.isSuperAdmin()) {
             throw AdminPermissionExceptionFactory.forSuperAdminRequired(action);
         }
 
@@ -97,5 +73,25 @@ public class AdminValidationService {
         }
 
         // 3. SUPER_ADMIN can act on everyone - no additional checks needed
+    }
+
+
+    /**
+     * Common validations for all admin actions:
+     * 1. Verify actor has admin privileges
+     * 2. Check self-targeting rules
+     *
+     * @throws AdminPermissionException if validations fail
+     */
+    private void validateBasicAdminAction(User actor, User target, boolean allowSelfTargeting, String action) {
+        // 1. Verify actor has admin privileges
+        if (!actor.hasAdminPrivileges()) {
+            throw AdminPermissionExceptionFactory.forInsufficientAdminPrivileges(action);
+        }
+
+        // 2. Self-targeting check
+        if (!allowSelfTargeting && actor.getId().equals(target.getId())) {
+            throw AdminPermissionExceptionFactory.forSelfTargeting(action);
+        }
     }
 }

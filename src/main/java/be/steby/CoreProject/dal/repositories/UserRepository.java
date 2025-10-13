@@ -60,9 +60,9 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
 
     /**
-     * Finds a token by its public_id (encrypted token for URLs).
-     * @param publicId the encrypted public_id from URL
-     * @return Optional containing the token if found
+     * Finds a User by its public_id.
+     * @param publicId the public_id from URL
+     * @return Optional containing the user if found
      */
     @Query("SELECT u FROM User u WHERE u.publicId = :publicId")
     Optional<User> findByPublicId(String publicId);

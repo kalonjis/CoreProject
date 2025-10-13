@@ -202,7 +202,8 @@ public class SecurityConstants {
 
     // Admin Device Management
     private static final String[] ADMIN_DEVICE_ROUTES = {
-            "/api/admin/device/list/user/**"              // GET devices by user
+            "/api/admin/device/list/user/**",              // GET devices by user
+            "/api/admin/device/list/**"              // GET devices by user
     };
 
     /**

@@ -4,6 +4,9 @@ import be.steby.CoreProject.bll.common.utils.IpLocationUtils;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.device.events.DevicePersistedEvent;
 import be.steby.CoreProject.bll.domains.device.events.DeviceTrustLevelChangedEvent;
+import be.steby.CoreProject.bll.domains.device.exceptions.DeviceDomainException;
+import be.steby.CoreProject.bll.domains.device.exceptions.DeviceNotFoundException;
+import be.steby.CoreProject.bll.domains.device.exceptions.InvalidDeviceArgumentException;
 import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.device.utils.UserAgentUtils;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
@@ -27,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -57,7 +61,14 @@ public class DeviceServiceImpl implements DeviceService {
     @Override
     public Device getDeviceById(Long id) {
         return deviceRepository.findById(id)
-                .orElseThrow(() -> new DoesntExistException("Device with ID " + id + " does not exist"));
+                .orElseThrow(() -> DeviceNotFoundException.byId(id));
+    }
+
+
+    @Override
+    public Device getDeviceByPublicId(String publicId) {
+        return deviceRepository.findByPublicId(publicId)
+                .orElseThrow(() -> DeviceNotFoundException.byPublicId(publicId));
     }
 
     @Override
@@ -70,12 +81,32 @@ public class DeviceServiceImpl implements DeviceService {
     @Override
     public List<Device> getMyDeviceList() {
         User authenticatedUser = userService.getAuthenticatedUser();
-        return getUserDevice(authenticatedUser);
+        return getUserDevices(authenticatedUser);
     }
 
     @Override
-    public List<Device> getUserDevice(User user) {
-        return deviceRepository.findAllByUser(user);
+    public List<Device> getUserDevices(User user) {
+        if (user == null) {
+            log.error("Attempted to fetch devices with null user");
+            throw new InvalidDeviceArgumentException("User cannot be null");
+        }
+
+        if (user.getId() == null) {
+            log.error("Attempted to fetch devices with non-persisted user: {}", user.getUsername());
+            throw new InvalidDeviceArgumentException("User must be persisted (ID required)");
+        }
+
+        log.debug("Fetching devices for user: {} (ID: {})", user.getUsername(), user.getId());
+        List<Device> devices = deviceRepository.findAllByUser(user);
+
+        if (devices.isEmpty()) {
+            log.info("No devices found for user {}", user.getUsername());
+            return Collections.emptyList();
+        }
+
+        log.debug("Found {} devices for user {}", devices.size(), user.getUsername());
+
+        return devices;
     }
 
     @Override
@@ -242,7 +273,7 @@ public class DeviceServiceImpl implements DeviceService {
     public int disconnectAllDevicesForUser(User user) {
         log.info("Disconnecting all devices for user: {}", user.getUsername());
 
-        List<Device> userDevices = getUserDevice(user);
+        List<Device> userDevices = getUserDevices(user);
         int disconnectedCount = 0;
 
         for (Device device : userDevices) {
@@ -366,7 +397,7 @@ public class DeviceServiceImpl implements DeviceService {
      * @return true if this is the user's first device, false otherwise
      */
     private boolean isFirstDevice(User user) {
-        List<Device> devices = getUserDevice(user);
+        List<Device> devices = getUserDevices(user);
         return devices == null || devices.isEmpty();
     }
 }

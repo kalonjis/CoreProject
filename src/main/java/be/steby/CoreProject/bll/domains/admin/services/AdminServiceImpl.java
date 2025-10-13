@@ -217,7 +217,7 @@ public class AdminServiceImpl implements AdminService {
     public List<Device> getUserDevices(Long id) {
         userService.requireAdminPermissions();
         User user = userService.getUserById(id);
-        return deviceService.getUserDevice(user);
+        return deviceService.getUserDevices(user);
     }
 
     @Override
