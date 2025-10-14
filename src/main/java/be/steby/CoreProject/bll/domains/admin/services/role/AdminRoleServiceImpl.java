@@ -94,7 +94,7 @@ public class AdminRoleServiceImpl implements AdminRoleService {
                     actor.getUsername(), role, target.getUsername());
 
             throw UserPermissionExceptionFactory.forInsufficientPermissions(
-                    userPermissionService.getHighestRole(actor), "revoke role " + role);
+                    actor.getHighestRole(), "revoke role " + role);
         }
 
         // 3. Delegate to user service for persistence
