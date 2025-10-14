@@ -87,4 +87,14 @@ public enum UserRole {
             case GUEST -> "Guest - Limited read-only access";
         };
     }
+
+    public static UserRole getHighestRole(Set<UserRole> roles) {
+        if (roles == null || roles.isEmpty()) {
+            return GUEST;
+        }
+
+        return roles.stream()
+                .min((r1, r2) -> Integer.compare(r1.hierarchyLevel, r2.hierarchyLevel))
+                .orElse(GUEST);
+    }
 }

@@ -2,6 +2,7 @@ package be.steby.CoreProject.bll.domains.admin.services.useraccount;
 
 import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory;
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
+import be.steby.CoreProject.bll.common.services.reactivation.ReactivationPolicyService;
 import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserActivatedEvent;
 import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserDeactivatedEvent;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
@@ -9,11 +10,14 @@ import be.steby.CoreProject.bll.domains.admin.models.account.AdminDeactivationRe
 import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationRequest;
 import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationResult;
 import be.steby.CoreProject.bll.domains.admin.models.AdminValidationResult;
+import be.steby.CoreProject.bll.domains.admin.services.permissions.AdminPermissionValidator;
 import be.steby.CoreProject.bll.domains.admin.services.validation.AdminActionPolicyService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
+import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
+import be.steby.CoreProject.dl.enums.ReactivationPolicy;
 import be.steby.CoreProject.dl.enums.UserRole;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +26,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 /**
  * Service implementation for admin operations on user accounts.
@@ -46,7 +52,8 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
 
     private final UserService userService;
     private final AdminUserCreationService adminUserCreationService;
-    private final UserPermissionService userPermissionService;
+    private final AdminPermissionValidator adminPermissionValidator;
+    private final ReactivationPolicyService reactivationPolicyService;
     private final AdminActionPolicyService adminActionPolicyService;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
     private final ApplicationEventPublisher eventPublisher;
@@ -83,22 +90,22 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
         log.debug("Built target user {} (not saved) - checking role grant permissions",
                 targetNotSaved.getUsername());
 
-        // 4. Check role granting permissions WITH the built target user
-        for (UserRole role : request.userRoles()) {
-            if (!userPermissionService.canGrantRole(actor, targetNotSaved, role)) {
-                log.warn("Admin {} attempted to grant role {} without permission to user {}",
-                        actor.getUsername(), role, targetNotSaved.getUsername());
-
-                // Provide appropriate error message based on role
-                if (role == UserRole.SUPER_ADMIN || role == UserRole.ADMIN) {
-                    throw UserPermissionExceptionFactory.forInsufficientPermissions(
-                            UserRole.SUPER_ADMIN, "grant role " + role);
-                } else {
-                    throw UserPermissionExceptionFactory.forInsufficientPermissions(
-                            UserRole.ADMIN, "grant role " + role);
-                }
-            }
-        }
+//        // 4. Check role granting permissions WITH the built target user
+//        for (UserRole role : request.userRole()) {
+//            if (!userPermissionService.canGrantRole(actor, targetNotSaved, role)) {
+//                log.warn("Admin {} attempted to grant role {} without permission to user {}",
+//                        actor.getUsername(), role, targetNotSaved.getUsername());
+//
+//                // Provide appropriate error message based on role
+//                if (role == UserRole.SUPER_ADMIN || role == UserRole.ADMIN) {
+//                    throw UserPermissionExceptionFactory.forInsufficientPermissions(
+//                            UserRole.SUPER_ADMIN, "grant role " + role);
+//                } else {
+//                    throw UserPermissionExceptionFactory.forInsufficientPermissions(
+//                            UserRole.ADMIN, "grant role " + role);
+//                }
+//            }
+//        }
         log.debug("All role grant permissions validated successfully");
 
         // 5. Permission checks passed - NOW save the user
@@ -126,14 +133,23 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
         User admin = userService.getAuthenticatedUser();
         User target = userService.getUserById(userId);
 
+        if (target.isEnabled()) {
+            throw new AttributeUnchangedException("User is already activated");
+        }
+
+        // Admin can reactivate any kind of user
+        adminPermissionValidator.validateAdminActionOnAllUsers(admin, target, false, "user-activation");
+
         // 2. Determine activation type and delegate
         boolean isFirstActivation = !target.isEverActivated();
 
         if (isFirstActivation) {
-            userService.adminActivateUser(target, admin);
+            activateUserByAdmin(admin, target);
         } else {
-            userService.adminReactivateUser(target, admin);
+            reactivateUserByAdmin(admin, target);
         }
+
+        userService.saveUser(target);
 
         // 3. Publish appropriate events
         boolean wasDeactivated = target.getDeactivatedAt() != null;
@@ -165,6 +181,17 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
         User admin = userService.getAuthenticatedUser();
         User target = userService.getUserById(userId);
 
+        if (!target.isEnabled()) {
+            throw new AttributeUnchangedException("User is already deactivated");
+        }
+
+        // Super admin protection
+        if (target.isSuperAdmin()) {
+            throw new AdminOperationException("No possibilities to deactivate Super_Admin. Please contact CEO" );
+        }
+
+        adminPermissionValidator.validateStrictHierarchy(admin, target, false, "user-deactivation-by-admin");
+
         // 2. Validate deactivation details via admin policy
         AdminDeactivationRequest deactivationRequest = new AdminDeactivationRequest(
                 userId, deactivationCategory, adminDeactivationDetails);
@@ -178,8 +205,8 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
                             String.join(", ", validationResult.errors()));
         }
 
-        // 3. Delegate to user service
-        userService.adminDeactivateUser(target, admin, deactivationCategory, adminDeactivationDetails);
+        deactivateUserByAdmin(admin, target, deactivationCategory, adminDeactivationDetails);
+        userService.saveUser(target);
 
         // 4. Publish deactivation events
         AdminUserDeactivatedEvent event = AdminUserDeactivatedEvent.simple(
@@ -208,26 +235,26 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
     // USER REACTIVATION
     // ===============================
 
-    @Override
-    @Transactional
-    public void reactivateUser(Long userId, HttpServletRequest request) {
-        log.debug("Admin reactivation request - targetId: {}", userId);
-
-        // 1. Get actors
-        User admin = userService.getAuthenticatedUser();
-        User target = userService.getUserById(userId);
-
-        // 2. Delegate to user service
-        userService.adminReactivateUser(target, admin);
-
-        // 3. Publish reactivation events
-        AdminUserActivatedEvent event = AdminUserActivatedEvent.of(
-                target, admin, true, target.getDeactivatedAt());
-        eventPublisher.publishEvent(event);
-
-        log.info("User successfully reactivated by admin - ID: {}, reactivated by: {}",
-                userId, admin.getUsername());
-    }
+//    @Override
+//    @Transactional
+//    public void reactivateUser(Long userId, HttpServletRequest request) {
+//        log.debug("Admin reactivation request - targetId: {}", userId);
+//
+//        // 1. Get actors
+//        User admin = userService.getAuthenticatedUser();
+//        User target = userService.getUserById(userId);
+//
+//        // 2. Delegate to user service
+//        userService.adminReactivateUser(target, admin);
+//
+//        // 3. Publish reactivation events
+//        AdminUserActivatedEvent event = AdminUserActivatedEvent.of(
+//                target, admin, true, target.getDeactivatedAt());
+//        eventPublisher.publishEvent(event);
+//
+//        log.info("User successfully reactivated by admin - ID: {}, reactivated by: {}",
+//                userId, admin.getUsername());
+//    }
 
     // ===============================
     // USER DELETION
@@ -284,5 +311,48 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
 
         log.info("Password reset triggered by admin - targetId: {}, admin: {}, token: {}",
                 userId, admin.getUsername(), token.getPublicId());
+    }
+
+    private void activateUserByAdmin(User admin, User target){
+        target.setEnabled(true);
+        target.setEverActivated(true);
+        target.setActivatedAt(Instant.now());
+        target.setActivatedBy(admin);
+        target.setEmailVerified(true);
+    }
+
+    private void reactivateUserByAdmin(User admin, User target){
+        //  Determine reactivation policy
+        ReactivationPolicy policy = reactivationPolicyService.determineReactivationPolicy(target, admin);
+
+        // 9. Perform reactivation
+        target.setEnabled(true);
+        target.setReactivatedAt(Instant.now());
+        target.setReactivatedBy(admin);
+        target.setReactivationPolicy(policy);
+
+        //  Clear deactivation data
+        if (target.getDeactivatedAt() != null) {
+            target.setDeactivationReason(null);
+            target.setDeactivationDetails(null);
+            target.setDeactivatedAt(null);
+        }
+
+        // Clear admin deactivation data if applicable
+        if (target.isAdminDeactivated()) {
+            target.setAdminDeactivationReason(null);
+            target.setAdminDeactivationDetails(null);
+            target.setAdminDeactivatedBy(null);
+            target.setAdminDeactivatedAt(null);
+        }
+    }
+
+    private void deactivateUserByAdmin(User admin, User target, AdminDeactivationCategory deactivationCategory,
+                                String adminDeactivationDetails){
+        target.setEnabled(false);
+        target.setAdminDeactivationReason(deactivationCategory);
+        target.setAdminDeactivationDetails(adminDeactivationDetails);
+        target.setAdminDeactivatedBy(admin);
+        target.setAdminDeactivatedAt(Instant.now());
     }
 }

@@ -2,8 +2,13 @@ package be.steby.CoreProject.bll.domains.admin.services.role;
 
 import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory;
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
+import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
+import be.steby.CoreProject.bll.domains.admin.exceptions.AdminPermissionException;
+import be.steby.CoreProject.bll.domains.admin.exceptions.AdminPermissionExceptionFactory;
+import be.steby.CoreProject.bll.domains.admin.exceptions.InvalidAdminArgumentException;
 import be.steby.CoreProject.bll.domains.admin.models.role.AdminRoleGrantedEvent;
 import be.steby.CoreProject.bll.domains.admin.models.role.AdminRoleRevokedEvent;
+import be.steby.CoreProject.bll.domains.admin.services.permissions.AdminPermissionValidator;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
@@ -34,7 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminRoleServiceImpl implements AdminRoleService {
 
     private final UserService userService;
-    private final UserPermissionService userPermissionService;
+    private final AdminPermissionValidator adminPermissionValidator;
     private final ApplicationEventPublisher eventPublisher;
 
     // ===============================
@@ -50,23 +55,27 @@ public class AdminRoleServiceImpl implements AdminRoleService {
         User actor = userService.getAuthenticatedUser();
         User target = userService.getUserById(userId);
 
-        // 2. Validate permissions
-        if (!userPermissionService.canGrantRole(actor, target, role)) {
-            log.warn("Admin {} attempted to grant role {} without permission to user {}",
-                    actor.getUsername(), role, target.getUsername());
-
-            // Provide appropriate error message based on role
-            if (role == UserRole.SUPER_ADMIN || role == UserRole.ADMIN) {
-                throw UserPermissionExceptionFactory.forInsufficientPermissions(
-                        UserRole.SUPER_ADMIN, "grant role " + role);
-            } else {
-                throw UserPermissionExceptionFactory.forInsufficientPermissions(
-                        UserRole.ADMIN, "grant role " + role);
-            }
+        // check argument coherence
+        if (target.hasRole(role)){
+            throw new InvalidAdminArgumentException("the user with id " + userId + "has already the role of :" + role);
         }
 
-        // 3. Delegate to user service for persistence
-        userService.grantUserRole(userId, role);
+        // role == SUPER_ADMIN -> actor must be SUPER_ADMIN
+        if (role == UserRole.SUPER_ADMIN ){
+            adminPermissionValidator.validateSuperAdminAction(actor, target, false, "grant-Super_Admin-role");
+        }
+
+        // role == ADMIN -> actor must be SUPER_ADMIN (may change so keep it separate
+        if (role == UserRole.ADMIN){
+            adminPermissionValidator.validateSuperAdminAction(actor, target, false, "grant-Admin-role");
+        }
+
+        if (role != UserRole.SUPER_ADMIN && role != UserRole.ADMIN){
+            adminPermissionValidator.validateStrictHierarchy(actor, target, true, "grant-role : " + role);
+        }
+
+        target.getUserRoles().add(role);
+        userService.saveUser(target);
 
         // 4. Publish role granted event
         eventPublisher.publishEvent(new AdminRoleGrantedEvent(target, actor, role) );
@@ -88,17 +97,28 @@ public class AdminRoleServiceImpl implements AdminRoleService {
         User actor = userService.getAuthenticatedUser();
         User target = userService.getUserById(userId);
 
-        // 2. Validate permissions
-        if (!userPermissionService.canRevokeRole(actor, target, role)) {
-            log.warn("Admin {} attempted to revoke role {} without permission from user {}",
-                    actor.getUsername(), role, target.getUsername());
-
-            throw UserPermissionExceptionFactory.forInsufficientPermissions(
-                    actor.getHighestRole(), "revoke role " + role);
+        // check argument coherence
+        if (!target.hasRole(role)){
+            throw new InvalidAdminArgumentException("the user with id " + userId + "has not the role of :" + role);
         }
 
-        // 3. Delegate to user service for persistence
-        userService.revokeUserRole(userId, role);
+
+        // role == SUPER_ADMIN -> not possible
+        if (role == UserRole.SUPER_ADMIN ){
+            throw new AdminOperationException("No possibilities to revoke Super_Admin role. Please contact CEO" );
+        }
+
+        // role == ADMIN -> actor must be SUPER_ADMIN
+        if (role == UserRole.ADMIN){
+            adminPermissionValidator.validateSuperAdminAction(actor, target, false, "grant-Admin-role");
+        }
+
+        if (role != UserRole.SUPER_ADMIN && role != UserRole.ADMIN){
+            adminPermissionValidator.validateStrictHierarchy(actor, target, false, "revoke-role : " + role);
+        }
+
+        target.getUserRoles().remove(role);
+        userService.saveUser(target);
 
         // 4. Publish role revoked event
         eventPublisher.publishEvent(new AdminRoleRevokedEvent(target, actor, role ));

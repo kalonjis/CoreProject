@@ -179,7 +179,7 @@ public class AdminUserCreationService {
         }
 
         // Validate roles are not empty
-        if (request.userRoles() == null || request.userRoles().isEmpty()) {
+        if (request.userRoles() == null ) {
             errors.add("At least one role must be assigned");
         }
 
