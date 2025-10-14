@@ -138,7 +138,7 @@ public class DeactivationPolicyServiceImpl implements DeactivationPolicyService{
      */
     private void validateUserSpecificRules(User user, List<String> validationErrors) {
         if (!userPermissionService.canSelfDeactivate(user)) {
-            UserRole highestRole = userPermissionService.getHighestRole(user);
+            UserRole highestRole = user.getHighestRole();
 
             if (highestRole == UserRole.SUPER_ADMIN) {
                 validationErrors.add("PROCÉDURE ADMINISTRATIVE REQUISE : Les super-administrateurs ne peuvent pas se désactiver. " +

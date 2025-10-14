@@ -28,4 +28,10 @@ public class UserDomainException extends CoreProjectException {
     public UserDomainException(String message, int status) {
         super(message, status);
     }
+
+
+    public UserDomainException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
 }

@@ -6,8 +6,12 @@ import be.steby.CoreProject.bll.common.models.reactivation.ReactivationEligibili
 import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.bll.common.services.reactivation.ReactivationPolicyService;
 import be.steby.CoreProject.bll.domains.account.events.UserDeactivatedEvent;
+import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
+import be.steby.CoreProject.bll.domains.admin.exceptions.AdminPermissionExceptionFactory;
+import be.steby.CoreProject.bll.domains.admin.services.permissions.AdminPermissionValidator;
 import be.steby.CoreProject.bll.domains.emailaddress.exceptions.EmailAlreadyUsedException;
 import be.steby.CoreProject.bll.domains.user.events.UserPersistedEvent;
+import be.steby.CoreProject.bll.domains.user.exceptions.InvalidUserArgumentException;
 import be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException;
 import be.steby.CoreProject.bll.exceptions.*;
 import be.steby.CoreProject.bll.specifications.UserSpecification;
@@ -49,7 +53,7 @@ import java.util.Map;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final UserPermissionService userPermissionService;
+    private final AdminPermissionValidator adminPermissionValidator;
     private final ReactivationPolicyService reactivationPolicyService;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -152,61 +156,6 @@ public class UserServiceImpl implements UserService {
         log.info("User {} self-activated", user.getUsername());
     }
 
-    @Override
-    @Transactional
-    public void adminActivateUser(User target, User admin) {
-        log.debug("Admin activation request - target: {}, admin: {}",
-                target.getUsername(), admin.getUsername());
-
-        // 1. Defensive validation
-        if (target == null) {
-            throw new IllegalArgumentException("Target user cannot be null");
-        }
-        if (admin == null) {
-            throw new IllegalArgumentException("Admin user cannot be null");
-        }
-
-        // 2. Check if user is already enabled
-        if (target.isEnabled()) {
-            throw new AttributeUnchangedException("User is already activated");
-        }
-
-        // 3. Check if this is really a first activation (not a reactivation)
-        if (target.isEverActivated()) {
-            throw new IllegalStateException("User was already activated before. Use adminReactivateUser instead");
-        }
-
-        // 4. Admin permission validation
-        if (!admin.getUserRoles().contains(UserRole.ADMIN) &&
-                !admin.getUserRoles().contains(UserRole.SUPER_ADMIN)) {
-            throw UserPermissionExceptionFactory.forAdminPermissionRequired("activate a user");
-        }
-
-        // 5. Super admin protection
-        if (target.getUserRoles().contains(UserRole.SUPER_ADMIN) &&
-                !admin.getUserRoles().contains(UserRole.SUPER_ADMIN)) {
-            throw UserPermissionExceptionFactory.forSuperAdminAction("activate");
-        }
-
-        // 6. Self-targeting prevention
-        if (admin.getId().equals(target.getId())) {
-            throw UserPermissionExceptionFactory.forAdminSelfTargeting();
-        }
-
-        // 7. Perform activation
-        target.setEnabled(true);
-        target.setEverActivated(true);
-        target.setActivatedAt(Instant.now());
-        target.setActivatedBy(admin);
-        target.setEmailVerified(true); // Admin activation bypasses email verification
-
-        // ✅ Use saveUser() instead of direct repository save
-        saveUser(target);
-
-        log.info("User {} successfully activated by admin {} (first activation)",
-                target.getUsername(), admin.getUsername());
-    }
-
     // ===============================
     // USER DEACTIVATION OPERATIONS
     // ===============================
@@ -237,64 +186,6 @@ public class UserServiceImpl implements UserService {
         eventPublisher.publishEvent(new UserDeactivatedEvent(user));
     }
 
-    @Override
-    @Transactional
-    public void adminDeactivateUser(User target, User admin, AdminDeactivationCategory deactivationCategory,
-                                    String adminDeactivationDetails) {
-        log.debug("Admin deactivation - target: {}, admin: {}, category: {}",
-                target.getUsername(), admin.getUsername(), deactivationCategory);
-
-        // 1. Defensive validation
-        if (target == null) {
-            throw new IllegalArgumentException("Target user cannot be null");
-        }
-        if (admin == null) {
-            throw new IllegalArgumentException("Admin user cannot be null");
-        }
-
-        // 2. Check if user is already deactivated
-        if (!target.isEnabled()) {
-            throw new AttributeUnchangedException("The user is already deactivated");
-        }
-
-        // 3. Admin permission validation
-        if (!admin.getUserRoles().contains(UserRole.ADMIN) &&
-                !admin.getUserRoles().contains(UserRole.SUPER_ADMIN)) {
-            throw UserPermissionExceptionFactory.forAdminPermissionRequired("deactivate a user");
-        }
-
-        // 4. Self-targeting prevention
-        if (admin.getId().equals(target.getId())) {
-            throw UserPermissionExceptionFactory.forAdminSelfTargeting();
-        }
-
-        // 5. Super admin protection
-        if (target.getUserRoles().contains(UserRole.SUPER_ADMIN) &&
-                !admin.getUserRoles().contains(UserRole.SUPER_ADMIN)) {
-            throw UserPermissionExceptionFactory.forSuperAdminAction("deactivate");
-        }
-
-        // 6. Check if admin can deactivate this user
-        if (!userPermissionService.canDeactivateUser(admin, target)) {
-            UserRole targetRole = userPermissionService.getHighestRole(target);
-            throw UserPermissionExceptionFactory.forUnauthorizedUserAction("deactivate", targetRole);
-        }
-
-        // 7. Perform deactivation
-        target.setEnabled(false);
-        target.setAdminDeactivationReason(deactivationCategory);
-        target.setAdminDeactivationDetails(adminDeactivationDetails);
-        target.setAdminDeactivatedBy(admin);
-        target.setAdminDeactivatedAt(Instant.now());
-
-        // ✅ Use saveUser() instead of direct repository save
-        saveUser(target);
-
-        log.info("User {} administratively deactivated by admin {} with category: {}",
-                target.getUsername(), admin.getUsername(), deactivationCategory);
-
-        eventPublisher.publishEvent(new UserDeactivatedEvent(target));
-    }
 
     // ===============================
     // USER REACTIVATION OPERATIONS
@@ -337,85 +228,7 @@ public class UserServiceImpl implements UserService {
         log.info("User {} successfully self-reactivated", user.getUsername());
     }
 
-    @Override
-    @Transactional
-    public void adminReactivateUser(User target, User admin) {
-        log.debug("Admin reactivation request - target: {}, admin: {}",
-                target.getUsername(), admin.getUsername());
 
-        // 1. Defensive validation
-        if (target == null) {
-            throw new IllegalArgumentException("Target user cannot be null");
-        }
-        if (admin == null) {
-            throw new IllegalArgumentException("Admin user cannot be null");
-        }
-
-        // 2. Check if user is already enabled
-        if (target.isEnabled()) {
-            throw new AttributeUnchangedException("User is already active");
-        }
-
-        // 3. Check if this is really a reactivation (user was activated before)
-        if (!target.isEverActivated()) {
-            throw new IllegalStateException("User was never activated before. Use adminActivateUser instead");
-        }
-
-        // 4. Admin permission validation
-        if (!admin.getUserRoles().contains(UserRole.ADMIN) &&
-                !admin.getUserRoles().contains(UserRole.SUPER_ADMIN)) {
-            throw UserPermissionExceptionFactory.forAdminPermissionRequired("reactivate a user");
-        }
-
-        // 5. Super admin protection
-        if (target.getUserRoles().contains(UserRole.SUPER_ADMIN) &&
-                !admin.getUserRoles().contains(UserRole.SUPER_ADMIN)) {
-            throw UserPermissionExceptionFactory.forSuperAdminAction("reactivate");
-        }
-
-        // 6. Self-targeting prevention
-        if (admin.getId().equals(target.getId())) {
-            throw UserPermissionExceptionFactory.forAdminSelfTargeting();
-        }
-
-        // 7. Reactivation eligibility check (only if admin deactivated)
-        if (target.isAdminDeactivated()) {
-            ReactivationEligibility eligibility = reactivationPolicyService.checkEligibility(target, admin);
-            if (!eligibility.isEligible()) {
-                throw new UserPermissionException("Admin reactivation not allowed: " + eligibility.getReason());
-            }
-        }
-
-        // 8. Determine reactivation policy
-        ReactivationPolicy policy = reactivationPolicyService.determineReactivationPolicy(target, admin);
-
-        // 9. Perform reactivation
-        target.setEnabled(true);
-        target.setReactivatedAt(Instant.now());
-        target.setReactivatedBy(admin);
-        target.setReactivationPolicy(policy);
-
-        // 10. Clear deactivation data
-        if (target.getDeactivatedAt() != null) {
-            target.setDeactivationReason(null);
-            target.setDeactivationDetails(null);
-            target.setDeactivatedAt(null);
-        }
-
-        // 11. Clear admin deactivation data if applicable
-        if (target.isAdminDeactivated()) {
-            target.setAdminDeactivationReason(null);
-            target.setAdminDeactivationDetails(null);
-            target.setAdminDeactivatedBy(null);
-            target.setAdminDeactivatedAt(null);
-        }
-
-        // ✅ Use saveUser() instead of direct repository save
-        saveUser(target);
-
-        log.info("User {} successfully reactivated by admin {} with policy {}",
-                target.getUsername(), admin.getUsername(), policy);
-    }
 
     // ===============================
     // USER DELETION OPERATIONS
@@ -456,41 +269,6 @@ public class UserServiceImpl implements UserService {
         log.info("User {} GDPR deleted and anonymized", user.getUsername());
     }
 
-    // ===============================
-    // ROLE MANAGEMENT OPERATIONS
-    // ===============================
-
-    @Override
-    @Transactional
-    public void grantUserRole(Long id, UserRole role) {
-        User user = getUserById(id);
-        if (user.getUserRoles().contains(role)) {
-            throw new AttributeUnchangedException("The user already has role " + role);
-        }
-
-        user.getUserRoles().add(role);
-
-        // ✅ Use saveUser() instead of direct repository save
-        saveUser(user);
-
-        log.info("Role {} granted to user {}", role, user.getUsername());
-    }
-
-    @Override
-    @Transactional
-    public void revokeUserRole(Long id, UserRole role) {
-        User user = getUserById(id);
-        if (!user.getUserRoles().contains(role)) {
-            throw new AttributeUnchangedException("The user does not have role " + role);
-        }
-
-        user.getUserRoles().remove(role);
-
-        // ✅ Use saveUser() instead of direct repository save
-        saveUser(user);
-
-        log.info("Role {} revoked from user {}", role, user.getUsername());
-    }
 
     // ===============================
     // USER VALIDATION AND CHECKS

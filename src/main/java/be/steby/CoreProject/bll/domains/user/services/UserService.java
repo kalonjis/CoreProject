@@ -45,11 +45,7 @@ public interface UserService {
      */
     void activateUser(Long id);
 
-    /**
-     * Admin activation of user account (first-time activation only).
-     * Use this when user was never activated before.
-     */
-    void adminActivateUser(User target, User admin);
+
 
     // ===============================
     // USER DEACTIVATION OPERATIONS
@@ -60,11 +56,6 @@ public interface UserService {
      */
     void deactivateUser(Long id, DeactivationReason reason, String reasonDetails);
 
-    /**
-     * Admin deactivation of user account.
-     */
-    void adminDeactivateUser(User target, User admin, AdminDeactivationCategory deactivationCategory,
-                             String adminDeactivationDetails);
 
     // ===============================
     // USER REACTIVATION OPERATIONS
@@ -75,11 +66,6 @@ public interface UserService {
      */
     void reactivateUser(User user);
 
-    /**
-     * Admin reactivation of previously deactivated user account.
-     * Use this when user was deactivated and needs to be reactivated.
-     */
-    void adminReactivateUser(User target, User admin);
 
     // ===============================
     // USER DELETION OPERATIONS
@@ -95,13 +81,6 @@ public interface UserService {
      */
     void gdprUserDelete(User user);
 
-    // ===============================
-    // ROLE MANAGEMENT OPERATIONS
-    // ===============================
-
-    void grantUserRole(Long id, UserRole role);
-
-    void revokeUserRole(Long id, UserRole role);
 
     // ===============================
     // USER VALIDATION AND CHECKS

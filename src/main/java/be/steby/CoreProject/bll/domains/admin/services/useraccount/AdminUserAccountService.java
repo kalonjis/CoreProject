@@ -124,7 +124,7 @@ public interface AdminUserAccountService {
      * @throws AttributeUnchangedException if user is already active
      * @throws IllegalStateException if user was never activated before
      */
-    void reactivateUser(Long userId, HttpServletRequest request);
+//    void reactivateUser(Long userId, HttpServletRequest request);
 
     // ===============================
     // USER DELETION

@@ -73,7 +73,7 @@ public class AdminActionPolicyServiceImpl implements AdminActionPolicyService {
         }
 
         // 3. ✅ DELEGATION: Role validation via permission service
-        validateUserRoles(request.userRoles(), errors);
+        //validateUserRoles(request.userRole(), errors);
 
         // 5. ✅ ADMIN BUSINESS VALUE: Admin-specific creation business rules
         validateAdminSpecificCreationRules(request, errors);
@@ -151,10 +151,10 @@ public class AdminActionPolicyServiceImpl implements AdminActionPolicyService {
 //        }
 
         // Validate role coherence
-        if (request.userRoles().contains(UserRole.ADMIN) &&
-                request.userRoles().contains(UserRole.USER)) {
-            log.warn("User {} being created with both ADMIN and USER roles", request.email());
-        }
+//        if (request.userRoles().contains(UserRole.ADMIN) &&
+//                request.userRoles().contains(UserRole.USER)) {
+//            log.warn("User {} being created with both ADMIN and USER roles", request.email());
+//        }
 
         // This method contains the real business value of AdminPolicyService
     }

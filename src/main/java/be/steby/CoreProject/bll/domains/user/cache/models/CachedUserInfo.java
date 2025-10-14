@@ -36,7 +36,7 @@ public record CachedUserInfo(
                 user.getUsername(),
                 user.getId(),
                 Set.copyOf(user.getUserRoles()),
-                UserRole.getHighestRole(user.getUserRoles()),
+                user.getHighestRole(),
                 user.isEnabled(),
                 Instant.now(),
                 Instant.now().plusMillis(cacheExpirationMs)
@@ -58,13 +58,6 @@ public record CachedUserInfo(
      */
     public boolean isValidForAuthentication() {
         return !isExpired() && isEnabled && user.isEnabled();
-    }
-
-    /**
-     * Checks if user has the specified role.
-     */
-    public boolean hasRole(UserRole requiredRole) {
-        return userRoles.contains(requiredRole) || highestRole.isAtLeast(requiredRole);
     }
 
     /**
