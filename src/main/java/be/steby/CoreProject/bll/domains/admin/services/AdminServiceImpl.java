@@ -1,7 +1,5 @@
 package be.steby.CoreProject.bll.domains.admin.services;
 
-import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory;
-import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
@@ -9,7 +7,6 @@ import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTo
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
-import be.steby.CoreProject.dl.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -32,7 +29,6 @@ public class AdminServiceImpl implements AdminService {
     private final DeviceService deviceService;
     private final MailerService mailerService;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
-    private final UserPermissionService userPermissionService;
 
     // ===============================
     // USER MANAGEMENT

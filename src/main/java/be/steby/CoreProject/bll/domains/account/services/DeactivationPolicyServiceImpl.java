@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.domains.account.services;
 
-import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationRequest;
 import be.steby.CoreProject.bll.domains.account.models.DeactivationValidationResult;
 import be.steby.CoreProject.dl.entities.User;
@@ -20,7 +19,15 @@ import java.util.Set;
 @Slf4j
 public class DeactivationPolicyServiceImpl implements DeactivationPolicyService{
 
-    private final UserPermissionService userPermissionService;
+    // Self-deactivation configuration properties
+    @Value("${security.account-deactivation.allow-admin-deactivation:false}")
+    private boolean allowAdminSelfDeactivation;
+
+    @Value("${security.account-deactivation.allow-super-admin-deactivation:false}")
+    private boolean allowSuperAdminSelfDeactivation;
+
+    @Value("${security.account-deactivation.allow-moderator-deactivation:true}")
+    private boolean allowModeratorSelfDeactivation;
 
     @Value("${security.account-deactivation.require-details-for-other:true}")
     private boolean requireDetailsForOtherReason;
@@ -137,23 +144,23 @@ public class DeactivationPolicyServiceImpl implements DeactivationPolicyService{
      * Valide les règles spécifiques à l'utilisateur (rôles, etc.)
      */
     private void validateUserSpecificRules(User user, List<String> validationErrors) {
-        if (!userPermissionService.canSelfDeactivate(user)) {
-            UserRole highestRole = user.getHighestRole();
 
-            if (highestRole == UserRole.SUPER_ADMIN) {
-                validationErrors.add("PROCÉDURE ADMINISTRATIVE REQUISE : Les super-administrateurs ne peuvent pas se désactiver. " +
-                        "Contactez un autre super-administrateur pour gérer la désactivation de votre compte et " +
-                        "assurer la transition des responsabilités.");
-            } else if (highestRole == UserRole.ADMIN) {
-                validationErrors.add("PROCÉDURE ADMINISTRATIVE REQUISE : Les administrateurs ne peuvent pas se désactiver. " +
-                        "Contactez un autre administrateur pour gérer la désactivation de votre compte et " +
-                        "assurer la transition des responsabilités.");
-            } else if (highestRole == UserRole.MODERATOR) {
-                validationErrors.add("PROCÉDURE ADMINISTRATIVE REQUISE : Les modérateurs ne peuvent pas se désactiver. " +
-                        "Contactez un administrateur pour gérer la désactivation de votre compte et " +
-                        "assurer la transition des responsabilités de modération.");
-            }
+        UserRole highestRole = user.getHighestRole();
+
+        if (!allowSuperAdminSelfDeactivation && highestRole == UserRole.SUPER_ADMIN) {
+            validationErrors.add("PROCÉDURE ADMINISTRATIVE REQUISE : Les super-administrateurs ne peuvent pas se désactiver. " +
+                    "Contactez un autre super-administrateur pour gérer la désactivation de votre compte et " +
+                    "assurer la transition des responsabilités.");
+        } else if (!allowAdminSelfDeactivation && highestRole == UserRole.ADMIN) {
+            validationErrors.add("PROCÉDURE ADMINISTRATIVE REQUISE : Les administrateurs ne peuvent pas se désactiver. " +
+                    "Contactez un autre administrateur pour gérer la désactivation de votre compte et " +
+                    "assurer la transition des responsabilités.");
+        } else if (!allowModeratorSelfDeactivation && highestRole == UserRole.MODERATOR) {
+            validationErrors.add("PROCÉDURE ADMINISTRATIVE REQUISE : Les modérateurs ne peuvent pas se désactiver. " +
+                    "Contactez un administrateur pour gérer la désactivation de votre compte et " +
+                    "assurer la transition des responsabilités de modération.");
         }
+
     }
 
 
