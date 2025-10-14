@@ -1,7 +1,6 @@
 package be.steby.CoreProject.bll.common.services.reactivation;
 
 import be.steby.CoreProject.bll.common.models.reactivation.ReactivationEligibility;
-import be.steby.CoreProject.bll.common.services.permissions.UserPermissionService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.ReactivationPolicy;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ReactivationPolicyServiceImpl implements ReactivationPolicyService {
 
-    private final UserPermissionService userPermissionService;
 
     @Override
     public ReactivationEligibility checkEligibility(User user, User actor) {
