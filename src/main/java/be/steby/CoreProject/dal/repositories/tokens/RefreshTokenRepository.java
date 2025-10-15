@@ -41,4 +41,16 @@ public interface RefreshTokenRepository extends BaseTokenRepository<RefreshToken
     int revokeAllByUserAndDevice(User user, Device device);
 
 
+    /**
+     * Revokes all refresh tokens for a user EXCEPT those for a specific device.
+     * More performant than inferring user from device (avoids JOIN).
+     *
+     * @param user The user whose tokens should be revoked
+     * @param deviceId Device ID to exclude from revocation
+     * @return Number of tokens revoked
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE RefreshToken rt SET rt.revoked = true " +
+            "WHERE rt.user = ?1 AND rt.device.id != ?2 AND rt.revoked = false")
+    int revokeAllTokensExceptDevice(User user, Long deviceId);
 }

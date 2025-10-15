@@ -1,10 +1,11 @@
-package be.steby.CoreProject.il.Jwt;
+package be.steby.CoreProject.il.filters;
 
 import be.steby.CoreProject.bll.domains.device.services.DeviceAuthenticationService;
 import be.steby.CoreProject.bll.domains.device.models.DeviceSecurityResult;
 import be.steby.CoreProject.bll.domains.device.utils.DeviceContextProvider;
 import be.steby.CoreProject.bll.domains.auth.services.AuthService;
 import be.steby.CoreProject.dl.entities.Device;
+import be.steby.CoreProject.il.Jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

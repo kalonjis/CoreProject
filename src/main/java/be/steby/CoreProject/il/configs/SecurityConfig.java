@@ -2,8 +2,9 @@ package be.steby.CoreProject.il.configs;
 
 import be.steby.CoreProject.bll.domains.device.services.DeviceAuthenticationService;
 import be.steby.CoreProject.bll.domains.auth.services.AuthService;
-import be.steby.CoreProject.il.Jwt.JwtFilter;
+import be.steby.CoreProject.il.filters.JwtFilter;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
+import be.steby.CoreProject.il.filters.MustChangePasswordFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,7 +55,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtFilter jwtFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtFilter jwtFilter, MustChangePasswordFilter mustChangePasswordFilter) throws Exception {
         http
                 // ========== CSRF Configuration ==========
                 .csrf(csrf -> csrf
@@ -92,7 +93,8 @@ public class SecurityConfig {
                 .logout(logout -> logout.disable())  // Custom logout in controller
 
                 // ========== JWT Filter ==========
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(mustChangePasswordFilter, JwtFilter.class);
 
         return http.build();
     }

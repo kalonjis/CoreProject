@@ -130,4 +130,27 @@ public class RefreshTokenServiceImpl extends BaseTokenServiceImpl<RefreshToken> 
         log.info("Révocation de {} tokens pour l'appareil {} de l'utilisateur {}",
                 revokedCount, device.getId(), user.getUsername());
     }
+
+
+    /**
+     * Revokes all refresh tokens for a user EXCEPT those for a specific device.
+     * Used when user changes password but wants to stay logged in on current device.
+     *
+     * @param user The user whose tokens should be revoked
+     * @param deviceId The device Id to exclude from revocation
+     * @return Number of tokens revoked
+     */
+    @Transactional
+    public int revokeAllUserTokensExceptDevice(User user, Long deviceId) {
+        log.info("Revoking all tokens for user {} except device {}",
+                user.getUsername(), deviceId);
+
+        int revokedCount = refreshTokenRepository.revokeAllTokensExceptDevice(user, deviceId);
+
+        log.info("Revoked {} refresh tokens for user {} (kept device {})",
+                revokedCount, user.getUsername(), deviceId);
+
+        return revokedCount;
+    }
+
 }

@@ -1,6 +1,9 @@
 package be.steby.CoreProject.bll.domains.password.services;
 
 import be.steby.CoreProject.bll.common.services.validation.password.PasswordPolicyService;
+import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
+import be.steby.CoreProject.bll.domains.device.utils.DeviceContextProvider;
 import be.steby.CoreProject.bll.domains.password.events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.domains.password.events.RequestPasswordResetEvent;
 import be.steby.CoreProject.bll.domains.password.events.RequestPasswordTokenEvent;
@@ -12,11 +15,13 @@ import be.steby.CoreProject.bll.exceptions.TokenValidityException;
 import be.steby.CoreProject.bll.exceptions.UserAuthenticationStateException;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTokenServiceImpl;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
 import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,12 +30,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PasswordServiceImpl implements PasswordService {
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
     private final PasswordPolicyService passwordPolicyService;
+    private final DeviceService deviceService;
+    private final RefreshTokenServiceImpl refreshTokenService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Value("${url.front_server}")
@@ -57,7 +65,12 @@ public class PasswordServiceImpl implements PasswordService {
 
         savePassword(request.password(), user);
 
+        // ✅ SECURITY: Logout from ALL devices (not authenticated)
+        log.info("Password reset for user {} - logging out ALL devices", user.getUsername());
         passwordResetTokenService.revokeToken(passwordResetToken);
+
+        refreshTokenService.revokeAllUserTokens(user);
+        deviceService.disconnectAllDevicesForUser(user);
     }
 
 
@@ -76,6 +89,26 @@ public class PasswordServiceImpl implements PasswordService {
 
 
         savePassword(request.newPassword(), authenticatedUser);
+
+        Long currentDeviceId = deviceService.detectCurrentDevice(httpRequest).getId();
+
+        if(currentDeviceId != null){
+            int revokedTokens = refreshTokenService.revokeAllUserTokensExceptDevice(authenticatedUser, currentDeviceId);
+
+            int disconnectedDevices = deviceService.disconnectAllDevicesExceptCurrent(authenticatedUser, currentDeviceId);
+
+            log.info("Password changed for user {} - revoked {} tokens and disconnected {} devices (kept device {})",
+                    authenticatedUser.getUsername(), revokedTokens, disconnectedDevices, currentDeviceId);
+
+        } else {
+            // Fallback : if can't identify current device, logout everywhere
+            log.warn("Could not identify current device for user {} - logging out ALL devices",
+                    authenticatedUser.getUsername());
+
+            refreshTokenService.revokeAllUserTokens(authenticatedUser);
+            deviceService.disconnectAllDevicesForUser(authenticatedUser);
+        }
+
     }
 
 
