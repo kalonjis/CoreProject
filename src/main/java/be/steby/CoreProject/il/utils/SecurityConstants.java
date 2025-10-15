@@ -36,7 +36,8 @@ public class SecurityConstants {
             //TODO delete "me", "status" and "logout" from this list in prod
             "/api/auth/logout",
             "/api/auth/me",
-            "/api/auth/status"
+            "/api/auth/status",
+            "/api/auth/2fa/enable-email"
     };
 
     // ========== ACCOUNT DOMAIN ==========
