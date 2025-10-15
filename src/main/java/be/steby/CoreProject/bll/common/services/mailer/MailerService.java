@@ -3,6 +3,7 @@ package be.steby.CoreProject.bll.common.services.mailer;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
+import be.steby.CoreProject.dl.enums.TwoFactorType;
 import org.springframework.scheduling.annotation.Async;
 
 
@@ -70,5 +71,13 @@ public interface MailerService {
   void sendNewDeviceAlert(User user, Device device, String token);
 
   void sendBlacklistedDeviceAlert(User user, Device device, String token);
+
+    /**
+     * Sends a confirmation email when user enables two-factor authentication.
+     *
+     * @param user The user who enabled 2FA
+     * @param type The type of 2FA enabled (EMAIL, TOTP, SMS, etc.)
+     */
+    void sendTwoFactorEnabledConfirmation(User user, TwoFactorType type);
 
 }

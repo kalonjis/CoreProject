@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.domains.account.services.DeactivationMessageServ
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
+import be.steby.CoreProject.dl.enums.TwoFactorType;
 import be.steby.CoreProject.il.utils.MailerUtil;
 import lombok.RequiredArgsConstructor;
 import be.steby.CoreProject.bll.common.services.mailer.MailerService;
@@ -123,6 +124,29 @@ public class MailerServiceImpl implements MailerService {
     @Override
     public void sendBlacklistedDeviceAlert(User user, Device device, String token) {
 
+    }
+
+
+    @Override
+    public void sendTwoFactorEnabledConfirmation(User user, TwoFactorType type) {
+        String username = user.getFirstname() != null && !user.getFirstname().isBlank()
+                ? user.getFirstname()
+                : user.getUsername();
+
+        Context context = new Context();
+        context.setVariable("username", username);
+        context.setVariable("twoFactorType", type.getDisplayName());
+        context.setVariable("twoFactorDescription", type.getRequirementDescription());
+
+        // Email subject based on type
+        String subject = "Two-Factor Authentication Enabled";
+
+        mailerUtil.sendMail(
+                subject,
+                "auth/twoFactorEnabled",
+                context,
+                user.getEmail()
+        );
     }
 }
 //

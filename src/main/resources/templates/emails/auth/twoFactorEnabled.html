@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Factor Authentication Enabled</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border: 1px solid #ddd;
+            border-radius: 0 0 5px 5px;
+        }
+        .info-box {
+            background-color: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+        }
+        .emoji {
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1><span class="emoji">🔒</span> Two-Factor Authentication Enabled</h1>
+</div>
+
+<div class="content">
+    <p>Hello <strong th:text="${username}">User</strong>,</p>
+
+    <p>Your account security has been enhanced! Two-factor authentication has been successfully enabled.</p>
+
+    <div class="info-box">
+        <p><strong>Method Enabled:</strong> <span th:text="${twoFactorType}">Email Verification</span></p>
+        <p><strong>What this means:</strong> <span th:text="${twoFactorDescription}">Email address</span></p>
+    </div>
+
+    <p>From now on, when you log in to your account, you'll need to:</p>
+    <ol>
+        <li>Enter your username and password</li>
+        <li>Verify your identity using <span th:text="${twoFactorType}">your chosen method</span></li>
+    </ol>
+
+    <p><strong>Why is this important?</strong></p>
+    <p>Two-factor authentication adds an extra layer of security to your account. Even if someone gets your password, they won't be able to access your account without the second factor.</p>
+
+    <p><strong>⚠️ Didn't enable 2FA?</strong></p>
+    <p>If you didn't request this change, please contact our support team immediately as your account may be compromised.</p>
+
+    <p>Thank you for taking steps to secure your account!</p>
+
+    <p>Best regards,<br>
+        The Security Team</p>
+</div>
+
+<div class="footer">
+    <p>This is an automated security notification. Please do not reply to this email.</p>
+</div>
+</body>
+</html>
