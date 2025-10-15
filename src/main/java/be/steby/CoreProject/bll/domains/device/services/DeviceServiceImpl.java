@@ -8,6 +8,7 @@ import be.steby.CoreProject.bll.domains.device.exceptions.DeviceDomainException;
 import be.steby.CoreProject.bll.domains.device.exceptions.DeviceNotFoundException;
 import be.steby.CoreProject.bll.domains.device.exceptions.InvalidDeviceArgumentException;
 import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.device.utils.DeviceContextProvider;
 import be.steby.CoreProject.bll.domains.device.utils.UserAgentUtils;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
@@ -132,8 +133,17 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     public Device detectCurrentDevice(HttpServletRequest request) {
-        User user = userService.getAuthenticatedUser();
-        return detectAndRegisterDevice(request, user);
+        Device device = DeviceContextProvider.getAuthenticatedDevice(request);
+
+        if (device != null) {
+            log.debug("Current device {} retrieved from cache", device.getId());
+            return device;
+        }
+
+        // ⚠️ Fallback: Si pas en cache (cas rare), détecter normalement
+        log.warn("Device not found in cache, falling back to detectAndRegisterDevice");
+        User authenticatedUser = userService.getAuthenticatedUser();
+        return detectAndRegisterDevice(request, authenticatedUser);
     }
 
 
@@ -248,23 +258,33 @@ public class DeviceServiceImpl implements DeviceService {
     public void disconnectAllOtherDevices(HttpServletRequest request) {
         Device currentDevice = detectCurrentDevice(request);
         User currentUser = currentDevice.getUser();
-        List<Device> userDevices = getMyDeviceList();
 
-        log.info("Starting disconnection of all other devices for user {}", currentUser.getUsername());
+        int disconnectedDevices = disconnectAllDevicesExceptCurrent(currentUser, currentDevice.getId());
 
-        int count = 0;
-        for (Device device : userDevices) {
-            if (!device.getId().equals(currentDevice.getId())) {
-                try {
-                    disconnectDevice(device.getId(), request);
-                    count++;
-                } catch (Exception e) {
-                    log.warn("Failed to disconnect device {} : {}", device.getId(), e.getMessage());
-                }
-            }
-        }
+        log.info("{} devices successfully disconnected for user {}", disconnectedDevices, currentUser.getUsername());
+    }
 
-        log.info("{} devices successfully disconnected for user {}", count, currentUser.getUsername());
+
+    /**
+     * Disconnects all devices for a user EXCEPT the current device.
+     * Used when user changes password but wants to stay logged in on current device.
+     *
+     * @param user The user whose devices should be disconnected
+     * @param currentDeviceId Id The device to keep connected
+     * @return Number of devices disconnected
+     */
+    @Override
+    @Transactional
+    public int disconnectAllDevicesExceptCurrent(User user, Long currentDeviceId) {
+        log.info("Disconnecting all devices for user {} except device {}",
+                user.getUsername(), currentDeviceId);
+
+        int disconnectedCount = deviceRepository.disconnectAllDevicesExceptCurrent(user, currentDeviceId);
+
+        log.info("Disconnected {} devices for user {} (kept device {})",
+                disconnectedCount, user.getUsername(), currentDeviceId);
+
+        return disconnectedCount;
     }
 
 
