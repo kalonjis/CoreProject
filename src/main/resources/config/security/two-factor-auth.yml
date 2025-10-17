@@ -1,0 +1,6 @@
+two-factor-auth:
+  verification-code:
+    length: 6
+    expiration: 300000  # 5 minutes
+    max-attempts: 3
+    resend-cooldown: 60000  # 1 minute entre les renvois

@@ -27,7 +27,8 @@ class JwtUtilTest {
                 "test-secret-key-for-testing-purposes-only-minimum-256-bits-long",
                 3600000L,  // 1 heure
                 "access_token",
-                "refresh_token"
+                "refresh_token",
+                600000L
         );
     }
 
