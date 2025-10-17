@@ -18,4 +18,12 @@ public record AuthOperationResponse(
     public static AuthOperationResponse tokenRefreshed() {
         return new AuthOperationResponse("Token refreshed successfully");
     }
+
+    public static AuthOperationResponse twoFactorRequired() {
+        return new AuthOperationResponse("Two-factor authentication required");
+    }
+
+    public static AuthOperationResponse twoFactorCodeResent() {
+        return new AuthOperationResponse("Verification code sent successfully");
+    }
 }

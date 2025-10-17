@@ -1,7 +1,10 @@
 package be.steby.CoreProject.pl.domains.auth.controller;
 
 import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidRefreshTokenException;
+import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidTwoFactorTokenException;
+import be.steby.CoreProject.bll.domains.auth.models.LoginInitiationResult;
 import be.steby.CoreProject.bll.domains.auth.models.LoginTokens;
+import be.steby.CoreProject.bll.domains.auth.models.TwoFactorSessionInfo;
 import be.steby.CoreProject.bll.domains.auth.services.AuthService;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.auth.services.cookies.AuthCookieService;
@@ -9,6 +12,7 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
 import be.steby.CoreProject.pl.domains.auth.models.requests.LoginRequest;
+import be.steby.CoreProject.pl.domains.auth.models.requests.TwoFactorVerificationRequest;
 import be.steby.CoreProject.pl.domains.auth.models.responses.AuthOperationResponse;
 import be.steby.CoreProject.pl.models.user.UserDTO;
 import jakarta.servlet.http.HttpServletRequest;
@@ -90,6 +94,151 @@ public class AuthController {
                 .ok()
                 .headers(headers)
                 .body(AuthOperationResponse.loginSuccessful());
+    }
+
+
+    /**
+     * Phase 1: Initial login attempt - validates credentials and checks 2FA requirements
+     *
+     * @param loginRequest Login request containing username and password
+     * @param httpRequest HTTP request for device detection
+     * @param httpResponse HTTP response for cookie setting
+     * @return ResponseEntity with login status (complete or requires 2FA)
+     */
+    @PreAuthorize("isAnonymous()")
+    @PostMapping("/initiate-login")
+    public ResponseEntity<AuthOperationResponse> initiateLogin(
+            @Valid @RequestBody LoginRequest loginRequest,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+
+        log.info("Login initiation attempt for username: {}", loginRequest.username());
+
+        // BLL: Authenticate user and check 2FA requirements
+        LoginInitiationResult result = authService.initiateLogin(
+                loginRequest.username(),
+                loginRequest.password(),
+                httpRequest
+        );
+
+        if (result.requiresTwoFactor()) {
+            // Set 2FA token cookie for verification phase
+            authCookieService.set2FAToken(httpResponse, result.twoFactorToken());
+
+            log.info("2FA required for user: {}", loginRequest.username());
+            return ResponseEntity.ok(AuthOperationResponse.twoFactorRequired());
+        } else {
+            // Complete login immediately - no 2FA required
+            authCookieService.setAuthenticationCookies(httpResponse, result.loginTokens());
+
+            log.info("Login completed without 2FA for user: {}", loginRequest.username());
+            return ResponseEntity.ok(AuthOperationResponse.loginSuccessful());
+        }
+    }
+
+    /**
+     * Phase 2: Two-factor authentication verification
+     * Validates the verification code and completes login if successful
+     *
+     * @param request Verification request containing the 6-digit code
+     * @param twoFactorTokenCookie JWT token from 2FA cookie
+     * @param httpRequest HTTP request for context
+     * @param httpResponse HTTP response for setting final auth cookies
+     * @return ResponseEntity with verification result
+     */
+    @PreAuthorize("isAnonymous()")
+    @PostMapping("/verify-2fa")
+    public ResponseEntity<AuthOperationResponse> verifyTwoFactor(
+            @Valid @RequestBody TwoFactorVerificationRequest request,
+            @CookieValue(name = "2fa_token", required = false) String twoFactorTokenCookie,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+
+        if (twoFactorTokenCookie == null) {
+            throw new InvalidTwoFactorTokenException("2FA token is required");
+        }
+
+        log.info("2FA verification attempt with code");
+
+        // BLL: Verify 2FA code and complete login
+        LoginTokens tokens = authService.verifyTwoFactorAndCompleteLogin(
+                twoFactorTokenCookie,
+                request.verificationCode(),
+                httpRequest
+        );
+
+        // PL: Set final authentication cookies and clear 2FA token
+        authCookieService.setAuthenticationCookies(httpResponse, tokens);
+        authCookieService.clear2FAToken(httpResponse);
+
+        log.info("2FA verification successful - login completed");
+        return ResponseEntity.ok(AuthOperationResponse.loginSuccessful());
+    }
+
+    /**
+     * Resend 2FA verification code
+     * Allows user to request a new verification code if the original was not received
+     *
+     * @param twoFactorTokenCookie JWT token from 2FA cookie
+     * @param httpRequest HTTP request for context
+     * @return ResponseEntity with resend confirmation
+     */
+    @PreAuthorize("isAnonymous()")
+    @PostMapping("/resend-2fa-code")
+    public ResponseEntity<AuthOperationResponse> resendTwoFactorCode(
+            @CookieValue(name = "2fa_token", required = false) String twoFactorTokenCookie,
+            HttpServletRequest httpRequest) {
+
+        if (twoFactorTokenCookie == null) {
+            throw new InvalidTwoFactorTokenException("2FA token is required");
+        }
+
+        log.info("2FA code resend requested");
+
+        // BLL: Validate 2FA token and resend verification code
+        authService.resendTwoFactorCode(twoFactorTokenCookie, httpRequest);
+
+        log.info("2FA code resent successfully");
+        return ResponseEntity.ok(AuthOperationResponse.twoFactorCodeResent());
+    }
+
+    /**
+     * Get 2FA status during authentication flow
+     * Allows frontend to check current 2FA state
+     *
+     * @param twoFactorTokenCookie JWT token from 2FA cookie
+     * @return ResponseEntity with 2FA status information
+     */
+    @PreAuthorize("isAnonymous()")
+    @GetMapping("/2fa-status")
+    public ResponseEntity<Map<String, Object>> getTwoFactorStatus(
+            @CookieValue(name = "2fa_token", required = false) String twoFactorTokenCookie) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        if (twoFactorTokenCookie == null) {
+            response.put("twoFactorRequired", false);
+            response.put("status", "no_2fa_session");
+            return ResponseEntity.ok(response);
+        }
+
+        try {
+            // BLL: Get 2FA session info from token
+            TwoFactorSessionInfo sessionInfo = authService.getTwoFactorSessionInfo(twoFactorTokenCookie);
+
+            response.put("twoFactorRequired", true);
+            response.put("status", "awaiting_verification");
+            response.put("type", sessionInfo.twoFactorType().name());
+            response.put("maskedEmail", sessionInfo.maskedEmail());
+            response.put("timeRemaining", sessionInfo.timeRemainingSeconds());
+
+            return ResponseEntity.ok(response);
+
+        } catch (InvalidTwoFactorTokenException e) {
+            response.put("twoFactorRequired", false);
+            response.put("status", "invalid_2fa_session");
+            return ResponseEntity.ok(response);
+        }
     }
 
     /**

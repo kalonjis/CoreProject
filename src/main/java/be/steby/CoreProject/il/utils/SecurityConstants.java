@@ -17,6 +17,10 @@ public class SecurityConstants {
 
     private static final String[] AUTH_PUBLIC_ROUTES = {
             "/api/auth/login",
+            "/api/auth/initiate-login",
+            "/api/auth/verify-2fa",
+            "/api/auth/resend-2fa-code",
+            "/api/auth/2fa-status",
             "/api/auth/refresh-token",
     };
 
@@ -32,6 +36,10 @@ public class SecurityConstants {
      */
     private static final String[] AUTH_CSRF_IGNORE = {
             "/api/auth/login",
+            "/api/auth/initiate-login",
+            "/api/auth/verify-2fa",
+            "/api/auth/resend-2fa-code",
+            "/api/auth/2fa-status",
             "/api/auth/refresh-token",
             //TODO delete "me", "status" and "logout" from this list in prod
             "/api/auth/logout",

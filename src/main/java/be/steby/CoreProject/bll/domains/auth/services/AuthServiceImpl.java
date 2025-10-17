@@ -2,13 +2,15 @@ package be.steby.CoreProject.bll.domains.auth.services;
 
 import be.steby.CoreProject.bll.common.utils.IpLocationUtils;
 import be.steby.CoreProject.bll.domains.account.exceptions.AccountActivationException;
-import be.steby.CoreProject.bll.domains.auth.exceptions.AccountTemporarilyLockedException;
-import be.steby.CoreProject.bll.domains.auth.exceptions.BlacklistedDeviceException;
-import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidCredentialsException;
-import be.steby.CoreProject.bll.domains.auth.exceptions.AccountDisabledException;
+import be.steby.CoreProject.bll.domains.auth.events.TwoFactorVerificationRequestedEvent;
+import be.steby.CoreProject.bll.domains.auth.exceptions.*;
 import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
 import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
+import be.steby.CoreProject.bll.domains.auth.models.LoginInitiationResult;
 import be.steby.CoreProject.bll.domains.auth.models.LoginTokens;
+import be.steby.CoreProject.bll.domains.auth.models.TwoFactorSessionInfo;
+import be.steby.CoreProject.bll.domains.auth.models.TwoFactorTokenClaims;
+import be.steby.CoreProject.bll.domains.auth.services.twofactor.TwoFactorVerificationService;
 import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.auth.services.login_attempt.LoginAttemptService;
 import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
@@ -18,10 +20,14 @@ import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
 import be.steby.CoreProject.bll.exceptions.DoesntExistException;
 import be.steby.CoreProject.bll.domains.user.exceptions.UsernameNotFoundAuthenticationException;
+import be.steby.CoreProject.dal.repositories.TwoFactorAuthRepository;
+import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
+import be.steby.CoreProject.dl.enums.TwoFactorType;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +39,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -41,6 +48,8 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
     private final UserAuthenticationService userAuthenticationService;
+    private final TwoFactorAuthRepository twoFactorAuthRepository;
+    private final TwoFactorVerificationService twoFactorVerificationService;
     private final ApplicationEventPublisher eventPublisher;
     private final PasswordEncoder passwordEncoder;
     private final DeviceService deviceService;
@@ -93,6 +102,168 @@ public class AuthServiceImpl implements AuthService {
             throw e;
         }
     }
+
+
+    public LoginTokens verifyTwoFactorAndCompleteLogin(String twoFactorToken, String verificationCode, HttpServletRequest httpRequest) {
+        log.info("Verifying 2FA code for login completion");
+
+        // 1. Validate and extract 2FA token
+        Claims claims = jwtUtil.validate2FAToken(twoFactorToken);
+        TwoFactorTokenClaims twoFactorClaims = extractTwoFactorClaims(claims);
+
+        // 2. Verify the provided code against the hashed code from token
+        boolean isValidCode = twoFactorVerificationService.verifyCode(
+                verificationCode,
+                twoFactorClaims.verificationCode()
+        );
+
+        if (!isValidCode) {
+            log.warn("Invalid 2FA verification code provided");
+            throw new InvalidTwoFactorCodeException("Invalid verification code");
+        }
+
+        // 3. Load user and complete login
+        User user = userService.getUserById(Long.parseLong(twoFactorClaims.userId()));
+        Device device = deviceService.detectAndRegisterDevice(httpRequest, user);
+
+        // 4. Update 2FA success tracking
+        Optional<TwoFactorAuth> twoFactorAuth = twoFactorAuthRepository.findByUserAndTypeAndEnabledTrue(
+                user,
+                twoFactorClaims.twoFactorType()
+        );
+
+        if (twoFactorAuth.isPresent()) {
+            twoFactorAuth.get().recordSuccessfulVerification();
+            twoFactorAuthRepository.save(twoFactorAuth.get());
+        }
+
+        // 5. Generate final login tokens
+        LoginTokens tokens = generateTokens(user, device);
+
+        // 6. Publish successful login event
+        eventPublisher.publishEvent(new UserLoggedInEvent(user, device));
+
+        log.info("2FA verification successful - login completed for user: {}", user.getUsername());
+        return tokens;
+    }
+
+
+    public void resendTwoFactorCode(String twoFactorToken, HttpServletRequest httpRequest) {
+        log.info("Resending 2FA verification code");
+
+        // 1. Validate token and extract claims
+        Claims claims = jwtUtil.validate2FAToken(twoFactorToken);
+        TwoFactorTokenClaims twoFactorClaims = extractTwoFactorClaims(claims);
+
+        // 2. Load user
+        User user = userService.getUserById(Long.parseLong(twoFactorClaims.userId()));
+
+        // 3. Generate new verification code
+        String newVerificationCode = twoFactorVerificationService.generateVerificationCode();
+
+        // 4. Publish resend event
+        eventPublisher.publishEvent(new TwoFactorVerificationRequestedEvent(
+                user,
+                twoFactorClaims.twoFactorType(),
+                newVerificationCode,
+                httpRequest
+        ));
+
+        log.info("2FA verification code resent for user: {}", user.getUsername());
+    }
+
+    @Override
+    public TwoFactorSessionInfo getTwoFactorSessionInfo(String twoFactorToken) {
+        // 1. Validate token and extract claims
+        Claims claims = jwtUtil.validate2FAToken(twoFactorToken);
+        TwoFactorTokenClaims twoFactorClaims = extractTwoFactorClaims(claims);
+
+        // 2. Calculate time remaining
+        long currentTime = System.currentTimeMillis();
+        long timeRemaining = Math.max(0, twoFactorClaims.expiresAt() - currentTime);
+
+        return new TwoFactorSessionInfo(
+                twoFactorClaims.userId(),
+                twoFactorClaims.username(),
+                twoFactorClaims.twoFactorType(),
+                maskEmail(twoFactorClaims.email()),
+                timeRemaining / 1000, // Convert to seconds
+                3 // TODO: Track actual attempts remaining
+        );
+    }
+
+
+
+    @Override
+    public LoginInitiationResult initiateLogin(String username, String password, HttpServletRequest httpRequest) {
+        log.info("Initiating login for username: {}", username);
+        String clientIpAddress = IpLocationUtils.extractClientIp(httpRequest);
+
+        try {
+            // 1. Load user and detect device (COMME DANS LOGIN EXISTANT)
+            User user = loadUser(username);
+            Device device = deviceService.detectAndRegisterDevice(httpRequest, user);
+
+            // 2. Validate all login preconditions (COMME DANS LOGIN EXISTANT)
+            validateLoginPreconditions(username, clientIpAddress, user, device, password);
+
+            // 3. Check if user has 2FA enabled
+            Optional<TwoFactorAuth> primaryTwoFactor = twoFactorAuthRepository.findByUserAndIsPrimaryTrue(user);
+
+            if (primaryTwoFactor.isEmpty() || !primaryTwoFactor.get().getEnabled()) {
+                // No 2FA - complete login immediately (COMME DANS LOGIN EXISTANT)
+                log.info("No 2FA required for user: {}", username);
+
+                // Handle device state
+                handleDeviceState(device);
+
+                // Clear failed attempts on successful validation
+                loginAttemptService.clearFailedAttempts(username, clientIpAddress);
+
+                // Generate authentication tokens
+                LoginTokens tokens = generateTokens(user, device);
+
+                // Publish success events and notifications
+                publishSuccessEvents(user, device);
+
+                return LoginInitiationResult.completeLogin(tokens);
+            }
+
+            // 4. 2FA required - generate verification code and JWT token
+            TwoFactorAuth twoFactorAuth = primaryTwoFactor.get();
+            log.info("2FA required for user: {} with type: {}", username, twoFactorAuth.getType());
+
+            // Handle device state et clear failed attempts (même si 2FA requis, les credentials sont ok)
+            handleDeviceState(device);
+            loginAttemptService.clearFailedAttempts(username, clientIpAddress);
+
+            // Generate verification code
+            String verificationCode = twoFactorVerificationService.generateVerificationCode();
+            String verificationCodeHash = twoFactorVerificationService.hashVerificationCode(verificationCode);
+
+            // Generate 2FA JWT token
+            String twoFactorToken = jwtUtil.generate2FAToken(user, verificationCodeHash, twoFactorAuth.getType());
+
+            // Publish 2FA verification event (triggers email sending)
+            eventPublisher.publishEvent(new TwoFactorVerificationRequestedEvent(
+                    user,
+                    twoFactorAuth.getType(),
+                    verificationCode,
+                    httpRequest
+            ));
+
+            String maskedEmail = maskEmail(user.getEmail());
+            return LoginInitiationResult.requiresTwoFactor(twoFactorAuth.getType(), twoFactorToken, maskedEmail);
+
+        } catch (DoesntExistException e) {
+            handleNonExistentUser(username, clientIpAddress);
+            throw e;
+        } catch (CoreProjectException e) {
+            handleAuthenticationFailure(username, clientIpAddress, e);
+            throw e;
+        }
+    }
+
 
 
     @Override
@@ -365,6 +536,42 @@ public class AuthServiceImpl implements AuthService {
                 user.getId(),
                 device.getId()
         );
+    }
+
+
+    /**
+     * Extracts TwoFactorTokenClaims from JWT claims
+     */
+    private TwoFactorTokenClaims extractTwoFactorClaims(Claims claims) {
+        return new TwoFactorTokenClaims(
+                claims.get("userId", String.class),
+                claims.get("username", String.class),
+                claims.get("email", String.class),
+                TwoFactorType.valueOf(claims.get("twoFactorType", String.class)),
+                claims.get("verificationCodeHash", String.class),
+                claims.getIssuedAt().getTime(),
+                claims.getExpiration().getTime()
+        );
+    }
+
+    /**
+     * Masks email for display purposes
+     */
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "***@***.***";
+        }
+
+        String[] parts = email.split("@");
+        String localPart = parts[0];
+        String domain = parts[1];
+
+        // Mask local part: show first and last character
+        String maskedLocal = localPart.length() > 2
+                ? localPart.charAt(0) + "***" + localPart.charAt(localPart.length() - 1)
+                : "***";
+
+        return maskedLocal + "@" + domain;
     }
 
 // =========================================================================

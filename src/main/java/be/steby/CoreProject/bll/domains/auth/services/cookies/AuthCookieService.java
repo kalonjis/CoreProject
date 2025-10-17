@@ -34,6 +34,12 @@ public class AuthCookieService {
     @Value("${security.jwt.refresh-token.expiration}")
     private Long refreshTokenDurationMs;
 
+    @Value("${security.jwt.2fa-token.name}")
+    private String twoFactorTokenCookieName;
+
+    @Value("${security.jwt.2fa-token.expiration}")
+    private Long twoFactorTokenDurationMs;
+
     private static final String COOKIE_PATH = "/";
     private static final boolean SECURE = true; // Always use HTTPS in production
 
@@ -103,6 +109,7 @@ public class AuthCookieService {
     public void clearAuthenticationCookies(HttpServletResponse response) {
         baseCookieService.deleteHttpOnlyCookie(response, accessTokenCookieName);
         baseCookieService.deleteHttpOnlyCookie(response, refreshTokenCookieName);
+        baseCookieService.deleteHttpOnlyCookie(response, twoFactorTokenCookieName);
         log.info("Authentication cookies cleared");
     }
 
@@ -151,4 +158,40 @@ public class AuthCookieService {
         log.debug("Refresh token cookie parsed successfully");
         return parts; // [userId, deviceId, tokenValue]
     }
+
+
+    /**
+     * Sets the 2FA token cookie during authentication flow.
+     * HttpOnly and Secure for protection, shorter expiration time.
+     *
+     * @param response HTTP response
+     * @param twoFactorToken JWT 2FA token value
+     */
+    public void set2FAToken(HttpServletResponse response, String twoFactorToken) {
+        int maxAgeSeconds = (int) (twoFactorTokenDurationMs / 1000);
+
+        baseCookieService.setHttpOnlyCookie(
+                response,
+                twoFactorTokenCookieName,
+                twoFactorToken,
+                maxAgeSeconds,
+                COOKIE_PATH,
+                SECURE
+        );
+
+        log.debug("2FA token cookie set with expiration: {} seconds", maxAgeSeconds);
+    }
+
+    /**
+     * Clears the 2FA token cookie.
+     * Used after successful 2FA verification or on timeout/failure.
+     *
+     * @param response HTTP response
+     */
+    public void clear2FAToken(HttpServletResponse response) {
+        baseCookieService.deleteHttpOnlyCookie(response, twoFactorTokenCookieName);
+        log.debug("2FA token cookie cleared");
+    }
+
+
 }

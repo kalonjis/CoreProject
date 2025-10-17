@@ -1,7 +1,9 @@
 package be.steby.CoreProject.bll.domains.auth.services;
 
 import be.steby.CoreProject.bll.domains.auth.exceptions.AuthenticationException;
+import be.steby.CoreProject.bll.domains.auth.models.LoginInitiationResult;
 import be.steby.CoreProject.bll.domains.auth.models.LoginTokens;
+import be.steby.CoreProject.bll.domains.auth.models.TwoFactorSessionInfo;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +24,42 @@ public interface AuthService extends UserDetailsService {
      * @return LoginTokens containing accessToken and refreshToken
      */
     LoginTokens login(String username, String password, HttpServletRequest request);
+
+    /**
+     * Phase 1: Initiate login - validate credentials and check 2FA requirements
+     *
+     * @param username User's username
+     * @param password User's password
+     * @param httpRequest HTTP request for device detection
+     * @return LoginInitiationResult indicating next steps
+     */
+    LoginInitiationResult initiateLogin(String username, String password, HttpServletRequest httpRequest);
+
+    /**
+     * Phase 2: Verify 2FA code and complete login
+     *
+     * @param twoFactorToken JWT token from 2FA cookie
+     * @param verificationCode 6-digit code from user
+     * @param httpRequest HTTP request for context
+     * @return LoginTokens for final authentication
+     */
+    LoginTokens verifyTwoFactorAndCompleteLogin(String twoFactorToken, String verificationCode, HttpServletRequest httpRequest);
+
+    /**
+     * Resend 2FA verification code
+     *
+     * @param twoFactorToken JWT token from 2FA cookie
+     * @param httpRequest HTTP request for context
+     */
+    void resendTwoFactorCode(String twoFactorToken, HttpServletRequest httpRequest);
+
+    /**
+     * Get information about current 2FA session
+     *
+     * @param twoFactorToken JWT token from 2FA cookie
+     * @return TwoFactorSessionInfo with session details
+     */
+    TwoFactorSessionInfo getTwoFactorSessionInfo(String twoFactorToken);
 
     /**
      * Performs complete logout business logic including token revocation and events publishing.

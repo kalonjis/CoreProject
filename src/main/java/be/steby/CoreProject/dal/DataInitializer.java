@@ -97,9 +97,11 @@ public class DataInitializer implements CommandLineRunner {
         );
 
 
-
+        users.get(1).setMustChangePassword(false);
 
         userRepository.saveAll(users);
+
+
         //endregion
 
 

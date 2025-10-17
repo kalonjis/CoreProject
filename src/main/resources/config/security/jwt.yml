@@ -5,5 +5,8 @@ security:
       expiration: 900000  # 15 minutes
       name: "access_token"
     refresh-token:
-      expiration: 604800000  # 7 jours
+      expiration: 604800000  # 7 days
       name: "refresh_token"
+    2fa-token:
+      expiration: 600000   # 10 minutes
+      name: "2fa_token"
