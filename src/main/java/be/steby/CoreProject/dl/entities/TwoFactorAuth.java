@@ -103,6 +103,7 @@ public class TwoFactorAuth extends BaseEntity<Long> {
     @Column(nullable = false)
     @Builder.Default
     private Boolean enabled = false;
+
     
     /**
      * Whether this is the primary 2FA method for the user
@@ -116,6 +117,12 @@ public class TwoFactorAuth extends BaseEntity<Long> {
      */
     @Column
     private Instant enabledAt;
+
+    /**
+     * Timestamp when this method was last disabled
+     */
+    @Column
+    private Instant disabledAt;
     
     /**
      * Timestamp when this method was last verified successfully

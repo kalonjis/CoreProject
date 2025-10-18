@@ -21,6 +21,8 @@ public class SecurityConstants {
             "/api/auth/verify-2fa",
             "/api/auth/resend-2fa-code",
             "/api/auth/2fa-status",
+            "/api/auth/2fa/email/enable",
+            "/api/auth/2fa/email/disable",
             "/api/auth/refresh-token",
     };
 
@@ -40,6 +42,8 @@ public class SecurityConstants {
             "/api/auth/verify-2fa",
             "/api/auth/resend-2fa-code",
             "/api/auth/2fa-status",
+            "/api/auth/2fa/email/enable",
+            "/api/auth/2fa/email/disable",
             "/api/auth/refresh-token",
             //TODO delete "me", "status" and "logout" from this list in prod
             "/api/auth/logout",
