@@ -1,0 +1,54 @@
+package be.steby.CoreProject.bll.domains.auth.exceptions.twofactor;
+
+import be.steby.CoreProject.bll.domains.auth.exceptions.AuthenticationException;
+
+/**
+ * Exception thrown when the TwoFactorFactory cannot find an appropriate
+ * service implementation for a specific TwoFactorType.
+ * 
+ * This typically occurs when:
+ * - A user has a 2FA method configured that is no longer supported
+ * - A 2FA service implementation is missing or not properly injected
+ * - The switch statement in TwoFactorFactory doesn't handle a specific type
+ * - Database contains invalid/corrupted TwoFactorType values
+ * 
+ * This is a system-level exception indicating a configuration or implementation
+ * problem rather than a user error.
+ * 
+ * HTTP Status: 501 Not Implemented - The requested 2FA method is not available.
+ * 
+ * @author Steby Team
+ * @since 2.0.0
+ */
+public class TwoFactorServiceNotFoundException extends AuthenticationException {
+    
+    /**
+     * Creates a new exception with a descriptive message.
+     * Uses HTTP 501 Not Implemented status to indicate missing service implementation.
+     * 
+     * @param message detailed error message explaining which service is missing
+     */
+    public TwoFactorServiceNotFoundException(String message) {
+        super(message, 501);
+    }
+    
+    /**
+     * Creates a new exception with a default message.
+     * Provides a standard error message for missing service implementations.
+     */
+    public TwoFactorServiceNotFoundException() {
+        super("The requested two-factor authentication service is not available", 501);
+    }
+    
+    /**
+     * Creates a new exception with a custom message and cause.
+     * Useful when wrapping lower-level exceptions or Spring injection errors.
+     * 
+     * @param message detailed error message
+     * @param cause the underlying cause of this exception
+     */
+    public TwoFactorServiceNotFoundException(String message, Throwable cause) {
+        super(message, 501);
+        initCause(cause);
+    }
+}
