@@ -1,5 +1,6 @@
 package be.steby.CoreProject.pl.domains.auth.controller;
 
+import be.steby.CoreProject.bll.domains.auth.config.TOTPProperties;
 import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidRefreshTokenException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidTwoFactorTokenException;
 import be.steby.CoreProject.bll.domains.auth.models.LoginInitiationResult;
@@ -10,7 +11,6 @@ import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.auth.services.cookies.AuthCookieService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
-import be.steby.CoreProject.il.Jwt.JwtUtil;
 import be.steby.CoreProject.pl.domains.auth.models.requests.LoginRequest;
 import be.steby.CoreProject.pl.domains.auth.models.requests.TwoFactorVerificationRequest;
 import be.steby.CoreProject.pl.domains.auth.models.responses.AuthOperationResponse;
@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -50,7 +51,11 @@ public class AuthController {
     private final AuthService authService;
     private final AuthCookieService authCookieService;
     private final RefreshTokenServiceImpl refreshTokenService;
-    private final JwtUtil jwtUtil;
+
+    @Autowired
+    private TOTPProperties totpProperties;
+
+
 
     // =========================================================================
     // Public Authentication Endpoints
@@ -111,6 +116,10 @@ public class AuthController {
             @Valid @RequestBody LoginRequest loginRequest,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
+
+        // Dans une méthode
+        log.info("TOTP Issuer: {}", totpProperties.getIssuer()); // Doit afficher "YourApp"
+        log.info("TOTP Time Step: {}", totpProperties.getTimeStep()); // Doit afficher 30
 
         log.info("Login initiation attempt for username: {}", loginRequest.username());
 

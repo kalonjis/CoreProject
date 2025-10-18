@@ -76,6 +76,10 @@ public interface TwoFactorAuthRepository extends JpaRepository<TwoFactorAuth, Lo
      * Useful for validation before setup.
      */
     boolean existsByUserAndTypeAndEnabledTrue(User user, TwoFactorType type);
+
+
+
+    Optional<TwoFactorAuth> findByUserAndTypeAndEnabledFalse(User user, TwoFactorType type);
     
     // ========================================
     // Bulk Operations

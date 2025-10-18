@@ -10,6 +10,7 @@ import be.steby.CoreProject.bll.domains.auth.models.LoginInitiationResult;
 import be.steby.CoreProject.bll.domains.auth.models.LoginTokens;
 import be.steby.CoreProject.bll.domains.auth.models.TwoFactorSessionInfo;
 import be.steby.CoreProject.bll.domains.auth.models.TwoFactorTokenClaims;
+import be.steby.CoreProject.bll.domains.auth.services.twofactor.TwoFactorVerificationFactory;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.TwoFactorVerificationService;
 import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.auth.services.login_attempt.LoginAttemptService;
@@ -48,8 +49,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
     private final UserAuthenticationService userAuthenticationService;
-    private final TwoFactorAuthRepository twoFactorAuthRepository;
-    private final TwoFactorVerificationService twoFactorVerificationService;
+    private final TwoFactorVerificationFactory twoFactorFactory;
     private final ApplicationEventPublisher eventPublisher;
     private final PasswordEncoder passwordEncoder;
     private final DeviceService deviceService;
