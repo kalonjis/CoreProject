@@ -1,6 +1,11 @@
-two-factor-auth:
-  verification-code:
-    length: 6
-    expiration: 300000  # 5 minutes
-    max-attempts: 3
-    resend-cooldown: 60000  # 1 minute entre les renvois
+security:
+  two-factor:
+    totp:
+      enabled: true
+      issuer-name: "Steby CoreProject"
+      secret-length: 20          # Secret key length in bytes (RFC 6238 minimum 160 bits)
+      code-digits: 6             # Standard 6-digit codes
+      time-step-seconds: 30      # Standard 30-second time step
+      window-tolerance: 1        # ±30 seconds tolerance for clock drift
+      hmac-algorithm: "HmacSHA1" # RFC 6238 standard algorithm
+      encryption-key: "StebyTOTPKey2025!"  # Exactly 16 characters for AES-128aut of QR code in pixels
