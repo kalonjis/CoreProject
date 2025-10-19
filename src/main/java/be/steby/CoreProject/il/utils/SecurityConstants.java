@@ -23,6 +23,8 @@ public class SecurityConstants {
             "/api/auth/2fa-status",
             "/api/auth/2fa/email/enable",
             "/api/auth/2fa/email/disable",
+            "/api/auth/2fa/totp/enable",
+            "/api/auth/2fa/totp/disable",
             "/api/auth/refresh-token",
     };
 
@@ -49,7 +51,9 @@ public class SecurityConstants {
             "/api/auth/status",
             "/api/auth/2fa/enable-email",
             "/api/auth/2fa/email/enable",
-            "/api/auth/2fa/email/disable"
+            "/api/auth/2fa/email/disable",
+            "/api/auth/2fa/totp/enable",
+            "/api/auth/2fa/totp/disable",
     };
 
     // ========== ACCOUNT DOMAIN ==========

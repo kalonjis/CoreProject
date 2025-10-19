@@ -68,16 +68,12 @@ public interface MailerService {
   void sendChangeEmailConfirmation(String token, User user, String newEmail, String email);
 
 
-  void sendNewDeviceAlert(User user, Device device, String token);
-
-  void sendBlacklistedDeviceAlert(User user, Device device, String token);
-
-    /**
-     * Sends a confirmation email when user enables two-factor authentication.
-     *
-     * @param user The user who enabled 2FA
-     * @param type The type of 2FA enabled (EMAIL, TOTP, SMS, etc.)
-     */
-    void sendTwoFactorEnabledConfirmation(User user, TwoFactorType type);
+//    /**
+//     * Sends a confirmation email when user enables two-factor authentication.
+//     *
+//     * @param user The user who enabled 2FA
+//     * @param type The type of 2FA enabled (EMAIL, TOTP, SMS, etc.)
+//     */
+//    void sendTwoFactorEnabledConfirmation(User user, TwoFactorType type);
 
 }

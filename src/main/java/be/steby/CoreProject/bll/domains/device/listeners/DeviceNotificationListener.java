@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.device.listeners;
 
 import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
-import be.steby.CoreProject.bll.common.services.mailer.MailerService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceMailerService;
 import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dl.entities.Device;
@@ -27,7 +27,7 @@ import java.time.Instant;
 @Slf4j
 public class DeviceNotificationListener {
 
-    private final MailerService mailerService;
+    private final DeviceMailerService mailerService;
     private final DeviceConfirmationTokenServiceImpl deviceConfirmationTokenService;
 
     @EventListener
