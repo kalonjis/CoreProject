@@ -332,7 +332,7 @@ public class AuthServiceImpl implements AuthService {
         String plainCode = null;
         boolean codeGenerated = false;
 
-        if (chosenType != TwoFactorType.BACKUP_CODES) {
+        if (chosenType != TwoFactorType.BACKUP_CODES && chosenType != TwoFactorType.TOTP) {
             CodeGenerationResult codeResult = twoFactorFactory.generateCodeForType(user, chosenType);
             verificationCodeHash = codeResult.hashedCode();
             plainCode = codeResult.plainCode();
