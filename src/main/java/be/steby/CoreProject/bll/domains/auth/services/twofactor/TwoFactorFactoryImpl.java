@@ -170,7 +170,7 @@ public class TwoFactorFactoryImpl implements TwoFactorFactory {
         // Route to appropriate service based on CHOSEN type (from JWT)
         return switch (chosenType) {
             case EMAIL -> passwordEncoder.matches(providedCode, hashedCode);
-            case TOTP -> passwordEncoder.matches(providedCode, hashedCode);
+            case TOTP -> totpTwoFactorService.verifyCode(user, providedCode);
             case BACKUP_CODES -> throw new TwoFactorServiceNotFoundException("BACKUP_CODES not implemented");
             case SMS -> passwordEncoder.matches(providedCode, hashedCode);
             case WEBAUTHN -> throw new TwoFactorServiceNotFoundException("WebAuthn not implemented");
