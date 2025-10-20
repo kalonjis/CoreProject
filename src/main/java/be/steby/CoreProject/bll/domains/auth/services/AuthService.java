@@ -49,7 +49,7 @@ public interface AuthService extends UserDetailsService {
      * @param httpRequest HTTP request for context
      * @return LoginTokens for final authentication
      */
-    LoginTokens verifyTwoFactorAndCompleteLogin(String twoFactorToken, String verificationCode, HttpServletRequest httpRequest);
+    LoginTokens verifyTwoFactorAndCompleteLogin(String twoFactorToken, String verificationCode, String backupCodes, HttpServletRequest httpRequest);
 
     /**
      * Resend 2FA verification code

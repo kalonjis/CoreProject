@@ -157,7 +157,7 @@ public class AuthServiceImpl implements AuthService {
 
 
     @Override
-    public LoginTokens verifyTwoFactorAndCompleteLogin(String twoFactorToken, String verificationCode, HttpServletRequest httpRequest) {
+    public LoginTokens verifyTwoFactorAndCompleteLogin(String twoFactorToken, String verificationCode, String backupCode, HttpServletRequest httpRequest) {
         log.info("Verifying 2FA code for login completion");
 
         // 1. Validate and extract 2FA token
@@ -167,33 +167,53 @@ public class AuthServiceImpl implements AuthService {
         // 2. Load user for factory operations
         User user = userService.getUserById(Long.parseLong(twoFactorClaims.userId()));
 
-        // 3. Verify the provided code against the hashed code from token using TwoFactorFactory
+        // 3. Determine which code to use based on 2FA type and provided values
+        String codeToVerify;
+
+        if (twoFactorClaims.twoFactorType() == TwoFactorType.BACKUP_CODES) {
+            if (backupCode == null) {
+                log.warn("Backup code expected but not provided for user: {}", user.getUsername());
+                throw new InvalidTwoFactorCodeException("Backup code is required for this verification");
+            }
+            codeToVerify = backupCode;
+            log.debug("Using backup code for verification for user: {}", user.getUsername());
+        } else {
+            if (verificationCode == null) {
+                log.warn("Verification code expected but not provided for user: {}", user.getUsername());
+                throw new InvalidTwoFactorCodeException("Verification code is required for this verification");
+            }
+            codeToVerify = verificationCode;
+            log.debug("Using numeric verification code for verification for user: {}", user.getUsername());
+        }
+
+        // 4. Verify the provided code using TwoFactorFactory
         boolean isValidCode = twoFactorFactory.verifyTwoFactorCode(
                 user,
-                verificationCode,
-                twoFactorClaims.verificationCode(),
-                twoFactorClaims.twoFactorType()// This is the hashed code from JWT
+                codeToVerify,
+                twoFactorClaims.verificationCode(), // This is the hashed code from JWT
+                twoFactorClaims.twoFactorType()
         );
 
         if (!isValidCode) {
-            log.warn("Invalid 2FA verification code provided for user: {}", user.getUsername());
+            log.warn("Invalid 2FA verification code provided for user: {} (type: {})",
+                    user.getUsername(), twoFactorClaims.twoFactorType());
             throw new InvalidTwoFactorCodeException("Invalid verification code");
         }
 
-        // 4. Load device and complete login
+        // 5. Load device and complete login
         Device device = deviceService.detectAndRegisterDevice(httpRequest, user);
 
-        // 5. Update 2FA success tracking - this is now handled by the factory's verifyCodeAgainstHash method
-        // which internally calls updateSuccessfulVerification() to reset failed attempts counters
+        // 6. Update 2FA success tracking - handled by factory's verifyCodeAgainstHash method
         log.debug("2FA success tracking updated via factory for user: {}", user.getUsername());
 
-        // 6. Generate final login tokens
+        // 7. Generate final login tokens
         LoginTokens tokens = generateTokens(user, device);
 
-        // 7. Publish successful login event
+        // 8. Publish successful login event
         eventPublisher.publishEvent(new UserLoggedInEvent(user, device));
 
-        log.info("2FA verification successful - login completed for user: {}", user.getUsername());
+        log.info("2FA verification successful ({}) - login completed for user: {}",
+                twoFactorClaims.twoFactorType(), user.getUsername());
         return tokens;
     }
 
