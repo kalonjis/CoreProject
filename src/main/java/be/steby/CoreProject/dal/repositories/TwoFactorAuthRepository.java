@@ -32,12 +32,19 @@ public interface TwoFactorAuthRepository extends JpaRepository<TwoFactorAuth, Lo
      * Useful for listing all methods in user settings.
      */
     List<TwoFactorAuth> findAllByUser(User user);
-    
+
     /**
-     * Find all enabled 2FA methods for a user.
-     * Used during authentication to check which methods are active.
+     * Find all enabled two-factor authentication methods for a user.
+     *
+     * Returns all 2FA configurations that are currently enabled for the specified user,
+     * ordered by primary status (primary first) and then by type for consistent ordering.
+     * Used to display available 2FA methods during authentication flow.
+     *
+     * @param user the user whose enabled 2FA methods to retrieve
+     * @return List of enabled TwoFactorAuth configurations, empty if none enabled
      */
-    List<TwoFactorAuth> findAllByUserAndEnabledTrue(User user);
+    @Query("SELECT tfa FROM TwoFactorAuth tfa WHERE tfa.user = :user AND tfa.enabled = true ORDER BY tfa.isPrimary DESC, tfa.type ASC")
+    List<TwoFactorAuth> findByUserAndEnabledTrue(@Param("user") User user);
     
     /**
      * Find a specific 2FA method type for a user.
@@ -70,12 +77,18 @@ public interface TwoFactorAuthRepository extends JpaRepository<TwoFactorAuth, Lo
      * Fast boolean check without loading entities.
      */
     boolean existsByUserAndEnabledTrue(User user);
-    
+
     /**
-     * Check if user has a specific 2FA type enabled.
-     * Useful for validation before setup.
+     * Check if a specific two-factor authentication method is enabled for a user.
+     *
+     * Efficient boolean check without loading full entity data.
+     * Used for quick validation during authentication flow.
+     *
+     * @param user the user to check
+     * @param type the 2FA method type to verify
+     * @return true if the specific method is enabled, false otherwise
      */
-    boolean existsByUserAndTypeAndEnabledTrue(User user, TwoFactorType type);
+    boolean existsByUserAndTypeAndEnabledTrue(@Param("user") User user, @Param("type") TwoFactorType type);
     
     // ========================================
     // Bulk Operations

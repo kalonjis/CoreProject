@@ -49,4 +49,26 @@ public record TwoFactorOperationResponse(
             "verified"
         );
     }
+
+
+    /**
+     * Success response for 2FA method selection.
+     */
+    public static TwoFactorOperationResponse methodChosen(TwoFactorType chosenMethod) {
+        return new TwoFactorOperationResponse(
+                "2FA_METHOD_CHOSEN",
+                chosenMethod.name(),
+                "Two-factor method selected successfully. " + getMethodMessage(chosenMethod)
+        );
+    }
+
+    private static String getMethodMessage(TwoFactorType type) {
+        return switch (type) {
+            case EMAIL -> "Verification code sent to your email.";
+            case TOTP -> "Enter the code from your authenticator app.";
+            case SMS -> "Verification code sent to your phone.";
+            case BACKUP_CODES -> "Enter one of your saved backup codes.";
+            case WEBAUTHN -> "Use your security key to authenticate.";
+        };
+    }
 }

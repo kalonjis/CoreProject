@@ -1,13 +1,19 @@
 package be.steby.CoreProject.bll.domains.auth.services;
 
-import be.steby.CoreProject.bll.domains.auth.exceptions.AuthenticationException;
+import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidTwoFactorTokenException;
+import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorNotEnabledException;
 import be.steby.CoreProject.bll.domains.auth.models.LoginInitiationResult;
 import be.steby.CoreProject.bll.domains.auth.models.LoginTokens;
+import be.steby.CoreProject.bll.domains.auth.models.TwoFactorMethodChosenResult;
 import be.steby.CoreProject.bll.domains.auth.models.TwoFactorSessionInfo;
+import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
+import be.steby.CoreProject.dl.enums.TwoFactorType;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.userdetails.UserDetailsService;
+
+import java.util.List;
 
 /**
  * Service interface for managing user authentication and user-related operations.
@@ -84,4 +90,24 @@ public interface AuthService extends UserDetailsService {
      * @return LoginTokens containing new access token and rotated refresh token
      */
     LoginTokens refreshAuthTokens(RefreshToken validatedToken);
+
+
+    List<TwoFactorAuth> getAvailableTwoFactorMethods(User user);
+
+
+    /**
+     * Choose a two-factor authentication method and initiate verification process.
+     *
+     * Validates session token, generates verification code if needed (not for backup codes),
+     * creates full 2FA token, and sets cookie. Used during authentication flow when
+     * user selects their preferred 2FA method.
+     *
+     * @param twoFactorSessionToken lightweight JWT session token
+     * @param chosenType the 2FA method chosen by user
+     * @param httpRequest HTTP request for context
+     * @throws InvalidTwoFactorTokenException if session token is invalid
+     * @throws TwoFactorNotEnabledException if chosen method is not enabled for user
+     */
+    TwoFactorMethodChosenResult chooseTwoFactorMethod(String twoFactorSessionToken, TwoFactorType chosenType,
+                                                      HttpServletRequest httpRequest);
 }

@@ -4,16 +4,21 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidRefreshTokenExcep
 import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidTwoFactorTokenException;
 import be.steby.CoreProject.bll.domains.auth.models.LoginInitiationResult;
 import be.steby.CoreProject.bll.domains.auth.models.LoginTokens;
+import be.steby.CoreProject.bll.domains.auth.models.TwoFactorMethodChosenResult;
 import be.steby.CoreProject.bll.domains.auth.models.TwoFactorSessionInfo;
 import be.steby.CoreProject.bll.domains.auth.services.AuthService;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.auth.services.cookies.AuthCookieService;
+import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
+import be.steby.CoreProject.pl.domains.auth.models.requests.ChooseTwoFactorMethodRequest;
 import be.steby.CoreProject.pl.domains.auth.models.requests.LoginRequest;
 import be.steby.CoreProject.pl.domains.auth.models.requests.TwoFactorVerificationRequest;
 import be.steby.CoreProject.pl.domains.auth.models.responses.AuthOperationResponse;
+import be.steby.CoreProject.pl.domains.auth.models.responses.TwoFactorAuthDTO;
+import be.steby.CoreProject.pl.domains.auth.models.responses.TwoFactorOperationResponse;
 import be.steby.CoreProject.pl.models.user.UserDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -123,7 +129,7 @@ public class AuthController {
 
         if (result.requiresTwoFactor()) {
             // Set 2FA token cookie for verification phase
-            authCookieService.set2FAToken(httpResponse, result.twoFactorToken());
+            authCookieService.set2FASessionToken(httpResponse, result.sessionToken());
 
             log.info("2FA required for user: {}", loginRequest.username());
             return ResponseEntity.ok(AuthOperationResponse.twoFactorRequired());
@@ -136,8 +142,78 @@ public class AuthController {
         }
     }
 
+
     /**
-     * Phase 2: Two-factor authentication verification
+     * Get available two-factor authentication methods for the authenticated user.
+     *
+     * This endpoint returns the list of 2FA methods that are enabled for the
+     * authenticated user. Used in security settings to show configured 2FA methods.
+     *
+     * @param user the authenticated user from security context
+     * @return ResponseEntity with list of available 2FA methods
+     */
+    @GetMapping("/2fa/available-methods")
+    public ResponseEntity<List<TwoFactorAuthDTO>> getAvailableTwoFactorMethods(
+            @AuthenticationPrincipal User user) {
+
+        log.debug("Getting available 2FA methods for authenticated user: {}", user.getUsername());
+
+        // Get entities from service
+        List<TwoFactorAuth> enabledMethods = authService.getAvailableTwoFactorMethods(user);
+
+        // Transform to DTOs in presentation layer
+        List<TwoFactorAuthDTO> response = enabledMethods.stream()
+                .map(TwoFactorAuthDTO::fromEntity)
+                .toList();
+
+        log.debug("Found {} available 2FA methods", response.size());
+
+        return ResponseEntity.ok(response);
+    }
+
+
+    /**
+     * Choose a two-factor authentication method and initiate verification process.
+     *
+     * User selects which 2FA method to use from their available options during login flow.
+     * For methods requiring codes (EMAIL, SMS, TOTP), a verification code is generated and sent.
+     * For backup codes, no code generation is needed - user will provide their saved code.
+     *
+     * @param request the chosen 2FA method
+     * @param twoFactorSessionToken JWT session token from cookie
+     * @param httpRequest HTTP request for context
+     * @param httpResponse HTTP response to manage cookies
+     * @return ResponseEntity with method selection confirmation
+     */
+    @PreAuthorize("isAnonymous()")
+    @PostMapping("/2fa/choose-method")
+    public ResponseEntity<TwoFactorOperationResponse> chooseTwoFactorMethod(
+            @Valid @RequestBody ChooseTwoFactorMethodRequest request,
+            @CookieValue(name = "2fa_session_token") String twoFactorSessionToken,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+
+        log.info("Choose 2FA method request: {}", request.twoFactorType());
+
+        // BLL: Process method selection and get result with token
+        TwoFactorMethodChosenResult result = authService.chooseTwoFactorMethod(
+                twoFactorSessionToken,
+                request.twoFactorType(),
+                httpRequest
+        );
+
+        // PL: Manage cookie transition - clear session token, set full 2FA token
+        authCookieService.clear2FASessionToken(httpResponse);
+        authCookieService.set2FAToken(httpResponse, result.twoFactorToken());
+
+        log.info("2FA method chosen successfully: {} - Code generated: {}",
+                request.twoFactorType(), result.codeGenerated());
+
+        return ResponseEntity.ok(TwoFactorOperationResponse.methodChosen(result.chosenMethod()));
+    }
+
+    /**
+     * Phase 3: Two-factor authentication verification
      * Validates the verification code and completes login if successful
      *
      * @param request Verification request containing the 6-digit code

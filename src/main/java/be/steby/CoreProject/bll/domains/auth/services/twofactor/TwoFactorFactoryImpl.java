@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -91,6 +92,46 @@ public class TwoFactorFactoryImpl implements TwoFactorFactory {
     }
 
     @Override
+    public CodeGenerationResult generateCodeForType(User user, TwoFactorType type) {
+        log.debug("Generating 2FA code for user: {} with type: {}", user.getUsername(), type);
+
+        // Verify this method is enabled for the user
+        if (!isMethodEnabled(user, type)) {
+            log.warn("Attempted to generate code for disabled 2FA method {} for user: {}", type, user.getUsername());
+            throw new TwoFactorNotEnabledException("Two-factor method " + type + " is not enabled");
+        }
+
+        // Generate code using appropriate service
+        String plainCode = switch (type) {
+            case EMAIL -> {
+                log.debug("Generating EMAIL 2FA code for user: {}", user.getUsername());
+                yield emailTwoFactorService.generateCode(user);
+            }
+            case TOTP -> {
+                log.debug("Generating TOTP 2FA code for user: {}", user.getUsername());
+                yield totpTwoFactorService.generateCode(user);
+            }
+            case SMS -> {
+                log.warn("SMS 2FA not yet implemented for user: {}", user.getUsername());
+                throw new TwoFactorServiceNotFoundException("SMS two-factor authentication is not yet implemented");
+            }
+            case WEBAUTHN -> {
+                log.warn("WebAuthn 2FA not yet implemented for user: {}", user.getUsername());
+                throw new TwoFactorServiceNotFoundException("WebAuthn two-factor authentication is not yet implemented");
+            }
+            case BACKUP_CODES -> {
+                log.warn("Backup codes cannot generate new codes for user: {}", user.getUsername());
+                throw new TwoFactorServiceNotFoundException("Backup codes cannot generate new verification codes");
+            }
+        };
+
+        // Hash the generated code
+        String hashedCode = passwordEncoder.encode(plainCode);
+
+        return new CodeGenerationResult(plainCode, hashedCode);
+    }
+
+    @Override
     public Optional<TwoFactorType> getPrimaryTwoFactorType(User user) {
         log.debug("Getting primary 2FA type for user: {}", user.getUsername());
 
@@ -123,10 +164,40 @@ public class TwoFactorFactoryImpl implements TwoFactorFactory {
     }
 
     @Override
-    public boolean verifyCodeAgainstHash(User user, String providedCode, String hashedCode) {
-        log.debug("Verifying 2FA code against hash for user: {}", user.getUsername());
+    public boolean verifyTwoFactorCode(User user, String providedCode, String hashedCode, TwoFactorType chosenType) {
+        log.debug("Verifying 2FA code for user: {} with type: {}", user.getUsername(), chosenType);
 
-        // Verify using password encoder (constant-time comparison)
-        return passwordEncoder.matches(providedCode, hashedCode);
+        // Route to appropriate service based on CHOSEN type (from JWT)
+        return switch (chosenType) {
+            case EMAIL -> passwordEncoder.matches(providedCode, hashedCode);
+            case TOTP -> passwordEncoder.matches(providedCode, hashedCode);
+            case BACKUP_CODES -> throw new TwoFactorServiceNotFoundException("BACKUP_CODES not implemented");
+            case SMS -> passwordEncoder.matches(providedCode, hashedCode);
+            case WEBAUTHN -> throw new TwoFactorServiceNotFoundException("WebAuthn not implemented");
+        };
+    }
+
+
+    @Override
+    public List<TwoFactorAuth> getEnabledTwoFactorMethods(User user) {
+        log.debug("Getting enabled 2FA methods for user: {}", user.getUsername());
+
+        List<TwoFactorAuth> enabledMethods = twoFactorAuthRepository.findByUserAndEnabledTrue(user);
+
+        if (enabledMethods.isEmpty()) {
+            log.warn("No enabled 2FA methods found for user: {}", user.getUsername());
+            throw new TwoFactorNotEnabledException("No two-factor authentication methods are enabled");
+        }
+
+        log.debug("Found {} enabled 2FA methods for user: {}", enabledMethods.size(), user.getUsername());
+
+        return enabledMethods;
+    }
+
+
+    @Override
+    public boolean isMethodEnabled(User user, TwoFactorType type) {
+        log.debug("Checking if 2FA method {} is enabled for user: {}", type, user.getUsername());
+        return twoFactorAuthRepository.existsByUserAndTypeAndEnabledTrue(user, type);
     }
 }
