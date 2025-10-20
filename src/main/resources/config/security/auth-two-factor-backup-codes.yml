@@ -1,0 +1,20 @@
+security:
+  two-factor-auth:
+    backup-codes:
+      # Number of backup codes to generate per user
+      count: 10
+
+      # Length of each backup code in characters
+      length: 16
+
+      # Character set for code generation
+      # ALPHANUMERIC excludes ambiguous characters (0, O, 1, I, l)
+      charset: "ALPHANUMERIC_SAFE"
+
+      # Security settings
+      security:
+        # Lockout after failed attempts
+        max-failed-attempts: 3
+
+        # Lockout duration in minutes
+        lockout-duration-minutes: 15
