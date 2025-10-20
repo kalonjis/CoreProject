@@ -3,6 +3,7 @@ package be.steby.CoreProject.bll.domains.auth.services.twofactor;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorNotEnabledException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorServiceNotFoundException;
 import be.steby.CoreProject.bll.domains.auth.models.CodeGenerationResult;
+import be.steby.CoreProject.bll.domains.auth.services.twofactor.backupcodes.BackupCodesTwoFactorService;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.emailtwofactor.EmailTwoFactorService;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.totptwofactor.TOTPTwoFactorService;
 import be.steby.CoreProject.dal.repositories.TwoFactorAuthRepository;
@@ -49,6 +50,7 @@ public class TwoFactorFactoryImpl implements TwoFactorFactory {
     private final TwoFactorAuthRepository twoFactorAuthRepository;
     private final EmailTwoFactorService emailTwoFactorService;
     private final TOTPTwoFactorService totpTwoFactorService;
+    private final BackupCodesTwoFactorService backupCodesTwoFactorService;
     private final PasswordEncoder passwordEncoder; // For secure hashing
 
     // TODO: Inject other 2FA services as they are implemented
@@ -171,7 +173,7 @@ public class TwoFactorFactoryImpl implements TwoFactorFactory {
         return switch (chosenType) {
             case EMAIL -> passwordEncoder.matches(providedCode, hashedCode);
             case TOTP -> totpTwoFactorService.verifyCode(user, providedCode);
-            case BACKUP_CODES -> throw new TwoFactorServiceNotFoundException("BACKUP_CODES not implemented");
+            case BACKUP_CODES -> backupCodesTwoFactorService.verifyCode(user, providedCode) ;
             case SMS -> passwordEncoder.matches(providedCode, hashedCode);
             case WEBAUTHN -> throw new TwoFactorServiceNotFoundException("WebAuthn not implemented");
         };

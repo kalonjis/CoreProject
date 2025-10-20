@@ -1,0 +1,7 @@
+security:
+  two-factor:
+    backup-codes:
+      enabled: true
+      codes-count: 10            # Number of backup codes to generate
+      code-length: 16            # Length of each backup code
+      single-use: true           # Codes can only be used once

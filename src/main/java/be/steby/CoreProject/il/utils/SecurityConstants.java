@@ -21,12 +21,7 @@ public class SecurityConstants {
             "/api/auth/verify-2fa",
             "/api/auth/resend-2fa-code",
             "/api/auth/2fa-status",
-            "/api/auth/2fa/email/enable",
-            "/api/auth/2fa/email/disable",
-            "/api/auth/2fa/totp/enable",
-            "/api/auth/2fa/totp/disable",
             "/api/auth/refresh-token",
-            "/api/auth/2fa/available-methods",
             "/api/auth/2fa/choose-method"
     };
 
@@ -34,6 +29,14 @@ public class SecurityConstants {
             "/api/auth/logout",
             "/api/auth/me",
             "/api/auth/status",
+            "/api/auth/2fa/email/enable",
+            "/api/auth/2fa/email/disable",
+            "/api/auth/2fa/totp/enable",
+            "/api/auth/2fa/totp/disable",
+            "/api/auth/2fa/backup-codes/enable",
+            "/api/auth/2fa/backup-codes/disable",
+            "/api/auth/2fa/available-methods",
+
 
     };
 
@@ -57,6 +60,8 @@ public class SecurityConstants {
             "/api/auth/2fa/email/disable",
             "/api/auth/2fa/totp/enable",
             "/api/auth/2fa/totp/disable",
+            "/api/auth/2fa/backup-codes/enable",
+            "/api/auth/2fa/backup-codes/disable",
             "/api/auth/2fa/available-methods",
             "/api/auth/2fa/choose-method"
     };
