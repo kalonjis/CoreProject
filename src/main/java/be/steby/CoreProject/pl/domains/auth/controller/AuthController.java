@@ -234,20 +234,23 @@ public class AuthController {
             throw new InvalidTwoFactorTokenException("2FA token is required");
         }
 
-        log.info("2FA verification attempt with code");
+        log.info("2FA verification attempt with code type: {}",
+                request.hasVerificationCode() ? "numeric" : "backup");
 
         // BLL: Verify 2FA code and complete login
         LoginTokens tokens = authService.verifyTwoFactorAndCompleteLogin(
                 twoFactorTokenCookie,
-                request.verificationCode(),
+                request.verificationCode(),  // Peut être null
+                request.backupCode(),        // Peut être null
                 httpRequest
         );
 
-        // PL: Set final authentication cookies and clear 2FA token
-        authCookieService.setAuthenticationCookies(httpResponse, tokens);
+        // PL: Clear 2FA token and set final auth cookies
         authCookieService.clear2FAToken(httpResponse);
+        authCookieService.setAuthenticationCookies(httpResponse, tokens);
 
         log.info("2FA verification successful - login completed");
+
         return ResponseEntity.ok(AuthOperationResponse.loginSuccessful());
     }
 
