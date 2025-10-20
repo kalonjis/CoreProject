@@ -26,12 +26,15 @@ public class SecurityConstants {
             "/api/auth/2fa/totp/enable",
             "/api/auth/2fa/totp/disable",
             "/api/auth/refresh-token",
+            "/api/auth/2fa/available-methods",
+            "/api/auth/2fa/choose-method"
     };
 
     private static final String[] AUTH_AUTHENTICATED_ROUTES = {
             "/api/auth/logout",
             "/api/auth/me",
-            "/api/auth/status"
+            "/api/auth/status",
+
     };
 
     /**
@@ -54,6 +57,8 @@ public class SecurityConstants {
             "/api/auth/2fa/email/disable",
             "/api/auth/2fa/totp/enable",
             "/api/auth/2fa/totp/disable",
+            "/api/auth/2fa/available-methods",
+            "/api/auth/2fa/choose-method"
     };
 
     // ========== ACCOUNT DOMAIN ==========

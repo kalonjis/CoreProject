@@ -194,4 +194,46 @@ public class AuthCookieService {
     }
 
 
+    /**
+     * Set 2FA session token cookie for method selection phase.
+     *
+     * This lightweight token is used before the user chooses a specific 2FA method.
+     * Contains only user identification without verification code data.
+     *
+     * @param response HTTP response to set the cookie on
+     * @param sessionToken the lightweight JWT token for method selection
+     */
+    public void set2FASessionToken(HttpServletResponse response, String sessionToken) {
+        int maxAgeSeconds = (int) (twoFactorTokenDurationMs / 1000);
+
+        baseCookieService.setHttpOnlyCookie(
+                response,
+                "2fa_session_token",
+                sessionToken,
+                maxAgeSeconds,
+                COOKIE_PATH,
+                SECURE
+        );
+
+        log.debug("2FA session token cookie set with expiration: {} seconds", maxAgeSeconds);
+    }
+
+    /**
+     * Clear 2FA session token cookie.
+     *
+     * Used to remove the lightweight session token when:
+     * - User chooses a 2FA method (replaced by full 2FA token)
+     * - Session expires or is cancelled
+     * - Authentication flow is completed or aborted
+     *
+     * @param response HTTP response to clear the cookie on
+     */
+    public void clear2FASessionToken(HttpServletResponse response) {
+        baseCookieService.deleteHttpOnlyCookie(response, "2fa_session_token");
+        log.debug("2FA session token cookie cleared");
+    }
+
+
+
+
 }

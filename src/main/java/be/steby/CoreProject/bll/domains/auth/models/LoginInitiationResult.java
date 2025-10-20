@@ -6,26 +6,18 @@ import be.steby.CoreProject.dl.enums.TwoFactorType;
  * Result of login initiation containing either complete login or 2FA requirement
  */
 public record LoginInitiationResult(
-    boolean requiresTwoFactor,
-    TwoFactorType twoFactorType,
-    String twoFactorToken,  // JWT token for 2FA session
-    LoginTokens loginTokens, // Only present if no 2FA required
-    String maskedEmail      // For display purposes
+        boolean requiresTwoFactor,
+        String sessionToken,          // ← Renommé depuis twoFactorToken
+        LoginTokens loginTokens
 ) {
-    /**
-     * Constructor for successful login without 2FA
-     */
-    public static LoginInitiationResult completeLogin(LoginTokens tokens) {
-        return new LoginInitiationResult(false, null, null, tokens, null);
+
+    // Factory method pour 2FA required
+    public static LoginInitiationResult requiresTwoFactor(String sessionToken) {
+        return new LoginInitiationResult(true, sessionToken, null);
     }
-    
-    /**
-     * Constructor for login requiring 2FA
-     */
-    public static LoginInitiationResult requiresTwoFactor(
-            TwoFactorType type, 
-            String twoFactorToken, 
-            String maskedEmail) {
-        return new LoginInitiationResult(true, type, twoFactorToken, null, maskedEmail);
+
+    // Factory method pour login direct (pas de 2FA)
+    public static LoginInitiationResult loginComplete(LoginTokens tokens) {
+        return new LoginInitiationResult(false, null,  tokens);
     }
 }

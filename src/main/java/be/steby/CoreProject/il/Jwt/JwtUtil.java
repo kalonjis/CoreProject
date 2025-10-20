@@ -1,5 +1,6 @@
 package be.steby.CoreProject.il.Jwt;
 
+import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidTwoFactorTokenException;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
@@ -53,6 +54,54 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody();
     }
+
+
+    /**
+     * Generate a lightweight 2FA session token for method selection phase.
+     * Contains only user info without verification code - used before user chooses method.
+     *
+     * @param user the user requiring 2FA
+     * @return JWT token for method selection phase
+     */
+    public String generate2FASessionToken(User user) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("publicId", user.getPublicId());
+        claims.put("purpose", "METHOD_SELECTION");
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(user.getPublicId()) // publicId comme subject aussi
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + twoFactorTokenExpiration))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+
+    /**
+     * Validate 2FA session token (method selection phase).
+     *
+     * @param token the JWT token to validate
+     * @return Claims if token is valid
+     * @throws InvalidTwoFactorTokenException if token is invalid or wrong purpose
+     */
+    public Claims validate2FASessionToken(String token) {
+        Claims claims = validateToken(token);
+
+        String purpose = claims.get("purpose", String.class);
+        if (!"METHOD_SELECTION".equals(purpose)) {
+            throw new InvalidTwoFactorTokenException("Invalid token purpose for method selection");
+        }
+
+        // Verify that publicId claim exists
+        String publicId = claims.get("publicId", String.class);
+        if (publicId == null || publicId.isBlank()) {
+            throw new InvalidTwoFactorTokenException("Missing publicId in session token");
+        }
+
+        return claims;
+    }
+
 
     /**
      * Generates a 2FA JWT token containing user info and hashed verification code.

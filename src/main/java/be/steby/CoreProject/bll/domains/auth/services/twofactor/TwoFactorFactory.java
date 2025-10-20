@@ -1,12 +1,14 @@
 package be.steby.CoreProject.bll.domains.auth.services.twofactor;
 
 import be.steby.CoreProject.bll.domains.auth.models.CodeGenerationResult;
+import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
 
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorNotEnabledException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorServiceNotFoundException;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -63,6 +65,21 @@ public interface TwoFactorFactory {
 
 
     /**
+     * Generate a verification code for a specific 2FA method type.
+     *
+     * Unlike generateCode() which uses the primary method, this allows
+     * generating codes for any enabled method type chosen by the user.
+     *
+     * @param user the user for whom to generate a verification code
+     * @param type the specific 2FA method type to use
+     * @return CodeGenerationResult containing both plain and hashed versions
+     * @throws TwoFactorNotEnabledException if the specified method is not enabled
+     * @throws TwoFactorServiceNotFoundException if the service for this type is not available
+     */
+    CodeGenerationResult generateCodeForType(User user, TwoFactorType type);
+
+
+    /**
      * Verify a provided code against a stored hash using the user's primary 2FA method.
      *
      * Routes the verification to the appropriate 2FA service and performs
@@ -75,7 +92,7 @@ public interface TwoFactorFactory {
      * @throws TwoFactorNotEnabledException if user has no enabled 2FA methods
      * @throws TwoFactorServiceNotFoundException if the primary 2FA service is not available
      */
-    boolean verifyCodeAgainstHash(User user, String providedCode, String hashedCode);
+    boolean verifyTwoFactorCode(User user, String providedCode, String hashedCode, TwoFactorType chosenType);
 
     /**
      * Check if the user has any enabled two-factor authentication method.
@@ -98,4 +115,24 @@ public interface TwoFactorFactory {
      * @return Optional containing the primary TwoFactorType, or empty if no 2FA enabled
      */
     Optional<TwoFactorType> getPrimaryTwoFactorType(User user);
+
+
+    /**
+     * Get all enabled two-factor authentication methods for a user.
+     *
+     * @param user the user for whom to get enabled 2FA methods
+     * @return List of enabled TwoFactorAuth entities
+     * @throws TwoFactorNotEnabledException if no 2FA methods are enabled
+     */
+    List<TwoFactorAuth> getEnabledTwoFactorMethods(User user);
+
+
+    /**
+     * Check if a specific two-factor authentication method is enabled for a user.
+     *
+     * @param user the user to check
+     * @param type the 2FA method type to verify
+     * @return true if the method is enabled, false otherwise
+     */
+    boolean isMethodEnabled(User user, TwoFactorType type);
 }
