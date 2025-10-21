@@ -59,6 +59,24 @@ public class AsyncConfig implements AsyncConfigurer {
         return executor;
     }
 
+
+    /**
+     * Pool de threads dédié aux envois de SMS
+     */
+    @Bean(name = "smsExecutor")
+    public Executor smsExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("SMS-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
+        executor.initialize();
+        return executor;
+    }
+
+
     /**
      * Pool de threads dédié aux logs d'activité (écriture en DB)
      */
@@ -108,12 +126,14 @@ public class AsyncConfig implements AsyncConfigurer {
     @Bean
     public Map<String, ThreadPoolTaskExecutor> executors(
             @Qualifier("emailExecutor") ThreadPoolTaskExecutor emailExecutor,
+            @Qualifier("smsExecutor") ThreadPoolTaskExecutor smsExecutor,
             @Qualifier("activityLogExecutor") ThreadPoolTaskExecutor activityLogExecutor,
             @Qualifier("eventListenerExecutor") ThreadPoolTaskExecutor eventListenerExecutor,
             @Qualifier("generalPurposeExecutor") ThreadPoolTaskExecutor generalPurposeExecutor) {
 
         Map<String, ThreadPoolTaskExecutor> executors = new HashMap<>();
         executors.put("email", emailExecutor);
+        executors.put("sms", smsExecutor);
         executors.put("activityLog", activityLogExecutor);
         executors.put("eventListener", eventListenerExecutor);
         executors.put("general", generalPurposeExecutor);

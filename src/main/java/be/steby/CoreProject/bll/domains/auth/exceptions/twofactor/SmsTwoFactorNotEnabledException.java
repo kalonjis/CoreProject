@@ -1,0 +1,29 @@
+package be.steby.CoreProject.bll.domains.auth.exceptions.twofactor;
+
+import be.steby.CoreProject.bll.domains.auth.exceptions.AuthenticationException;
+
+/**
+ * Exception thrown when attempting to perform operations on SMS 2FA
+ * for a user who does not have SMS 2FA enabled.
+ * 
+ * HTTP Status: 404 Not Found - The requested 2FA configuration does not exist
+ * for this user.
+ * 
+ * @author Steby Team
+ * @since 2.0.0
+ */
+public class SmsTwoFactorNotEnabledException extends AuthenticationException {
+    
+    public SmsTwoFactorNotEnabledException(String message) {
+        super(message, 404);
+    }
+    
+    public SmsTwoFactorNotEnabledException() {
+        super("SMS two-factor authentication is not enabled for this user", 404);
+    }
+    
+    public SmsTwoFactorNotEnabledException(String message, Throwable cause) {
+        super(message, 404);
+        initCause(cause);
+    }
+}

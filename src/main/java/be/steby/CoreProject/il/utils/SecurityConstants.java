@@ -31,11 +31,16 @@ public class SecurityConstants {
             "/api/auth/status",
             "/api/auth/2fa/email/enable",
             "/api/auth/2fa/email/disable",
+            "/api/auth/2fa/sms/enable",
+            "/api/auth/2fa/sms/disable",
             "/api/auth/2fa/totp/enable",
             "/api/auth/2fa/totp/disable",
             "/api/auth/2fa/backup-codes/enable",
             "/api/auth/2fa/backup-codes/disable",
             "/api/auth/2fa/available-methods",
+            //TODO move this into profile routes...
+            "/api/profile/phone/request-verification",
+            "/api/profile/phone/verify"
 
 
     };
@@ -58,12 +63,17 @@ public class SecurityConstants {
             "/api/auth/2fa/enable-email",
             "/api/auth/2fa/email/enable",
             "/api/auth/2fa/email/disable",
+            "/api/auth/2fa/sms/enable",
+            "/api/auth/2fa/sms/disable",
             "/api/auth/2fa/totp/enable",
             "/api/auth/2fa/totp/disable",
             "/api/auth/2fa/backup-codes/enable",
             "/api/auth/2fa/backup-codes/disable",
             "/api/auth/2fa/available-methods",
-            "/api/auth/2fa/choose-method"
+            "/api/auth/2fa/choose-method",
+            //TODO move this into profile routes...
+            "/api/profile/phone/request-verification",
+            "/api/profile/phone/verify"
     };
 
     // ========== ACCOUNT DOMAIN ==========

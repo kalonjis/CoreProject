@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorServi
 import be.steby.CoreProject.bll.domains.auth.models.CodeGenerationResult;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.backupcodes.BackupCodesTwoFactorService;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.emailtwofactor.EmailTwoFactorService;
+import be.steby.CoreProject.bll.domains.auth.services.twofactor.smstwofactor.SmsTwoFactorService;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.totptwofactor.TOTPTwoFactorService;
 import be.steby.CoreProject.dal.repositories.TwoFactorAuthRepository;
 import be.steby.CoreProject.dl.entities.TwoFactorAuth;
@@ -28,6 +29,7 @@ import java.util.Optional;
  * Current supported 2FA methods:
  * - EMAIL: Delegated to EmailTwoFactorService
  * - TOTP: Delegated to TOTPTwoFactorService
+ * - SMS: Delegated to SmsTwoFactorService
  *
  * Future 2FA methods (to be added):
  * - SMS: Will be delegated to SMSTwoFactorService
@@ -50,11 +52,11 @@ public class TwoFactorFactoryImpl implements TwoFactorFactory {
     private final TwoFactorAuthRepository twoFactorAuthRepository;
     private final EmailTwoFactorService emailTwoFactorService;
     private final TOTPTwoFactorService totpTwoFactorService;
+    private final SmsTwoFactorService smsTwoFactorService;
     private final BackupCodesTwoFactorService backupCodesTwoFactorService;
     private final PasswordEncoder passwordEncoder; // For secure hashing
 
     // TODO: Inject other 2FA services as they are implemented
-    // private final SMSTwoFactorService smsTwoFactorService;
     // private final WebAuthnTwoFactorService webAuthnTwoFactorService;
 
     @Override
@@ -79,8 +81,8 @@ public class TwoFactorFactoryImpl implements TwoFactorFactory {
                 yield totpTwoFactorService.generateCode(user);
             }
             case SMS -> {
-                log.warn("SMS 2FA not yet implemented for user: {}", user.getUsername());
-                throw new TwoFactorServiceNotFoundException("SMS two-factor authentication is not yet implemented");
+                log.debug("Generating SMS 2FA code for user: {}", user.getUsername());
+                yield smsTwoFactorService.generateCode(user);
             }
             case WEBAUTHN -> {
                 log.warn("WebAuthn 2FA not yet implemented for user: {}", user.getUsername());
@@ -114,8 +116,8 @@ public class TwoFactorFactoryImpl implements TwoFactorFactory {
                 yield totpTwoFactorService.generateCode(user);
             }
             case SMS -> {
-                log.warn("SMS 2FA not yet implemented for user: {}", user.getUsername());
-                throw new TwoFactorServiceNotFoundException("SMS two-factor authentication is not yet implemented");
+                log.debug("Generating SMS 2FA code for specific type for user: {}", user.getUsername());
+                yield smsTwoFactorService.generateCode(user);
             }
             case WEBAUTHN -> {
                 log.warn("WebAuthn 2FA not yet implemented for user: {}", user.getUsername());

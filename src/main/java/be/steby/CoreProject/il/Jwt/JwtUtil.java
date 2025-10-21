@@ -1,5 +1,6 @@
 package be.steby.CoreProject.il.Jwt;
 
+import be.steby.CoreProject.bll.common.exceptions.phone.InvalidPhoneVerificationTokenException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidTwoFactorTokenException;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
@@ -149,6 +150,7 @@ public class JwtUtil {
         return claims;
     }
 
+
     /**
      * Checks if a JWT token is a 2FA token.
      *
@@ -163,6 +165,71 @@ public class JwtUtil {
             return false;
         }
     }
+
+
+    /**
+     * Generates a phone verification JWT token containing user info and hashed verification code.
+     * Used during phone number verification flow.
+     *
+     * @param user User entity requesting verification
+     * @param phoneNumber Formatted phone number being verified
+     * @param verificationCodeHash Hashed verification code (for validation)
+     * @return JWT token string
+     */
+    public String generatePhoneVerificationToken(User user, String phoneNumber, String verificationCodeHash) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", user.getId().toString());
+        claims.put("username", user.getUsername());
+        claims.put("phoneNumber", phoneNumber);
+        claims.put("verificationCodeHash", verificationCodeHash);
+        claims.put("purpose", "PHONE_VERIFICATION");
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(user.getUsername())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + twoFactorTokenExpiration))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+
+    /**
+     * Validates and extracts claims from phone verification JWT token.
+     *
+     * @param token the JWT token to validate
+     * @return Claims if token is valid
+     * @throws InvalidPhoneVerificationTokenException if token is invalid or wrong purpose
+     */
+    public Claims validatePhoneVerificationToken(String token) {
+        try {
+            Claims claims = validateToken(token);
+
+            String purpose = claims.get("purpose", String.class);
+            if (!"PHONE_VERIFICATION".equals(purpose)) {
+                throw new InvalidPhoneVerificationTokenException("Invalid token purpose for phone verification");
+            }
+
+            // Verify that required claims exist
+            String userId = claims.get("userId", String.class);
+            String phoneNumber = claims.get("phoneNumber", String.class);
+            String verificationCodeHash = claims.get("verificationCodeHash", String.class);
+
+            if (userId == null || phoneNumber == null || verificationCodeHash == null) {
+                throw new InvalidPhoneVerificationTokenException("Missing required claims in phone verification token");
+            }
+
+            return claims;
+
+        } catch (InvalidPhoneVerificationTokenException e) {
+            // Re-throw our custom exception
+            throw e;
+        } catch (Exception e) {
+            // Convert any other JWT exception to our custom exception
+            throw new InvalidPhoneVerificationTokenException("Invalid or expired phone verification token: " + e.getMessage(), e);
+        }
+    }
+
 
 
     private String generateToken(User user, Device device, long expiration) {

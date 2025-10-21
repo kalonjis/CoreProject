@@ -98,6 +98,15 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Column(length = 50)
     private String phoneNumber;
 
+
+    /**
+     * Indicates whether the user's phone number has been verified via SMS.
+     * Must be true before enabling SMS-based two-factor authentication.
+     * Automatically reset to false when phone number is updated.
+     */
+    @Column(name = "phone_number_verified", nullable = false)
+    private boolean phoneNumberVerified = false;
+
     /**
      * The password of the user.
      * This will be encoded using bcrypt before storage.
