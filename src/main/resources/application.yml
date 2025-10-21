@@ -3,6 +3,7 @@ spring:
     import:
       - classpath:config/database.yml
       - classpath:config/mail.yml
+      - classpath:config/phone.yml
       - classpath:config/cache-device.yml
       - classpath:config/cache-user.yml
       - classpath:config/server.yml

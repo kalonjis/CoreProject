@@ -45,7 +45,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Soufiane",
                 "ScrumMaster",
                 "kalonj1981@hotmail.com",
-                "0498/56 78 90",
+                "0498/56.78.90",
                 "Test1234!",
                 UserRole.setRoles(UserRole.ADMIN)
         );

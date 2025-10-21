@@ -1,0 +1,14 @@
+phone:
+  twilio:
+    account-sid: ${TWILIO_ACCOUNT_SID}
+    auth-token: ${TWILIO_AUTH_TOKEN}
+    from-number: ${TWILIO_FROM_NUMBER:+15005550006}
+  sms:
+    enabled: ${SMS_ENABLED:true}
+    simulation-mode: ${SMS_SIMULATION_MODE:true}
+    rate-limit:
+      max-per-minute: 5
+      max-per-hour: 20
+    templates:
+      two-factor-code: "Votre code de vérification : {code}"
+      account-notification: "Notification de sécurité : {message}"

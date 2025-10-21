@@ -15,4 +15,9 @@ public class AuthenticationException extends CoreProjectException {
     public AuthenticationException(String message, int status) {
         super(message, status);
     }
+
+    public AuthenticationException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
 }
