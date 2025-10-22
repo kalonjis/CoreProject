@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.common.services.phone;
+package be.steby.CoreProject.bll.common.services.notification.phone;
 
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.il.utils.PhoneUtil;
@@ -126,6 +126,11 @@ public abstract class BasePhoneService {
     }
 
 
+    protected void sendSms(String message, String phoneNumber) {
+        phoneUtil.sendSms(message, phoneNumber);
+    }
+
+
 
     /**
      * Checks if the user has a valid phone number for SMS.
@@ -136,4 +141,7 @@ public abstract class BasePhoneService {
     protected boolean hasValidPhoneNumber(User user) {
         return user.getPhoneNumber() != null && !user.getPhoneNumber().trim().isEmpty();
     }
+
+
+
 }

@@ -1,15 +1,19 @@
-package be.steby.CoreProject.bll.common.services.phone;
+package be.steby.CoreProject.bll.domains.profile.services.phone;
 
 import be.steby.CoreProject.bll.common.exceptions.phone.InvalidPhoneNumberFormatException;
 import be.steby.CoreProject.bll.common.exceptions.phone.InvalidPhoneVerificationTokenException;
 import be.steby.CoreProject.bll.common.exceptions.phone.PhoneException;
 import be.steby.CoreProject.bll.common.services.validation.phone.PhoneNumberFormatValidationService;
+import be.steby.CoreProject.bll.domains.profile.events.PhoneVerificationInitiatedEvent;
+import be.steby.CoreProject.bll.domains.profile.models.phone.PhoneVerificationTokenResult;
+import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
 import be.steby.CoreProject.il.utils.PhoneUtil;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -35,23 +39,26 @@ import java.security.SecureRandom;
 public class PhoneNumberVerificationService {
 
     private final PhoneNumberFormatValidationService phoneNumberFormatValidationService;
-    private final PhoneUtil phoneUtil;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final UserService userService;
+    private final ApplicationEventPublisher publisher;
+
 
     /**
      * Generates and sends a verification code to the specified phone number.
      * Returns a JWT token containing the hashed code for later verification.
      * 
-     * @param user The user requesting verification
      * @param phoneNumber The phone number to verify
      * @return JWT token containing verification data
      * @throws InvalidPhoneNumberFormatException if phone number format is invalid
      * @throws PhoneException if SMS sending fails
      */
-    public String generateAndSendVerificationCode(User user, String phoneNumber) {
-        log.info("Starting phone verification for user: {} - phone: {}", 
+    public PhoneVerificationTokenResult generateVerificationCode(String phoneNumber) {
+        User user = userService.getAuthenticatedUser();
+
+        log.info("Starting phone verification for user: {} - phone: {}",
                  user.getUsername(), maskPhoneNumber(phoneNumber));
 
         // 1. Validate and format phone number
@@ -61,16 +68,21 @@ public class PhoneNumberVerificationService {
         String verificationCode = generateVerificationCode();
         String hashedCode = passwordEncoder.encode(verificationCode);
 
-        // 3. Send SMS with verification code
-        String message = String.format("Votre code de vérification : %s", verificationCode);
-        phoneUtil.sendSms(message, formattedPhoneNumber);
-        log.info("Verification SMS sent to user: {}", user.getUsername());
+        String verificationToken  = jwtUtil.generatePhoneVerificationToken(
+                user, formattedPhoneNumber,hashedCode
+        );
 
-        // 4. Generate JWT token with verification data
-        String token = jwtUtil.generatePhoneVerificationToken(user, formattedPhoneNumber, hashedCode);
-        
+        PhoneVerificationTokenResult result = new PhoneVerificationTokenResult(verificationToken);
+
+        publisher.publishEvent(
+                new PhoneVerificationInitiatedEvent(
+                    formattedPhoneNumber,verificationCode
+                )
+        );
+
+//
         log.info("Phone verification process initiated for user: {}", user.getUsername());
-        return token;
+        return result;
     }
 
     /**

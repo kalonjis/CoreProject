@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.auth.services.phone;
 
-import be.steby.CoreProject.bll.common.services.phone.BasePhoneService;
+import be.steby.CoreProject.bll.common.services.notification.phone.BasePhoneService;
 import be.steby.CoreProject.bll.domains.auth.exceptions.phone.InvalidPhoneNumberException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
