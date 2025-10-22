@@ -1,9 +1,11 @@
 package be.steby.CoreProject.pl.domains.profile.controller;
 
+import be.steby.CoreProject.bll.domains.profile.models.phone.PhoneVerificationRequestBLL;
 import be.steby.CoreProject.bll.domains.profile.models.phone.PhoneVerificationTokenResult;
 import be.steby.CoreProject.bll.domains.profile.services.cookies.PhoneVerificationCookieService;
 import be.steby.CoreProject.bll.domains.profile.services.phone.PhoneNumberVerificationService;
 import be.steby.CoreProject.pl.domains.profile.models.requests.phone.PhoneNumberRequest;
+import be.steby.CoreProject.pl.domains.profile.models.requests.phone.PhoneVerificationRequest;
 import be.steby.CoreProject.pl.domains.profile.models.responses.PhoneVerificationResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -11,9 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * REST Controller for phone number verification operations.
@@ -39,7 +39,6 @@ public class PhoneProfileController {
 
     private final PhoneNumberVerificationService phoneNumberVerificationService;
     private final PhoneVerificationCookieService phoneVerificationCookieService;
-    //private final UserService userService;
 
     /**
      * Request phone number verification.
@@ -66,7 +65,7 @@ public class PhoneProfileController {
      */
     @PostMapping("/request-verification")
     public ResponseEntity<PhoneVerificationResponse> requestVerification(
-            @Valid PhoneNumberRequest phoneNumberRequest,
+            @Valid @RequestBody PhoneNumberRequest phoneNumberRequest,
             HttpServletResponse httpResponse) {
 
         PhoneVerificationTokenResult result =  phoneNumberVerificationService
@@ -76,42 +75,50 @@ public class PhoneProfileController {
 
         return ResponseEntity.ok(PhoneVerificationResponse.verificationSent());
     }
+
+
+
+    /**
+     * Verify phone number with provided code.
+     * Validates the 6-digit code against the stored verification token.
+     *
+     * Prerequisites:
+     * - User must have initiated verification (have valid cookie)
+     * - Code must be provided and valid
+     *
+     * Process:
+     * 1. Extracts verification token from cookie
+     * 2. Validates the provided code against stored hash
+     * 3. Updates user.phoneNumberVerified = true if successful
+     * 4. Clears verification cookie
+     *
+     * Response: 200 OK with verification result
+     *
+     * Possible errors:
+     * - 400 Bad Request: Missing or invalid verification token
+     * - 400 Bad Request: Invalid verification code
+     * - 404 Not Found: No pending verification found
+     *
+     * @param request Verification request containing the 6-digit code
+     * @param verificationToken JWT token from verification cookie
+     * @param httpResponse HTTP response for clearing cookies
+     * @return ResponseEntity with verification result
+     */
+    @PostMapping("/verify")
+    public ResponseEntity<PhoneVerificationResponse> verifyCode(
+            @Valid @RequestBody PhoneVerificationRequest request,
+            @CookieValue(name = "phone_verification_token", required = false) String verificationToken,
+            HttpServletResponse httpResponse) {
+
+        phoneNumberVerificationService.verifyCode( request.toBLL(verificationToken) );
+
+        phoneVerificationCookieService.clearVerificationCookie(httpResponse);
+
+        return ResponseEntity.ok(PhoneVerificationResponse.verificationSuccessful());
+
+
+    }
 }
-
-
-//    /**
-//     * Verify phone number with provided code.
-//     * Validates the 6-digit code against the stored verification token.
-//     *
-//     * Prerequisites:
-//     * - User must have initiated verification (have valid cookie)
-//     * - Code must be provided and valid
-//     *
-//     * Process:
-//     * 1. Extracts verification token from cookie
-//     * 2. Validates the provided code against stored hash
-//     * 3. Updates user.phoneNumberVerified = true if successful
-//     * 4. Clears verification cookie
-//     *
-//     * Response: 200 OK with verification result
-//     *
-//     * Possible errors:
-//     * - 400 Bad Request: Missing or invalid verification token
-//     * - 400 Bad Request: Invalid verification code
-//     * - 404 Not Found: No pending verification found
-//     *
-//     * @param request Verification request containing the 6-digit code
-//     * @param user Authenticated user from security context
-//     * @param verificationTokenCookie JWT token from verification cookie
-//     * @param httpResponse HTTP response for clearing cookies
-//     * @return ResponseEntity with verification result
-//     */
-//    @PostMapping("/verify")
-//    public ResponseEntity<PhoneVerificationResponse> verifyCode(
-//            @Valid @RequestBody PhoneVerificationRequest request,
-//            @AuthenticationPrincipal User user,
-//            @CookieValue(name = "phone_verification_token", required = false) String verificationTokenCookie,
-//            HttpServletResponse httpResponse) {
 //
 //        log.info("Phone verification attempt from user: {}", user.getUsername());
 //

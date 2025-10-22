@@ -1,0 +1,40 @@
+package be.steby.CoreProject.bll.domains.profile.exceptions;
+
+import be.steby.CoreProject.bll.exceptions.CoreProjectException;
+
+/**
+ * Base exception for all profile domain-related errors.
+ * This serves as the parent class for all profile domain exceptions,
+ * providing a clear exception hierarchy.
+ */
+public class ProfileDomainException extends CoreProjectException {
+
+    /**
+     * Creates a new profile domain exception with default 400 status.
+     *
+     * @param message The detailed error message
+     */
+    public ProfileDomainException(String message) {
+        super(message, 400);
+    }
+
+    /**
+     * Creates a new profile domain exception with custom status.
+     *
+     * @param message The detailed error message
+     * @param status The HTTP status code
+     */
+    public ProfileDomainException(String message, int status) {
+        super(message, status);
+    }
+
+    /**
+     * Creates a new profile domain exception with message and cause.
+     *
+     * @param message The detailed error message
+     * @param cause The underlying cause
+     */
+    public ProfileDomainException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}

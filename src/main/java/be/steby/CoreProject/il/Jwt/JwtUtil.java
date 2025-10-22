@@ -178,8 +178,7 @@ public class JwtUtil {
      */
     public String generatePhoneVerificationToken(User user, String phoneNumber, String verificationCodeHash) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", user.getId().toString());
-        claims.put("username", user.getUsername());
+        claims.put("userPublicId", user.getPublicId());
         claims.put("phoneNumber", phoneNumber);
         claims.put("verificationCodeHash", verificationCodeHash);
         claims.put("purpose", "PHONE_VERIFICATION");
@@ -211,11 +210,11 @@ public class JwtUtil {
             }
 
             // Verify that required claims exist
-            String userId = claims.get("userId", String.class);
+            String userPublicId = claims.get("userPublicId", String.class);
             String phoneNumber = claims.get("phoneNumber", String.class);
             String verificationCodeHash = claims.get("verificationCodeHash", String.class);
 
-            if (userId == null || phoneNumber == null || verificationCodeHash == null) {
+            if (userPublicId == null || phoneNumber == null || verificationCodeHash == null) {
                 throw new InvalidPhoneVerificationTokenException("Missing required claims in phone verification token");
             }
 
