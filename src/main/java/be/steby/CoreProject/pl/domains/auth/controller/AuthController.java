@@ -56,7 +56,6 @@ public class AuthController {
     private final AuthService authService;
     private final AuthCookieService authCookieService;
     private final RefreshTokenServiceImpl refreshTokenService;
-    private final JwtUtil jwtUtil;
 
     // =========================================================================
     // Public Authentication Endpoints
