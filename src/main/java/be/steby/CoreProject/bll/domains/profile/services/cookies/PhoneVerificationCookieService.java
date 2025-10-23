@@ -8,8 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * Service for managing phone verification-related cookies.
- * Handles phone verification token cookie creation, formatting, and deletion.
+ * Service for managing SMS verification-related cookies.
+ * Handles SMS verification token cookie creation, formatting, and deletion.
  * Delegates low-level cookie operations to BaseCookieService.
  * 
  * @author Steby Team
@@ -29,11 +29,11 @@ public class PhoneVerificationCookieService {
     private static final int COOKIE_MAX_AGE_SECONDS = 900; // 15 minutes
 
     /**
-     * Sets the phone verification token cookie.
+     * Sets the SMS verification token cookie.
      * HttpOnly and Secure for protection against XSS and man-in-the-middle attacks.
      * 
      * @param response HTTP response
-     * @param verificationToken JWT phone verification token
+     * @param verificationToken JWT SMS verification token
      */
     public void setVerificationCookie(HttpServletResponse response, String verificationToken) {
         if (verificationToken == null || verificationToken.trim().isEmpty()) {
@@ -53,7 +53,7 @@ public class PhoneVerificationCookieService {
     }
 
     /**
-     * Clears the phone verification token cookie.
+     * Clears the SMS verification token cookie.
      * Used after successful verification or on timeout/failure.
      * 
      * @param response HTTP response
@@ -79,8 +79,8 @@ public class PhoneVerificationCookieService {
         // Basic validation - JWT tokens typically have 3 parts separated by dots
         String[] parts = cookieValue.split("\\.");
         if (parts.length != 3) {
-            log.warn("Invalid phone verification token format received");
-            throw new InvalidPhoneVerificationTokenException("Invalid phone verification token format");
+            log.warn("Invalid SMS verification token format received");
+            throw new InvalidPhoneVerificationTokenException("Invalid SMS verification token format");
         }
 
         log.debug("Phone verification token extracted from cookie successfully");
@@ -88,7 +88,7 @@ public class PhoneVerificationCookieService {
     }
 
     /**
-     * Gets the cookie name used for phone verification.
+     * Gets the cookie name used for SMS verification.
      * Useful for @CookieValue annotations in controllers.
      * 
      * @return The cookie name
