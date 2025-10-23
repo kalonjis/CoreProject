@@ -190,7 +190,7 @@ public ResponseEntity<AdminPasswordOperationResponse> sendPasswordResetLink(
      * IMPORTANT SECURITY NOTES:
      * - This is a GENERIC implementation for flexibility
      * - In production, alternative channels should be PRE-VERIFIED from user profile
-     * - Never accept arbitrary email/phone without verification process
+     * - Never accept arbitrary email/SMS without verification process
      * - Consider implementing:
      *   - 30-day grace period after channel changes
      *   - Multi-factor verification using immutable data

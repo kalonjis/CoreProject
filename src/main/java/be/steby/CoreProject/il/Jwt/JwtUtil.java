@@ -168,11 +168,11 @@ public class JwtUtil {
 
 
     /**
-     * Generates a phone verification JWT token containing user info and hashed verification code.
-     * Used during phone number verification flow.
+     * Generates a SMS verification JWT token containing user info and hashed verification code.
+     * Used during SMS number verification flow.
      *
      * @param user User entity requesting verification
-     * @param phoneNumber Formatted phone number being verified
+     * @param phoneNumber Formatted SMS number being verified
      * @param verificationCodeHash Hashed verification code (for validation)
      * @return JWT token string
      */
@@ -194,7 +194,7 @@ public class JwtUtil {
 
 
     /**
-     * Validates and extracts claims from phone verification JWT token.
+     * Validates and extracts claims from SMS verification JWT token.
      *
      * @param token the JWT token to validate
      * @return Claims if token is valid
@@ -206,7 +206,7 @@ public class JwtUtil {
 
             String purpose = claims.get("purpose", String.class);
             if (!"PHONE_VERIFICATION".equals(purpose)) {
-                throw new InvalidPhoneVerificationTokenException("Invalid token purpose for phone verification");
+                throw new InvalidPhoneVerificationTokenException("Invalid token purpose for SMS verification");
             }
 
             // Verify that required claims exist
@@ -215,7 +215,7 @@ public class JwtUtil {
             String verificationCodeHash = claims.get("verificationCodeHash", String.class);
 
             if (userPublicId == null || phoneNumber == null || verificationCodeHash == null) {
-                throw new InvalidPhoneVerificationTokenException("Missing required claims in phone verification token");
+                throw new InvalidPhoneVerificationTokenException("Missing required claims in SMS verification token");
             }
 
             return claims;
@@ -225,7 +225,7 @@ public class JwtUtil {
             throw e;
         } catch (Exception e) {
             // Convert any other JWT exception to our custom exception
-            throw new InvalidPhoneVerificationTokenException("Invalid or expired phone verification token: " + e.getMessage(), e);
+            throw new InvalidPhoneVerificationTokenException("Invalid or expired SMS verification token: " + e.getMessage(), e);
         }
     }
 

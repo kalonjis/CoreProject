@@ -11,7 +11,6 @@ import be.steby.CoreProject.bll.domains.profile.models.phone.PhoneVerificationTo
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
-import be.steby.CoreProject.il.utils.PhoneUtil;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +23,7 @@ import java.security.SecureRandom;
 /**
  * Service for phone number verification via SMS.
  * 
- * Handles the complete phone verification flow:
+ * Handles the complete SMS verification flow:
  * 1. Generate verification code
  * 2. Send SMS with code
  * 3. Store code securely in JWT token
@@ -60,7 +59,7 @@ public class PhoneNumberVerificationService {
     public PhoneVerificationTokenResult generateVerificationCode(String phoneNumber) {
         User user = userService.getAuthenticatedUser();
 
-        log.info("Starting phone verification for user: {} - phone: {}",
+        log.info("Starting SMS verification for user: {} - SMS: {}",
                  user.getUsername(), maskPhoneNumber(phoneNumber));
 
         // 1. Validate and format phone number
@@ -95,7 +94,7 @@ public class PhoneNumberVerificationService {
     public void verifyCode(PhoneVerificationRequestBLL request) {
         String token = request.jwtToken();
         String providedCode = request.verificationCode();
-        log.debug("Verifying phone verification code");
+        log.debug("Verifying SMS verification code");
 
         // 1. Validate and extract claims from token using specialized method
         Claims claims = jwtUtil.validatePhoneVerificationToken(token);

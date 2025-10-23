@@ -46,10 +46,7 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
         log.info("Enabling SMS 2FA for user: {}", user.getUsername());
         
         // 1. Validate user has a phone number
-        if (!hasValidPhoneNumber(user)) {
-            log.error("Cannot enable SMS 2FA for user {} - no valid phone number", user.getUsername());
-            throw new InvalidPhoneNumberException("User has no valid phone number configured for SMS 2FA");
-        }
+        validatePhoneNumber(user);
         
         // 2. Check if SMS 2FA already exists
         if (twoFactorAuthRepository.existsByUserAndTypeAndEnabledTrue(user, TwoFactorType.SMS)) {
@@ -121,10 +118,8 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
             throw new SmsTwoFactorNotEnabledException("SMS two-factor authentication is not enabled for this user");
         }
         
-        // 2. Validate phone number
-        if (!hasValidPhoneNumber(user)) {
-            throw new InvalidPhoneNumberException("User has no valid phone number configured");
-        }
+        // 2. Validate SMS number
+        validatePhoneNumber(user);
         
         // 3. Generate secure 6-digit code
         int code = 100000 + secureRandom.nextInt(900000);
@@ -151,12 +146,19 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
     }
     
     /**
-     * Checks if the user has a valid phone number for SMS.
+     * Checks if the user has a valid SMS number for SMS.
      *
      * @param user The user to check
-     * @return true if user has a phone number, false otherwise
+     *
      */
-    private boolean hasValidPhoneNumber(User user) {
-        return user.getPhoneNumber() != null && !user.getPhoneNumber().trim().isEmpty();
+    private void validatePhoneNumber (User user) {
+        if (user.getPhoneNumber() == null || user.getPhoneNumber().trim().isEmpty()) {
+            log.info("SMS is null or empty");
+            throw new InvalidPhoneNumberException("No SMS number configured for SMS 2FA");
+        }
+        if (!user.isPhoneNumberVerified()) {
+            throw new InvalidPhoneNumberException("Phone number must be verified before enabling SMS 2FA");
+        }
+
     }
 }

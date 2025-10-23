@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.profile.listeners;
 
 import be.steby.CoreProject.bll.domains.profile.events.PhoneVerificationInitiatedEvent;
-import be.steby.CoreProject.bll.domains.profile.services.notification.PhoneNotificationService;
+import be.steby.CoreProject.bll.domains.profile.services.notification.SmsNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Listener for profile-related notification events.
- * Handles events related to user profile notifications such as phone verification.
+ * Handles events related to user profile notifications such as SMS verification.
  * 
  * This listener processes:
  * - Phone verification initiated events
@@ -22,25 +22,25 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ProfileNotificationListener {
 
-    private final PhoneNotificationService phoneNotificationService;
+    private final SmsNotificationService phoneNotificationService;
 
     /**
-     * Handles phone verification initiated events.
+     * Handles SMS verification initiated events.
      * Sends SMS verification code to the user's phone number.
      * 
-     * @param event The phone verification initiated event
+     * @param event The SMS verification initiated event
      */
     @Async
     @EventListener
     public void handle(PhoneVerificationInitiatedEvent event) {
-        log.debug("Received PhoneVerificationInitiatedEvent for phone: {}", 
+        log.debug("Received SMSVerificationInitiatedEvent for phone number: {}",
                  maskPhoneNumber(event.phoneNumber()));
         
         try {
             phoneNotificationService.sendPhoneVerification(event);
             log.debug("Successfully processed PhoneVerificationInitiatedEvent");
         } catch (Exception e) {
-            log.error("Failed to process PhoneVerificationInitiatedEvent for phone: {}", 
+            log.error("Failed to process PhoneVerificationInitiatedEvent for phone number: {}",
                      maskPhoneNumber(event.phoneNumber()), e);
         }
     }

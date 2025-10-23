@@ -3,7 +3,7 @@ package be.steby.CoreProject.bll.domains.auth.listeners;
 import be.steby.CoreProject.bll.domains.auth.events.TwoFactorEnabledEvent;
 import be.steby.CoreProject.bll.domains.auth.events.TwoFactorVerificationRequestedEvent;
 import be.steby.CoreProject.bll.domains.auth.services.mailer.AuthMailerService;
-import be.steby.CoreProject.bll.domains.auth.services.phone.AuthPhoneService;
+import be.steby.CoreProject.bll.domains.auth.services.notification.AuthSmsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -29,7 +29,7 @@ import org.springframework.stereotype.Component;
 public class TwoFactorNotificationListener {
 
     private final AuthMailerService authMailerService;
-    private final AuthPhoneService authPhoneService;
+    private final AuthSmsService authSmsService;
 
     /**
      * Handles TwoFactorEnabledEvent by sending confirmation via appropriate channel.
@@ -48,11 +48,7 @@ public class TwoFactorNotificationListener {
                     authMailerService.sendTwoFactorEnabledConfirmation(event.user(), event.type());
                     log.info("2FA enabled confirmation email sent to user: {}", event.user().getEmail());
                 }
-                case SMS -> {
-                    // SMS notification for SMS 2FA
-                    authPhoneService.sendTwoFactorEnabledConfirmation(event.user(), event.type());
-                    log.info("2FA enabled confirmation SMS sent to user: {}", event.user().getUsername());
-                }
+
                 default -> {
                     log.warn("Unknown 2FA type for enabled confirmation: {}", event.type());
                 }
@@ -88,10 +84,9 @@ public class TwoFactorNotificationListener {
                     log.info("2FA verification email sent to user: {}", event.user().getEmail());
                 }
                 case SMS -> {
-                    authPhoneService.sendTwoFactorVerificationCode(
+                    authSmsService.sendTwoFactorVerificationCode(
                             event.user(),
-                            event.verificationCode(),
-                            event.httpRequest()
+                            event.verificationCode()
                     );
                     log.info("2FA verification SMS sent to user: {}", event.user().getUsername());
                 }

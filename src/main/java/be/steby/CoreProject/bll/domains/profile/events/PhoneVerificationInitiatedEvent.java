@@ -1,11 +1,11 @@
 package be.steby.CoreProject.bll.domains.profile.events;
 
 /**
- * Event triggered when phone verification process is initiated.
+ * Event triggered when SMS verification process is initiated.
  * Contains the plain text phone number and verification code for SMS sending.
  *
  * This event is published when:
- * - User requests phone verification
+ * - User requests SMS verification
  * - Phone number is validated
  * - Verification code is generated
  *

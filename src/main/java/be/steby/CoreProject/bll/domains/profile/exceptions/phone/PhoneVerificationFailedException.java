@@ -3,7 +3,7 @@ package be.steby.CoreProject.bll.domains.profile.exceptions.phone;
 import be.steby.CoreProject.bll.domains.profile.exceptions.ProfileDomainException;
 
 /**
- * Exception thrown when phone verification fails.
+ * Exception thrown when SMS verification fails.
  * 
  * This exception is intentionally vague to prevent information disclosure
  * about whether the verification token or code was invalid. This approach
@@ -20,7 +20,7 @@ import be.steby.CoreProject.bll.domains.profile.exceptions.ProfileDomainExceptio
 public class PhoneVerificationFailedException extends ProfileDomainException {
 
     /**
-     * Creates a new phone verification failed exception with default message.
+     * Creates a new SMS verification failed exception with default message.
      * Uses a generic message to avoid information disclosure.
      */
     public PhoneVerificationFailedException() {
@@ -28,7 +28,7 @@ public class PhoneVerificationFailedException extends ProfileDomainException {
     }
 
     /**
-     * Creates a new phone verification failed exception with custom message.
+     * Creates a new SMS verification failed exception with custom message.
      * 
      * @param message The error message (should remain generic for security)
      */
@@ -37,7 +37,7 @@ public class PhoneVerificationFailedException extends ProfileDomainException {
     }
 
     /**
-     * Creates a new phone verification failed exception with message and cause.
+     * Creates a new SMS verification failed exception with message and cause.
      * 
      * @param message The error message
      * @param cause The underlying cause

@@ -18,9 +18,9 @@ import org.springframework.web.bind.annotation.*;
 /**
  * REST Controller for phone number verification operations.
  *
- * Handles the complete phone verification flow:
+ * Handles the complete SMS verification flow:
  * 1. Send verification code to user's phone number
- * 2. Verify the code and mark phone as verified
+ * 2. Verify the code and mark SMS as verified
  *
  * Security:
  * - All endpoints require authentication
@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.*;
  * @since 2.0.0
  */
 @RestController
-@RequestMapping("/api/profile/phone")
+@RequestMapping("/api/profile/SMS")
 @RequiredArgsConstructor
 @PreAuthorize("isAuthenticated()")
 @Slf4j
@@ -41,7 +41,7 @@ public class PhoneProfileController {
     private final PhoneVerificationCookieService phoneVerificationCookieService;
 
     /**
-     * Request phone number verification.
+     * Request SMS number verification.
      * Sends a 6-digit verification code to the user's current phone number.
      *
      * Prerequisites:
@@ -119,49 +119,3 @@ public class PhoneProfileController {
 
     }
 }
-//
-//        log.info("Phone verification attempt from user: {}", user.getUsername());
-//
-//        // 1. Check if verification token exists
-//        if (verificationTokenCookie == null) {
-//            log.warn("User {} attempted verification without token", user.getUsername());
-//            throw new IllegalArgumentException("No pending phone verification found");
-//        }
-//
-//        // 2. Extract and validate token from cookie
-//        String verificationToken = phoneVerificationCookieService.getVerificationToken(verificationTokenCookie);
-//
-//        // 3. Verify the provided code
-//        boolean isValid = phoneNumberVerificationService.verifyCode(
-//                verificationToken, request.verificationCode());
-//
-//        // 4. Clear verification cookie
-//        phoneVerificationCookieService.clearVerificationCookie(httpResponse);
-//
-//        if (isValid) {
-//            // 5. Update user's phone verification status
-//            user.setPhoneNumberVerified(true);
-//            userService.saveUser(user);
-//
-//            log.info("Phone verification successful for user: {}", user.getUsername());
-//            return ResponseEntity.ok(PhoneVerificationResponse.verificationSuccessful());
-//        } else {
-//            log.warn("Phone verification failed for user: {} - invalid code", user.getUsername());
-//            return ResponseEntity.badRequest()
-//                    .body(PhoneVerificationResponse.verificationFailed("Invalid verification code"));
-//        }
-//    }
-
-//    /**
-//     * Masks phone number for display.
-//     * Example: +32498567890 -> +3249856XXXX
-//     */
-//    private String maskPhoneNumber(String phoneNumber) {
-//        if (phoneNumber == null || phoneNumber.length() < 4) {
-//            return "****";
-//        }
-//        return phoneNumber.substring(0, phoneNumber.length() - 4) + "XXXX";
-//    }
-//
-//
-//}
