@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.profile.models.phone;
 
 /**
- * Result of phone verification token generation.
+ * Result of SMS verification token generation.
  * Contains the JWT token and masked phone number after successful SMS sending.
  * 
  * This record is returned by the BLL service after:

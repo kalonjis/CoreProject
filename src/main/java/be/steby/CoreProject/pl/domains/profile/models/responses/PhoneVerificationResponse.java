@@ -3,7 +3,7 @@ package be.steby.CoreProject.pl.domains.profile.models.responses;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * Response model for phone verification operations.
+ * Response model for SMS verification operations.
  * 
  * @param message Human-readable message about the operation result
  */
