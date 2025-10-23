@@ -8,10 +8,10 @@ import jakarta.validation.constraints.Size;
  * Request for sending temporary password via alternative channel.
  *
  * Uses PRE-REGISTERED alternative channels from the user's profile.
- * At least one channel (email or phone) must be selected.
+ * At least one channel (email or SMS) must be selected.
  *
  * SECURITY: Only uses channels already verified and stored in the user profile.
- * Never accepts arbitrary email/phone addresses.
+ * Never accepts arbitrary email/SMS addresses.
  */
 public record AdminAlternativeChannelPasswordRequest(
 
@@ -30,7 +30,7 @@ public record AdminAlternativeChannelPasswordRequest(
     public AdminAlternativeChannelPasswordRequest {
         if (!useAlternativeEmail && !useAlternativePhone) {
             throw new IllegalArgumentException(
-                    "At least one alternative channel must be selected (email or phone)"
+                    "At least one alternative channel must be selected (email or SMS)"
             );
         }
     }
