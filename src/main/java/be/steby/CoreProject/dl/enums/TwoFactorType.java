@@ -68,27 +68,6 @@ public enum TwoFactorType {
     private final boolean highSecurity;
     
     /**
-     * Check if this method requires user-provided input (phone/email)
-     */
-    public boolean requiresUserInput() {
-        return this == SMS || this == EMAIL;
-    }
-    
-    /**
-     * Check if this method can be used as primary 2FA.
-     * 
-     * All methods except BACKUP_CODES can be primary to ensure flexibility.
-     * While TOTP and WebAuthn are more secure, SMS and EMAIL provide better
-     * accessibility for users without smartphones or hardware tokens.
-     * 
-     * Security consideration: Applications can choose to enforce TOTP/WebAuthn
-     * only by checking isHighSecurity() separately if needed.
-     */
-    public boolean canBePrimary() {
-        return this != BACKUP_CODES;
-    }
-    
-    /**
      * Check if this method should only be used as backup
      */
     public boolean isBackupOnly() {
