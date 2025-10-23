@@ -158,19 +158,35 @@ public class SecurityConstants {
 
     // ========== DEVICE DOMAIN ==========
 
+    /**
+     * Public device routes (no authentication required)
+     * Used for email confirmation links - users click these in emails
+     */
     private static final String[] DEVICE_PUBLIC_ROUTES = {
-            "/api/user/device/confirm/**",
-            "/api/user/device/reject/**"
+            "/api/device/confirm",      // GET - confirm device via email token
+            "/api/device/reject",        // GET - reject device via email token
+            //todo : removed these url from public routes in prod
+            "/api/device/current",                    // GET - current device info
+            "/api/device/my-devices",                 // GET - all user's devices list
+            "/api/device/request-confirmation",       // POST - request confirmation link
+            "/api/device/disconnect-all-others",      // POST - disconnect all other devices
+            "/api/device/trust-level/*",              // PATCH - update device trust level by ID
+            "/api/device/disconnect/*",               // POST - disconnect specific device by ID
+            "/api/device/*"
     };
 
+    /**
+     * Authenticated device routes (require user authentication)
+     * All device management operations for authenticated users
+     */
     private static final String[] DEVICE_AUTHENTICATED_ROUTES = {
-            "/api/user/device/current",
-            "/api/user/device/my-device/**",
-            "/api/user/device/my-devices-list",
-            "/api/user/device/update-trust-level/**",
-            "/api/user/device/request-confirmation",
-            "/api/user/device/disconnect/**",
-            "/api/user/device/disconnect-all-others"
+            "/api/device/current",                    // GET - current device info
+            "/api/device/my-devices",                 // GET - all user's devices list
+            "/api/device/request-confirmation",       // POST - request confirmation link
+            "/api/device/disconnect-all-others",      // POST - disconnect all other devices
+            "/api/device/trust-level/*",              // PATCH - update device trust level by ID
+            "/api/device/disconnect/*",               // POST - disconnect specific device by ID
+            "/api/device/*"                           // GET - specific device info by ID
     };
 
     /**
