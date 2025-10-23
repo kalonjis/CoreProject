@@ -187,6 +187,9 @@ public class DeviceServiceImpl implements DeviceService {
 
         Device device = getDeviceById(confirmationToken.getDeviceId());
         device.setConfirmed(true);
+        if(device.isBlacklisted()){
+            device.setBlacklisted(false);
+        }
         device.setDeviceTrustLevel(DeviceTrustLevel.TRUSTED);
 
         // Use service method to ensure cache consistency
@@ -255,13 +258,15 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     @Transactional
-    public void disconnectAllOtherDevices(HttpServletRequest request) {
+    public int disconnectAllOtherDevices(HttpServletRequest request) {
         Device currentDevice = detectCurrentDevice(request);
         User currentUser = currentDevice.getUser();
 
         int disconnectedDevices = disconnectAllDevicesExceptCurrent(currentUser, currentDevice.getId());
 
         log.info("{} devices successfully disconnected for user {}", disconnectedDevices, currentUser.getUsername());
+
+        return  disconnectedDevices;
     }
 
 
