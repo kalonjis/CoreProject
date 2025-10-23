@@ -1,7 +1,7 @@
 package be.steby.CoreProject.pl.domains.admin.controllers;
 
 import be.steby.CoreProject.bll.domains.admin.services.device.AdminDeviceService;
-import be.steby.CoreProject.pl.models.device.DeviceDTO;
+import be.steby.CoreProject.pl.domains.device.models.responses.DeviceInfoResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -42,17 +42,17 @@ public class AdminDeviceController {
      * @return ResponseEntity with list of user's devices
      */
     @GetMapping("/list/user/{publicUserId}")
-    public ResponseEntity<List<DeviceDTO>> getUserDevices(@PathVariable String publicUserId) {
+    public ResponseEntity<List<DeviceInfoResponse>> getUserDevices(@PathVariable String publicUserId) {
         log.info("Admin requesting devices for user: {}", publicUserId);
 
-        List<DeviceDTO> deviceDTOS = adminDeviceService.getUserDevices(publicUserId)
+        List<DeviceInfoResponse> deviceInfoResponses = adminDeviceService.getUserDevices(publicUserId)
                         .stream()
-                        .map(DeviceDTO::fromEntity)
+                        .map(DeviceInfoResponse::fromEntity)
                         .toList();
 
         log.info("Successfully retrieved devices for user: {}", publicUserId);
 
-        return ResponseEntity.ok(deviceDTOS);
+        return ResponseEntity.ok(deviceInfoResponses);
     }
 
     /**
@@ -62,15 +62,15 @@ public class AdminDeviceController {
      * @return ResponseEntity with device details
      */
     @GetMapping("/{devicePublicId}")
-    public ResponseEntity<DeviceDTO> getDeviceDetails(@PathVariable String devicePublicId) {
+    public ResponseEntity<DeviceInfoResponse> getDeviceDetails(@PathVariable String devicePublicId) {
         log.info("Admin requesting details for device: {}", devicePublicId);
 
-        DeviceDTO deviceDTO = DeviceDTO.fromEntity(
+        DeviceInfoResponse deviceInfoResponse = DeviceInfoResponse.fromEntity(
              adminDeviceService.getDeviceByPublicId(devicePublicId)
         );
 
         log.info("Successfully retrieved device details: {}", devicePublicId);
-        return ResponseEntity.ok(deviceDTO);
+        return ResponseEntity.ok(deviceInfoResponse);
     }
 //
 //    /**

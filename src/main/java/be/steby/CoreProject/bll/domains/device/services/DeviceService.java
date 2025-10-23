@@ -43,7 +43,7 @@ public interface DeviceService {
 
     void disconnectDevice(Long deviceId, HttpServletRequest request);
 
-    void disconnectAllOtherDevices(HttpServletRequest request);
+    int disconnectAllOtherDevices(HttpServletRequest request);
 
     int disconnectAllDevicesExceptCurrent(User user, Long currentDeviceId);
 

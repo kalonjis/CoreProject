@@ -1,11 +1,16 @@
-package be.steby.CoreProject.pl.models.device;
+package be.steby.CoreProject.pl.domains.device.models.responses;
 
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
-public record DeviceDTO(
+/**
+ * Response containing device information for frontend display.
+ */
+public record DeviceInfoResponse(
         Long id,
         String deviceType,
         String browser,
@@ -28,8 +33,8 @@ public record DeviceDTO(
         boolean loggedOut,
         Instant logoutTime
 ) {
-    public static DeviceDTO fromEntity(Device device){
-        return new DeviceDTO(
+    public static DeviceInfoResponse fromEntity(Device device){
+        return new DeviceInfoResponse(
                 device.getId(),
                 device.getDeviceType(),
                 device.getBrowser(),
@@ -51,6 +56,6 @@ public record DeviceDTO(
                 device.getBlacklistedTime(),
                 device.isLoggedOut(),
                 device.getLogoutTime()
-            );
+        );
     }
 }
