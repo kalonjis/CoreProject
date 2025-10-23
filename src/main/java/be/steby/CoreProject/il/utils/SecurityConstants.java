@@ -39,8 +39,8 @@ public class SecurityConstants {
             "/api/auth/2fa/backup-codes/disable",
             "/api/auth/2fa/available-methods",
             //TODO move this into profile routes...
-            "/api/profile/phone/request-verification",
-            "/api/profile/phone/verify"
+            "/api/profile/SMS/request-verification",
+            "/api/profile/SMS/verify"
 
 
     };
@@ -72,8 +72,8 @@ public class SecurityConstants {
             "/api/auth/2fa/available-methods",
             "/api/auth/2fa/choose-method",
             //TODO move this into profile routes...
-            "/api/profile/phone/request-verification",
-            "/api/profile/phone/verify"
+            "/api/profile/SMS/request-verification",
+            "/api/profile/SMS/verify"
     };
 
     // ========== ACCOUNT DOMAIN ==========
