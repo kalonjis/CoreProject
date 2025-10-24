@@ -3,7 +3,7 @@ package be.steby.CoreProject.pl.domains.admin.controllers;
 import be.steby.CoreProject.bll.domains.admin.services.search.AdminSearchService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.pl.models.user.UserDTO;
+import be.steby.CoreProject.pl.domains.profile.user.UserDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

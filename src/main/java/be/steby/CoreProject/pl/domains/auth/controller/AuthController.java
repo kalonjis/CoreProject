@@ -12,7 +12,6 @@ import be.steby.CoreProject.bll.domains.auth.services.cookies.AuthCookieService;
 import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
-import be.steby.CoreProject.il.Jwt.JwtUtil;
 import be.steby.CoreProject.pl.domains.auth.models.requests.ChooseTwoFactorMethodRequest;
 import be.steby.CoreProject.pl.domains.auth.models.requests.LoginRequest;
 import be.steby.CoreProject.pl.domains.auth.models.requests.TwoFactorVerificationRequest;

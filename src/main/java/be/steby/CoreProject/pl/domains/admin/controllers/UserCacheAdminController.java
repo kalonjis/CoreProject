@@ -1,9 +1,8 @@
-package be.steby.CoreProject.pl.controllers.admin;
+package be.steby.CoreProject.pl.domains.admin.controllers;
 
 import be.steby.CoreProject.bll.domains.user.services.UserAuthenticationService;
 import be.steby.CoreProject.bll.domains.user.cache.listeners.UserCacheEventListener;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
-import be.steby.CoreProject.bll.domains.user.events.UserPersistedEvent;
 import be.steby.CoreProject.dl.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +14,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
-/**
+/**TODO decide what to do with this : keep or remove from project
  * Admin controller for user cache management and monitoring.
  * Provides endpoints for monitoring cache performance, health checks,
  * manual cache operations, and security incident response.

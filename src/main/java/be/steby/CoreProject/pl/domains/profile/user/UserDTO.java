@@ -1,4 +1,4 @@
-package be.steby.CoreProject.pl.models.user;
+package be.steby.CoreProject.pl.domains.profile.user;
 
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;

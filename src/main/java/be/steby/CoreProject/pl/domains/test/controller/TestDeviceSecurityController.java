@@ -1,4 +1,4 @@
-package be.steby.CoreProject.pl.controllers.test;
+package be.steby.CoreProject.pl.domains.test.controller;
 
 import be.steby.CoreProject.bll.domains.device.utils.DeviceSecurityEvaluator;
 import be.steby.CoreProject.bll.domains.device.utils.DeviceContextProvider;

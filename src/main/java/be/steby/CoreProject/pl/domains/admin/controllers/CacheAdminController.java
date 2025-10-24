@@ -1,4 +1,4 @@
-package be.steby.CoreProject.pl.controllers.admin;
+package be.steby.CoreProject.pl.domains.admin.controllers;
 
 import be.steby.CoreProject.bll.domains.device.cache.DeviceCacheService;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-/**
+/**TODO decide what to do with this : keep or remove from project
  * Admin controller for device cache management and monitoring.
  * Provides endpoints for monitoring cache performance, health checks,
  * and administrative operations.
