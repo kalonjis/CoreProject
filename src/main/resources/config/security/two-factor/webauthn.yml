@@ -1,0 +1,66 @@
+# ===============================================
+# WEBAUTHN 2FA CONFIGURATION
+# ===============================================
+
+app:
+  webauthn:
+    # Basic WebAuthn Configuration
+    enabled: true
+    rp-name: "Steby Core Project"
+    rp-id: "localhost"  # Will be dynamically set to your domain in production
+
+    # 2FA Integration Settings
+    two-factor:
+      enabled: true
+      can-be-primary: true      # Can WebAuthn be the primary 2FA method?
+      can-be-secondary: true    # Can WebAuthn be a backup 2FA method?
+      require-enrollment: true  # Must users enroll WebAuthn before using?
+
+    # Security Settings
+    security:
+      require-attestation: false  # Set to true in production for strict validation
+      strict-metadata-validation: true
+      timeout-seconds: 60
+      challenge-timeout-seconds: 120
+
+    # Allowed Authenticator Types
+    authenticator-types:
+      allowed:
+        - "PLATFORM"      # TouchID, Windows Hello, Face ID
+        - "CROSS_PLATFORM" # YubiKey, USB FIDO2 keys
+      blocked: []  # Add specific AAGUID to block certain authenticators
+
+    # User Experience Settings
+    user-experience:
+      max-credentials-per-user: 5
+      allow-credential-naming: true
+      show-authenticator-info: true
+
+    # Advanced Options
+    advanced:
+      enable-resident-keys: true
+      user-verification: "preferred"  # required, preferred, discouraged
+      attestation-conveyance: "none"  # none, indirect, direct, enterprise
+      backup-eligible-preferred: true
+
+# ===============================================
+# WEBAUTHN LOGGING (2FA Context)
+# ===============================================
+
+logging:
+  level:
+    # WebAuthn Core
+    org.springframework.security.web.webauthn: INFO
+    com.webauthn4j: WARN
+    com.webauthn4j.metadata: INFO
+
+    # Your WebAuthn 2FA Implementation
+    be.steby.CoreProject.il.configs.WebAuthnConfig: DEBUG
+    be.steby.CoreProject.bll.domains.auth.services.twofactor.webauthn: DEBUG
+
+    # Database WebAuthn Tables
+    org.springframework.orm.jpa: INFO
+
+  # WebAuthn 2FA specific log pattern
+  pattern:
+    webauthn-2fa: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - 🔐2FA %msg%n"
