@@ -18,7 +18,7 @@ import be.steby.CoreProject.pl.domains.auth.models.requests.TwoFactorVerificatio
 import be.steby.CoreProject.pl.domains.auth.models.responses.AuthOperationResponse;
 import be.steby.CoreProject.pl.domains.auth.models.responses.TwoFactorAuthDTO;
 import be.steby.CoreProject.pl.domains.auth.models.responses.TwoFactorOperationResponse;
-import be.steby.CoreProject.pl.models.user.UserDTO;
+import be.steby.CoreProject.pl.domains.profile.user.UserDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
