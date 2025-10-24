@@ -15,6 +15,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -230,7 +231,13 @@ public class DataInitializer implements CommandLineRunner {
                 .blacklisted(false)
                 .build();
 
-        deviceRepository.saveAll(List.of(device1, device2, device3, device4, device5, device6, device7, device8, device9));
+        List<Device> devices = List.of(device1,device2, device3, device4, device5, device6, device7, device8, device9);
+
+        for (Device d : devices){
+            d.setLoggedOut(true);
+        }
+
+        deviceRepository.saveAll(devices);
 
         //endregion
 
