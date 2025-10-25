@@ -37,6 +37,7 @@ public class SecurityConstants {
             "/api/auth/2fa/totp/disable",
             "/api/auth/2fa/backup-codes/enable",
             "/api/auth/2fa/backup-codes/disable",
+            "/api/auth/2fa/webauthn/initiate-activation",
             "/api/auth/2fa/available-methods",
             //TODO move this into profile routes...
             "/api/profile/SMS/request-verification",
@@ -69,6 +70,7 @@ public class SecurityConstants {
             "/api/auth/2fa/totp/disable",
             "/api/auth/2fa/backup-codes/enable",
             "/api/auth/2fa/backup-codes/disable",
+            "/api/auth/2fa/webauthn/initiate-activation",
             "/api/auth/2fa/available-methods",
             "/api/auth/2fa/choose-method",
             //TODO move this into profile routes...
