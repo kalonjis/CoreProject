@@ -32,6 +32,21 @@ public interface AuthService extends UserDetailsService {
     LoginTokens login(String username, String password, HttpServletRequest request);
 
     /**
+     * Authenticates or creates a user via OAuth2 provider.
+     *
+     * @param provider OAuth provider name (e.g., GITHUB)
+     * @param providerId User ID from OAuth provider
+     * @param email User email from OAuth provider
+     * @param username Username from OAuth provider
+     * @param name Full name from OAuth provider
+     * @param request HTTP request for device detection
+     * @return LoginTokens containing accessToken and refreshToken
+     */
+    LoginTokens oauth2Login(String provider, String providerId, String email,
+                            String username, String name, HttpServletRequest request);
+
+
+    /**
      * Phase 1: Initiate login - validate credentials and check 2FA requirements
      *
      * @param username User's username

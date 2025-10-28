@@ -77,6 +77,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public User getByOauthProviderAndOauthProviderId(String provider, String providerId) {
+        return userRepository.findByOauthProviderAndOauthProviderId(provider, providerId)
+                .orElseThrow(()-> new UserNotFoundException("No user fond from " + provider + "with providerId : " + providerId));
+    }
+
+    @Override
     public User getUserById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> UserNotFoundException.byId(id));

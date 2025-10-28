@@ -74,6 +74,8 @@ public class SecurityConfig {
                         // 2. OPTIONS requests - allow for CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
+
                         // 3. Authenticated routes - require authentication but no specific role
                         .requestMatchers(AUTHENTICATED_ROUTES).authenticated()  // ✅ Explicit!
 
@@ -91,6 +93,12 @@ public class SecurityConfig {
 
                 // ========== Logout ==========
                 .logout(logout -> logout.disable())  // Custom logout in controller
+
+                // ⭐ ========== OAuth2 Login Configuration - AJOUTEZ CETTE SECTION ==========
+                .oauth2Login(oauth2 -> oauth2
+                        .defaultSuccessUrl("/api/auth/oauth2/callback", true)
+                        .failureUrl(FRONT_URL + "/auth/login?error=oauth2")
+                )
 
                 // ========== JWT Filter ==========
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

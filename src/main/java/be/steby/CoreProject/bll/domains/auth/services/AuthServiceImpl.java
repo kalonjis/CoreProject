@@ -23,6 +23,7 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
+import be.steby.CoreProject.dl.enums.UserRole;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,6 +38,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -155,6 +157,69 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    @Override
+    public LoginTokens oauth2Login(String provider, String providerId, String email,
+                                   String username, String name, HttpServletRequest request) {
+        log.info("OAuth2 login attempt with provider: {} for email: {}", provider, email);
+
+        try {
+            // 1. Chercher ou créer l'utilisateur
+            User user = userService.getByOauthProviderAndOauthProviderId(provider, providerId);
+
+            if(user == null){
+                createOAuth2User(provider, providerId, email, username, name);
+            }
+
+            // 2. Détecter et enregistrer l'appareil
+            Device device = deviceService.detectAndRegisterDevice(request, user);
+
+            // 3. Gérer l'état de l'appareil
+            handleDeviceState(device);
+
+            // 4. Générer les tokens
+            LoginTokens tokens = generateTokens(user, device);
+
+            // 5. Publier les événements de succès
+            publishSuccessEvents(user, device);
+
+            log.info("OAuth2 login successful for user {} with provider {}",
+                    user.getUsername(), provider);
+
+            return tokens;
+
+        } catch (Exception e) {
+            log.error("OAuth2 login failed for provider: {} - {}", provider, e.getMessage());
+            throw new InvalidOAuth2CredentialsException("OAuth2 authentication failed");
+        }
+    }
+
+    private User createOAuth2User(String provider, String providerId, String email,
+                                  String username, String name) {
+        User newUser = new User();
+        newUser.setEmail(email);
+        newUser.setUsername(username);
+
+        // Parser le nom complet
+        if (name != null) {
+            String[] names = name.split(" ", 2);
+            newUser.setFirstname(names[0]);
+            if (names.length > 1) {
+                newUser.setLastname(names[1]);
+            }
+        }
+
+        newUser.setOauthProvider(provider);
+        newUser.setOauthProviderId(providerId);
+        newUser.setEmailVerified(true); // OAuth providers vérifient l'email
+        newUser.setEnabled(true);
+        newUser.setUserRoles(UserRole.setRoles(UserRole.USER));
+        newUser.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); // Random password
+        newUser.setMustChangePassword(false);
+        newUser.setEverActivated(true);
+        newUser.setActivatedAt(Instant.now());
+
+        return userService.saveUser(newUser);
+    }
 
     @Override
     public LoginTokens verifyTwoFactorAndCompleteLogin(String twoFactorToken, String verificationCode, String backupCode, HttpServletRequest httpRequest) {

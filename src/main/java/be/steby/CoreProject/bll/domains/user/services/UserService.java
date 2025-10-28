@@ -22,6 +22,8 @@ public interface UserService {
     Page<User> searchUsersByCriteria(String username, String firstname, String lastname,
                                      String email, String phoneNumber, Pageable pageable);
 
+    User getByOauthProviderAndOauthProviderId(String provider, String providerId);
+
     User getUserById(Long id);
 
     User getUserByUsername(String username);
