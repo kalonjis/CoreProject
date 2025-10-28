@@ -2,8 +2,8 @@ security:
   jwt:
     secret: ${JWT_SECRET}
     access-token:
-      #expiration: 900000  # 15 minutes
-      expiration: 15000  # 15 minutes
+      expiration: 900000  # 15 minutes
+      #expiration: 15000  # 15 minutes
       name: "access_token"
     refresh-token:
       expiration: 604800000  # 7 days

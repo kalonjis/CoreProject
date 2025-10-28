@@ -73,83 +73,83 @@ public class AuthController {
      * @param httpResponse HTTP response for cookie setting
      * @return ResponseEntity redirecting to frontend dashboard
      */
-    @GetMapping("/oauth2/callback")
-    public ResponseEntity<Map<String, Object>> oauth2Callback(
-    //public ResponseEntity<Void> oauth2Callback(
-            @AuthenticationPrincipal OAuth2User oauth2User,
-            HttpServletRequest httpRequest,
-            HttpServletResponse httpResponse) {
-
-        log.info("OAuth2 callback received");
-
-        try {
-            // Extract OAuth2 user information
-            String provider = "GITHUB"; // Currently only GitHub supported
-            String providerId = String.valueOf(oauth2User.getAttribute("id"));
-            String email = oauth2User.getAttribute("email");
-            String login = oauth2User.getAttribute("login");
-            String name = oauth2User.getAttribute("name");
-
-            log.debug("OAuth2 user data - provider: {}, email: {}, login: {}",
-                    provider, email, login);
-
-            // BLL: Complete OAuth2 authentication
-            LoginTokens tokens = authService.oauth2Login(
-                    provider,
-                    providerId,
-                    email,
-                    login,
-                    name,
-                    httpRequest
-            );
-
-            // PL: Set authentication cookies
-            authCookieService.setAuthenticationCookies(httpResponse, tokens);
-            // ⭐ POUR DEBUG : Retourner les infos au lieu de rediriger
-//            Map<String, Object> debugInfo = new HashMap<>();
-//            debugInfo.put("success", true);
-//            debugInfo.put("provider", provider);
-//            debugInfo.put("email", email);
-//            debugInfo.put("login", login);
-//            debugInfo.put("name", name);
-//            debugInfo.put("message", "OAuth2 login successful! Check your cookies.");
+//    @GetMapping("/oauth2/callback")
+//    public ResponseEntity<Map<String, Object>> oauth2Callback(
+//    //public ResponseEntity<Void> oauth2Callback(
+//            @AuthenticationPrincipal OAuth2User oauth2User,
+//            HttpServletRequest httpRequest,
+//            HttpServletResponse httpResponse) {
 //
-//            return ResponseEntity.ok(debugInfo);
-
-            // Minimal informational headers
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("X-Auth-Status", "authenticated");
-            headers.set("X-Auth-Method", "oauth2");
-
-            log.info("OAuth2 login successful, redirecting to frontend");
-
-            // Redirect to frontend dashboard
-            String frontendUrl = System.getenv("FRONT_URL");
-            if (frontendUrl == null || frontendUrl.isEmpty()) {
-                frontendUrl = "http://localhost:4200"; // Fallback for dev
-            }
-
-            return ResponseEntity
-                    .status(HttpStatus.FOUND)
-                    .headers(headers)
-                    .header("Location", frontendUrl + "/dashboard")
-                    .build();
-
-        } catch (Exception e) {
-            log.error("OAuth2 callback failed: {}", e.getMessage(), e);
-
-            // Redirect to login page with error
-            String frontendUrl = System.getenv("FRONT_URL");
-            if (frontendUrl == null || frontendUrl.isEmpty()) {
-                frontendUrl = "http://localhost:4200";
-            }
-
-            return ResponseEntity
-                    .status(HttpStatus.FOUND)
-                    .header("Location", frontendUrl + "/auth/login?error=oauth2")
-                    .build();
-        }
-    }
+//        log.info("OAuth2 callback received");
+//
+//        try {
+//            // Extract OAuth2 user information
+//            String provider = "GITHUB"; // Currently only GitHub supported
+//            String providerId = String.valueOf(oauth2User.getAttribute("id"));
+//            String email = oauth2User.getAttribute("email");
+//            String login = oauth2User.getAttribute("login");
+//            String name = oauth2User.getAttribute("name");
+//
+//            log.debug("OAuth2 user data - provider: {}, email: {}, login: {}",
+//                    provider, email, login);
+//
+//            // BLL: Complete OAuth2 authentication
+//            LoginTokens tokens = authService.oauth2Login(
+//                    provider,
+//                    providerId,
+//                    email,
+//                    login,
+//                    name,
+//                    httpRequest
+//            );
+//
+//            // PL: Set authentication cookies
+//            authCookieService.setAuthenticationCookies(httpResponse, tokens);
+//            // ⭐ POUR DEBUG : Retourner les infos au lieu de rediriger
+////            Map<String, Object> debugInfo = new HashMap<>();
+////            debugInfo.put("success", true);
+////            debugInfo.put("provider", provider);
+////            debugInfo.put("email", email);
+////            debugInfo.put("login", login);
+////            debugInfo.put("name", name);
+////            debugInfo.put("message", "OAuth2 login successful! Check your cookies.");
+////
+////            return ResponseEntity.ok(debugInfo);
+//
+//            // Minimal informational headers
+//            HttpHeaders headers = new HttpHeaders();
+//            headers.set("X-Auth-Status", "authenticated");
+//            headers.set("X-Auth-Method", "oauth2");
+//
+//            log.info("OAuth2 login successful, redirecting to frontend");
+//
+//            // Redirect to frontend dashboard
+//            String frontendUrl = System.getenv("FRONT_URL");
+//            if (frontendUrl == null || frontendUrl.isEmpty()) {
+//                frontendUrl = "http://localhost:4200"; // Fallback for dev
+//            }
+//
+//            return ResponseEntity
+//                    .status(HttpStatus.FOUND)
+//                    .headers(headers)
+//                    .header("Location", frontendUrl + "/dashboard")
+//                    .build();
+//
+//        } catch (Exception e) {
+//            log.error("OAuth2 callback failed: {}", e.getMessage(), e);
+//
+//            // Redirect to login page with error
+//            String frontendUrl = System.getenv("FRONT_URL");
+//            if (frontendUrl == null || frontendUrl.isEmpty()) {
+//                frontendUrl = "http://localhost:4200";
+//            }
+//
+//            return ResponseEntity
+//                    .status(HttpStatus.FOUND)
+//                    .header("Location", frontendUrl + "/auth/login?error=oauth2")
+//                    .build();
+//        }
+//    }
 
     // =========================================================================
     // Public Authentication Endpoints

@@ -160,14 +160,19 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginTokens oauth2Login(String provider, String providerId, String email,
                                    String username, String name, HttpServletRequest request) {
-        log.info("OAuth2 login attempt with provider: {} for email: {}", provider, email);
+        log.info("OAuth2 login attempt with provider: {} for username: {}", provider, username);
 
         try {
-            // 1. Chercher ou créer l'utilisateur
-            User user = userService.getByOauthProviderAndOauthProviderId(provider, providerId);
+            User user;
 
-            if(user == null){
-                createOAuth2User(provider, providerId, email, username, name);
+            // 1. ✅ Chercher ou créer l'utilisateur (avec try-catch car getByOauthProviderAndOauthProviderId lance une exception)
+            try {
+                user = userService.getByOauthProviderAndOauthProviderId(provider, providerId);
+                log.info("Existing OAuth2 user found: {}", user.getUsername());
+            } catch (Exception e) {
+                // User doesn't exist, create it
+                log.info("Creating new OAuth2 user with provider: {}, providerId: {}", provider, providerId);
+                user = createOAuth2User(provider, providerId, email, username, name);
             }
 
             // 2. Détecter et enregistrer l'appareil
@@ -188,29 +193,39 @@ public class AuthServiceImpl implements AuthService {
             return tokens;
 
         } catch (Exception e) {
-            log.error("OAuth2 login failed for provider: {} - {}", provider, e.getMessage());
-            throw new InvalidOAuth2CredentialsException("OAuth2 authentication failed");
+            log.error("OAuth2 login failed for provider: {} - {}", provider, e.getMessage(), e);
+            throw new InvalidOAuth2CredentialsException("OAuth2 authentication failed: " + e.getMessage());
         }
     }
 
     private User createOAuth2User(String provider, String providerId, String email,
                                   String username, String name) {
         User newUser = new User();
+
+        // ✅ Générer un email temporaire si GitHub ne fournit pas d'email
+        if (email == null || email.isBlank()) {
+            email = username + "@" + provider.toLowerCase() + ".oauth.local";
+            log.warn("No email provided by OAuth provider, using temporary email: {}", email);
+        }
+
         newUser.setEmail(email);
         newUser.setUsername(username);
 
         // Parser le nom complet
-        if (name != null) {
+        if (name != null && !name.isBlank()) {
             String[] names = name.split(" ", 2);
             newUser.setFirstname(names[0]);
             if (names.length > 1) {
                 newUser.setLastname(names[1]);
             }
+        } else {
+            // Fallback si pas de nom
+            newUser.setFirstname(username);
         }
 
         newUser.setOauthProvider(provider);
         newUser.setOauthProviderId(providerId);
-        newUser.setEmailVerified(true); // OAuth providers vérifient l'email
+        newUser.setEmailVerified(email.endsWith(".oauth.local") ? false : true); // Ne pas marquer comme vérifié si email temporaire
         newUser.setEnabled(true);
         newUser.setUserRoles(UserRole.setRoles(UserRole.USER));
         newUser.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); // Random password
@@ -218,7 +233,10 @@ public class AuthServiceImpl implements AuthService {
         newUser.setEverActivated(true);
         newUser.setActivatedAt(Instant.now());
 
-        return userService.saveUser(newUser);
+        User savedUser = userService.saveUser(newUser);
+        log.info("New OAuth2 user created successfully: {}", savedUser.getUsername());
+
+        return savedUser;
     }
 
     @Override
