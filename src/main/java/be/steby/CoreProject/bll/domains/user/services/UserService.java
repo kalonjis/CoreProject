@@ -22,7 +22,24 @@ public interface UserService {
     Page<User> searchUsersByCriteria(String username, String firstname, String lastname,
                                      String email, String phoneNumber, Pageable pageable);
 
-    User getByOauthProviderAndOauthProviderId(String provider, String providerId);
+//    User getByOauthProviderAndOauthProviderId(String provider, String providerId);
+
+    /**
+     * Finds a user for OAuth reconciliation using a two-step strategy:
+     * 1. By email (if valid email provided and not a temporary OAuth email)
+     * 2. By OAuth provider credentials
+     *
+     * This method is used during OAuth login to determine if a user already exists
+     * before creating a new account.
+     *
+     * @param provider OAuth provider name (e.g., GITHUB, GOOGLE)
+     * @param providerId User ID from OAuth provider
+     * @param email User email from OAuth provider (may be null or temporary)
+     * @return Optional containing user if found by either strategy, empty otherwise
+     */
+    Optional<User> findUserForOAuthReconciliation(String provider, String providerId, String email);
+
+
 
     User getUserById(Long id);
 

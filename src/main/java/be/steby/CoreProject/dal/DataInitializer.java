@@ -43,9 +43,9 @@ public class DataInitializer implements CommandLineRunner {
         );
         User user2 = new User(
                 "steby",
-                "Soufiane",
-                "ScrumMaster",
-                "kalonj1981@hotmail.com",
+                "steph",
+                "CTO",
+                "kalonjis@outlook.com",
                 "0498/56.78.90",
                 "Test1234!",
                 UserRole.setRoles(UserRole.ADMIN)
