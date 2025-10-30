@@ -97,42 +97,38 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
             return;
         }
 
-//        try {
-            // Get authenticated user from Security Context (set by JwtFilter)
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-            if (authentication != null
-                    && authentication.isAuthenticated()
-                    && authentication.getPrincipal() instanceof User user) {
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && authentication.getPrincipal() instanceof User user) {
 
-                // Check if user must change password
-                if (user.isMustChangePassword()) {
-                    log.debug("User {} has mustChangePassword=true, checking endpoint access",
-                            user.getUsername());
+            // Check if user must change password
+            if (user.isMustChangePassword()) {
+                log.debug("User {} has mustChangePassword=true, checking endpoint access",
+                        user.getUsername());
 
-                    // Check if current endpoint is allowed
-                    if (!isEndpointAllowed(requestURI)) {
-                        log.warn("User {} attempted to access {} but must change password first",
-                                user.getUsername(), requestURI);
-
-                        // ✅ Throw exception - will be caught and delegated below
-                        throw new PasswordChangeRequiredException(
-                                "You must change your password before accessing this resource."
-                        );
-                    }
-
-                    log.debug("User {} accessing allowed endpoint: {}", user.getUsername(), requestURI);
+                // Check if current endpoint is allowed
+                if (!isEndpointAllowed(requestURI)) {
+                    log.warn("User {} attempted to access {} but must change password first",
+                            user.getUsername(), requestURI);
+                    filterChain.doFilter(request, response);
+                    return;
                 }
+
+                // ✅ Throw exception - will be caught and delegated below
+                throw new PasswordChangeRequiredException(
+                        "You must change your password before accessing this resource."
+                );
+                }
+
+                log.debug("User {} accessing allowed endpoint: {}", user.getUsername(), requestURI);
             }
 
             filterChain.doFilter(request, response);
+        }
 
-//        } catch (PasswordChangeRequiredException ex) {
-//            // ✅ CRITICAL: Delegate to ControllerAdvisor via HandlerExceptionResolver
-//            // This ensures the exception is handled consistently with controller exceptions
-//            exceptionResolver.resolveException(request, response, null, ex);
-//        }
-    }
+
 
     /**
      * Checks if the request URI matches any public route from SecurityConstants.

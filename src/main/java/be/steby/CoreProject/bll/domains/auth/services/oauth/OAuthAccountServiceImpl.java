@@ -60,13 +60,6 @@ public class OAuthAccountServiceImpl implements OAuthAccountService {
                     );
                 }
 
-                // 🔒 SECURITY: Don't link OAuth if password must be changed
-                if (user.isMustChangePassword()) {
-                    log.warn("Cannot link OAuth - user must change password first: {}", user.getUsername());
-                    throw new PasswordChangeRequiredException(
-                            "You must change your password before linking an OAuth account"
-                    );
-                }
                 log.info("Found existing user by email, linking OAuth account - user: {}", user.getUsername());
 
                 // Create and link OAuth account
