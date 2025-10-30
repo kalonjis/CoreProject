@@ -1,9 +1,11 @@
 package be.steby.CoreProject.bll.domains.auth.services.oauth;
 
 import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
+import be.steby.CoreProject.bll.domains.auth.exceptions.BlacklistedDeviceException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidOAuth2ProviderException;
 import be.steby.CoreProject.bll.domains.auth.models.LoginTokens;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
@@ -59,6 +61,8 @@ public class OAuthServiceImpl implements OAuthService {
             // 3. Detect or register device
             Device device = deviceService.detectAndRegisterDevice(request, user);
 
+            validateDeviceSecurity(user, device);
+
             // 4. Handle device state (reactivate if logged out)
             handleDeviceState(device);
 
@@ -67,6 +71,16 @@ public class OAuthServiceImpl implements OAuthService {
 
             // 6. Publish login event
             eventPublisher.publishEvent(new UserLoggedInEvent(user, device));
+
+            if (!device.isConfirmed()) {
+                eventPublisher.publishEvent(
+                            new DeviceSecurityEvent(
+                            user,
+                            device,
+                            DeviceSecurityEvent.DeviceSecurityType.UNCONFIRMED_DEVICE
+                    )
+                );
+            }
 
             log.info("OAuth2 login successful - user: {}, provider: {}", user.getUsername(), provider);
             return tokens;
@@ -100,6 +114,30 @@ public class OAuthServiceImpl implements OAuthService {
             device.setLoggedOut(false);
             deviceService.saveDevice(device);
             log.debug("Device {} reactivated after logout", device.getId());
+        }
+    }
+
+
+    /**
+     * Validates device is not blacklisted.
+     * Publishes security event if blacklisted device attempts login.
+     */
+    private void validateDeviceSecurity(User user, Device device) {
+        if (device.isBlacklisted()) {
+            // Publish security event for notification
+            eventPublisher.publishEvent(new DeviceSecurityEvent(
+                    user,
+                    device,
+                    DeviceSecurityEvent.DeviceSecurityType.BLACKLISTED_DEVICE_ATTEMPT
+            ));
+
+            log.warn("Login attempt blocked - blacklisted device {} for user {}",
+                    device.getId(), user.getUsername());
+
+            throw new BlacklistedDeviceException(
+                    "Access denied: This device has been blacklisted for security reasons. " +
+                            "Check your email for instructions on how to restore access."
+            );
         }
     }
 

@@ -23,7 +23,6 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
-import be.steby.CoreProject.dl.enums.UserRole;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,7 +37,6 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @Service

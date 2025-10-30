@@ -75,14 +75,6 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
             "/api/auth/status"              // ✅ Allow checking auth status
     );
 
-    /**
-     * Path prefixes that should be ignored by this filter.
-     * Public routes don't need mustChangePassword check.
-     */
-    private static final List<String> IGNORED_PATH_PREFIXES = List.of(
-            PUBLIC_ROUTES
-    );
-
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -112,19 +104,23 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
                 if (!isEndpointAllowed(requestURI)) {
                     log.warn("User {} attempted to access {} but must change password first",
                             user.getUsername(), requestURI);
-                    filterChain.doFilter(request, response);
-                    return;
+
+                    // 🔥 FIX: Lancer l'exception au lieu de continuer
+                    PasswordChangeRequiredException exception = new PasswordChangeRequiredException(
+                            "Password change required. Please change your password before accessing this resource."
+                    );
+
+                    // Déléguer à ControllerAdvisor via HandlerExceptionResolver
+                    exceptionResolver.resolveException(request, response, null, exception);
+                    return; // Important: ne pas continuer la chaîne de filtres
                 }
 
                 log.debug("User {} accessing allowed endpoint: {}", user.getUsername(), requestURI);
-                }
-
             }
-
-            filterChain.doFilter(request, response);
         }
 
-
+        filterChain.doFilter(request, response);
+    }
 
     /**
      * Checks if the request URI matches any public route from SecurityConstants.
@@ -144,7 +140,6 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
                     return requestURI.equals(publicRoute);
                 });
     }
-
 
     /**
      * Checks if the endpoint is allowed for users with mustChangePassword=true.
