@@ -114,17 +114,17 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Column(nullable = false)
     private String password;
 
-    /**
-     * OAuth provider name (e.g., GITHUB, GOOGLE)
-     */
-    @Column(name = "oauth_provider", length = 50)
-    private String oauthProvider;
-
-    /**
-     * OAuth provider user ID
-     */
-    @Column(name = "oauth_provider_id", length = 255)
-    private String oauthProviderId;
+//    /**
+//     * OAuth provider name (e.g., GITHUB, GOOGLE)
+//     */
+//    @Column(name = "oauth_provider", length = 50)
+//    private String oauthProvider;
+//
+//    /**
+//     * OAuth provider user ID
+//     */
+//    @Column(name = "oauth_provider_id", length = 255)
+//    private String oauthProviderId;
 
     /**
      * Whether the user has completed their profile according to application requirements.

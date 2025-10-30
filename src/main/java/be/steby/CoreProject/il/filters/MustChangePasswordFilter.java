@@ -97,7 +97,7 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
             return;
         }
 
-        try {
+//        try {
             // Get authenticated user from Security Context (set by JwtFilter)
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -127,11 +127,11 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
 
             filterChain.doFilter(request, response);
 
-        } catch (PasswordChangeRequiredException ex) {
-            // ✅ CRITICAL: Delegate to ControllerAdvisor via HandlerExceptionResolver
-            // This ensures the exception is handled consistently with controller exceptions
-            exceptionResolver.resolveException(request, response, null, ex);
-        }
+//        } catch (PasswordChangeRequiredException ex) {
+//            // ✅ CRITICAL: Delegate to ControllerAdvisor via HandlerExceptionResolver
+//            // This ensures the exception is handled consistently with controller exceptions
+//            exceptionResolver.resolveException(request, response, null, ex);
+//        }
     }
 
     /**

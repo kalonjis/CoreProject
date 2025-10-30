@@ -1,75 +1,60 @@
 package be.steby.CoreProject.bll.domains.auth.services.oauth;
 
 import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
+import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidOAuth2ProviderException;
 import be.steby.CoreProject.bll.domains.auth.models.LoginTokens;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
-import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
-import be.steby.CoreProject.dl.enums.UserRole;
+import be.steby.CoreProject.dl.enums.OAuthProvider;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Service implementation for handling OAuth2 authentication operations.
- * Manages user authentication and registration through OAuth2 providers (GitHub, Google, etc.).
+ * Orchestrates the complete OAuth login flow.
  *
- * Business logic:
- * 1. Email reconciliation: If email is provided, attempts to find existing user by email
- * 2. Provider reconciliation: If no email match, checks for existing OAuth provider credentials
- * 3. User creation: Creates new user if no match found
- * 4. Device detection: Registers or retrieves user's device
- * 5. Token generation: Creates access and refresh tokens
+ * Flow:
+ * 1. Validate and convert provider to enum
+ * 2. Find or create user via OAuthAccountService
+ * 3. Detect and register device
+ * 4. Generate JWT tokens
+ * 5. Publish login event
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class OAuthServiceImpl implements OAuthService {
 
-    private final UserService userService;
+    private final OAuthAccountService oauthAccountService;
     private final DeviceService deviceService;
     private final RefreshTokenServiceImpl refreshTokenService;
-    private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public LoginTokens oauth2Login(String provider, String providerId, String email,
                                    String username, String name, HttpServletRequest request) {
-        log.info("OAuth2 login attempt with provider: {} for username: {}", provider, username);
+        log.info("OAuth2 login attempt - provider: {}, username: {}", provider, username);
 
         try {
-            User user;
+            // 1. Convert and validate OAuth provider
+            OAuthProvider oauthProvider = convertToOAuthProvider(provider);
 
-            // 1. Try to find existing user using UserService reconciliation
-            Optional<User> existingUser = userService.findUserForOAuthReconciliation(provider, providerId, email);
-
-            if (existingUser.isPresent()) {
-                user = existingUser.get();
-                log.info("Found existing user: {}", user.getUsername());
-
-                // Update OAuth provider info if not already set
-                if (user.getOauthProvider() == null || user.getOauthProviderId() == null) {
-                    user.setOauthProvider(provider);
-                    user.setOauthProviderId(providerId);
-                    userService.saveUser(user);
-                    log.info("Updated OAuth provider info for user: {}", user.getUsername());
-                }
-            } else {
-                // 2. Create new user
-                user = createOAuthUser(provider, providerId, email, username, name);
-            }
+            // 2. Find or create user (delegates to OAuthAccountService)
+            User user = oauthAccountService.findOrCreateUserForOAuth(
+                    oauthProvider,
+                    providerId,
+                    email,
+                    username,
+                    name
+            );
 
             // 3. Detect or register device
             Device device = deviceService.detectAndRegisterDevice(request, user);
@@ -83,60 +68,28 @@ public class OAuthServiceImpl implements OAuthService {
             // 6. Publish login event
             eventPublisher.publishEvent(new UserLoggedInEvent(user, device));
 
-            log.info("OAuth2 login successful for user {} with provider {}", user.getUsername(), provider);
+            log.info("OAuth2 login successful - user: {}, provider: {}", user.getUsername(), provider);
             return tokens;
 
+        } catch (InvalidOAuth2ProviderException e) {
+            log.error("Invalid OAuth2 provider - provider: {}", provider);
+            throw e;
         } catch (Exception e) {
-            log.error("OAuth2 login failed for username: {} with provider: {}", username, provider, e);
+            log.error("OAuth2 login failed - username: {}, provider: {}", username, provider, e);
             throw new RuntimeException("OAuth2 authentication failed", e);
         }
     }
 
     /**
-     * Creates a new user from OAuth2 provider data.
-     * Generates temporary email if not provided by OAuth provider.
+     * Converts string provider to OAuthProvider enum.
+     * Throws InvalidOAuth2ProviderException if provider is not supported.
      */
-    private User createOAuthUser(String provider, String providerId, String email,
-                                 String username, String name) {
-        log.info("Creating new OAuth2 user with provider: {}, providerId: {}", provider, providerId);
-
-        User newUser = new User();
-        newUser.setUsername(username);
-        newUser.setOauthProvider(provider);
-        newUser.setOauthProviderId(providerId);
-
-        // Parse name if provided
-        if (name != null && !name.isBlank()) {
-            String[] nameParts = name.trim().split(" ", 2);
-            newUser.setFirstname(nameParts[0]);
-            if (nameParts.length > 1) {
-                newUser.setLastname(nameParts[1]);
-            }
+    private OAuthProvider convertToOAuthProvider(String provider) {
+        try {
+            return OAuthProvider.valueOf(provider.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw InvalidOAuth2ProviderException.unsupportedProvider(provider);
         }
-
-        // Email handling: use provided email or generate temporary one
-        if (email == null || email.isBlank()) {
-            String temporaryEmail = username + "@" + provider.toLowerCase() + ".oauth.local";
-            newUser.setEmail(temporaryEmail);
-            newUser.setEmailVerified(false);
-            log.warn("No email provided by OAuth provider, using temporary email: {}", temporaryEmail);
-        } else {
-            newUser.setEmail(email);
-            newUser.setEmailVerified(true);
-        }
-
-        // Set default user properties
-        newUser.setEnabled(true);
-        newUser.setUserRoles(UserRole.setRoles(UserRole.USER));
-        newUser.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); // Random password
-        newUser.setMustChangePassword(false);
-        newUser.setEverActivated(true);
-        newUser.setActivatedAt(Instant.now());
-
-        User savedUser = userService.saveUser(newUser);
-        log.info("New OAuth2 user created successfully: {}", savedUser.getUsername());
-
-        return savedUser;
     }
 
     /**

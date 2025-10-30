@@ -37,7 +37,7 @@ public interface UserService {
      * @param email User email from OAuth provider (may be null or temporary)
      * @return Optional containing user if found by either strategy, empty otherwise
      */
-    Optional<User> findUserForOAuthReconciliation(String provider, String providerId, String email);
+   // Optional<User> findUserForOAuthReconciliation(String provider, String providerId, String email);
 
 
 

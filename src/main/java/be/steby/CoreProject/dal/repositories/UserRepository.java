@@ -67,7 +67,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     @Query("SELECT u FROM User u WHERE u.publicId = :publicId")
     Optional<User> findByPublicId(String publicId);
 
-    Optional<User> findByOauthProviderAndOauthProviderId(String provider, String providerId);
+    //Optional<User> findByOauthProviderAndOauthProviderId(String provider, String providerId);
 
 }
 

@@ -36,7 +36,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Gunt",
                 "Gunter",
                 "Doofenshmirtz",
-                "leader@gmail.com",
+                "kalonjistephane@gmail.com",
                 "0417/89 62 32",
                 "Test1234!",
                 UserRole.setRoles(UserRole.SUPER_ADMIN)
@@ -45,7 +45,7 @@ public class DataInitializer implements CommandLineRunner {
                 "steby",
                 "steph",
                 "CTO",
-                "kalonjis@outlook.com",
+                "kalonj1981@hotmail.com",
                 "0498/56.78.90",
                 "Test1234!",
                 UserRole.setRoles(UserRole.ADMIN)
@@ -98,7 +98,8 @@ public class DataInitializer implements CommandLineRunner {
         );
 
 
-        users.get(1).setMustChangePassword(false);
+        users.get(0).setMustChangePassword(false);
+        //users.get(1).setMustChangePassword(false);
 
         userRepository.saveAll(users);
 
