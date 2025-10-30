@@ -36,15 +36,15 @@ public class DataInitializer implements CommandLineRunner {
                 "Gunt",
                 "Gunter",
                 "Doofenshmirtz",
-                "leader@gmail.com",
+                "fakeGunt@fake.com",
                 "0417/89 62 32",
                 "Test1234!",
                 UserRole.setRoles(UserRole.SUPER_ADMIN)
         );
         User user2 = new User(
                 "steby",
-                "Soufiane",
-                "ScrumMaster",
+                "steph",
+                "CTO",
                 "kalonj1981@hotmail.com",
                 "0498/56.78.90",
                 "Test1234!",

@@ -31,6 +31,7 @@ public interface AuthService extends UserDetailsService {
      */
     LoginTokens login(String username, String password, HttpServletRequest request);
 
+
     /**
      * Phase 1: Initiate login - validate credentials and check 2FA requirements
      *

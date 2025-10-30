@@ -5,6 +5,8 @@ import be.steby.CoreProject.bll.domains.auth.services.AuthService;
 import be.steby.CoreProject.il.filters.JwtFilter;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
 import be.steby.CoreProject.il.filters.MustChangePasswordFilter;
+import be.steby.CoreProject.il.security.OAuth2AuthenticationSuccessHandler;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,6 +33,7 @@ import static be.steby.CoreProject.il.utils.SecurityConstants.*;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@Slf4j
 public class SecurityConfig {
 
     @Value("${url.front_server}")
@@ -38,6 +41,13 @@ public class SecurityConfig {
 
     @Value("${url.back_server}")
     private String BACK_URL;
+
+    // ⭐ Inject the custom OAuth2 success handler
+    private final OAuth2AuthenticationSuccessHandler oauth2SuccessHandler;
+
+    public SecurityConfig(OAuth2AuthenticationSuccessHandler oauth2SuccessHandler) {
+        this.oauth2SuccessHandler = oauth2SuccessHandler;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -74,6 +84,12 @@ public class SecurityConfig {
                         // 2. OPTIONS requests - allow for CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        // ⭐ 3. OAuth2 routes - CORRECTION ICI
+                        .requestMatchers(
+                                "/oauth2/**",                    // Spring Security OAuth2 endpoints
+                                "/login/oauth2/code/**"          // GitHub callback endpoint
+                        ).permitAll()
+
                         // 3. Authenticated routes - require authentication but no specific role
                         .requestMatchers(AUTHENTICATED_ROUTES).authenticated()  // ✅ Explicit!
 
@@ -91,6 +107,21 @@ public class SecurityConfig {
 
                 // ========== Logout ==========
                 .logout(logout -> logout.disable())  // Custom logout in controller
+
+                // ⭐ ========== OAuth2 Login Configuration - CORRECTION ICI ==========
+                .oauth2Login(oauth2 -> oauth2
+                        // Allow access without authentication
+                        .permitAll()
+
+                        // ✅ Use custom success handler
+                        .successHandler(oauth2SuccessHandler)
+
+                        // Redirect to front in case of failure
+                        .failureHandler((request, response, exception) -> {
+                            log.error("OAuth2 authentication failed", exception);
+                            response.sendRedirect(FRONT_URL + "/auth/login?error=oauth2");
+                        })
+                )
 
                 // ========== JWT Filter ==========
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

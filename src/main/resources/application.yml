@@ -8,6 +8,7 @@ spring:
       - classpath:config/cache-user.yml
       - classpath:config/server.yml
       - classpath:config/security/jwt.yml
+      - classpath:config/security/oauth2.yml
       - classpath:config/security/tokens.yml
       - classpath:config/security/device.yml
       - classpath:config/security/emailaddress.yml

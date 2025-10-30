@@ -75,14 +75,6 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
             "/api/auth/status"              // ✅ Allow checking auth status
     );
 
-    /**
-     * Path prefixes that should be ignored by this filter.
-     * Public routes don't need mustChangePassword check.
-     */
-    private static final List<String> IGNORED_PATH_PREFIXES = List.of(
-            PUBLIC_ROUTES
-    );
-
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -97,41 +89,37 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
             return;
         }
 
-        try {
-            // Get authenticated user from Security Context (set by JwtFilter)
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-            if (authentication != null
-                    && authentication.isAuthenticated()
-                    && authentication.getPrincipal() instanceof User user) {
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && authentication.getPrincipal() instanceof User user) {
 
-                // Check if user must change password
-                if (user.isMustChangePassword()) {
-                    log.debug("User {} has mustChangePassword=true, checking endpoint access",
-                            user.getUsername());
+            // Check if user must change password
+            if (user.isMustChangePassword()) {
+                log.debug("User {} has mustChangePassword=true, checking endpoint access",
+                        user.getUsername());
 
-                    // Check if current endpoint is allowed
-                    if (!isEndpointAllowed(requestURI)) {
-                        log.warn("User {} attempted to access {} but must change password first",
-                                user.getUsername(), requestURI);
+                // Check if current endpoint is allowed
+                if (!isEndpointAllowed(requestURI)) {
+                    log.warn("User {} attempted to access {} but must change password first",
+                            user.getUsername(), requestURI);
 
-                        // ✅ Throw exception - will be caught and delegated below
-                        throw new PasswordChangeRequiredException(
-                                "You must change your password before accessing this resource."
-                        );
-                    }
+                    // 🔥 FIX: Lancer l'exception au lieu de continuer
+                    PasswordChangeRequiredException exception = new PasswordChangeRequiredException(
+                            "Password change required. Please change your password before accessing this resource."
+                    );
 
-                    log.debug("User {} accessing allowed endpoint: {}", user.getUsername(), requestURI);
+                    // Déléguer à ControllerAdvisor via HandlerExceptionResolver
+                    exceptionResolver.resolveException(request, response, null, exception);
+                    return; // Important: ne pas continuer la chaîne de filtres
                 }
+
+                log.debug("User {} accessing allowed endpoint: {}", user.getUsername(), requestURI);
             }
-
-            filterChain.doFilter(request, response);
-
-        } catch (PasswordChangeRequiredException ex) {
-            // ✅ CRITICAL: Delegate to ControllerAdvisor via HandlerExceptionResolver
-            // This ensures the exception is handled consistently with controller exceptions
-            exceptionResolver.resolveException(request, response, null, ex);
         }
+
+        filterChain.doFilter(request, response);
     }
 
     /**
@@ -152,7 +140,6 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
                     return requestURI.equals(publicRoute);
                 });
     }
-
 
     /**
      * Checks if the endpoint is allowed for users with mustChangePassword=true.

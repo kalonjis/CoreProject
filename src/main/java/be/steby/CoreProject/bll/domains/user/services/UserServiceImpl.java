@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Updated UserService implementation with intelligent caching integration.
@@ -75,6 +76,37 @@ public class UserServiceImpl implements UserService {
                 UserSpecification.searchByCriteria(username, firstname, lastname, email, phoneNumber),
                 pageable);
     }
+
+//    @Override
+//    public User getByOauthProviderAndOauthProviderId(String provider, String providerId) {
+//        return userRepository.findByOauthProviderAndOauthProviderId(provider, providerId)
+//                .orElseThrow(()-> new UserNotFoundException("No user fond from " + provider + "with providerId : " + providerId));
+//    }
+
+//    @Override
+//    public Optional<User> findUserForOAuthReconciliation(String provider, String providerId, String email) {
+//        log.debug("OAuth reconciliation attempt - provider: {}, providerId: {}, email: {}",
+//                provider, providerId, email);
+//
+//        // Strategy 1: Find by email (if valid email provided)
+//        if (email != null && !email.isBlank() && !email.contains("@oauth.local")) {
+//            Optional<User> userByEmail = userRepository.findByEmailIgnoreCase(email);
+//            if (userByEmail.isPresent()) {
+//                log.info("User found by email reconciliation: {}", email);
+//                return userByEmail;
+//            }
+//        }
+//
+//        // Strategy 2: Find by OAuth provider credentials
+//        Optional<User> userByOAuth = userRepository.findByOauthProviderAndOauthProviderId(provider, providerId);
+//        if (userByOAuth.isPresent()) {
+//            log.info("User found by OAuth provider credentials: {} - {}", provider, providerId);
+//            return userByOAuth;
+//        }
+//
+//        log.debug("No existing user found for OAuth reconciliation");
+//        return Optional.empty();
+//    }
 
     @Override
     public User getUserById(Long id) {
