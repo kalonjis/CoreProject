@@ -116,13 +116,9 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
                     return;
                 }
 
-                // ✅ Throw exception - will be caught and delegated below
-                throw new PasswordChangeRequiredException(
-                        "You must change your password before accessing this resource."
-                );
+                log.debug("User {} accessing allowed endpoint: {}", user.getUsername(), requestURI);
                 }
 
-                log.debug("User {} accessing allowed endpoint: {}", user.getUsername(), requestURI);
             }
 
             filterChain.doFilter(request, response);
