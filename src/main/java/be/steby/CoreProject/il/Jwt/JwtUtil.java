@@ -2,6 +2,7 @@ package be.steby.CoreProject.il.Jwt;
 
 import be.steby.CoreProject.bll.common.exceptions.phone.InvalidPhoneVerificationTokenException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidTwoFactorTokenException;
+import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordResetTokenException;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
@@ -226,6 +227,140 @@ public class JwtUtil {
         } catch (Exception e) {
             // Convert any other JWT exception to our custom exception
             throw new InvalidPhoneVerificationTokenException("Invalid or expired SMS verification token: " + e.getMessage(), e);
+        }
+    }
+
+
+    /**
+     * Generates a JWT token for password reset SMS verification.
+     *
+     * <p>Similar to phone verification token but specific to password reset flow.
+     * Contains the user's email, hashed verification code, and expiration.
+     *
+     * @param email the user's email address (identifier)
+     * @param hashedVerificationCode the hashed 6-digit verification code
+     * @return JWT token for password reset SMS verification
+     */
+    public String generatePasswordResetSmsToken(String email, String hashedVerificationCode) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("purpose", "PASSWORD_RESET_SMS");
+        claims.put("email", email);
+        claims.put("verificationCodeHash", hashedVerificationCode);
+
+        // Shorter expiration for password reset (10 minutes vs 15 for phone verification)
+        long expiration = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(email)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /**
+     * Validates a password reset SMS verification token.
+     *
+     * <p>Extracts and validates the claims from the JWT token. Ensures the token
+     * is specifically for password reset SMS verification and contains all required data.
+     *
+     * @param token the JWT token to validate
+     * @return Claims if token is valid
+     * @throws InvalidPasswordResetTokenException if token is invalid or wrong purpose
+     */
+    public Claims validatePasswordResetSmsToken(String token) {
+        try {
+            Claims claims = validateToken(token);
+
+            String purpose = claims.get("purpose", String.class);
+            if (!"PASSWORD_RESET_SMS".equals(purpose)) {
+                throw new InvalidPasswordResetTokenException("Invalid token purpose for password reset SMS verification");
+            }
+
+            // Verify that required claims exist
+            String email = claims.get("email", String.class);
+            String verificationCodeHash = claims.get("verificationCodeHash", String.class);
+
+            if (email == null || verificationCodeHash == null) {
+                throw new InvalidPasswordResetTokenException("Missing required claims in password reset SMS token");
+            }
+
+            return claims;
+
+        } catch (InvalidPasswordResetTokenException e) {
+            // Re-throw our custom exception
+            throw e;
+        } catch (Exception e) {
+            // Convert any other JWT exception to our custom exception
+            throw new InvalidPasswordResetTokenException("Invalid or expired password reset SMS token: " + e.getMessage(), e);
+        }
+    }
+
+
+    /**
+     * Generates a JWT token granting permission to reset password.
+     *
+     * <p>This token is issued after successful SMS code verification and grants
+     * the user permission to access the password reset page. It has a longer
+     * expiration than the SMS verification token.
+     *
+     * @param email the user's email address (identifier)
+     * @return JWT token granting password reset permission
+     */
+    public String generatePasswordResetPermissionToken(String email) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("purpose", "PASSWORD_RESET_PERMISSION");
+        claims.put("email", email);
+        claims.put("grantedAt", System.currentTimeMillis());
+
+        // Longer expiration for password reset permission (15 minutes)
+        long expiration = 15 * 60 * 1000; // 15 minutes in milliseconds
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(email)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /**
+     * Validates a password reset permission token.
+     *
+     * <p>Ensures the token grants valid permission to reset password and
+     * extracts the user's email for authorization purposes.
+     *
+     * @param token the JWT permission token to validate
+     * @return Claims if token is valid
+     * @throws InvalidPasswordResetTokenException if token is invalid or wrong purpose
+     */
+    public Claims validatePasswordResetPermissionToken(String token) {
+        try {
+            Claims claims = validateToken(token);
+
+            String purpose = claims.get("purpose", String.class);
+            if (!"PASSWORD_RESET_PERMISSION".equals(purpose)) {
+                throw new InvalidPasswordResetTokenException("Invalid token purpose for password reset permission");
+            }
+
+            // Verify that required claims exist
+            String email = claims.get("email", String.class);
+            Long grantedAt = claims.get("grantedAt", Long.class);
+
+            if (email == null || grantedAt == null) {
+                throw new InvalidPasswordResetTokenException("Missing required claims in password reset permission token");
+            }
+
+            return claims;
+
+        } catch (InvalidPasswordResetTokenException e) {
+            // Re-throw our custom exception
+            throw e;
+        } catch (Exception e) {
+            // Convert any other JWT exception to our custom exception
+            throw new InvalidPasswordResetTokenException("Invalid or expired password reset permission token: " + e.getMessage(), e);
         }
     }
 
