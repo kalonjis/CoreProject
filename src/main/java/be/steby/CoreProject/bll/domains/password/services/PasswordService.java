@@ -87,4 +87,15 @@ public interface PasswordService {
      */
     SmsVerificationResult verifySmsPasswordResetCode(VerifySmsPasswordResetBLLRequest request);
 
+
+    /**
+     * Resets password using a permission token (from SMS verification).
+     *
+     * @param request contains the new password
+     * @param email user email from permission token
+     * @param httpRequest HTTP request for auditing
+     * @throws PasswordDomainException if validation fails
+     */
+//    void resetPasswordWithPermission(ResetPasswordBLLRequest request, String email, HttpServletRequest httpRequest);
+
 }

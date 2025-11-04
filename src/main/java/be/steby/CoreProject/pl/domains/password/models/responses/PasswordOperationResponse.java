@@ -72,4 +72,16 @@ public record PasswordOperationResponse(
                 "If your request was valid, a new password reset link has been sent to your email."
         );
     }
+
+    public static PasswordOperationResponse smsCodeVerified() {
+        return new PasswordOperationResponse("SMS code verified successfully. You can now reset your password.");
+    }
+
+    public static PasswordOperationResponse smsCodeVerificationFailed() {
+        return new PasswordOperationResponse("Invalid or expired SMS verification code.");
+    }
+
+    public static PasswordOperationResponse invalidPermissionToken() {
+        return new PasswordOperationResponse("Invalid or expired permission token. Please restart the password reset process.");
+    }
 }

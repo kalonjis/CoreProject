@@ -9,16 +9,17 @@ import be.steby.CoreProject.bll.domains.password.events.RequestPasswordTokenEven
 import be.steby.CoreProject.bll.domains.password.events.sms.PasswordResetSmsRequestedEvent;
 import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordException;
 import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordResetTokenException;
+import be.steby.CoreProject.bll.domains.password.exceptions.PasswordDomainException;
 import be.steby.CoreProject.bll.domains.password.exceptions.PasswordRequestValidationException;
 import be.steby.CoreProject.bll.domains.password.models.*;
 import be.steby.CoreProject.bll.exceptions.TokenValidityException;
 import be.steby.CoreProject.bll.exceptions.UserAuthenticationStateException;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTokenServiceImpl;
-import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
 import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
+import be.steby.CoreProject.il.Jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -39,10 +40,10 @@ public class PasswordServiceImpl implements PasswordService {
     private final PasswordCodeService passwordCodeService;
     private final PasswordResetTokenServiceImpl passwordResetTokenService;
     private final PasswordPolicyService passwordPolicyService;
-    private final PasswordSmsNotificationService passwordSmsNotificationService;
     private final DeviceService deviceService;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final ApplicationEventPublisher eventPublisher;
+    private final JwtUtil jwtUtil;
 
     @Value("${url.front_server}")
     private String FRONT_URL;
@@ -311,6 +312,48 @@ public class PasswordServiceImpl implements PasswordService {
             return SmsPasswordResetResult.failure(); // Return failure instead of throwing
         }
     }
+
+
+//    @Override
+//    public void resetPasswordWithPermission(ResetPasswordBLLRequest request, String permissionToken, HttpServletRequest httpRequest) {
+//        log.debug("Processing password reset with permission token");
+//
+//        // Business validation
+//        validateResetPasswordRequest(request);
+//
+//        // Security check: must be anonymous (not authenticated)
+//        checkIsAnonymous();
+//
+//        try {
+//            // Validate permission token and extract claims (logique métier ici)
+//            Claims claims = jwtUtil.validatePasswordResetPermissionToken(permissionToken);
+//            String email = claims.get("email", String.class);
+//
+//            log.debug("Password reset with permission for email: {}", email);
+//
+//            // Find user by email
+//            User user = userService.getUserByEmail(email);
+//
+//            // Apply password policies and update password
+//            passwordPolicyService.validatePassword(request.newPassword(), user);
+//
+//            // Update password
+//            user.setPassword(passwordEncoder.encode(request.newPassword()));
+//            userRepository.save(user);
+//
+//            // Audit logging
+//           // auditService.logPasswordReset(user, httpRequest, "SMS_PERMISSION");
+//
+//            log.info("Password reset completed successfully for user: {} using permission token", user.getUsername());
+//
+//        } catch (InvalidPasswordResetTokenException e) {
+//            log.warn("Invalid permission token provided: {}", e.getMessage());
+//            throw PasswordDomainException("Invalid or expired permission token");
+//        } catch (Exception e) {
+//            log.error("Unexpected error during permission-based password reset: {}", e.getMessage(), e);
+//            throw PasswordDomainException("Password reset failed");
+//        }
+//    }
 
     /**
      * Masks phone number for display in email notifications.

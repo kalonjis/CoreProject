@@ -1,4 +1,4 @@
-package be.steby.CoreProject.pl.domains.auth.models.requests;
+package be.steby.CoreProject.pl.domains.password.models.requests;
 
 import be.steby.CoreProject.bll.domains.password.models.VerifySmsPasswordResetBLLRequest;
 import jakarta.validation.constraints.NotBlank;

@@ -1,9 +1,11 @@
 package be.steby.CoreProject.pl.domains.password.controllers;
 
 import be.steby.CoreProject.bll.domains.password.models.SmsPasswordResetResult;
+import be.steby.CoreProject.bll.domains.password.models.SmsVerificationResult;
 import be.steby.CoreProject.bll.domains.password.services.PasswordService;
 import be.steby.CoreProject.bll.domains.password.services.cookies.PasswordCookieService;
 import be.steby.CoreProject.dl.enums.NotificationType;
+import be.steby.CoreProject.pl.domains.password.models.requests.VerifySmsPasswordResetRequest;
 import be.steby.CoreProject.pl.domains.password.models.requests.ChangePasswordRequest;
 import be.steby.CoreProject.pl.domains.password.models.requests.ForgotPasswordRequest;
 import be.steby.CoreProject.pl.domains.password.models.requests.ResetPasswordRequest;
@@ -169,6 +171,94 @@ public class PasswordController {
 
         return ResponseEntity.ok(PasswordOperationResponse.passwordChanged());
     }
+
+
+    /**
+     * Verifies SMS password reset code and grants permission to reset password.
+     *
+     * <p>Validates the user-provided 6-digit code against the hashed code stored
+     * in the JWT token from the verification cookie. If validation succeeds,
+     * generates a permission token that allows access to the password reset page.
+     *
+     * <p><strong>Security:</strong> Code must match exactly. Only anonymous users allowed.
+     *
+     * <p><strong>Endpoint:</strong> POST /api/password/verify-sms-code
+     *
+     * @param request Contains the 6-digit verification code
+     * @param cookieValue JWT token from the password_reset_sms_token cookie
+     * @param httpResponse HTTP response for setting permission cookie
+     * @return Success message if code verification succeeds
+     */
+    @PostMapping("/verify-sms-code")
+    public ResponseEntity<PasswordOperationResponse> verifySmsCode(
+            @Valid @RequestBody VerifySmsPasswordResetRequest request,
+            @CookieValue(name = "password_reset_sms_token") String cookieValue,
+            HttpServletResponse httpResponse) {
+
+        log.info("SMS password reset code verification attempted");
+
+        // Extract JWT token from cookie
+        String jwtToken = passwordCookieService.getVerificationToken(cookieValue);
+
+        // Verify the SMS code via service
+        SmsVerificationResult result = passwordService.verifySmsPasswordResetCode(
+                request.toBllModel(jwtToken)
+        );
+
+        if (result.success()) {
+            // Clear verification cookie and set permission cookie
+            passwordCookieService.clearVerificationCookie(httpResponse);
+            passwordCookieService.setPasswordResetPermissionCookie(httpResponse, result.resetPermissionToken());
+
+            log.debug("SMS code verified successfully, permission cookie set");
+            return ResponseEntity.ok(PasswordOperationResponse.smsCodeVerified());
+        } else {
+            // Clear verification cookie on failure
+            passwordCookieService.clearVerificationCookie(httpResponse);
+
+            log.warn("SMS code verification failed");
+            return ResponseEntity.badRequest()
+                    .body(PasswordOperationResponse.smsCodeVerificationFailed());
+        }
+    }
+
+
+    /**
+     * Completes password reset using permission token from SMS verification.
+     *
+     * <p>This endpoint uses the permission token set after successful SMS code
+     * verification. The token grants temporary access to reset the password
+     * without needing the original email token.
+     *
+     * <p><strong>Security:</strong> Permission token expires after 15 minutes.
+     * Only anonymous users allowed.
+     *
+     * <p><strong>Endpoint:</strong> PUT /api/password/reset-with-permission
+     *
+     * @param request Contains the new password
+     * @param permissionToken JWT permission token from cookie
+     * @param httpRequest HTTP request for logging/auditing
+     * @param httpResponse HTTP response for clearing permission cookie
+     * @return Success message if password was reset
+     */
+//    @PutMapping("/reset-with-permission")
+//    public ResponseEntity<PasswordOperationResponse> resetPasswordWithPermission(
+//            @Valid @RequestBody ResetPasswordRequest request,
+//            @CookieValue(name = "password_reset_permission") String permissionToken,
+//            HttpServletRequest httpRequest,
+//            HttpServletResponse httpResponse) {
+//
+//        log.info("Password reset with permission token attempted");
+//
+//        // Conversion PL -> BLL via toBllModel()
+//        passwordService.resetPasswordWithPermission(request.toBllModel(), permissionToken, httpRequest);
+//
+//        // Clear permission cookie after successful reset
+//        passwordCookieService.clearPasswordResetPermissionCookie(httpResponse);
+//
+//        log.info("Password reset completed successfully using permission token");
+//        return ResponseEntity.ok(PasswordOperationResponse.passwordReset());
+//    }
 
 
 }
