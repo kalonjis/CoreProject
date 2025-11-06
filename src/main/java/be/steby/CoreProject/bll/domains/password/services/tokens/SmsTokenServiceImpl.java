@@ -73,7 +73,7 @@ public class SmsTokenServiceImpl extends BaseTokenServiceImpl<SmsToken> {
      * @param passwordEncoder Encoder for hashing verification codes
      */
     public SmsTokenServiceImpl(
-            @Qualifier("smsPasswordResetTokenRepository") SmsTokenRepository smsTokenRepository,
+            @Qualifier("smsTokenRepository") SmsTokenRepository smsTokenRepository,
             SmsAttemptServiceImpl smsAttemptService,
             SecureTokenService secureTokenService,
             TemporaryPasswordGeneratorService passwordGeneratorService,

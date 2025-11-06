@@ -63,7 +63,7 @@ public class SmsToken extends BaseToken {
      * the provided code should be hashed using the same algorithm and compared
      * against this stored hash.</p>
      */
-    @Column(name = "verification_code_hash", nullable = false, length = 60)
+    @Column(name = "verification_code_hash", length = 60)
     private String verificationCodeHash;
 
     /**
