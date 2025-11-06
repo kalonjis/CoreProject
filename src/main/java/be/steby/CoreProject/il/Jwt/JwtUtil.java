@@ -429,6 +429,7 @@ public class JwtUtil {
 
 
 
+
     private String generateToken(User user, Device device, long expiration) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("username", user.getUsername());
