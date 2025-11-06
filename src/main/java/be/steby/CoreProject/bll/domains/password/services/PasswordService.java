@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.password.services;
 
 import be.steby.CoreProject.bll.domains.password.exceptions.PasswordDomainException;
+import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordResetTokenException;
 import be.steby.CoreProject.bll.domains.password.models.*;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -91,11 +92,15 @@ public interface PasswordService {
     /**
      * Resets password using a permission token (from SMS verification).
      *
-     * @param request contains the new password
-     * @param email user email from permission token
-     * @param httpRequest HTTP request for auditing
-     * @throws PasswordDomainException if validation fails
+     * <p>This method is used after successful SMS code verification. The permission token
+     * grants temporary access to reset the password without needing the original email token.
+     * All active user sessions are invalidated for security.
+     *
+     * @param request contains permission token and new password
+     * @throws PasswordDomainException if token is invalid or password fails validation
+     * @throws InvalidPasswordResetTokenException if permission token is invalid or expired
      */
-//    void resetPasswordWithPermission(ResetPasswordBLLRequest request, String email, HttpServletRequest httpRequest);
+    void resetPasswordWithPermission(ResetPasswordWithPermissionBLLRequest request);
+
 
 }

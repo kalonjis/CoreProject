@@ -112,6 +112,7 @@ public class SecurityConstants {
             "/api/password/forgot",
             "/api/password/reset",
             "/api/password/verify-sms-code",
+            "/api/password/reset-with-permission",
             "/api/password/reset/resend"
     };
 
@@ -128,6 +129,7 @@ public class SecurityConstants {
             "/api/password/reset",
             "/api/password/reset/resend",
             "/api/password/verify-sms-code",
+            "/api/password/reset-with-permission",
             // TODO delete "change" from passwordcsrfignore in prod
             "/api/password/change"
     };

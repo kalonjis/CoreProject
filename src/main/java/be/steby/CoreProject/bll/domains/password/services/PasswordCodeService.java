@@ -90,10 +90,10 @@ public class PasswordCodeService {
 
     /**
      * Validates a provided SMS code against stored code in JWT token.
-     * 
+     *
      * <p>Extracts the hashed code from the JWT token and compares it with
      * the provided code using constant-time comparison for security.
-     * 
+     *
      * @param email the user's email (identifier)
      * @param providedCode the code provided by user
      * @param jwtToken the JWT token from storeSmsCode()
@@ -102,40 +102,72 @@ public class PasswordCodeService {
      */
     public boolean validateSmsCode(String email, String providedCode, String jwtToken) {
         log.debug("Validating SMS code for email: {}", email);
-        
+
         try {
             // Validate and extract claims from JWT token
             Claims claims = jwtUtil.validatePasswordResetSmsToken(jwtToken);
-            
-            // Extract stored data
-            String tokenEmail = claims.get("email", String.class);
-            String hashedCode = claims.get("verificationCodeHash", String.class);
-            
-            // Verify email matches (security check)
-            if (!email.equals(tokenEmail)) {
-                log.warn("Email mismatch in password reset SMS validation: expected {}, got {}", 
-                         email, tokenEmail);
-                return false;
-            }
-            
-            // Constant-time comparison to prevent timing attacks
-            boolean isValid = passwordEncoder.matches(providedCode, hashedCode);
-            
-            log.debug("SMS code validation result for email {}: {}", email, isValid);
-            return isValid;
-            
+
+            // Delegate to the new method that avoids double JWT parsing
+            return validateSmsCodeWithClaims(email, providedCode, claims);
+
         } catch (InvalidPasswordResetTokenException e) {
-            log.debug("SMS code validation failed for email {} - token invalid: {}", 
-                     email, e.getMessage());
+            log.debug("SMS code validation failed for email {} - token invalid: {}",
+                    email, e.getMessage());
             return false;
         } catch (Exception e) {
-            log.error("Unexpected error during SMS code validation for email {} - error: {}", 
-                     email, e.getMessage(), e);
+            log.error("Unexpected error during SMS code validation for email {} - error: {}",
+                    email, e.getMessage(), e);
             return false;
         }
     }
 
-    // Future methods for email codes if needed:
-    // public String storeEmailCode(String email, String code) { ... }
-    // public boolean validateEmailCode(String email, String providedCode, String token) { ... }
+    /**
+     * Validates a provided SMS code using pre-extracted JWT claims.
+     *
+     * <p>This method is useful when JWT claims have already been extracted
+     * to avoid double JWT token validation. Uses constant-time comparison
+     * for security.
+     *
+     * @param email the user's email (identifier)
+     * @param providedCode the code provided by user
+     * @param claims pre-extracted JWT claims containing verificationCodeHash
+     * @return true if code is valid
+     */
+    public boolean validateSmsCodeWithClaims(String email, String providedCode, Claims claims) {
+        log.debug("Validating SMS code for email: {} with pre-extracted claims", email);
+
+        try {
+            // Extract stored data from claims
+            String tokenEmail = claims.get("email", String.class);
+            String hashedCode = claims.get("verificationCodeHash", String.class);
+
+            // DEBUG LOGS - À SUPPRIMER EN PROD
+            log.debug("DEBUG - Token email: {}", tokenEmail);
+            log.debug("DEBUG - Provided code: '{}'", providedCode);
+            log.debug("DEBUG - Provided code length: {}", providedCode != null ? providedCode.length() : "null");
+            log.debug("DEBUG - Hashed code from JWT: {}", hashedCode != null ? hashedCode.substring(0, Math.min(20, hashedCode.length())) + "..." : "null");
+
+            // Verify email matches (security check)
+            if (!email.equals(tokenEmail)) {
+                log.warn("Email mismatch in password reset SMS validation: expected {}, got {}",
+                        email, tokenEmail);
+                return false;
+            }
+
+            // Test de validation AVANT le match pour voir si le passwordEncoder fonctionne
+            log.debug("DEBUG - About to call passwordEncoder.matches()");
+
+            // Constant-time comparison to prevent timing attacks
+            boolean isValid = passwordEncoder.matches(providedCode, hashedCode);
+
+            log.debug("DEBUG - passwordEncoder.matches() returned: {}", isValid);
+            log.debug("SMS code validation result for email {}: {}", email, isValid);
+            return isValid;
+
+        } catch (Exception e) {
+            log.error("Unexpected error during SMS code validation for email {} - error: {}",
+                    email, e.getMessage(), e);
+            return false;
+        }
+    }
 }

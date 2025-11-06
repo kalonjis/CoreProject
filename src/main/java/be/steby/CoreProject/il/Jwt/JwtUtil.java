@@ -7,6 +7,7 @@ import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -232,6 +233,68 @@ public class JwtUtil {
 
 
     /**
+     * Generates a JWT token for password reset SMS reference.
+     *
+     * <p>Creates a lightweight reference token that links the cookie session
+     * to the database SMS token. Used for stateless session management.</p>
+     *
+     * <p>Pattern: Similar to generatePhoneVerificationToken but for password reset context.</p>
+     *
+     * @param tokenReference UUID reference to the database SMS token
+     * @return JWT token string for password reset SMS reference
+     */
+    public String generatePasswordResetSmsReferenceToken(String tokenReference) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("tokenRef", tokenReference);
+        claims.put("purpose", "PASSWORD_RESET_SMS_REFERENCE");
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject("password-reset-sms")
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + twoFactorTokenExpiration))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /**
+     * Validates and extracts claims from password reset SMS reference JWT token.
+     *
+     * <p>Pattern: Similar to validatePhoneVerificationToken but for password reset context.</p>
+     *
+     * @param token the JWT token to validate
+     * @return Claims if token is valid
+     * @throws InvalidPasswordResetTokenException if token is invalid or wrong purpose
+     */
+    public Claims validatePasswordResetSmsReferenceToken(String token) {
+        try {
+            Claims claims = validateToken(token);
+
+            String purpose = claims.get("purpose", String.class);
+            if (!"PASSWORD_RESET_SMS_REFERENCE".equals(purpose)) {
+                throw new InvalidPasswordResetTokenException("Invalid token purpose for password reset SMS reference");
+            }
+
+            // Verify that required claims exist
+            String tokenRef = claims.get("tokenRef", String.class);
+
+            if (tokenRef == null) {
+                throw new InvalidPasswordResetTokenException("Missing required tokenRef claim in password reset SMS reference token");
+            }
+
+            return claims;
+
+        } catch (InvalidPasswordResetTokenException e) {
+            // Re-throw our custom exception
+            throw e;
+        } catch (Exception e) {
+            // Convert any other JWT exception to our custom exception
+            throw new InvalidPasswordResetTokenException("Invalid or expired password reset SMS reference token: " + e.getMessage(), e);
+        }
+    }
+
+
+    /**
      * Generates a JWT token for password reset SMS verification.
      *
      * <p>Similar to phone verification token but specific to password reset flow.
@@ -386,5 +449,7 @@ public class JwtUtil {
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
+
+
 
 }

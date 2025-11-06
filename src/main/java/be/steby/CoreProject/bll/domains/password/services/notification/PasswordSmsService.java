@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.password.services;
+package be.steby.CoreProject.bll.domains.password.services.notification;
 
 import be.steby.CoreProject.bll.common.services.notification.sms.BaseSmsService;
 import be.steby.CoreProject.bll.domains.password.exceptions.PasswordRequestValidationException;
@@ -26,44 +26,39 @@ import java.security.SecureRandom;
  */
 @Service
 @Slf4j
-public class PasswordSmsNotificationService extends BaseSmsService {
+public class PasswordSmsService extends BaseSmsService {
 
     private final SecureRandom secureRandom;
 
-    public PasswordSmsNotificationService(SmsUtil smsUtil) {
+    public PasswordSmsService(SmsUtil smsUtil) {
         super(smsUtil);
         this.secureRandom = new SecureRandom();
     }
 
     /**
-     * Generates and sends a password reset verification code via SMS.
-     * 
-     * <p>This method generates a secure 6-digit code and sends it to the user's
-     * verified phone number. The code should be used for password reset verification
-     * and has a limited lifetime.
+     * Sends a pre-generated password reset verification code via SMS.
+     *
+     * <p>This method sends a provided verification code to the user's
+     * verified phone number. Used when the code is already generated
+     * and stored elsewhere (e.g., in JWT token).
      *
      * @param user the user requesting password reset
-     * @return the generated 6-digit verification code
+     * @param verificationCode the pre-generated verification code to send
      * @throws PasswordRequestValidationException if user cannot receive SMS
      */
     @Async("smsExecutor")
-    public void sendPasswordResetCode(User user) {
-        log.info("Generating and sending password reset SMS code to user: {}", user.getUsername());
+    public void sendPasswordResetCode(User user, String verificationCode) {
+        log.info("Sending pre-generated password reset SMS code to user: {}", user.getUsername());
 
         // Validate SMS requirements
         validateSmsRequirements(user);
 
-        // Generate secure 6-digit code
-        String verificationCode = generateSixDigitCode();
-
-        // Format and send SMS
+        // Format and send SMS with provided code
         String message = formatPasswordResetMessage(verificationCode);
         sendSms(message, user.getPhoneNumber());
 
         log.info("Password reset SMS code sent successfully to user: {} (phone: {}) CODE: {}",
-                 user.getUsername(), maskPhoneNumber(user.getPhoneNumber()), verificationCode );
-
-        //return verificationCode;
+                user.getUsername(), maskPhoneNumber(user.getPhoneNumber()), verificationCode);
     }
 
     /**

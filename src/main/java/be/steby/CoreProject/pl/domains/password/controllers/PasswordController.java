@@ -5,10 +5,7 @@ import be.steby.CoreProject.bll.domains.password.models.SmsVerificationResult;
 import be.steby.CoreProject.bll.domains.password.services.PasswordService;
 import be.steby.CoreProject.bll.domains.password.services.cookies.PasswordCookieService;
 import be.steby.CoreProject.dl.enums.NotificationType;
-import be.steby.CoreProject.pl.domains.password.models.requests.VerifySmsPasswordResetRequest;
-import be.steby.CoreProject.pl.domains.password.models.requests.ChangePasswordRequest;
-import be.steby.CoreProject.pl.domains.password.models.requests.ForgotPasswordRequest;
-import be.steby.CoreProject.pl.domains.password.models.requests.ResetPasswordRequest;
+import be.steby.CoreProject.pl.domains.password.models.requests.*;
 import be.steby.CoreProject.pl.domains.password.models.responses.PasswordOperationResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -231,34 +228,27 @@ public class PasswordController {
      * without needing the original email token.
      *
      * <p><strong>Security:</strong> Permission token expires after 15 minutes.
-     * Only anonymous users allowed.
+     * Only anonymous users allowed. All user sessions are invalidated after reset.
      *
      * <p><strong>Endpoint:</strong> PUT /api/password/reset-with-permission
      *
-     * @param request Contains the new password
-     * @param permissionToken JWT permission token from cookie
-     * @param httpRequest HTTP request for logging/auditing
-     * @param httpResponse HTTP response for clearing permission cookie
+     * @param request Contains permission token, new password and confirmation
      * @return Success message if password was reset
      */
-//    @PutMapping("/reset-with-permission")
-//    public ResponseEntity<PasswordOperationResponse> resetPasswordWithPermission(
-//            @Valid @RequestBody ResetPasswordRequest request,
-//            @CookieValue(name = "password_reset_permission") String permissionToken,
-//            HttpServletRequest httpRequest,
-//            HttpServletResponse httpResponse) {
-//
-//        log.info("Password reset with permission token attempted");
-//
-//        // Conversion PL -> BLL via toBllModel()
-//        passwordService.resetPasswordWithPermission(request.toBllModel(), permissionToken, httpRequest);
-//
-//        // Clear permission cookie after successful reset
-//        passwordCookieService.clearPasswordResetPermissionCookie(httpResponse);
-//
-//        log.info("Password reset completed successfully using permission token");
-//        return ResponseEntity.ok(PasswordOperationResponse.passwordReset());
-//    }
+    @PutMapping("/reset-with-permission")
+    public ResponseEntity<PasswordOperationResponse> resetPasswordWithPermission(
+            @CookieValue(name = "password_reset_permission") String permissionToken,
+            @Valid @RequestBody ResetPasswordWithPermissionRequest request) {
+
+        log.info("Password reset with permission token attempted");
+
+        // Service handles all validation and business logic
+        // Any exceptions are caught by ControllerAdvisor
+        passwordService.resetPasswordWithPermission(request.toBllModel(permissionToken));
+
+        log.info("Password reset with permission completed successfully");
+        return ResponseEntity.ok(PasswordOperationResponse.passwordReset());
+    }
 
 
 }

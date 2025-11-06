@@ -3,7 +3,7 @@ package be.steby.CoreProject.bll.domains.password.listeners;
 import be.steby.CoreProject.bll.domains.password.events.email.PasswordChangeEmailNotificationEvent;
 import be.steby.CoreProject.bll.domains.password.events.email.PasswordResetEmailRequestedEvent;
 import be.steby.CoreProject.bll.domains.password.events.email.PasswordResetTokenRefreshRequestedEvent;
-import be.steby.CoreProject.bll.domains.password.services.PasswordMailerService;
+import be.steby.CoreProject.bll.domains.password.services.notification.PasswordMailerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;

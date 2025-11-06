@@ -2,7 +2,7 @@ package be.steby.CoreProject.bll.domains.password.listeners;
 
 import be.steby.CoreProject.bll.domains.password.events.sms.PasswordChangeSmsAlertEvent;
 import be.steby.CoreProject.bll.domains.password.events.sms.PasswordResetSmsRequestedEvent;
-import be.steby.CoreProject.bll.domains.password.services.PasswordSmsNotificationService;
+import be.steby.CoreProject.bll.domains.password.services.notification.PasswordSmsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -32,31 +32,32 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class PasswordSmsNotificationListener {
 
-    private final PasswordSmsNotificationService passwordSmsNotificationService;
+    private final PasswordSmsService passwordSmsService;
 
     /**
      * Handles password reset SMS request events.
-     * 
-     * <p>Generates and sends a 6-digit verification code to the user's verified
-     * phone number. The code will be used for password reset verification.
-     * 
+     *
+     * <p>Sends the pre-generated verification code to the user's verified
+     * phone number. The code is already generated and stored in JWT token,
+     * so we must use the code from the event to maintain consistency.
+     *
      * @param event the password reset SMS request event
      */
     @EventListener
     @Async("smsExecutor")
     public void handlePasswordResetSmsRequested(PasswordResetSmsRequestedEvent event) {
         log.debug("Handling password reset SMS request for user: {}", event.user().getUsername());
-        
+
         try {
-            passwordSmsNotificationService.sendPasswordResetCode(event.user());
-            
-            // TODO: Store verification code for later validation
-            // This will be implemented when we create the SMS verification flow
-            
+            passwordSmsService.sendPasswordResetCode(
+                    event.user(),
+                    event.verificationCode()
+            );
+
             log.debug("Password reset SMS triggered successfully for user: {}", event.user().getUsername());
         } catch (Exception e) {
-            log.error("Failed to send password reset SMS for user: {} - error: {}", 
-                     event.user().getUsername(), e.getMessage(), e);
+            log.error("Failed to send password reset SMS for user: {} - error: {}",
+                    event.user().getUsername(), e.getMessage(), e);
             // Don't rethrow - SMS failure should not affect password reset process
         }
     }
@@ -75,7 +76,7 @@ public class PasswordSmsNotificationListener {
         log.debug("Handling password change SMS alert for user: {}", event.user().getUsername());
         
         try {
-            passwordSmsNotificationService.sendPasswordChangeAlert(event.user());
+            passwordSmsService.sendPasswordChangeAlert(event.user());
             log.debug("Password change SMS alert triggered successfully for user: {}", 
                      event.user().getUsername());
         } catch (Exception e) {
