@@ -11,6 +11,7 @@ import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordExcep
 import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordResetTokenException;
 import be.steby.CoreProject.bll.domains.password.exceptions.PasswordRequestValidationException;
 import be.steby.CoreProject.bll.domains.password.models.*;
+import be.steby.CoreProject.bll.domains.password.services.jwt.PasswordResetJwtService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.SmsTokenServiceImpl;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.bll.exceptions.TokenValidityException;
@@ -21,7 +22,6 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
 import be.steby.CoreProject.dl.entities.tokens.SmsToken;
 import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
-import be.steby.CoreProject.il.Jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -46,8 +46,8 @@ public class PasswordServiceImpl implements PasswordService {
     private final DeviceService deviceService;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final ApplicationEventPublisher eventPublisher;
-    private final JwtUtil jwtUtil;
     private final SmsTokenServiceImpl smsTokenService;
+    private final PasswordResetJwtService passwordResetJwtService;
 
     @Value("${url.front_server}")
     private String FRONT_URL;
@@ -172,7 +172,7 @@ public class PasswordServiceImpl implements PasswordService {
 
         try {
             // ✨ NOUVEAU: Validate JWT reference token and extract claims
-            Claims claims = jwtUtil.validatePasswordResetSmsReferenceToken(request.jwtToken());
+            Claims claims = passwordResetJwtService.validateSmsReferenceToken(request.jwtToken());
 
             // Extract token reference from JWT
             String tokenReference = claims.get("tokenRef", String.class);
@@ -201,7 +201,7 @@ public class PasswordServiceImpl implements PasswordService {
             }
 
             // Generate permission token for password reset access (keep JWT for this)
-            String permissionToken = jwtUtil.generatePasswordResetPermissionToken(user.getEmail());
+            String permissionToken = passwordResetJwtService.generatePermissionToken(user.getEmail());
 
             log.info("SMS password reset code verified successfully for user: {}", user.getUsername());
             return SmsVerificationResult.success(permissionToken);
@@ -310,7 +310,10 @@ public class PasswordServiceImpl implements PasswordService {
 
             // ✨ NOUVEAU: Create JWT reference token for cookie (lightweight session)
             String tokenReference = result.token().getToken();
-            String jwtReferenceToken = jwtUtil.generatePasswordResetSmsReferenceToken(tokenReference);
+            String jwtReferenceToken = passwordResetJwtService.generateSmsReferenceToken(
+                    user.getEmail(),
+                    tokenReference
+            );
 
             // Publish SMS event with the generated code
             eventPublisher.publishEvent(
@@ -343,7 +346,7 @@ public class PasswordServiceImpl implements PasswordService {
         checkIsAnonymous();
 
         // Validate permission token and extract claims
-        Claims claims = jwtUtil.validatePasswordResetPermissionToken(request.permissionToken());
+        Claims claims = passwordResetJwtService.validatePermissionToken(request.permissionToken());
         String email = claims.get("email", String.class);
 
         log.debug("Password reset with permission for email: {}", email);
@@ -389,47 +392,6 @@ public class PasswordServiceImpl implements PasswordService {
         }
     }
 
-
-//    @Override
-//    public void resetPasswordWithPermission(ResetPasswordBLLRequest request, String permissionToken, HttpServletRequest httpRequest) {
-//        log.debug("Processing password reset with permission token");
-//
-//        // Business validation
-//        validateResetPasswordRequest(request);
-//
-//        // Security check: must be anonymous (not authenticated)
-//        checkIsAnonymous();
-//
-//        try {
-//            // Validate permission token and extract claims (logique métier ici)
-//            Claims claims = jwtUtil.validatePasswordResetPermissionToken(permissionToken);
-//            String email = claims.get("email", String.class);
-//
-//            log.debug("Password reset with permission for email: {}", email);
-//
-//            // Find user by email
-//            User user = userService.getUserByEmail(email);
-//
-//            // Apply password policies and update password
-//            passwordPolicyService.validatePassword(request.newPassword(), user);
-//
-//            // Update password
-//            user.setPassword(passwordEncoder.encode(request.newPassword()));
-//            userRepository.save(user);
-//
-//            // Audit logging
-//           // auditService.logPasswordReset(user, httpRequest, "SMS_PERMISSION");
-//
-//            log.info("Password reset completed successfully for user: {} using permission token", user.getUsername());
-//
-//        } catch (InvalidPasswordResetTokenException e) {
-//            log.warn("Invalid permission token provided: {}", e.getMessage());
-//            throw PasswordDomainException("Invalid or expired permission token");
-//        } catch (Exception e) {
-//            log.error("Unexpected error during permission-based password reset: {}", e.getMessage(), e);
-//            throw PasswordDomainException("Password reset failed");
-//        }
-//    }
 
     /**
      * Masks phone number for display in email notifications.
