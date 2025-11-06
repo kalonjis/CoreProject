@@ -2,6 +2,7 @@ package be.steby.CoreProject.bll.domains.profile.services.notification;
 
 import be.steby.CoreProject.bll.common.exceptions.phone.PhoneException;
 import be.steby.CoreProject.bll.domains.profile.events.PhoneVerificationInitiatedEvent;
+import be.steby.CoreProject.bll.common.services.notification.sms.BaseSmsService;
 import be.steby.CoreProject.il.utils.SmsUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,7 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
-public class SmsNotificationService extends be.steby.CoreProject.bll.common.services.notification.sms.BaseSmsService {
+public class SmsNotificationService extends BaseSmsService {
 
     public SmsNotificationService(SmsUtil smsUtil) {
         super(smsUtil);

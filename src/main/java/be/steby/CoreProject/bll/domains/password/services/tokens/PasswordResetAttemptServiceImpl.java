@@ -13,7 +13,7 @@ public class PasswordResetAttemptServiceImpl extends BaseAttemptTrackerServiceIm
             UserAttemptRepository userAttemptRepository,
             @Value("${security.password-reset.max-attempts}") int maxAttempts,
             @Value("${security.password-reset.lockout-minutes}") int lockoutMinutes) {
-        super(userAttemptRepository, maxAttempts, lockoutMinutes, AttemptType.PASSWORD_RESSET);
+        super(userAttemptRepository, maxAttempts, lockoutMinutes, AttemptType.EMAIL_PASSWORD_RESET);
     }
 
 

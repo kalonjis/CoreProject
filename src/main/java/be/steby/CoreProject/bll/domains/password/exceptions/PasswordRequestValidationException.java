@@ -1,0 +1,40 @@
+package be.steby.CoreProject.bll.domains.password.exceptions;
+
+/**
+ * Exception thrown when password request data fails business validation.
+ * 
+ * <p>This exception is thrown when password-related request data does not meet
+ * business requirements that go beyond basic format validation. It represents
+ * business logic validation failures at the service layer.
+ * 
+ * <p>Common scenarios:
+ * <ul>
+ *   <li>Email address is null or blank in password reset request</li>
+ *   <li>Notification type is null in forgot password request</li>
+ *   <li>Request data fails normalization validation</li>
+ *   <li>Business rule violations in password operations</li>
+ * </ul>
+ * 
+ * <p>This exception results in HTTP 400 (Bad Request) responses.
+ */
+public class PasswordRequestValidationException extends PasswordDomainException {
+
+    /**
+     * Creates a new exception with a descriptive message.
+     *
+     * @param message message describing the validation failure
+     */
+    public PasswordRequestValidationException(String message) {
+        super(message);
+    }
+
+    /**
+     * Creates a new exception with a message and underlying cause.
+     *
+     * @param message message describing the validation failure
+     * @param cause the underlying cause of this validation failure
+     */
+    public PasswordRequestValidationException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}

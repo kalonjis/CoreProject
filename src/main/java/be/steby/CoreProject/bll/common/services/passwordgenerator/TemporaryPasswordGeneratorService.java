@@ -1,5 +1,7 @@
 package be.steby.CoreProject.bll.common.services.passwordgenerator;
 
+import be.steby.CoreProject.bll.common.exceptions.InvalidArgumentException;
+
 /**
  * Service for generating temporary passwords with multiple strategies.
  *
@@ -42,7 +44,7 @@ public interface TemporaryPasswordGeneratorService {
      *
      * @param length The desired length (must be >= minLength and <= maxLength)
      * @return A randomly generated secure password of the specified length
-     * @throws IllegalArgumentException if length is outside valid range
+     * @throws InvalidArgumentException if length is outside valid range
      */
     String generateStandard(int length);
 
@@ -59,7 +61,7 @@ public interface TemporaryPasswordGeneratorService {
      *
      * @param length The desired length
      * @return A human-friendly password without ambiguous characters
-     * @throws IllegalArgumentException if length is outside valid range
+     * @throws InvalidArgumentException if length is outside valid range
      */
     String generateHumanFriendly(int length);
 
@@ -76,7 +78,7 @@ public interface TemporaryPasswordGeneratorService {
      *
      * @param length The desired total length (separator not included)
      * @return A formatted password with dash separators
-     * @throws IllegalArgumentException if length is outside valid range
+     * @throws InvalidArgumentException if length is outside valid range
      */
     String generateFormatted(int length);
 
@@ -87,7 +89,7 @@ public interface TemporaryPasswordGeneratorService {
      * @param length The desired total length (separator not included)
      * @param blockSize Size of each block (must be between 2 and 8)
      * @return A formatted password with custom block size
-     * @throws IllegalArgumentException if parameters are invalid
+     * @throws InvalidArgumentException if parameters are invalid
      */
     String generateFormatted(int length, int blockSize);
 
@@ -117,4 +119,25 @@ public interface TemporaryPasswordGeneratorService {
      * @return An appropriately generated password
      */
     String generateForDeliveryMethod(String deliveryMethod, int length);
+
+
+    /**
+     * Generates a secure numeric verification code.
+     *
+     * <p>Creates a numeric-only code of specified length using SecureRandom.
+     * Ideal for SMS verification codes, email verification codes, or any
+     * scenario requiring purely numeric codes for easy input.
+     *
+     * <p>Examples:
+     * <ul>
+     *   <li>generateNumericCode(6) → "123456" (SMS codes)</li>
+     *   <li>generateNumericCode(8) → "12345678" (email codes)</li>
+     *   <li>generateNumericCode(4) → "1234" (PIN codes)</li>
+     * </ul>
+     *
+     * @param length the desired length of the numeric code (minimum 4, maximum 12)
+     * @return a secure numeric code of the specified length
+     * @throws InvalidArgumentException if length is outside valid range
+     */
+    String generateNumericCode(int length);
 }

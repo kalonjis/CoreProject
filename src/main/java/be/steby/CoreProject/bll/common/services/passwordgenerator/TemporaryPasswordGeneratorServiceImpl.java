@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.common.services.passwordgenerator;
 
+import be.steby.CoreProject.bll.common.exceptions.InvalidArgumentException;
 import be.steby.CoreProject.bll.common.services.validation.password.PasswordPolicyService;
 import be.steby.CoreProject.bll.domains.password.models.PasswordValidationResult;
 import lombok.RequiredArgsConstructor;
@@ -185,6 +186,44 @@ public class TemporaryPasswordGeneratorServiceImpl implements TemporaryPasswordG
                 yield generateStandard(length);
             }
         };
+    }
+
+
+    /**
+     * Generates a secure numeric verification code.
+     *
+     * <p>Uses SecureRandom to generate cryptographically secure numeric codes
+     * suitable for verification purposes. The code ensures no leading zeros
+     * by generating within appropriate ranges.
+     *
+     * @param length the desired length of the numeric code (4-12 digits)
+     * @return a secure numeric code as String
+     * @throws InvalidArgumentException if length is outside valid range (4-12)
+     */
+    @Override
+    public String generateNumericCode(int length) {
+        // Validate input range
+        if (length < 4 || length > 12) {
+            throw new InvalidArgumentException(
+                    String.format("Numeric code length must be between 4 and 12 digits, got: %d", length)
+            );
+        }
+
+        log.debug("Generating {}-digit numeric verification code", length);
+
+        // Calculate range to ensure exact digit count (no leading zeros)
+        long minValue = (long) Math.pow(10, length - 1);  // 10^(n-1) = minimum n-digit number
+        long maxValue = (long) Math.pow(10, length) - 1;  // 10^n - 1 = maximum n-digit number
+
+        // Generate random number in range [minValue, maxValue]
+        long range = maxValue - minValue + 1;
+        long randomValue = minValue + (long) (secureRandom.nextDouble() * range);
+
+        // Format with leading zeros if needed (though shouldn't be necessary with our range)
+        String code = String.format("%0" + length + "d", randomValue);
+
+        log.debug("Generated {}-digit numeric code successfully", length);
+        return code;
     }
 
     // ===============================

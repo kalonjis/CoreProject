@@ -7,7 +7,8 @@ public enum TokenType {
     DEVICE_CONFIRMATION("device_confirmation"),
     EMAIL_CONFIRMATION("email_confirmation"),
     PASSWORD_RESET("password_reset"),
-    REFRESH_TOKEN("refresh_token");
+    REFRESH_TOKEN("refresh_token"),
+    SMS_PASSWORD_RESET("sms_password_reset");
 
     private final String description;
 

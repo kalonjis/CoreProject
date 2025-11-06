@@ -111,6 +111,8 @@ public class SecurityConstants {
     private static final String[] PASSWORD_PUBLIC_ROUTES = {
             "/api/password/forgot",
             "/api/password/reset",
+            "/api/password/verify-sms-code",
+            "/api/password/reset-with-permission",
             "/api/password/reset/resend"
     };
 
@@ -126,6 +128,8 @@ public class SecurityConstants {
             "/api/password/forgot",
             "/api/password/reset",
             "/api/password/reset/resend",
+            "/api/password/verify-sms-code",
+            "/api/password/reset-with-permission",
             // TODO delete "change" from passwordcsrfignore in prod
             "/api/password/change"
     };
