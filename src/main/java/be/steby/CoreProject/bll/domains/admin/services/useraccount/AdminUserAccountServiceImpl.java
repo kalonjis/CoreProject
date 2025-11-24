@@ -10,13 +10,12 @@ import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationRe
 import be.steby.CoreProject.bll.domains.admin.models.AdminValidationResult;
 import be.steby.CoreProject.bll.domains.admin.services.permissions.AdminPermissionValidator;
 import be.steby.CoreProject.bll.domains.admin.services.validation.AdminActionPolicyService;
-import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.password.services.tokens.email.PasswordResetTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
 import be.steby.CoreProject.dl.enums.ReactivationPolicy;
-import be.steby.CoreProject.dl.enums.UserRole;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

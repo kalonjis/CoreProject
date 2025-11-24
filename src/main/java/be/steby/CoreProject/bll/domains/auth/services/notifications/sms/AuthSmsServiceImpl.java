@@ -1,10 +1,9 @@
-package be.steby.CoreProject.bll.domains.auth.services.notification;
+package be.steby.CoreProject.bll.domains.auth.services.notifications.sms;
 
 import be.steby.CoreProject.bll.common.services.notification.sms.BaseSmsService;
 import be.steby.CoreProject.bll.domains.auth.exceptions.phone.InvalidPhoneNumberException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.il.utils.SmsUtil;
-import jakarta.servlet.http.HttpServletRequest;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;

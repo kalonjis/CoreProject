@@ -1,8 +1,6 @@
-package be.steby.CoreProject.bll.domains.auth.services.notification;
+package be.steby.CoreProject.bll.domains.auth.services.notifications.sms;
 
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.TwoFactorType;
-import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Service interface for authentication-related SMS operations.

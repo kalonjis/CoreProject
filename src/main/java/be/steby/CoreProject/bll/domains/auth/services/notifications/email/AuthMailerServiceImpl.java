@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.auth.services.mailer;
+package be.steby.CoreProject.bll.domains.auth.services.notifications.email;
 
 import be.steby.CoreProject.bll.common.services.mailer.BaseMailerService;
 import be.steby.CoreProject.dl.entities.User;
