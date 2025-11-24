@@ -11,12 +11,12 @@ import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordExcep
 import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordResetTokenException;
 import be.steby.CoreProject.bll.domains.password.exceptions.PasswordRequestValidationException;
 import be.steby.CoreProject.bll.domains.password.models.*;
-import be.steby.CoreProject.bll.domains.password.services.tokens.SmsTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.password.services.tokens.sms.SmsTokenServiceImpl;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.bll.exceptions.TokenValidityException;
 import be.steby.CoreProject.bll.exceptions.UserAuthenticationStateException;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
-import be.steby.CoreProject.bll.domains.password.services.tokens.PasswordResetTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.password.services.tokens.email.PasswordResetTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
 import be.steby.CoreProject.dl.entities.tokens.SmsToken;
@@ -81,7 +81,6 @@ public class PasswordServiceImpl implements PasswordService {
         deviceService.disconnectAllDevicesForUser(user);
     }
 
-
     @Override
     public void changePassword(PasswordChangeRequest request, HttpServletRequest httpRequest) {
         User authenticatedUser = userService.getAuthenticatedUser();
@@ -120,7 +119,6 @@ public class PasswordServiceImpl implements PasswordService {
     }
 
 
-
     @Override
     public SmsPasswordResetResult requestPasswordReset(ForgotPasswordBLLRequest request, HttpServletRequest httpRequest) {
         log.debug("Processing password reset request for email: {} via {}",
@@ -156,7 +154,6 @@ public class PasswordServiceImpl implements PasswordService {
             return SmsPasswordResetResult.failure(); // Always return failure for security
         }
 
-        // Note: Success logging moved to individual handlers
     }
 
 
@@ -214,6 +211,7 @@ public class PasswordServiceImpl implements PasswordService {
             return SmsVerificationResult.failure();
         }
     }
+
 
     /**
      * Validates the SMS verification request data.
@@ -284,6 +282,7 @@ public class PasswordServiceImpl implements PasswordService {
 
         log.debug("Email password reset initiated for user: {}", user.getUsername());
     }
+
 
     /**
      * Handles password reset via SMS (requires verified phone number).
@@ -390,47 +389,6 @@ public class PasswordServiceImpl implements PasswordService {
     }
 
 
-//    @Override
-//    public void resetPasswordWithPermission(ResetPasswordBLLRequest request, String permissionToken, HttpServletRequest httpRequest) {
-//        log.debug("Processing password reset with permission token");
-//
-//        // Business validation
-//        validateResetPasswordRequest(request);
-//
-//        // Security check: must be anonymous (not authenticated)
-//        checkIsAnonymous();
-//
-//        try {
-//            // Validate permission token and extract claims (logique métier ici)
-//            Claims claims = jwtUtil.validatePasswordResetPermissionToken(permissionToken);
-//            String email = claims.get("email", String.class);
-//
-//            log.debug("Password reset with permission for email: {}", email);
-//
-//            // Find user by email
-//            User user = userService.getUserByEmail(email);
-//
-//            // Apply password policies and update password
-//            passwordPolicyService.validatePassword(request.newPassword(), user);
-//
-//            // Update password
-//            user.setPassword(passwordEncoder.encode(request.newPassword()));
-//            userRepository.save(user);
-//
-//            // Audit logging
-//           // auditService.logPasswordReset(user, httpRequest, "SMS_PERMISSION");
-//
-//            log.info("Password reset completed successfully for user: {} using permission token", user.getUsername());
-//
-//        } catch (InvalidPasswordResetTokenException e) {
-//            log.warn("Invalid permission token provided: {}", e.getMessage());
-//            throw PasswordDomainException("Invalid or expired permission token");
-//        } catch (Exception e) {
-//            log.error("Unexpected error during permission-based password reset: {}", e.getMessage(), e);
-//            throw PasswordDomainException("Password reset failed");
-//        }
-//    }
-
     /**
      * Masks phone number for display in email notifications.
      * Shows format like "+32*****890" for security.
@@ -514,6 +472,7 @@ public class PasswordServiceImpl implements PasswordService {
 
         eventPublisher.publishEvent(new PasswordChangedEvent(user));
     }
+
 
     private void checkIsAnonymous(){
         if(!userService.isAnonymous()) {

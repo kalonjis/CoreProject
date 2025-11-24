@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.password.services.tokens;
+package be.steby.CoreProject.bll.domains.password.services.tokens.sms;
 
 import be.steby.CoreProject.bll.common.services.passwordgenerator.TemporaryPasswordGeneratorService;
 import be.steby.CoreProject.bll.common.services.tokens.BaseTokenServiceImpl;

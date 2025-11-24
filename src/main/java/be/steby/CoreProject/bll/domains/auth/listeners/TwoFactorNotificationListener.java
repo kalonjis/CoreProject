@@ -2,8 +2,8 @@ package be.steby.CoreProject.bll.domains.auth.listeners;
 
 import be.steby.CoreProject.bll.domains.auth.events.TwoFactorEnabledEvent;
 import be.steby.CoreProject.bll.domains.auth.events.TwoFactorVerificationRequestedEvent;
-import be.steby.CoreProject.bll.domains.auth.services.mailer.AuthMailerService;
-import be.steby.CoreProject.bll.domains.auth.services.notification.AuthSmsService;
+import be.steby.CoreProject.bll.domains.auth.services.notifications.email.AuthMailerService;
+import be.steby.CoreProject.bll.domains.auth.services.notifications.sms.AuthSmsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
