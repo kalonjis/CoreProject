@@ -1,9 +1,11 @@
 package be.steby.CoreProject.pl.domains.device.controllers;
 
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.pl.domains.device.models.requests.DeviceTrustLevelRequest;
 import be.steby.CoreProject.pl.domains.device.models.responses.DeviceOperationResponse;
 import be.steby.CoreProject.pl.domains.device.models.responses.DeviceInfoResponse;
+import be.steby.CoreProject.pl.domains.device.models.responses.DeviceSessionResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -49,10 +51,28 @@ public class DeviceController {
     public ResponseEntity<DeviceInfoResponse> getCurrentDevice(HttpServletRequest request) {
         log.info("Get current device information request");
         
-        var device = deviceService.detectCurrentDevice(request);
+        Device device = deviceService.detectCurrentDevice(request);
         
         log.info("Current device retrieved - deviceId: {}", device.getId());
         return ResponseEntity.ok(DeviceInfoResponse.fromEntity(device));
+    }
+
+
+    /**
+     * Get current device information based on request headers/fingerprint.
+     *
+     * @param request HTTP request for device detection
+     * @return Current device information
+     */
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/session")
+    public ResponseEntity<DeviceSessionResponse> getDeviceSessionInfo(HttpServletRequest request) {
+        log.info("Get current device information request");
+
+        Device device = deviceService.detectCurrentDevice(request);
+
+        log.info("Current device retrieved - deviceId: {}", device.getId());
+        return ResponseEntity.ok(DeviceSessionResponse.fromEntity(device));
     }
 
     /**
