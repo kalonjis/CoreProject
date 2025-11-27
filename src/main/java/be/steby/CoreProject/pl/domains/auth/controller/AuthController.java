@@ -18,6 +18,7 @@ import be.steby.CoreProject.pl.domains.auth.models.requests.TwoFactorVerificatio
 import be.steby.CoreProject.pl.domains.auth.models.responses.AuthOperationResponse;
 import be.steby.CoreProject.pl.domains.auth.models.responses.TwoFactorAuthDTO;
 import be.steby.CoreProject.pl.domains.auth.models.responses.TwoFactorOperationResponse;
+import be.steby.CoreProject.pl.domains.auth.models.responses.UserSessionResponse;
 import be.steby.CoreProject.pl.domains.profile.user.UserDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,12 +26,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -347,6 +346,20 @@ public class AuthController {
     public ResponseEntity<UserDTO> getCurrentUser(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(UserDTO.fromEntity(user));
     }
+
+
+    /**
+     * Returns current authenticated user details for session front side.
+     *
+     * @param user Currently authenticated user
+     * @return ResponseEntity with user information
+     */
+    @GetMapping("/session")
+    public ResponseEntity<UserSessionResponse> getUserSessionInfo(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(UserSessionResponse.fromEntity(user));
+    }
+
+
 
     /**
      * Refreshes access token using refresh token cookie.
