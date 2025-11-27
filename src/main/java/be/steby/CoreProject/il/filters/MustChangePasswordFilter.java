@@ -69,9 +69,10 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
      * ⚠️ SECURITY: Keep this list minimal!
      */
     private static final List<String> ALLOWED_ENDPOINTS = List.of(
-            "/api/password/change",        // ✅ MUST be accessible to change password
+            "/api/password/change",         // ✅ MUST be accessible to change password
             "/api/auth/logout",             // ✅ Allow proper logout
             "/api/auth/me",                 // ✅ Allow checking own user details
+            "/api/auth/session",            // ✅ Allow checking own user details
             "/api/auth/status"              // ✅ Allow checking auth status
     );
 
