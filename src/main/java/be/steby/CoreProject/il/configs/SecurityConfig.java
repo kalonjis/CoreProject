@@ -6,6 +6,7 @@ import be.steby.CoreProject.il.filters.JwtFilter;
 import be.steby.CoreProject.il.Jwt.JwtUtil;
 import be.steby.CoreProject.il.filters.MustChangePasswordFilter;
 import be.steby.CoreProject.il.security.OAuth2AuthenticationSuccessHandler;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -98,6 +99,19 @@ public class SecurityConfig {
 
                         // 5. All other requests - require authentication (fallback)
                         .anyRequest().authenticated()
+                )
+
+                // ========== Exception Handling  ==========
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            // Return 401 JSON instead of redirecting to /login
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.setCharacterEncoding("UTF-8");
+                            response.getWriter().write(
+                                    "{\"error\":\"unauthorized\",\"message\":\"Authentication required\"}"
+                            );
+                        })
                 )
 
                 // ========== Session Management ==========

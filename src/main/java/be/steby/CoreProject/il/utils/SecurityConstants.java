@@ -28,6 +28,7 @@ public class SecurityConstants {
     private static final String[] AUTH_AUTHENTICATED_ROUTES = {
             "/api/auth/logout",
             "/api/auth/me",
+            "/api/auth/session",
             "/api/auth/status",
             "/api/auth/2fa/email/enable",
             "/api/auth/2fa/email/disable",
@@ -56,9 +57,10 @@ public class SecurityConstants {
             "/api/auth/resend-2fa-code",
             "/api/auth/2fa-status",
             "/api/auth/refresh-token",
-            //TODO delete "me", "status" and "logout" from this list in prod
+            //TODO delete "me", "status" and "logout +..." from this list in prod
             "/api/auth/logout",
             "/api/auth/me",
+            "/api/auth/session",
             "/api/auth/status",
             "/api/auth/2fa/enable-email",
             "/api/auth/2fa/email/enable",
@@ -171,6 +173,7 @@ public class SecurityConstants {
             "/api/device/reject",        // GET - reject device via email token
             //todo : removed these url from public routes in prod
             "/api/device/current",                    // GET - current device info
+            "/api/device/session",                    // GET - session device info
             "/api/device/my-devices",                 // GET - all user's devices list
             "/api/device/request-confirmation",       // POST - request confirmation link
             "/api/device/disconnect-all-others",      // POST - disconnect all other devices

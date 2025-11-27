@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * Response containing device information for frontend display.
  */
 public record DeviceInfoResponse(
-        Long id,
+        String publicId,
         String deviceType,
         String browser,
         String browserVersion,
@@ -35,7 +35,7 @@ public record DeviceInfoResponse(
 ) {
     public static DeviceInfoResponse fromEntity(Device device){
         return new DeviceInfoResponse(
-                device.getId(),
+                device.getPublicId(),
                 device.getDeviceType(),
                 device.getBrowser(),
                 device.getBrowserVersion(),

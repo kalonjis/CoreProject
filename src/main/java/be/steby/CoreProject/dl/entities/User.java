@@ -225,6 +225,12 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Column(name = "reactivation_policy")
     private ReactivationPolicy reactivationPolicy;
 
+    /**
+     * Whether the user has activated one or more twoFactor method for authentication validation.
+     */
+    @Column(nullable = false)
+    private boolean twoFactorEnabled;
+
     // endregion
 
 
