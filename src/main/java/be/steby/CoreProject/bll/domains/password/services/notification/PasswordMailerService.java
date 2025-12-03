@@ -45,7 +45,7 @@ public class PasswordMailerService extends BaseMailerService {
     public void sendPasswordReset(String tokenPublicId, User user) {
         log.info("Sending password reset email to: {}", user.getEmail());
 
-        String resetUrl = buildUrl("/auth/reset-password", "token", tokenPublicId);
+        String resetUrl = buildUrl("/password/reset", "token", tokenPublicId);
 
         Context context = createBaseContext(user);
         context.setVariable("url", resetUrl);
@@ -70,7 +70,7 @@ public class PasswordMailerService extends BaseMailerService {
     public void sendPasswordResetRefresh(String newTokenPublicId, User user) {
         log.info("Sending password reset token refresh email to: {}", user.getEmail());
 
-        String resetUrl = buildUrl("/auth/reset-password", "token", newTokenPublicId);
+        String resetUrl = buildUrl("/password/reset", "token", newTokenPublicId);
 
         Context context = createBaseContext(user);
         context.setVariable("resetUrl", resetUrl);
@@ -102,25 +102,25 @@ public class PasswordMailerService extends BaseMailerService {
         log.debug("Password change confirmation email sent successfully to: {}", user.getEmail());
     }
 
-    /**
-     * Sends password reset via SMS code notification email.
-     * 
-     * <p>This notification is sent when a user requests password reset via SMS
-     * to inform them that a verification code has been sent to their phone.
-     * This serves as a security confirmation and fallback notification.
-     *
-     * @param user the user who requested SMS password reset
-     * @param maskedPhoneNumber the masked phone number for security
-     */
-    @Async("emailExecutor")
-    public void sendSmsPasswordResetNotification(User user, String maskedPhoneNumber) {
-        log.info("Sending SMS password reset notification email to: {}", user.getEmail());
-
-        Context context = createBaseContext(user);
-        context.setVariable("maskedPhoneNumber", maskedPhoneNumber);
-
-        sendEmail("Password Reset Code Sent", "passwords/smsPasswordResetNotification", context, user.getEmail());
-
-        log.debug("SMS password reset notification email sent successfully to: {}", user.getEmail());
-    }
+//    /**
+//     * Sends password reset via SMS code notification email.
+//     *
+//     * <p>This notification is sent when a user requests password reset via SMS
+//     * to inform them that a verification code has been sent to their phone.
+//     * This serves as a security confirmation and fallback notification.
+//     *
+//     * @param user the user who requested SMS password reset
+//     * @param maskedPhoneNumber the masked phone number for security
+//     */
+//    @Async("emailExecutor")
+//    public void sendSmsPasswordResetNotification(User user, String maskedPhoneNumber) {
+//        log.info("Sending SMS password reset notification email to: {}", user.getEmail());
+//
+//        Context context = createBaseContext(user);
+//        context.setVariable("maskedPhoneNumber", maskedPhoneNumber);
+//
+//        sendEmail("Password Reset Code Sent", "passwords/smsPasswordResetNotification", context, user.getEmail());
+//
+//        log.debug("SMS password reset notification email sent successfully to: {}", user.getEmail());
+//    }
 }
