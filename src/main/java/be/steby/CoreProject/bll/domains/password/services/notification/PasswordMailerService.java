@@ -2,9 +2,9 @@ package be.steby.CoreProject.bll.domains.password.services.notification;
 
 import be.steby.CoreProject.bll.common.services.mailer.BaseMailerService;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.PasswordResetType;
 import be.steby.CoreProject.il.utils.MailerUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 
@@ -41,7 +41,6 @@ public class PasswordMailerService extends BaseMailerService {
      * @param tokenPublicId the public ID of the password reset token
      * @param user the user requesting password reset
      */
-    @Async("emailExecutor")
     public void sendPasswordReset(String tokenPublicId, User user) {
         log.info("Sending password reset email to: {}", user.getEmail());
 
@@ -66,7 +65,6 @@ public class PasswordMailerService extends BaseMailerService {
      * @param newTokenPublicId the public ID of the new password reset token
      * @param user the user requesting token refresh
      */
-    @Async("emailExecutor")
     public void sendPasswordResetRefresh(String newTokenPublicId, User user) {
         log.info("Sending password reset token refresh email to: {}", user.getEmail());
 
@@ -90,7 +88,6 @@ public class PasswordMailerService extends BaseMailerService {
      *
      * @param user the user whose password was changed
      */
-    @Async("emailExecutor")
     public void sendPasswordChangeConfirmation(User user) {
         log.info("Sending password change confirmation email to: {}", user.getEmail());
 
@@ -102,25 +99,26 @@ public class PasswordMailerService extends BaseMailerService {
         log.debug("Password change confirmation email sent successfully to: {}", user.getEmail());
     }
 
-//    /**
-//     * Sends password reset via SMS code notification email.
-//     *
-//     * <p>This notification is sent when a user requests password reset via SMS
-//     * to inform them that a verification code has been sent to their phone.
-//     * This serves as a security confirmation and fallback notification.
-//     *
-//     * @param user the user who requested SMS password reset
-//     * @param maskedPhoneNumber the masked phone number for security
-//     */
-//    @Async("emailExecutor")
-//    public void sendSmsPasswordResetNotification(User user, String maskedPhoneNumber) {
-//        log.info("Sending SMS password reset notification email to: {}", user.getEmail());
-//
-//        Context context = createBaseContext(user);
-//        context.setVariable("maskedPhoneNumber", maskedPhoneNumber);
-//
-//        sendEmail("Password Reset Code Sent", "passwords/smsPasswordResetNotification", context, user.getEmail());
-//
-//        log.debug("SMS password reset notification email sent successfully to: {}", user.getEmail());
-//    }
+    /**
+     * Sends a password reset verification code via email.
+     *
+     * <p>Used for the {@link PasswordResetType#EMAIL_CODE} flow where users receive
+     * a 6-digit code instead of a clickable link. The code must be entered on the
+     * verification page within the expiration period.
+     *
+     * @param user the user requesting password reset
+     * @param verificationCode the 6-digit verification code to include in the email
+     */
+    public void sendPasswordResetCode(User user, String verificationCode) {
+        Context context = createBaseContext(user);
+        context.setVariable("verificationCode", verificationCode);
+
+        sendEmail(
+                "Your password reset code",
+                "passwords/password-reset-code",
+                context,
+                user.getEmail()
+        );
+    }
+
 }
