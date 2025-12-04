@@ -23,18 +23,18 @@ import jakarta.validation.constraints.Size;
  *
  * <p>Usage: PUT /api/password/reset-with-permission
  */
-@PasswordMatch(first = "newPassword", second = "confirmNewPassword")
+@PasswordMatch
 public record ResetPasswordWithPermissionRequest(
 
         @NotBlank(message = "New password cannot be empty")
         @NotNull(message = "New password is required")
         @Size(min = 8, max = 55, message = "New password must be between 8 and 55 characters")
         @StrongPassword
-        String newPassword,
+        String password,
 
         @NotBlank(message = "Password confirmation cannot be empty")
         @NotNull(message = "Password confirmation is required")
-        String confirmNewPassword
+        String confirmPassword
 ) {
     
     /**
@@ -44,6 +44,6 @@ public record ResetPasswordWithPermissionRequest(
      * @return BLL model ready for service layer processing
      */
     public ResetPasswordWithPermissionBLLRequest toBllModel(String permissionToken ) {
-        return new ResetPasswordWithPermissionBLLRequest(permissionToken, newPassword);
+        return new ResetPasswordWithPermissionBLLRequest(permissionToken, password);
     }
 }

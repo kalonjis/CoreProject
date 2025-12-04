@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.password.listeners;
 
 import be.steby.CoreProject.bll.domains.password.events.email.PasswordChangeEmailNotificationEvent;
+import be.steby.CoreProject.bll.domains.password.events.email.PasswordResetCodeEmailRequestedEvent;
 import be.steby.CoreProject.bll.domains.password.events.email.PasswordResetEmailRequestedEvent;
 import be.steby.CoreProject.bll.domains.password.events.email.PasswordResetTokenRefreshRequestedEvent;
 import be.steby.CoreProject.bll.domains.password.services.notification.PasswordMailerService;
@@ -99,26 +100,28 @@ public class PasswordEmailNotificationListener {
     }
 
     /**
-     * Handles SMS password reset email notification events.
-     * 
-     * <p>This is a cross-channel notification: when a user requests password reset
-     * via SMS, we also send an email notification for security awareness.
-     * 
-     * @param event the SMS password reset email notification event
+     * Handles password reset code request events for email delivery.
+     *
+     * <p>This handler processes {@link PasswordResetCodeEmailRequestedEvent} events
+     * for the {@link PasswordResetType#EMAIL_CODE} flow, sending a 6-digit verification
+     * code to the user's email address.
+     *
+     * <p>Email delivery failures are logged but do not affect the core password reset process.
+     *
+     * @param event the password reset code email request event containing user and code
      */
-//    @EventListener
-//    @Async("emailExecutor")
-//    public void handleSmsPasswordResetEmailNotification(SmsPasswordResetEmailNotificationEvent event) {
-//        log.debug("Handling SMS password reset email notification for user: {}", event.user().getUsername());
-//
-//        try {
-//            passwordMailerService.sendSmsPasswordResetNotification(event.user(), event.maskedPhoneNumber());
-//            log.debug("SMS password reset email notification triggered successfully for user: {}",
-//                     event.user().getUsername());
-//        } catch (Exception e) {
-//            log.error("Failed to send SMS password reset email notification for user: {} - error: {}",
-//                     event.user().getUsername(), e.getMessage(), e);
-//            // Don't rethrow - email failure should not affect SMS reset process
-//        }
-//    }
+    @EventListener
+    @Async("emailExecutor")
+    public void handlePasswordResetCodeEmailRequested(PasswordResetCodeEmailRequestedEvent event) {
+        log.debug("Handling password reset code email request for user: {}", event.user().getUsername());
+
+        try {
+            passwordMailerService.sendPasswordResetCode(event.user(), event.verificationCode());
+            log.debug("Password reset code email triggered successfully for user: {}", event.user().getUsername());
+        } catch (Exception e) {
+            log.error("Failed to send password reset code email for user: {} - error: {}",
+                    event.user().getUsername(), e.getMessage(), e);
+        }
+    }
+
 }
