@@ -172,6 +172,23 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/2fa/enabled-methods")
+    public ResponseEntity<List<TwoFactorAuthDTO>> getEnabledTwoFactorMethods(
+            @CookieValue(name = "2fa_session_token") String twoFactorSessionToken) {
+
+        // Get entities from service
+        List<TwoFactorAuth> enabledMethods = authService.getEnabledTwoFactorMethods(twoFactorSessionToken);
+
+        // Transform to DTOs in presentation layer
+        List<TwoFactorAuthDTO> response = enabledMethods.stream()
+                .map(TwoFactorAuthDTO::fromEntity)
+                .toList();
+
+        log.debug("Found {} available 2FA methods", response.size());
+
+        return ResponseEntity.ok(response);
+    }
+
 
     /**
      * Choose a two-factor authentication method and initiate verification process.

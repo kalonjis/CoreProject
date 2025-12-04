@@ -155,6 +155,14 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    @Override
+    public List<TwoFactorAuth> getEnabledTwoFactorMethods(String twoFactorSessionToken) {
+        Claims claims = jwtUtil.validate2FASessionToken(twoFactorSessionToken);
+        String publicId = claims.get("publicId", String.class);
+        User user = userService.getUserByPublicId(publicId);
+        return twoFactorFactory.getEnabledTwoFactorMethods(user);
+    }
+
 
     @Override
     public LoginTokens verifyTwoFactorAndCompleteLogin(String twoFactorToken, String verificationCode, String backupCode, HttpServletRequest httpRequest) {

@@ -42,6 +42,9 @@ public interface AuthService extends UserDetailsService {
      */
     LoginInitiationResult initiateLogin(String username, String password, HttpServletRequest httpRequest);
 
+    List<TwoFactorAuth> getEnabledTwoFactorMethods(String twoFactorSessionToken);
+
+
     /**
      * Phase 2: Verify 2FA code and complete login
      *

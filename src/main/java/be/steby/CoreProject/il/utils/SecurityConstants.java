@@ -22,7 +22,8 @@ public class SecurityConstants {
             "/api/auth/resend-2fa-code",
             "/api/auth/2fa-status",
             "/api/auth/refresh-token",
-            "/api/auth/2fa/choose-method"
+            "/api/auth/2fa/choose-method",
+            "/api/auth/2fa/enabled-methods"
     };
 
     private static final String[] AUTH_AUTHENTICATED_ROUTES = {
@@ -72,6 +73,7 @@ public class SecurityConstants {
             "/api/auth/2fa/backup-codes/enable",
             "/api/auth/2fa/backup-codes/disable",
             "/api/auth/2fa/available-methods",
+            "/api/auth/2fa/enabled-methods",
             "/api/auth/2fa/choose-method",
             //TODO move this into profile routes...
             "/api/profile/SMS/request-verification",
