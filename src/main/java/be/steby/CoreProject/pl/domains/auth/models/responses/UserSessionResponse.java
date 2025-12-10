@@ -3,6 +3,7 @@ package be.steby.CoreProject.pl.domains.auth.models.responses;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
 
+import java.time.Instant;
 import java.util.Set;
 
 public record UserSessionResponse(
@@ -16,7 +17,8 @@ public record UserSessionResponse(
     boolean mustChangePassword,
     boolean twoFactorEnabled,
     boolean emailVerified,
-    boolean phoneNumberVerified
+    boolean phoneNumberVerified,
+    Instant passwordChangedAt
 ) {
     public static UserSessionResponse fromEntity(User u){
         return new UserSessionResponse(
@@ -30,7 +32,8 @@ public record UserSessionResponse(
                 u.isMustChangePassword(),
                 u.isTwoFactorEnabled(),
                 u.isEmailVerified(),
-                u.isPhoneNumberVerified()
+                u.isPhoneNumberVerified(),
+                u.getPasswordChangedAt()
         );
     }
 }
