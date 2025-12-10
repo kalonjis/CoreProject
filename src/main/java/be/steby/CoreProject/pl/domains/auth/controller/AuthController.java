@@ -172,7 +172,46 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/2fa/enabled-methods")
+
+    /**
+     * Get all two-factor authentication methods with their status.
+     *
+     * Returns ALL supported 2FA methods (EMAIL, SMS, TOTP, BACKUP_CODES),
+     * each with its enabled/disabled status for the authenticated user.
+     * Used in security settings to display all available methods.
+     *
+     * Unlike /2fa/available-methods which returns only enabled methods,
+     * this endpoint returns all supported methods for the settings UI.
+     *
+     * @param user the authenticated user from security context
+     * @return ResponseEntity with list of all 2FA methods and their status
+     */
+    @GetMapping("/2fa/settings")
+    public ResponseEntity<List<TwoFactorAuthDTO>> getAllTwoFactorMethods(
+            @AuthenticationPrincipal User user) {
+
+        log.debug("Getting all 2FA methods with status for user: {}", user.getUsername());
+
+        // Get all methods via AuthService (not directly from factory)
+        List<TwoFactorAuth> allMethods = authService.getAllTwoFactorMethodsWithStatus(user);
+
+        // Transform to DTOs
+        List<TwoFactorAuthDTO> response = allMethods.stream()
+                .map(auth -> {
+                    if (auth.getId() != null) {
+                        return TwoFactorAuthDTO.fromEntity(auth);
+                    } else {
+                        return TwoFactorAuthDTO.notConfigured(user.getPublicId(), auth.getType());
+                    }
+                })
+                .toList();
+
+        log.debug("Returning {} 2FA methods", response.size());
+        return ResponseEntity.ok(response);
+    }
+
+
+    @GetMapping("/2fa/login/methods")
     public ResponseEntity<List<TwoFactorAuthDTO>> getEnabledTwoFactorMethods(
             @CookieValue(name = "2fa_session_token") String twoFactorSessionToken) {
 
