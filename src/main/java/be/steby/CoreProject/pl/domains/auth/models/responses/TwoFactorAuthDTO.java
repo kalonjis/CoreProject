@@ -60,4 +60,40 @@ public record TwoFactorAuthDTO(
                 isEnabled
         );
     }
+
+
+    /**
+     * Create a DTO for a 2FA method that is not configured for the user.
+     * Used to display all available methods in settings, even those not enabled.
+     *
+     * @param userPublicId the user's publicId
+     * @param type the 2FA method type
+     * @return TwoFactorAuthDTO with isEnabled=false and isPrimary=false
+     */
+    public static TwoFactorAuthDTO notConfigured(String userPublicId, TwoFactorType type) {
+        String displayName = switch (type) {
+            case TOTP -> "Authenticator App";
+            case EMAIL -> "Email Code";
+            case SMS -> "SMS Code";
+            case BACKUP_CODES -> "Backup Codes";
+            case WEBAUTHN -> "Security Key";
+        };
+
+        String description = switch (type) {
+            case TOTP -> "Use your authenticator app to generate a code";
+            case EMAIL -> "Send a verification code to your email";
+            case SMS -> "Send a verification code to your phone";
+            case BACKUP_CODES -> "Use one of your saved backup codes";
+            case WEBAUTHN -> "Use your security key or biometric authentication";
+        };
+
+        return new TwoFactorAuthDTO(
+                userPublicId,
+                type,
+                displayName,
+                description,
+                false,  // isPrimary
+                false   // isEnabled
+        );
+    }
 }
