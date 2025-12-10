@@ -135,4 +135,17 @@ public interface TwoFactorFactory {
      * @return true if the method is enabled, false otherwise
      */
     boolean isMethodEnabled(User user, TwoFactorType type);
+
+
+    /**
+     * Get all 2FA methods with their status for the settings page.
+     *
+     * Returns ALL supported 2FA types (EMAIL, SMS, TOTP, BACKUP_CODES),
+     * each with its enabled/disabled status for the user.
+     * Used in security settings to display all available methods.
+     *
+     * @param user the user whose 2FA methods to retrieve
+     * @return List of all TwoFactorAuth configurations (enabled and disabled)
+     */
+    List<TwoFactorAuth> getAllMethodsWithStatus(User user);
 }

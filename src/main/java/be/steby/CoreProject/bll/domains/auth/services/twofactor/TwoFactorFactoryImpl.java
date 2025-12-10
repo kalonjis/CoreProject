@@ -16,8 +16,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of TwoFactorFactory for managing 2FA operations.
@@ -203,5 +207,45 @@ public class TwoFactorFactoryImpl implements TwoFactorFactory {
     public boolean isMethodEnabled(User user, TwoFactorType type) {
         log.debug("Checking if 2FA method {} is enabled for user: {}", type, user.getUsername());
         return twoFactorAuthRepository.existsByUserAndTypeAndEnabledTrue(user, type);
+    }
+
+    @Override
+    public List<TwoFactorAuth> getAllMethodsWithStatus(User user) {
+        log.debug("Getting all 2FA methods with status for user: {}", user.getUsername());
+
+        // Get all configured methods for this user (enabled or disabled)
+        List<TwoFactorAuth> configuredMethods = twoFactorAuthRepository.findAllByUser(user);
+
+        // Create lookup map for quick access
+        Map<TwoFactorType, TwoFactorAuth> configuredMap = configuredMethods.stream()
+                .collect(Collectors.toMap(TwoFactorAuth::getType, Function.identity()));
+
+        // Supported types for settings (exclude WEBAUTHN for now)
+        List<TwoFactorType> supportedTypes = Arrays.asList(
+                TwoFactorType.EMAIL,
+                TwoFactorType.SMS,
+                TwoFactorType.TOTP,
+                TwoFactorType.BACKUP_CODES
+        );
+
+        // Build list with all supported types
+        List<TwoFactorAuth> allMethods = supportedTypes.stream()
+                .map(type -> {
+                    TwoFactorAuth configured = configuredMap.get(type);
+                    if (configured != null) {
+                        return configured;
+                    }
+                    // Return a "not configured" placeholder
+                    return TwoFactorAuth.builder()
+                            .user(user)
+                            .type(type)
+                            .enabled(false)
+                            .isPrimary(false)
+                            .build();
+                })
+                .toList();
+
+        log.debug("Returning {} 2FA methods for user: {}", allMethods.size(), user.getUsername());
+        return allMethods;
     }
 }
