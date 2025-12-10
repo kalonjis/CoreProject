@@ -34,6 +34,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -474,6 +475,7 @@ public class PasswordServiceImpl implements PasswordService {
      */
     private void savePassword(String password, User user) {
         user.setPassword(passwordEncoder.encode(password));
+        user.setPasswordChangedAt(Instant.now());
         if (user.isMustChangePassword()) {
             user.setMustChangePassword(false);
         }
