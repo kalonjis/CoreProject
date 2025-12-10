@@ -114,4 +114,13 @@ public interface AuthService extends UserDetailsService {
      */
     TwoFactorMethodChosenResult chooseTwoFactorMethod(String twoFactorSessionToken, TwoFactorType chosenType,
                                                       HttpServletRequest httpRequest);
+
+    /**
+     * Get all 2FA methods with their status for the settings page.
+     *
+     * @param user the user whose 2FA methods to retrieve
+     * @return List of all TwoFactorAuth configurations (enabled and disabled)
+     */
+    List<TwoFactorAuth> getAllTwoFactorMethodsWithStatus(User user);
 }
+

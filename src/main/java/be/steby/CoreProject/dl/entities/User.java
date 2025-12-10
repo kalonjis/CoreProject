@@ -114,17 +114,9 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Column(nullable = false)
     private String password;
 
-//    /**
-//     * OAuth provider name (e.g., GITHUB, GOOGLE)
-//     */
-//    @Column(name = "oauth_provider", length = 50)
-//    private String oauthProvider;
-//
-//    /**
-//     * OAuth provider user ID
-//     */
-//    @Column(name = "oauth_provider_id", length = 255)
-//    private String oauthProviderId;
+    @Column(nullable = false)
+    private Instant passwordChangedAt;
+
 
     /**
      * Whether the user has completed their profile according to application requirements.
@@ -243,6 +235,7 @@ public class User extends BaseEntity<Long> implements UserDetails {
         this.username = username;
         this.email = email;
         this.password = password;
+        this.passwordChangedAt = Instant.now();
         this.userRoles = UserRole.setRoles(UserRole.USER);
         this.enabled = false;
         this.emailVerified = false;
@@ -284,6 +277,7 @@ public class User extends BaseEntity<Long> implements UserDetails {
 
         this(username, firstname, lastname, email, phoneNumber, userRoles);
         this.password = password;
+        this.passwordChangedAt = Instant.now();
     }
 
 

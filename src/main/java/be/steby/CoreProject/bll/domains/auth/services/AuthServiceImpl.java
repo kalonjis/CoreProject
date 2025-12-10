@@ -393,6 +393,13 @@ public class AuthServiceImpl implements AuthService {
         );
     }
 
+
+    @Override
+    public List<TwoFactorAuth> getAllTwoFactorMethodsWithStatus(User user) {
+        return twoFactorFactory.getAllMethodsWithStatus(user);
+    }
+
+
     /**
      * Get masked target display text based on 2FA method type.
      */
