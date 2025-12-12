@@ -12,6 +12,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +23,7 @@ import java.util.Map;
 
 @Component
 @Getter
+@Slf4j
 public class JwtUtil {
 
     private final SecretKey key;
@@ -57,6 +59,68 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody();
     }
+
+
+    /**
+     * Generates a JWT token for two-factor authentication activation process.
+     *
+     * This token contains:
+     * - User's public ID for identification
+     * - Purpose set to "ACTIVATION" for validation
+     * - Verification code for later validation
+     * - Expiration time based on configured duration
+     *
+     * @param user the user for whom the activation token is generated
+     * @param verificationCode the verification code to embed in the token
+     * @return String containing the signed JWT activation token
+     */
+    public String generate2FAActivationToken(User user, String verificationCode) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("publicId", user.getPublicId());
+        claims.put("purpose", "ACTIVATION");
+        claims.put("verificationCode", verificationCode);
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(user.getPublicId())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + twoFactorTokenExpiration))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /**
+     * Validates a two-factor authentication activation token and extracts claims.
+     *
+     * This method performs comprehensive validation:
+     * 1. Validates the JWT signature and expiration
+     * 2. Checks that the token purpose is "ACTIVATION"
+     * 3. Ensures the publicId claim is present and valid
+     *
+     * @param token the JWT activation token to validate
+     * @return Claims object containing the validated token claims
+     * @throws InvalidTwoFactorTokenException if token is invalid or has wrong purpose
+     */
+    public Claims validate2FAActivationToken(String token) {
+        Claims claims = validateToken(token);
+
+        // Validate token purpose
+        String purpose = claims.get("purpose", String.class);
+        if (!"ACTIVATION".equals(purpose)) {
+            log.warn("Invalid token purpose for activation: {}", purpose);
+            throw new InvalidTwoFactorTokenException("Invalid token purpose for activation");
+        }
+
+        // Verify that publicId claim exists and is valid
+        String publicId = claims.get("publicId", String.class);
+        if (publicId == null || publicId.isBlank()) {
+            log.warn("Missing or invalid publicId in activation token");
+            throw new InvalidTwoFactorTokenException("Missing publicId in activation token");
+        }
+
+        return claims;
+    }
+
 
 
     /**

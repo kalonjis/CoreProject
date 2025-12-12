@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.auth.listeners;
 
 import be.steby.CoreProject.bll.domains.auth.events.TwoFactorEnabledEvent;
+import be.steby.CoreProject.bll.domains.auth.events.TwoFactorInitiateActivationEvent;
 import be.steby.CoreProject.bll.domains.auth.events.TwoFactorVerificationRequestedEvent;
 import be.steby.CoreProject.bll.domains.auth.services.notifications.email.AuthMailerService;
 import be.steby.CoreProject.bll.domains.auth.services.notifications.sms.AuthSmsService;
@@ -30,6 +31,44 @@ public class TwoFactorNotificationListener {
 
     private final AuthMailerService authMailerService;
     private final AuthSmsService authSmsService;
+
+    /**
+     * Handles two-factor authentication activation initiation events.
+     *
+     * This method processes TwoFactorInitiateActivationEvent by sending the
+     * verification code via email to the user. This is specifically for the
+     * activation/setup phase, different from login verification codes.
+     *
+     * The email template used should be specific to the activation process
+     * and may include additional instructions about completing the 2FA setup.
+     *
+     * Runs asynchronously to avoid blocking the main activation flow.
+     * Email delivery failures are logged but do not affect the activation process.
+     *
+     * @param event the two-factor activation initiation event
+     */
+    @EventListener
+    @Async("emailExecutor")
+    public void handleTwoFactorActivationInitiated(TwoFactorInitiateActivationEvent event) {
+        log.debug("Handling 2FA activation initiation for user: {}", event.user().getEmail());
+
+        try {
+            // Send activation verification code via email
+            authMailerService.sendTwoFactorActivationCode(
+                    event.user(),
+                    event.verificationCode()
+            );
+
+            log.info("2FA activation verification email sent successfully to user: {}",
+                    event.user().getEmail());
+
+        } catch (Exception e) {
+            // Log error but don't fail the activation initiation
+            log.error("Failed to send 2FA activation verification email to user: {} - Error: {}",
+                    event.user().getUsername(), e.getMessage(), e);
+        }
+    }
+
 
     /**
      * Handles TwoFactorEnabledEvent by sending confirmation via appropriate channel.

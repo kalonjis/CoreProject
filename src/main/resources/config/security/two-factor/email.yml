@@ -1,0 +1,13 @@
+security:
+  two-factor:
+    email:
+      activation:
+        # Nombre maximum de tentatives d'activation d'email 2FA avant blocage
+        max-attempts: 5
+        # Durée de blocage en minutes après dépassement des tentatives
+        lockout-minutes: 15
+      verification:
+        # Nombre maximum de tentatives de vérification de code avant blocage
+        max-attempts: 10
+        # Durée de blocage en minutes après dépassement des tentatives
+        lockout-minutes: 5

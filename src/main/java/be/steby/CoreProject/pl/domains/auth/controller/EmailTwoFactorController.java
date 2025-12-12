@@ -1,8 +1,14 @@
 package be.steby.CoreProject.pl.domains.auth.controller;
 
+import be.steby.CoreProject.bll.domains.auth.models.TwoFactorActivationResult;
+import be.steby.CoreProject.bll.domains.auth.services.cookies.AuthCookieService;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.emailtwofactor.EmailTwoFactorService;
+import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.EmailTwoFactorAlreadyEnabledException;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
+import be.steby.CoreProject.pl.domains.auth.models.requests.EmailTwoFactorActivationRequest;
+import be.steby.CoreProject.pl.domains.auth.models.requests.TwoFactorVerificationRequest;
 import be.steby.CoreProject.pl.domains.auth.models.responses.TwoFactorOperationResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +44,50 @@ import org.springframework.web.bind.annotation.*;
 public class EmailTwoFactorController {
     
     private final EmailTwoFactorService emailTwoFactorService;
+    private final AuthCookieService authCookieService;
+
+
+    /**
+     * Initiate email two-factor authentication activation process.
+     *
+     * This endpoint starts the setup process for email-based 2FA by:
+     * 1. Validating that email 2FA is not already enabled
+     * 2. Generating a verification code and activation token
+     * 3. Publishing an event to send the verification email
+     * 4. Setting the activation token as an HttpOnly cookie
+     *
+     * @param httpResponse the HTTP response to set the activation cookie
+     * @return ResponseEntity containing the operation result
+     * @throws EmailTwoFactorAlreadyEnabledException if email 2FA is already enabled
+     */
+    @PostMapping("/setup/initiate")
+    public ResponseEntity<TwoFactorOperationResponse> initiateEmailTwoFactorActivation(
+            HttpServletResponse httpResponse
+    ) {
+        TwoFactorActivationResult result = emailTwoFactorService.initiateActivation();
+        authCookieService.set2FAActivationToken(httpResponse, result.twoFaActivationToken());
+        return ResponseEntity.ok(TwoFactorOperationResponse.initiateActivationSuccess(result.twoFactorType()));
+    }
+
+
+    @PostMapping("setup/verify")
+    public ResponseEntity<TwoFactorOperationResponse> verifyAndActivateEmailTwoFactor(
+            @CookieValue(name = "2fa_activation_token") String activationToken,
+            @RequestBody TwoFactorVerificationRequest request,
+            HttpServletResponse httpResponse
+            ){
+        EmailTwoFactorActivationRequest emailTwoFactorActivationRequest = new EmailTwoFactorActivationRequest(
+                request.verificationCode());
+
+        emailTwoFactorService.verifyAndActivateEmailTwoFactor(emailTwoFactorActivationRequest.toBll(activationToken));
+
+        authCookieService.clear2FAActivationToken(httpResponse);
+        return ResponseEntity.ok(
+                TwoFactorOperationResponse.enabled(TwoFactorType.EMAIL)
+        );
+    }
+
+
     
     /**
      * Enable email-based two-factor authentication for the authenticated user.

@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletRequest;
  * Handles 2FA verification emails and security notifications.
  */
 public interface AuthMailerService {
+
+    void sendTwoFactorActivationCode(User user, String verificationCode);
     
     /**
      * Send two-factor authentication verification code via email

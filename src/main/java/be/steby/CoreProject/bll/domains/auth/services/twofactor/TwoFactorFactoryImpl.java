@@ -78,7 +78,7 @@ public class TwoFactorFactoryImpl implements TwoFactorFactory {
         return switch (primaryType) {
             case EMAIL -> {
                 log.debug("Generating EMAIL 2FA code for user: {}", user.getUsername());
-                yield emailTwoFactorService.generateCode(user);
+                yield emailTwoFactorService.generateVerificationCode(user);
             }
             case TOTP -> {
                 log.debug("Generating TOTP 2FA code for user: {}", user.getUsername());
@@ -113,7 +113,7 @@ public class TwoFactorFactoryImpl implements TwoFactorFactory {
         String plainCode = switch (type) {
             case EMAIL -> {
                 log.debug("Generating EMAIL 2FA code for user: {}", user.getUsername());
-                yield emailTwoFactorService.generateCode(user);
+                yield emailTwoFactorService.generateVerificationCode(user);
             }
             case TOTP -> {
                 log.debug("Generating TOTP 2FA code for user: {}", user.getUsername());
@@ -177,7 +177,7 @@ public class TwoFactorFactoryImpl implements TwoFactorFactory {
 
         // Route to appropriate service based on CHOSEN type (from JWT)
         return switch (chosenType) {
-            case EMAIL -> passwordEncoder.matches(providedCode, hashedCode);
+            case EMAIL -> emailTwoFactorService.verifyCode(user, providedCode, hashedCode);
             case TOTP -> totpTwoFactorService.verifyCode(user, providedCode);
             case BACKUP_CODES -> backupCodesTwoFactorService.verifyCode(user, providedCode) ;
             case SMS -> passwordEncoder.matches(providedCode, hashedCode);

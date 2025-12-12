@@ -101,4 +101,50 @@ public class AuthMailerServiceImpl extends BaseMailerService implements AuthMail
         }
     }
 
+    /**
+     * Sends a two-factor authentication activation verification code via email.
+     *
+     * This method sends an email containing a 6-digit verification code during
+     * the 2FA setup/activation process. The email template is specific to the
+     * activation flow and includes clear instructions for completing the setup.
+     *
+     * This is different from login verification emails as it's part of the
+     * initial setup process rather than ongoing authentication.
+     *
+     * @param user the user who initiated the 2FA activation
+     * @param verificationCode the 6-digit code for verification
+     * @throws RuntimeException if email sending fails
+     */
+    @Override
+    public void sendTwoFactorActivationCode(User user, String verificationCode) {
+        log.info("Sending 2FA activation verification code to user: {}", user.getEmail());
+
+        try {
+            // Calculate expiration time
+            LocalDateTime expirationTime = LocalDateTime.now().plusSeconds(codeExpirationMs / 1000);
+
+            // Create context using inherited method
+            Context context = createBaseContext(user);
+
+            // Add 2FA activation-specific variables
+            context.setVariable("verificationCode", verificationCode);
+            context.setVariable("expirationTime", expirationTime.format(DATE_TIME_FORMATTER));
+
+            // Send email using inherited method
+            sendEmail(
+                    "Code d'activation - Authentification à deux facteurs",
+                    "auth/two-factor-activation-code",
+                    context,
+                    user.getEmail()
+            );
+
+            log.info("2FA activation verification code email sent successfully to: {}", user.getEmail());
+
+        } catch (Exception e) {
+            log.error("Failed to send 2FA activation verification code email to: {} - Error: {}",
+                    user.getEmail(), e.getMessage(), e);
+            throw new RuntimeException("Failed to send activation verification code email", e);
+        }
+    }
+
 }
