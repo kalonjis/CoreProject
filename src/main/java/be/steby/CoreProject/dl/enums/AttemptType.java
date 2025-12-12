@@ -15,8 +15,9 @@ package be.steby.CoreProject.dl.enums;
  *   <li>{@code ACCOUNT_REACTIVATION} - Account reactivation requests</li>
  *   <li>{@code DEVICE_CONFIRMATION} - Device verification attempts</li>
  *   <li>{@code EMAIL_CONFIRMATION} - Email verification attempts</li>
- *   <li>{@code PASSWORD_RESSET} - Email-based password reset attempts</li>
+ *   <li>{@code EMAIL_PASSWORD_RESET} - Email-based password reset attempts</li>
  *   <li>{@code SMS_PASSWORD_RESET} - SMS-based password reset attempts</li>
+ *   <li>{@code EMAIL_2FA_ACTIVATION} - Email-based 2FA activation attempts</li>
  * </ul>
  *
  * <p>The separation allows for fine-grained rate limiting policies. For example,
@@ -53,7 +54,7 @@ public enum AttemptType {
     /**
      * Password reset attempts via email (traditional flow).
      *
-     * <p><strong>Note:</strong> Maintained as RESSET for backward compatibility
+     * <p><strong>Note:</strong> Maintained as EMAIL_PASSWORD_RESET for backward compatibility
      * with existing database records.</p>
      */
     EMAIL_PASSWORD_RESET,
@@ -65,5 +66,31 @@ public enum AttemptType {
      * for password reset operations. Due to SMS costs and potential for abuse,
      * this type typically has stricter rate limiting than email-based resets.</p>
      */
-    SMS_PASSWORD_RESET
+    SMS_PASSWORD_RESET,
+
+    /**
+     * Email-based two-factor authentication activation attempts.
+     *
+     * <p>This type tracks attempts to initiate email 2FA activation, including
+     * sending verification emails for 2FA setup. Rate limiting prevents spam
+     * and abuse of email services while allowing legitimate activation attempts.</p>
+     *
+     * <p><strong>Rate Limiting Rationale:</strong> Email 2FA activation typically
+     * has moderate rate limiting (e.g., 5 attempts per 15 minutes) to balance
+     * user experience with abuse prevention.</p>
+     */
+    EMAIL_2FA_ACTIVATION,
+
+    /**
+     * Email-based two-factor authentication verification attempts.
+     *
+     * <p>This type tracks attempts to verify email 2FA codes during the activation
+     * process. Rate limiting prevents brute force attacks on 6-digit verification
+     * codes while allowing legitimate verification attempts.</p>
+     *
+     * <p><strong>Rate Limiting Rationale:</strong> Email 2FA verification typically
+     * has stricter rate limiting (e.g., 10 attempts per 5 minutes) due to the
+     * limited keyspace of 6-digit codes (1 million combinations).</p>
+     */
+    EMAIL_2FA_VERIFICATION
 }

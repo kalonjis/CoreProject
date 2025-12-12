@@ -14,7 +14,26 @@ public record TwoFactorOperationResponse(
     String type,
     String status
 ) {
-    
+
+    /**
+     * Creates a successful activation initiation response.
+     *
+     * @param type the type of 2FA method being activated
+     * @return TwoFactorOperationResponse indicating successful initiation
+     */
+    public static TwoFactorOperationResponse initiateActivationSuccess(TwoFactorType type) {
+        return new TwoFactorOperationResponse(
+            String.format("%s two-factor authentication setup initiated successfully. Please check your %s for the verification code.",
+                    type.getDisplayName(),
+                    type == TwoFactorType.EMAIL ? "email" : (
+                            type == TwoFactorType.TOTP? "authenticator app" : "sms"
+                    )
+            ),
+            type.name(),
+            String.format("%s two-factor activation initiated", type.getDisplayName())
+        );
+    }
+
     /**
      * Factory method for successful 2FA enable operation.
      */

@@ -1,5 +1,9 @@
 package be.steby.CoreProject.bll.domains.auth.services.twofactor.emailtwofactor;
 
+import be.steby.CoreProject.bll.domains.auth.models.EmailTwoFactorActivationBllRequest;
+import be.steby.CoreProject.bll.domains.auth.models.TwoFactorActivationResult;
+import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.EmailTwoFactorAlreadyEnabledException;
+import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.EmailTwoFactorNotEnabledException;
 import be.steby.CoreProject.dl.entities.User;
 
 /**
@@ -18,6 +22,10 @@ import be.steby.CoreProject.dl.entities.User;
  * @since 2.0.0
  */
 public interface EmailTwoFactorService {
+
+    TwoFactorActivationResult initiateActivation();
+
+    void verifyAndActivateEmailTwoFactor(EmailTwoFactorActivationBllRequest request);
     
     /**
      * Enable email-based 2FA for the authenticated user.
@@ -54,7 +62,7 @@ public interface EmailTwoFactorService {
      * @return a 6-digit verification code as a String
      * @throws EmailTwoFactorNotEnabledException if email 2FA is not enabled for the user
      */
-    String generateCode(User user);
+    String generateVerificationCode(User user);
     
     /**
      * Verify a provided code against the expected verification code.

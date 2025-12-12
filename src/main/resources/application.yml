@@ -17,6 +17,7 @@ spring:
       - classpath:config/security/admin.yml
       - classpath:config/security/auth.yml
       - classpath:config/security/two-factor/totp.yml
+      - classpath:config/security/two-factor/email.yml
       - classpath:config/security/two-factor/backup-codes.yml
       - classpath:config/common-validation.yml
       - classpath:config/logging.yml
