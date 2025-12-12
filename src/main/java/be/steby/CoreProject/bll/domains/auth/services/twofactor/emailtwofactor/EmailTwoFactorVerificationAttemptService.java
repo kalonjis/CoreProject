@@ -3,6 +3,7 @@ package be.steby.CoreProject.bll.domains.auth.services.twofactor.emailtwofactor;
 import be.steby.CoreProject.bll.common.services.tokens.BaseAttemptTrackerServiceImpl;
 import be.steby.CoreProject.dal.repositories.UserAttemptRepository;
 import be.steby.CoreProject.dl.enums.AttemptType;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -54,6 +55,7 @@ import org.springframework.stereotype.Service;
  * @see EmailTwoFactorServiceImpl
  * @see EmailTwoFactorActivationAttemptService
  */
+@Slf4j
 @Service
 public class EmailTwoFactorVerificationAttemptService extends BaseAttemptTrackerServiceImpl {
 
@@ -69,7 +71,7 @@ public class EmailTwoFactorVerificationAttemptService extends BaseAttemptTracker
      */
     public EmailTwoFactorVerificationAttemptService(
             UserAttemptRepository userAttemptRepository,
-            @Value("${security.two-factor.email.verification.max-attempts:10}") int maxAttempts,
+            @Value("${security.two-factor.email.verification.max-attempts:5}") int maxAttempts,
             @Value("${security.two-factor.email.verification.lockout-minutes:5}") int lockoutMinutes) {
         super(userAttemptRepository, maxAttempts, lockoutMinutes, AttemptType.EMAIL_2FA_VERIFICATION);
     }

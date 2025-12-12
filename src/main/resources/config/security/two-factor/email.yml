@@ -8,6 +8,6 @@ security:
         lockout-minutes: 15
       verification:
         # Nombre maximum de tentatives de vérification de code avant blocage
-        max-attempts: 10
+        max-attempts: 5
         # Durée de blocage en minutes après dépassement des tentatives
         lockout-minutes: 5

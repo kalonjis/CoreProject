@@ -28,6 +28,10 @@ public class InvalidVerificationCodeException extends AuthenticationException {
         super(message);
     }
 
+    public InvalidVerificationCodeException(String message, int status) {
+        super(message, status);
+    }
+
     /**
      * Constructs a new InvalidVerificationCodeException with the specified detail message
      * and cause.
