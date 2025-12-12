@@ -125,7 +125,6 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
     }
 
     @Override
-    @Transactional
     public void verifyAndActivateEmailTwoFactor(EmailTwoFactorActivationBllRequest request) {
         log.info("Starting email 2FA verification and activation process");
 
@@ -152,7 +151,7 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
                     user.getUsername());
             // Record failed verification attempt
             emailTwoFactorVerificationAttemptService.recordAttempt(user);
-            throw new InvalidVerificationCodeException("The verification code is incorrect");
+            throw new InvalidVerificationCodeException("The verification code is incorrect", 400);
         }
 
         // Code verification successful - activate email 2FA
