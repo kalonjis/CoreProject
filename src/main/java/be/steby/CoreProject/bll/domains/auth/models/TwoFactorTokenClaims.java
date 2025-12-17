@@ -6,7 +6,7 @@ import be.steby.CoreProject.dl.enums.TwoFactorType;
  * JWT claims for 2FA token
  */
 public record TwoFactorTokenClaims(
-    String userId,
+    String publicId,
     String username,
     String email,
     TwoFactorType twoFactorType,
