@@ -1,13 +1,14 @@
 package be.steby.CoreProject.pl.domains.auth.controller;
 
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.totptwofactor.TOTPTwoFactorService;
+import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
 import be.steby.CoreProject.pl.domains.auth.models.responses.TwoFactorOperationResponse;
 import be.steby.CoreProject.pl.domains.auth.models.responses.TOTPSetupResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -40,7 +41,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth/2fa/totp")
 @RequiredArgsConstructor
-@PreAuthorize("isAuthenticated()")
 @Slf4j
 public class TOTPTwoFactorController {
     
@@ -162,10 +162,16 @@ public class TOTPTwoFactorController {
     }
 
 
-//    @PostMapping("/totp/test-code") TODO: full implementation and use it in front side
-//    public ResponseEntity<Boolean> testTotpCode(@RequestBody String code) {
-//        boolean isValid = totpTwoFactorService.verifyCode(authenticatedUser, code);
-//        return ResponseEntity.ok(isValid);
-//    }
+    @PostMapping("/totp/test-code")
+    public ResponseEntity<Boolean> testTotpCode(
+            @AuthenticationPrincipal User user,
+            @RequestBody TestCodeRequest testCodeRequest) {
+        String username = user != null? user.getUsername() : "Ungettableuser";
+        System.out.println("user : " + username + "essaie de test son code totp");
+        boolean isValid = totpTwoFactorService.verifyCode(user, testCodeRequest.code());
+        return ResponseEntity.ok(isValid);
+    }
+
+    public record TestCodeRequest(String code) {}
 
 }
