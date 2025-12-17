@@ -173,7 +173,7 @@ public class AuthServiceImpl implements AuthService {
         TwoFactorTokenClaims twoFactorClaims = extractTwoFactorClaims(claims);
 
         // 2. Load user for factory operations
-        User user = userService.getUserById(Long.parseLong(twoFactorClaims.userId()));
+        User user = userService.getUserByPublicId(twoFactorClaims.publicId());
 
         // 3. Determine which code to use based on 2FA type and provided values
         String codeToVerify;
@@ -235,7 +235,7 @@ public class AuthServiceImpl implements AuthService {
         TwoFactorTokenClaims twoFactorClaims = extractTwoFactorClaims(claims);
 
         // 2. Load user
-        User user = userService.getUserById(Long.parseLong(twoFactorClaims.userId()));
+        User user = userService.getUserByPublicId(twoFactorClaims.publicId());
 
         // 3. Generate new verification code using TwoFactorFactory
         String newVerificationCode = twoFactorFactory.generateCode(user);
@@ -262,7 +262,7 @@ public class AuthServiceImpl implements AuthService {
         long timeRemaining = Math.max(0, twoFactorClaims.expiresAt() - currentTime);
 
         return new TwoFactorSessionInfo(
-                twoFactorClaims.userId(),
+                twoFactorClaims.publicId(),
                 twoFactorClaims.username(),
                 twoFactorClaims.twoFactorType(),
                 maskEmail(twoFactorClaims.email()),
@@ -632,7 +632,7 @@ public class AuthServiceImpl implements AuthService {
      */
     private TwoFactorTokenClaims extractTwoFactorClaims(Claims claims) {
         return new TwoFactorTokenClaims(
-                claims.get("userId", String.class),
+                claims.get("publicId", String.class),
                 claims.get("username", String.class),
                 claims.get("email", String.class),
                 TwoFactorType.valueOf(claims.get("twoFactorType", String.class)),

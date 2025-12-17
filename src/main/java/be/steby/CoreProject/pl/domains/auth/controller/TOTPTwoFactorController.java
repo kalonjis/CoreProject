@@ -160,4 +160,12 @@ public class TOTPTwoFactorController {
             TwoFactorOperationResponse.disabled(TwoFactorType.TOTP)
         );
     }
+
+
+//    @PostMapping("/totp/test-code") TODO: full implementation and use it in front side
+//    public ResponseEntity<Boolean> testTotpCode(@RequestBody String code) {
+//        boolean isValid = totpTwoFactorService.verifyCode(authenticatedUser, code);
+//        return ResponseEntity.ok(isValid);
+//    }
+
 }

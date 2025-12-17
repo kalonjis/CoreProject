@@ -181,7 +181,7 @@ public class JwtUtil {
      */
     public String generate2FAToken(User user, String verificationCodeHash, TwoFactorType twoFactorType) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", user.getId().toString());
+        claims.put("publicId", user.getPublicId());
         claims.put("username", user.getUsername());
         claims.put("email", user.getEmail());
         claims.put("twoFactorType", twoFactorType.name());

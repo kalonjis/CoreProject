@@ -259,8 +259,6 @@ public class AuthController {
                 httpRequest
         );
 
-        // PL: Manage cookie transition - clear session token, set full 2FA token
-        authCookieService.clear2FASessionToken(httpResponse);
         authCookieService.set2FAToken(httpResponse, result.twoFactorToken());
 
         log.info("2FA method chosen successfully: {} - Code generated: {}",
