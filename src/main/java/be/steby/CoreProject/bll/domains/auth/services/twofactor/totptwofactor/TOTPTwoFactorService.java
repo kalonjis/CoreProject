@@ -1,5 +1,7 @@
 package be.steby.CoreProject.bll.domains.auth.services.twofactor.totptwofactor;
 
+import be.steby.CoreProject.bll.domains.auth.models.TotpActivationInitiateResult;
+import be.steby.CoreProject.bll.domains.auth.models.TotpTwoFactorActivationBllRequest;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TOTPTwoFactorAlreadyEnabledException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TOTPTwoFactorNotEnabledException;
@@ -42,7 +44,38 @@ public interface TOTPTwoFactorService {
      * @throws TOTPTwoFactorAlreadyEnabledException if TOTP 2FA is already enabled for the user
      */
     TOTPSetupInfo enable();
-    
+
+
+    /**
+     * Initiate TOTP 2FA activation process (step 1 of 2-step flow).
+     *
+     * Generates a new secret key and QR code URI for the user to configure
+     * their authenticator app. The secret is stored in a JWT activation token
+     * (set as HttpOnly cookie by controller) for verification in step 2.
+     *
+     * Unlike the direct enable() method, this does NOT persist the TOTP config
+     * until the user verifies they can generate valid codes in step 2.
+     *
+     * @return TotpActivationInitiateResult containing QR code, secret, and activation token
+     * @throws TOTPTwoFactorAlreadyEnabledException if TOTP 2FA is already enabled
+     * @throws MaxAttemptsReachedException if rate limit exceeded
+     */
+    TotpActivationInitiateResult initiateActivation();
+
+    /**
+     * Verify TOTP code and complete activation (step 2 of 2-step flow).
+     *
+     * Validates the provided TOTP code against the secret stored in the
+     * activation token. On success, persists the TOTP configuration and
+     * enables TOTP 2FA for the user.
+     *
+     * @param request contains the 6-digit TOTP code and activation token
+     * @throws TOTPTwoFactorAlreadyEnabledException if TOTP 2FA is already enabled
+     * @throws InvalidVerificationCodeException if the TOTP code is invalid
+     * @throws MaxAttemptsReachedException if rate limit exceeded
+     */
+    void verifyAndActivateTotpTwoFactor(TotpTwoFactorActivationBllRequest request);
+
     /**
      * Disable TOTP-based 2FA for the authenticated user.
      * 
