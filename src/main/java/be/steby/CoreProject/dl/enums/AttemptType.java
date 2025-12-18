@@ -92,5 +92,32 @@ public enum AttemptType {
      * has stricter rate limiting (e.g., 10 attempts per 5 minutes) due to the
      * limited keyspace of 6-digit codes (1 million combinations).</p>
      */
-    EMAIL_2FA_VERIFICATION
+    EMAIL_2FA_VERIFICATION,
+
+    /**
+     * TOTP-based two-factor authentication activation attempts.
+     *
+     * <p>This type tracks attempts to initiate TOTP 2FA activation, including
+     * generating secret keys and QR codes. Rate limiting prevents abuse while
+     * allowing legitimate activation attempts.</p>
+     *
+     * <p><strong>Rate Limiting Rationale:</strong> TOTP 2FA activation typically
+     * has moderate rate limiting (e.g., 5 attempts per 15 minutes) to balance
+     * user experience with abuse prevention.</p>
+     */
+    TOTP_2FA_ACTIVATION,
+
+    /**
+     * TOTP-based two-factor authentication verification attempts.
+     *
+     * <p>This type tracks attempts to verify TOTP codes during the activation
+     * process. Rate limiting prevents brute force attacks on 6-digit TOTP codes
+     * while allowing legitimate verification attempts.</p>
+     *
+     * <p><strong>Rate Limiting Rationale:</strong> TOTP 2FA verification typically
+     * has stricter rate limiting (e.g., 10 attempts per 5 minutes) due to the
+     * limited keyspace of 6-digit codes (1 million combinations).</p>
+     */
+    TOTP_2FA_VERIFICATION
+
 }

@@ -1,16 +1,24 @@
 package be.steby.CoreProject.bll.domains.auth.services.twofactor.totptwofactor;
 
+import be.steby.CoreProject.bll.domains.auth.events.TwoFactorEnabledEvent;
+import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.InvalidVerificationCodeException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TOTPTwoFactorAlreadyEnabledException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TOTPTwoFactorNotEnabledException;
+import be.steby.CoreProject.bll.domains.auth.models.TotpActivationInitiateResult;
+import be.steby.CoreProject.bll.domains.auth.models.TotpTwoFactorActivationBllRequest;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.config.TOTPConfiguration;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.config.TOTPSecretEncryptionService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
+import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.TwoFactorAuthRepository;
 import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
+import be.steby.CoreProject.il.Jwt.JwtUtil;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,7 +67,12 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
     private final PasswordEncoder passwordEncoder;
     private final TOTPConfiguration totpConfig;
     private final TOTPSecretEncryptionService encryptionService;
+    private final JwtUtil jwtUtil;
+    private final ApplicationEventPublisher eventPublisher;
+    private final TotpTwoFactorActivationAttemptService totpActivationAttemptService;
+    private final TotpTwoFactorVerificationAttemptService totpVerificationAttemptService;
     private final SecureRandom secureRandom = new SecureRandom();
+
 
     // Base32 alphabet for secret encoding (RFC 4648)
     private static final String BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -118,6 +131,87 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
         log.info("TOTP 2FA enabled successfully for user: {}", user.getUsername());
 
         return new TOTPSetupInfo(secretKey, qrCodeUri, manualEntryKey);
+    }
+
+    @Override
+    @Transactional
+    public TotpActivationInitiateResult initiateActivation() {
+        User user = userService.getAuthenticatedUser();
+        log.info("Initiating TOTP 2FA activation for user: {}", user.getUsername());
+
+        // Rate limiting check for activation attempts
+        if (totpActivationAttemptService.hasExceededAttempts(user)) {
+            log.warn("User {} exceeded TOTP 2FA activation attempts", user.getUsername());
+            throw new MaxAttemptsReachedException("Too many TOTP 2FA activation attempts. Please try again later.");
+        }
+
+        // Validate TOTP 2FA not already enabled
+        if (twoFactorAuthRepository.existsByUserAndTypeAndEnabledTrue(user, TwoFactorType.TOTP)) {
+            log.warn("TOTP 2FA already enabled for user: {}", user.getUsername());
+            throw new TOTPTwoFactorAlreadyEnabledException("TOTP two-factor authentication is already enabled");
+        }
+
+        // Record activation attempt and generate secret
+        totpActivationAttemptService.recordAttempt(user);
+        String secretKey = generateSecretKey();
+
+        // Generate setup information
+        String qrCodeUri = generateQRCodeUri(user.getEmail(), secretKey);
+        String manualEntryKey = formatSecretForManualEntry(secretKey);
+
+        // Store secret in JWT activation token (encrypted for security)
+        String encryptedSecret = encryptionService.encrypt(secretKey);
+        String activationToken = jwtUtil.generate2FAActivationToken(user, encryptedSecret);
+
+        log.info("TOTP 2FA activation initiated for user: {} (secret stored in token)", user.getUsername());
+
+        return new TotpActivationInitiateResult(qrCodeUri, secretKey, manualEntryKey, activationToken);
+    }
+
+    @Override
+    @Transactional
+    public void verifyAndActivateTotpTwoFactor(TotpTwoFactorActivationBllRequest request) {
+        log.info("Starting TOTP 2FA verification and activation process");
+
+        // Validate activation token and extract claims
+        Claims claims = jwtUtil.validate2FAActivationToken(request.activationToken());
+        String userPublicId = claims.get("publicId", String.class);
+        String encryptedSecret = claims.get("verificationCode", String.class); // We reuse this claim for the secret
+
+        // Load user by publicId from token
+        User user = userService.getUserByPublicId(userPublicId);
+        log.debug("Processing TOTP 2FA activation for user: {}", user.getUsername());
+
+        // Rate limiting check for verification attempts
+        if (totpVerificationAttemptService.hasExceededAttempts(user)) {
+            log.warn("User {} exceeded TOTP 2FA verification attempts", user.getUsername());
+            throw new MaxAttemptsReachedException("Too many verification attempts. Please try again later.");
+        }
+
+        // Validate TOTP 2FA not already enabled
+        if (twoFactorAuthRepository.existsByUserAndTypeAndEnabledTrue(user, TwoFactorType.TOTP)) {
+            log.warn("TOTP 2FA already enabled for user: {}", user.getUsername());
+            throw new TOTPTwoFactorAlreadyEnabledException("TOTP two-factor authentication is already enabled");
+        }
+
+        // Decrypt the secret and verify the TOTP code
+        String secretKey = encryptionService.decrypt(encryptedSecret);
+        if (!verifyTotpCode(secretKey, request.getTrimmedVerificationCode())) {
+            log.warn("Invalid TOTP code provided during activation for user: {}", user.getUsername());
+            totpVerificationAttemptService.recordAttempt(user);
+            throw new InvalidVerificationCodeException("The verification code is incorrect", 400);
+        }
+
+        // Code verification successful - create and save TOTP config
+        createAndSaveTotpTwoFactorEntity(user, secretKey);
+
+        // Publish confirmation event and reset rate limiting
+        TwoFactorEnabledEvent event = new TwoFactorEnabledEvent(user, TwoFactorType.TOTP);
+        eventPublisher.publishEvent(event);
+        totpActivationAttemptService.resetAttempts(user);
+        totpVerificationAttemptService.resetAttempts(user);
+
+        log.info("TOTP 2FA successfully activated for user: {}", user.getUsername());
     }
 
     @Override
@@ -361,5 +455,64 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
         }
 
         return result;
+    }
+
+
+    /**
+     * Verify a TOTP code against a secret key (for activation flow).
+     * Uses time window tolerance for slight clock differences.
+     */
+    private boolean verifyTotpCode(String secretKey, String providedCode) {
+        long currentTime = Instant.now().getEpochSecond();
+
+        for (int i = -totpConfig.getWindowTolerance(); i <= totpConfig.getWindowTolerance(); i++) {
+            long timeWindow = currentTime + (i * totpConfig.getTimeStepSeconds());
+            String expectedCode = generateTOTPCode(secretKey, timeWindow);
+
+            if (constantTimeEquals(providedCode, expectedCode)) {
+                log.debug("TOTP code verified successfully (time window: {})", i);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Create and save TOTP 2FA entity for the user.
+     */
+    private void createAndSaveTotpTwoFactorEntity(User user, String secretKey) {
+        // Check if a disabled TOTP 2FA configuration already exists
+        Optional<TwoFactorAuth> existingTotpTwoFactor = twoFactorAuthRepository
+                .findByUserAndType(user, TwoFactorType.TOTP);
+
+        TwoFactorAuth totpAuth;
+        if (existingTotpTwoFactor.isPresent()) {
+            // Reactivate existing configuration with new secret
+            totpAuth = existingTotpTwoFactor.get();
+            totpAuth.setSecret(encryptionService.encrypt(secretKey));
+            totpAuth.setEnabled(true);
+            totpAuth.setEnabledAt(Instant.now());
+            totpAuth.setDisabledAt(null);
+            log.debug("Reactivated existing TOTP 2FA configuration for user: {}", user.getUsername());
+        } else {
+            // Create new TOTP 2FA configuration
+            totpAuth = TwoFactorAuth.builder()
+                    .user(user)
+                    .type(TwoFactorType.TOTP)
+                    .secret(encryptionService.encrypt(secretKey))
+                    .enabled(true)
+                    .isPrimary(true)
+                    .enabledAt(Instant.now())
+                    .build();
+            log.debug("Created new TOTP 2FA configuration for user: {}", user.getUsername());
+        }
+
+        // Demote any existing primary 2FA method
+        demoteExistingPrimaryTwoFactor(user);
+
+        // Set this as primary and save
+        totpAuth.setIsPrimary(true);
+        twoFactorAuthRepository.save(totpAuth);
     }
 }
