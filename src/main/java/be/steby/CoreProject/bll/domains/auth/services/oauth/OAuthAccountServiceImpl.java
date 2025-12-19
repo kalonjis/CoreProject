@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Service implementation for managing OAuth accounts.
@@ -244,7 +243,8 @@ public class OAuthAccountServiceImpl implements OAuthAccountService {
         }
 
         // OAuth users have random password (cannot login via password)
-        user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        user.setPassword(null);
+        user.setPasswordChangedAt(null);
         user.setEnabled(true);
         user.setEverActivated(true);
         user.setMustChangePassword(false);

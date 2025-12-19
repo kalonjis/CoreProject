@@ -557,11 +557,26 @@ public class AuthServiceImpl implements AuthService {
      * Validates password matches.
      */
     private void validatePassword(String password, User user) {
+        // Check if user has a password defined (OAuth-only users don't)
+        if (!user.hasPassword()) {
+            log.info("Login attempt with credentials for OAuth-only user: {}", user.getUsername());
+            String accountProvider = getOauthProvider(user.getEmail());
+            throw new OAuthOnlyAccountException(
+                    "This account was created with " + accountProvider +
+                            ". Please use the same provider to sign in, or set a password in your account settings."
+            );
+        }
+
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new InvalidCredentialsException(
                     "Invalid username or password. Please check your credentials and try again."
             );
         }
+    }
+
+    private String getOauthProvider(String usermail){
+        String domain = usermail.split("@")[1].split(".")[0];
+        return domain;
     }
 
     /**

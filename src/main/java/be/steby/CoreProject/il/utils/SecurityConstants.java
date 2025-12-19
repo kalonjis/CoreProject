@@ -135,7 +135,8 @@ public class SecurityConstants {
     };
 
     private static final String[] PASSWORD_AUTHENTICATED_ROUTES = {
-            "/api/password/change"
+            "/api/password/change",
+            "/api/password/define"
     };
 
     /**
@@ -149,7 +150,8 @@ public class SecurityConstants {
             "/api/password/verify-code",
             "/api/password/reset-with-permission",
             // TODO delete "change" from passwordcsrfignore in prod
-            "/api/password/change"
+            "/api/password/change",
+            "/api/password/define"
     };
 
     // ========== EMAIL CHANGE DOMAIN ==========
