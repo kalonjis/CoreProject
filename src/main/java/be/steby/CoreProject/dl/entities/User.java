@@ -110,13 +110,16 @@ public class User extends BaseEntity<Long> implements UserDetails {
     /**
      * The password of the user.
      * This will be encoded using bcrypt before storage.
+     * NULL for OAuth-only users who haven't set a password.
      */
-    @Column(nullable = false)
+    @Column()
     private String password;
 
-    @Column(nullable = false)
+    /**
+     * When password was last changed. NULL if no password defined.
+     */
+    @Column()
     private Instant passwordChangedAt;
-
 
     /**
      * Whether the user has completed their profile according to application requirements.
@@ -331,7 +334,6 @@ public class User extends BaseEntity<Long> implements UserDetails {
     }
     // endregion
 
-
     // region UserDetails methods implementation
     /**
      * Retrieves the GrantedAuthority for the user's role.
@@ -383,6 +385,11 @@ public class User extends BaseEntity<Long> implements UserDetails {
 
     // endregion
 
+    // region Other helpers
+
+    public boolean hasPassword() {
+        return this.password != null;
+    }
 
     /**
      * Détermine si l'utilisateur a été désactivé par un admin
@@ -468,5 +475,7 @@ public class User extends BaseEntity<Long> implements UserDetails {
                 && !recoveryEmail.isBlank()
                 && !isRecoveryEmailInGracePeriod();
     }
+
+    // endregion
 
 }

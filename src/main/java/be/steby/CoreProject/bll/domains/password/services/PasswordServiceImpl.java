@@ -8,9 +8,7 @@ import be.steby.CoreProject.bll.domains.password.events.RequestPasswordResetEven
 import be.steby.CoreProject.bll.domains.password.events.RequestPasswordTokenEvent;
 import be.steby.CoreProject.bll.domains.password.events.email.PasswordResetCodeEmailRequestedEvent;
 import be.steby.CoreProject.bll.domains.password.events.sms.PasswordResetSmsRequestedEvent;
-import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordException;
-import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordResetTokenException;
-import be.steby.CoreProject.bll.domains.password.exceptions.PasswordRequestValidationException;
+import be.steby.CoreProject.bll.domains.password.exceptions.*;
 import be.steby.CoreProject.bll.domains.password.models.*;
 import be.steby.CoreProject.bll.domains.password.services.tokens.sms.SmsTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
@@ -262,8 +260,10 @@ public class PasswordServiceImpl implements PasswordService {
     public void changePassword(PasswordChangeRequest request, HttpServletRequest httpRequest) {
         User authenticatedUser = userService.getAuthenticatedUser();
 
-        if (!passwordEncoder.matches(request.currentPassword(), authenticatedUser.getPassword())) {
-            throw new InvalidPasswordException("The current password is not correct", 400);
+        if (!authenticatedUser.hasPassword()) {
+            throw new NoPasswordDefinedException(
+                    "You don't have a password yet. Use the 'Define password' feature instead."
+            );
         }
 
         PasswordValidationResult result = passwordPolicyService.validatePassword(request.newPassword());
@@ -289,6 +289,44 @@ public class PasswordServiceImpl implements PasswordService {
             refreshTokenService.revokeAllUserTokens(authenticatedUser);
             deviceService.disconnectAllDevicesForUser(authenticatedUser);
         }
+    }
+
+
+    // =========================================================================
+// DEFINE PASSWORD (OAUTH USERS)
+// =========================================================================
+
+    @Override
+    @Transactional
+    public void definePassword(String newPassword, HttpServletRequest httpRequest) {
+        User authenticatedUser = userService.getAuthenticatedUser();
+
+        // Security: only for users without a defined password
+        if (authenticatedUser.hasPassword()) {
+            throw new PasswordAlreadyDefinedException(
+                    "You already have a password defined. Use the change password feature instead."
+            );
+        }
+
+        // Validate password meets policy requirements
+        PasswordValidationResult result = passwordPolicyService.validatePassword(newPassword);
+        if (!result.isValid()) {
+            throw new InvalidPasswordException("Password doesn't meet security requirements: "
+                    + String.join(", ", result.errors()));
+        }
+
+        // Set the password
+        authenticatedUser.setPassword(passwordEncoder.encode(newPassword));
+        authenticatedUser.setPasswordChangedAt(Instant.now());
+        userService.saveUser(authenticatedUser);
+
+        // Publish event for audit/notifications
+        eventPublisher.publishEvent(new PasswordChangedEvent(authenticatedUser));
+
+        log.info("Password defined for OAuth user: {}", authenticatedUser.getUsername());
+
+        // Note: No device logout - this is a first-time password definition,
+        // not a security-sensitive password change
     }
 
     // =========================================================================

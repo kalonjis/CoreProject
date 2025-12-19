@@ -292,4 +292,36 @@ public class PasswordController {
 
         return ResponseEntity.ok(PasswordOperationResponse.passwordChanged());
     }
+
+
+    // =========================================================================
+// DEFINE PASSWORD (OAUTH USERS)
+// =========================================================================
+
+    /**
+     * Defines a password for OAuth-only users.
+     *
+     * <p>This endpoint allows users who signed up via OAuth (Google, GitHub, Microsoft)
+     * to set a password so they can also login with credentials.
+     *
+     * <p>This endpoint requires authentication but does NOT require the current password,
+     * since OAuth users don't have one yet.
+     *
+     * <p><strong>Endpoint:</strong> PUT /api/password/define
+     *
+     * @param request Contains new password and confirmation
+     * @param httpRequest HTTP request for auditing
+     * @return Success message if password was defined
+     */
+    @PutMapping("/define")
+    public ResponseEntity<PasswordOperationResponse> definePassword(
+            @Valid @RequestBody DefinePasswordRequest request,
+            HttpServletRequest httpRequest) {
+
+        log.info("Password definition requested by OAuth user");
+
+        passwordService.definePassword(request.password(), httpRequest);
+
+        return ResponseEntity.ok(PasswordOperationResponse.passwordDefined());
+    }
 }

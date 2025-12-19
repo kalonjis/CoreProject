@@ -1,6 +1,8 @@
 package be.steby.CoreProject.bll.domains.password.services;
 
 import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordResetTokenException;
+import be.steby.CoreProject.bll.domains.password.exceptions.PasswordAlreadyDefinedException;
+import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordException;
 import be.steby.CoreProject.bll.domains.password.exceptions.PasswordDomainException;
 import be.steby.CoreProject.bll.domains.password.models.*;
 import be.steby.CoreProject.dl.enums.PasswordResetType;
@@ -149,4 +151,23 @@ public interface PasswordService {
      * @throws PasswordDomainException if current password is incorrect or new password fails validation
      */
     void changePassword(PasswordChangeRequest request, HttpServletRequest httpRequest);
+
+    // =========================================================================
+    // DEFINE PASSWORD (OAUTH USERS)
+    // =========================================================================
+
+    /**
+     * Defines a password for OAuth-only users who don't have one yet.
+     *
+     * <p>This allows users who signed up via OAuth (Google, GitHub, Microsoft)
+     * to also login with credentials.
+     *
+     * <p>Only allowed if user has no password defined (user.hasPassword() == false).
+     *
+     * @param newPassword the password to define (already validated at PL level)
+     * @param httpRequest HTTP request for auditing purposes
+     * @throws PasswordAlreadyDefinedException if user already has a password
+     * @throws InvalidPasswordException if password fails policy validation
+     */
+    void definePassword(String newPassword, HttpServletRequest httpRequest);
 }

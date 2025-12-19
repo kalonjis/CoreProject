@@ -33,6 +33,18 @@ public record PasswordOperationResponse(
         );
     }
 
+
+    /**
+     * Response for successful password defined operation (authenticated user).
+     *
+     * @return response indicating password was set successfully
+     */
+    public static PasswordOperationResponse passwordDefined() {
+        return new PasswordOperationResponse(
+                "Your password has been set successfully. You can now login with your email and password."
+        );
+    }
+
     /**
      * Response for successful password reset completion.
      *
