@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.common.services.mailer;
+package be.steby.CoreProject.bll.common.services.notification.mailer;
 
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
@@ -8,20 +8,20 @@ import org.springframework.scheduling.annotation.Async;
 
 
 public interface MailerService {
-  @Async
-  void sendPasswordReset(String token, User user);
+    @Async
+    void sendPasswordReset(String token, User user);
 
-  @Async
-  void sendPasswordResetRefresh(String newToken, User user);
+    @Async
+    void sendPasswordResetRefresh(String newToken, User user);
 
-  void sendAccountConfirmation(String token, User user, String temporaryPassword);
+    void sendAccountConfirmation(String token, User user, String temporaryPassword);
 
 
-  void sendSignUpConfirmation(String token, User user);
+    void sendSignUpConfirmation(String token, User user);
 
-  void sendNewAccountConfirmation(String token, User user);
+    void sendNewAccountConfirmation(String token, User user);
 
-  void sendWelcome(User user);
+    void sendWelcome(User user);
 
     /**
      * Sends a deactivation request confirmation email to the user
@@ -57,15 +57,15 @@ public interface MailerService {
      */
     void sendAccountReactivationConfirmation(User user);
 
-  void sendPasswordChangeConfirmation(User user);
+    void sendPasswordChangeConfirmation(User user);
 
-  void sendChangeEmailRequest(String token, User user);
+    void sendChangeEmailRequest(String token, User user);
 
-  void sendChangeEmailVerification(String token, User user, String newEmail);
+    void sendChangeEmailVerification(String token, User user, String newEmail);
 
-  void sendChangeEmailCancellation(User user);
+    void sendChangeEmailCancellation(User user);
 
-  void sendChangeEmailConfirmation(String token, User user, String newEmail, String email);
+    void sendChangeEmailConfirmation(String token, User user, String newEmail, String email);
 
 
 //    /**

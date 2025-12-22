@@ -38,7 +38,6 @@ public class DeviceMailerService extends BaseMailerService {
      * @param device The device used for login
      * @param tokenPublicId The public ID of the device confirmation token
      */
-    @Async("emailExecutor")
     public void sendNewDeviceAlert(User user, Device device, String tokenPublicId) {
         log.info("Sending new device alert email to: {} for device: {}",
                 user.getEmail(), device.getId());
@@ -76,7 +75,6 @@ public class DeviceMailerService extends BaseMailerService {
      * @param device The blacklisted device used for login attempt
      * @param tokenPublicId The public ID of the device confirmation token
      */
-    @Async("emailExecutor")
     public void sendBlacklistedDeviceAlert(User user, Device device, String tokenPublicId) {
         log.info("Sending blacklisted device alert email to: {} for device: {}",
                 user.getEmail(), device.getId());
@@ -111,7 +109,6 @@ public class DeviceMailerService extends BaseMailerService {
      * @param device The unconfirmed device
      * @param tokenPublicId The public ID of the device confirmation token
      */
-    @Async("emailExecutor")
     public void sendDeviceConfirmationReminder(User user, Device device, String tokenPublicId) {
         log.info("Sending device confirmation reminder email to: {} for device: {}",
                 user.getEmail(), device.getId());
@@ -144,7 +141,6 @@ public class DeviceMailerService extends BaseMailerService {
      * @param user The user whose device was revoked
      * @param device The revoked device
      */
-    @Async("emailExecutor")
     public void sendDeviceRevocationConfirmation(User user, Device device) {
         log.info("Sending device revocation confirmation email to: {} for device: {}",
                 user.getEmail(), device.getId());

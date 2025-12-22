@@ -79,6 +79,14 @@ public class DeviceServiceImpl implements DeviceService {
         return device;
     }
 
+
+    @Override
+    public Device getMyDeviceByPublicId(String publicId) {
+        Device device = getDeviceByPublicId(publicId);
+        validateDeviceOwnership(device);
+        return device;
+    }
+
     @Override
     public List<Device> getMyDeviceList() {
         User authenticatedUser = userService.getAuthenticatedUser();
@@ -149,8 +157,8 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     @Transactional
-    public void updateTrustLevel(Long deviceId, DeviceTrustLevel level, HttpServletRequest request) {
-        Device device = getMyDevice(deviceId);
+    public void updateTrustLevel(String publicId, DeviceTrustLevel level, HttpServletRequest request) {
+        Device device = getMyDeviceByPublicId(publicId);
         DeviceTrustLevel oldLevel = device.getDeviceTrustLevel();
 
         if (oldLevel == level) {
@@ -233,13 +241,13 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     @Transactional
-    public void disconnectDevice(Long deviceId, HttpServletRequest request) {
+    public void disconnectDevice(String publicId, HttpServletRequest request) {
         Device currentDevice = detectCurrentDevice(request);
         User currentUser = currentDevice.getUser();
-        Device deviceToDisconnect = getMyDevice(deviceId);
+        Device deviceToDisconnect = getMyDeviceByPublicId(publicId);
 
         if (deviceToDisconnect.isLoggedOut()) {
-            throw new AttributeUnchangedException("Device with id : " + deviceId + " was already disconnected !");
+            throw new AttributeUnchangedException("Device with id : " + publicId + " was already disconnected !");
         }
 
         if (currentDevice.getId().equals(deviceToDisconnect.getId())) {
@@ -253,7 +261,7 @@ public class DeviceServiceImpl implements DeviceService {
         // Use service method to ensure cache consistency
         saveDevice(deviceToDisconnect);
 
-        log.info("Device {} marked as disconnected for user {}", deviceId, currentUser.getUsername());
+        log.info("Device {} marked as disconnected for user {}", publicId, currentUser.getUsername());
     }
 
     @Override
