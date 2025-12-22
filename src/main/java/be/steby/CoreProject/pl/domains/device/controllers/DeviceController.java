@@ -78,17 +78,17 @@ public class DeviceController {
     /**
      * Get specific device details (must belong to authenticated user).
      * 
-     * @param deviceId Device ID to retrieve
+     * @param publicId Device publicID to retrieve
      * @return Device details
      */
     @PreAuthorize("isAuthenticated()")
-    @GetMapping("/{deviceId}")
-    public ResponseEntity<DeviceInfoResponse> getDevice(@PathVariable Long deviceId) {
-        log.info("Get device details - deviceId: {}", deviceId);
+    @GetMapping("/{publicId}")
+    public ResponseEntity<DeviceInfoResponse> getDevice(@PathVariable String publicId) {
+        log.info("Get device details - publicId: {}", publicId);
         
-        var device = deviceService.getMyDevice(deviceId);
+        var device = deviceService.getMyDeviceByPublicId(publicId);
         
-        log.info("Device retrieved - deviceId: {}", deviceId);
+        log.info("Device retrieved - publicId: {}", publicId);
         return ResponseEntity.ok(DeviceInfoResponse.fromEntity(device));
     }
 
@@ -178,39 +178,39 @@ public class DeviceController {
      * @return No content response
      */
     @PreAuthorize("isAuthenticated()")
-    @PatchMapping("/trust-level/{deviceId}")
+    @PatchMapping("/trust-level/{publicId}")
     public ResponseEntity<DeviceOperationResponse> updateDeviceTrustLevel(
-            @PathVariable Long deviceId,
+            @PathVariable String publicId,
             @Valid @RequestBody DeviceTrustLevelRequest request,
             HttpServletRequest httpRequest) {
         
-        log.info("Update device trust level - deviceId: {}, newLevel: {}", 
-                deviceId, request.deviceTrustLevel());
+        log.info("Update device trust level - publicId: {}, newLevel: {}",
+                publicId, request.deviceTrustLevel());
         
-        deviceService.updateTrustLevel(deviceId, request.deviceTrustLevel(), httpRequest);
+        deviceService.updateTrustLevel(publicId, request.deviceTrustLevel(), httpRequest);
         
-        log.info("Device trust level updated successfully - deviceId: {}", deviceId);
+        log.info("Device trust level updated successfully - publicId: {}", publicId);
         return ResponseEntity.ok(DeviceOperationResponse.trustLevelUpdated());
     }
 
     /**
      * Disconnect specific device (revoke all sessions).
      * 
-     * @param deviceId Device ID to disconnect
+     * @param publicId DevicepublicID to disconnect
      * @param request HTTP request for context
      * @return Operation result
      */
     @PreAuthorize("isAuthenticated()")
-    @PostMapping("/disconnect/{deviceId}")
+    @PostMapping("/disconnect/{publicId}")
     public ResponseEntity<DeviceOperationResponse> disconnectDevice(
-            @PathVariable Long deviceId, 
+            @PathVariable String publicId,
             HttpServletRequest request) {
         
-        log.info("Disconnect device request - deviceId: {}", deviceId);
+        log.info("Disconnect device request - publicId: {}", publicId);
         
-        deviceService.disconnectDevice(deviceId, request);
+        deviceService.disconnectDevice(publicId, request);
         
-        log.info("Device disconnected successfully - deviceId: {}", deviceId);
+        log.info("Device disconnected successfully - deviceId: {}", publicId);
         return ResponseEntity.ok(DeviceOperationResponse.deviceDisconnected());
     }
 

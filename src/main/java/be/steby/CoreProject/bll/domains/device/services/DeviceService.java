@@ -15,6 +15,17 @@ public interface DeviceService {
 
     Device getMyDevice(Long deviceId);
 
+    /**
+     * Retrieves a device by its public ID with ownership validation.
+     * Only the authenticated user's own devices can be retrieved.
+     *
+     * @param publicId The device public ID
+     * @return The device if owned by the authenticated user
+     * @throws DeviceNotFoundException if device not found
+     * @throws OwnershipException if user doesn't own the device
+     */
+    Device getMyDeviceByPublicId(String publicId);
+
     List<Device> getMyDeviceList();
 
     List<Device> getUserDevices(User user);
@@ -29,7 +40,7 @@ public interface DeviceService {
 
     Device detectCurrentDevice(HttpServletRequest request);
 
-    void updateTrustLevel(Long deviceId, DeviceTrustLevel level, HttpServletRequest request);
+    void updateTrustLevel(String publicId, DeviceTrustLevel level, HttpServletRequest request);
 
     void saveDevice(Device device);
 
@@ -41,7 +52,7 @@ public interface DeviceService {
 
     void requestConfirmationLink(HttpServletRequest request);
 
-    void disconnectDevice(Long deviceId, HttpServletRequest request);
+    void disconnectDevice(String publicId, HttpServletRequest request);
 
     int disconnectAllOtherDevices(HttpServletRequest request);
 

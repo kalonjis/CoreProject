@@ -1,10 +1,10 @@
 package be.steby.CoreProject.bll.domains.emailaddress.listeners;
 
+import be.steby.CoreProject.bll.common.services.notification.mailer.MailerService;
 import be.steby.CoreProject.bll.domains.emailaddress.events.EmailChangeCancellationEvent;
 import be.steby.CoreProject.bll.domains.emailaddress.events.EmailChangeConfirmationEvent;
 import be.steby.CoreProject.bll.domains.emailaddress.events.EmailChangeRequestEvent;
 import be.steby.CoreProject.bll.domains.emailaddress.events.EmailChangeVerificationEvent;
-import be.steby.CoreProject.bll.common.services.mailer.MailerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;

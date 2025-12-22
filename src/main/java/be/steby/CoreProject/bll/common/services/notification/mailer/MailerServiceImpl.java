@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.common.services.mailer;
+package be.steby.CoreProject.bll.common.services.notification.mailer;
 
 
 import be.steby.CoreProject.bll.domains.account.services.DeactivationMessageService;
@@ -8,7 +8,6 @@ import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
 import be.steby.CoreProject.il.utils.MailerUtil;
 import lombok.RequiredArgsConstructor;
-import be.steby.CoreProject.bll.common.services.mailer.MailerService;
 import be.steby.CoreProject.bll.domains.account.services.DeactivationMessageService;
 import be.steby.CoreProject.il.utils.MailerUtil;
 import lombok.RequiredArgsConstructor;
