@@ -128,7 +128,7 @@ public class AuthServiceImpl implements AuthService {
                 LoginTokens tokens = generateTokens(user, device);
 
                 // Publish login event
-                eventPublisher.publishEvent(new UserLoggedInEvent(user, device));
+                publishSuccessEvents(user, device);
 
                 log.info("Login completed without 2FA for user: {}", username);
                 return LoginInitiationResult.loginComplete(tokens);
