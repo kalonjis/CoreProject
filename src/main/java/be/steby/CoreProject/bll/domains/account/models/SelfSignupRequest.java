@@ -8,6 +8,7 @@ import be.steby.CoreProject.dl.entities.User;
  * BLL layer can convert this to User entity internally
  */
 public record SelfSignupRequest(
+        String username,
         String email,
         String password
 ) {
@@ -15,7 +16,8 @@ public record SelfSignupRequest(
      * Converts BLL DTO to User entity.
      */
     public User toEntity() {
-        User user = new be.steby.CoreProject.dl.entities.User();
+        User user = new User();
+        user.setUsername(username);
         user.setEmail(email);
         user.setPassword(password); // Will be encoded by service
         return user;
