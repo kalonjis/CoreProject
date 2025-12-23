@@ -149,14 +149,19 @@ public class AccountServiceImpl implements AccountService {
     private void prepareUserForSelfSignup(User user) {
         log.debug("Preparing user for self-signup mode");
 
-        // Auto-generate username if not provided (NOT NULL constraint)
+        // Self-signup: username is REQUIRED (no auto-generation)
         if (user.getUsername() == null || user.getUsername().isBlank()) {
-            String generatedUsername = usernameGeneratorService.generateFromEmail(user.getEmail());
-            user.setUsername(generatedUsername);
-            log.info("Auto-generated username: {}", generatedUsername);
-        } else {
-            log.debug("Using provided username: {}", user.getUsername());
+            throw new SignupValidationException("Username is required for self-signup");
         }
+
+        // Auto-generate username if not provided (NOT NULL constraint)
+        //    if (user.getUsername() == null || user.getUsername().isBlank()) {
+        //        String generatedUsername = usernameGeneratorService.generateFromEmail(user.getEmail());
+        //        user.setUsername(generatedUsername);
+        //          log.info("Auto-generated username: {}", generatedUsername);
+        //        }else {
+        //          log.debug("Using provided username: {}", user.getUsername());
+        //    }
 
         // Encode password
         String encodedPassword = passwordEncoder.encode(user.getPassword());
