@@ -37,11 +37,10 @@ public class AccountMailerService extends BaseMailerService {
      * @param token The confirmation token
      * @param user The user who signed up
      */
-    @Async("emailExecutor")
     public void sendSignUpConfirmation(String token, User user) {
         log.info("Sending signup confirmation email to: {}", user.getEmail());
 
-        String confirmationUrl = buildUrl("/auth/account-confirmation", "token", token);
+        String confirmationUrl = buildUrl("/account/confirmation", "token", token);
 
         Context context = createBaseContext(user);
         context.setVariable("temporaryPassword", "The password you defined");
@@ -62,7 +61,6 @@ public class AccountMailerService extends BaseMailerService {
      * @param user The user created by admin
      * @param temporaryPassword The temporary password to include in email
      */
-    @Async("emailExecutor")
     public void sendAdminCreatedUserEmail(User user, String temporaryPassword) {
         log.info("Sending admin creation email with temporary password to: {}", user.getEmail());
 
@@ -86,7 +84,6 @@ public class AccountMailerService extends BaseMailerService {
      * @param token The confirmation token
      * @param user The user requesting activation
      */
-    @Async("emailExecutor")
     public void sendNewAccountConfirmation(String token, User user) {
         log.info("Sending new account confirmation request to: {}", user.getEmail());
 
@@ -105,7 +102,6 @@ public class AccountMailerService extends BaseMailerService {
      *
      * @param user The newly confirmed user
      */
-    @Async("emailExecutor")
     public void sendWelcome(User user) {
         log.info("Sending welcome email to: {}", user.getEmail());
 
@@ -124,7 +120,6 @@ public class AccountMailerService extends BaseMailerService {
      * @param deactivationReason The reason for deactivation
      * @param reasonDetails Additional details about the deactivation (can be null)
      */
-    @Async("emailExecutor")
     public void sendAccountDeactivationRequest(String token, User user,
                                                DeactivationReason deactivationReason,
                                                String reasonDetails) {
@@ -159,7 +154,6 @@ public class AccountMailerService extends BaseMailerService {
      * @param deactivationReason The reason for deactivation
      * @param reasonDetails Additional details about the deactivation (can be null)
      */
-    @Async("emailExecutor")
     public void sendAccountDeactivationConfirmation(User user,
                                                     DeactivationReason deactivationReason,
                                                     String reasonDetails) {
@@ -195,7 +189,6 @@ public class AccountMailerService extends BaseMailerService {
      * @param token The reactivation confirmation token
      * @param user The user requesting reactivation
      */
-    @Async("emailExecutor")
     public void sendAccountReactivationRequest(String token, User user) {
         log.info("Sending account reactivation request email to: {}", user.getEmail());
 
@@ -215,7 +208,6 @@ public class AccountMailerService extends BaseMailerService {
      *
      * @param user The user whose account was successfully reactivated
      */
-    @Async("emailExecutor")
     public void sendAccountReactivationConfirmation(User user) {
         log.info("Sending account reactivation confirmation email to: {}", user.getEmail());
 
