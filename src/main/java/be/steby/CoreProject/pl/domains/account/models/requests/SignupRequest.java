@@ -7,13 +7,18 @@ import jakarta.validation.constraints.*;
 
 /**
  * Minimal signup request - only essential credentials.
- * Profile information (username, firstname, lastname, etc.) is collected separately
+ * Profile information (firstname, lastname, etc.) is collected separately
  * after account creation via profile completion flow.
  *
  * This follows modern industry patterns where signup is kept minimal to reduce friction,
  * and additional information is collected during onboarding.
  */
 public record SignupRequest(
+        @NotBlank(message = "Username is required")
+        @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+        @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "Username can only contain letters, numbers, and underscores")
+        String username,
+
         @NotBlank(message = "Email is required")
         @Size(max = 100, message = "Email cannot exceed 100 characters")
         @ValidEmailDomain
@@ -38,6 +43,6 @@ public record SignupRequest(
      *  Converts PL DTO to BLL DTO (not to entity!)
      */
     public SelfSignupRequest toBllModel() {
-        return new SelfSignupRequest(email, password);
+        return new SelfSignupRequest(username, email, password);
     }
 }
