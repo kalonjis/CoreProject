@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.admin.services.permissions;
 
+import be.steby.CoreProject.bll.common.exceptions.UserPermissionException;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminPermissionExceptionFactory;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminPermissionException;
 import be.steby.CoreProject.bll.domains.admin.exceptions.InvalidAdminArgumentException;
@@ -23,6 +24,66 @@ public class AdminPermissionValidator {
     // ===============================
     // PUBLIC VALIDATION METHODS
     // ===============================
+
+    /**
+     * Validates that a user has administrative privileges.
+     *
+     * This is the most basic admin check - verifies the user has at least
+     * ADMIN or SUPER_ADMIN role. Use this for operations that any admin
+     * can perform (read operations, basic queries, statistics, etc.).
+     *
+     * For operations requiring SUPER_ADMIN specifically, use validateSuperAdminAction().
+     * For operations with hierarchy rules, use validateStrictHierarchy().
+     *
+     * @param user User to validate (typically the authenticated user)
+     * @throws UserPermissionException if user is null or lacks admin privileges
+     */
+    public void validateAdminRole(User user) {
+        // Null check
+        if (user == null) {
+            log.error("Admin validation failed: user is null");
+            throw new UserPermissionException("Authentication required");
+        }
+
+        // Check if user has at least ADMIN or SUPER_ADMIN role
+        boolean isAdmin = user.hasRole(UserRole.ADMIN) || user.hasRole(UserRole.SUPER_ADMIN);
+
+        if (!isAdmin) {
+            log.warn("Admin validation failed: user '{}' (ID: {}) lacks admin privileges. Roles: {}",
+                    user.getUsername(), user.getId(), user.getUserRoles());
+
+            throw new UserPermissionException("Access denied! Administrative privileges required");
+        }
+
+        log.debug("Admin validation successful: user '{}' has admin privileges", user.getUsername());
+    }
+
+    /**
+     * Validates that a user has SUPER_ADMIN privileges specifically.
+     *
+     * Use this for operations that only SUPER_ADMIN can perform:
+     * - Granting/revoking ADMIN role
+     * - Managing other admins
+     * - Critical system operations
+     *
+     * @param user User to validate
+     * @throws UserPermissionException if user lacks SUPER_ADMIN role
+     */
+    public void validateSuperAdminRole(User user) {
+        if (user == null) {
+            log.error("Super admin validation failed: user is null");
+            throw new UserPermissionException("Authentication required");
+        }
+
+        if (!user.hasRole(UserRole.SUPER_ADMIN)) {
+            log.warn("Super admin validation failed: user '{}' (ID: {}) lacks SUPER_ADMIN role. Roles: {}",
+                    user.getUsername(), user.getId(), user.getUserRoles());
+
+            throw new UserPermissionException("Access denied! Super Administrator privileges required");
+        }
+
+        log.debug("Super admin validation successful: user '{}' is SUPER_ADMIN", user.getUsername());
+    }
 
     /**
      * Validates strict role hierarchy for admin actions.
