@@ -30,6 +30,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -359,7 +360,11 @@ public class DeviceServiceImpl implements DeviceService {
      * @param ipAddress The client IP address
      * @return The newly created device
      */
-    private Device createNewDevice(User user, UserAgent agent, HttpServletRequest request, String fingerprint, String ipAddress) {
+    private Device createNewDevice(User user, UserAgent agent, HttpServletRequest request,
+                                   String fingerprint, String ipAddress) {
+        boolean isFirstDevice = isFirstDevice(user);
+        boolean shouldAutoConfirm = isFirstDevice && isRecentActivation(user);
+
         Device device = Device.builder()
                 .user(user)
                 .fingerprint(fingerprint)
@@ -367,20 +372,21 @@ public class DeviceServiceImpl implements DeviceService {
                 .lastSeen(Instant.now())
                 .lastIpAddress(ipAddress)
                 .location(IpLocationUtils.resolveLocationFromIp(ipAddress))
+
                 .deviceTrustLevel(DeviceTrustLevel.UNTRUSTED)
-                .confirmed(false)
+                .confirmed(shouldAutoConfirm) // ← Auto-confirmer si premier device récent
                 .blacklisted(false)
                 .build();
 
         UserAgentUtils.populateDeviceInfo(device, agent, request);
 
-        if (isFirstDevice(user)) {
+        if (isFirstDevice) {
             device.setFirstDeviceUsed(true);
         }
 
-        // Use service method to ensure cache consistency
         saveDevice(device);
-        log.info("New device created with ID {} for user {}", device.getId(), user.getUsername());
+        log.info("New device created with ID {} for user {} (auto-confirmed: {})",
+                device.getId(), user.getUsername(), shouldAutoConfirm);
         return device;
     }
 
@@ -432,5 +438,41 @@ public class DeviceServiceImpl implements DeviceService {
     private boolean isFirstDevice(User user) {
         List<Device> devices = getUserDevices(user);
         return devices == null || devices.isEmpty();
+    }
+
+
+    /**
+     * Checks if a user's account was activated recently (within the last 10 minutes).
+     *
+     * <p>This method is used to determine if a first device login should be auto-confirmed
+     * without sending a notification email. The 10-minute window provides a balance between:
+     * <ul>
+     *   <li>User experience: No unnecessary "new device" email right after registration</li>
+     *   <li>Security: Short enough window to prevent abuse if account is compromised</li>
+     * </ul>
+     *
+     * <p><strong>Use case:</strong><br>
+     * User creates account → receives activation email → clicks activation link →
+     * logs in for first time. If this happens within 10 minutes, the device is
+     * auto-confirmed since it's clearly the legitimate user.
+     *
+     * <p><strong>Edge cases:</strong>
+     * <ul>
+     *   <li>If activatedAt is null (account not yet activated): returns false</li>
+     *   <li>If activation happened more than 10 minutes ago: returns false (device needs confirmation)</li>
+     * </ul>
+     *
+     * @param user The user to check activation time for
+     * @return true if account was activated within the last 10 minutes, false otherwise
+     */
+    private boolean isRecentActivation(User user) {
+        if (user.getActivatedAt() == null) {
+            return false;
+        }
+
+        long minutesSinceActivation = Duration.between(
+                user.getActivatedAt(), Instant.now()).toMinutes();
+
+        return minutesSinceActivation <= 10;
     }
 }

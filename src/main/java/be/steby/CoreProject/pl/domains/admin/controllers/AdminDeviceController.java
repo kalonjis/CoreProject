@@ -8,9 +8,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
-
-import static java.util.Arrays.stream;
+import java.util.Map;
 
 /**
  * REST Controller for administrative device management operations.
@@ -19,8 +19,8 @@ import static java.util.Arrays.stream;
  * focuses solely on HTTP concerns (status codes, headers, response formatting).
  *
  * All endpoints require ADMIN authority.
- * 
- * Endpoint pattern: /api/admin/devices/*
+ *
+ * Endpoint pattern: /api/admin/device/*
  */
 @RestController
 @RequestMapping("/api/admin/device")
@@ -46,11 +46,11 @@ public class AdminDeviceController {
         log.info("Admin requesting devices for user: {}", publicUserId);
 
         List<DeviceInfoResponse> deviceInfoResponses = adminDeviceService.getUserDevices(publicUserId)
-                        .stream()
-                        .map(DeviceInfoResponse::fromEntity)
-                        .toList();
+                .stream()
+                .map(DeviceInfoResponse::fromEntity)
+                .toList();
 
-        log.info("Successfully retrieved devices for user: {}", publicUserId);
+        log.info("Successfully retrieved {} devices for user: {}", deviceInfoResponses.size(), publicUserId);
 
         return ResponseEntity.ok(deviceInfoResponses);
     }
@@ -66,128 +66,50 @@ public class AdminDeviceController {
         log.info("Admin requesting details for device: {}", devicePublicId);
 
         DeviceInfoResponse deviceInfoResponse = DeviceInfoResponse.fromEntity(
-             adminDeviceService.getDeviceByPublicId(devicePublicId)
+                adminDeviceService.getDeviceByPublicId(devicePublicId)
         );
 
         log.info("Successfully retrieved device details: {}", devicePublicId);
         return ResponseEntity.ok(deviceInfoResponse);
     }
-//
-//    /**
-//     * Retrieves total count of devices in the system.
-//     *
-//     * @return ResponseEntity with total device count
-//     */
-//    @GetMapping("/count")
-//    public ResponseEntity<AdminDeviceOperationResponse> getTotalDevices() {
-//        log.info("Admin requesting total device count");
-//
-//        adminDeviceService.getTotalDevices();
-//
-//        log.info("Successfully retrieved total device count");
-//        return ResponseEntity.ok(AdminDeviceOperationResponse.deviceCountRetrieved());
-//    }
-//
-//    // =========================================================================
-//    // DEVICE SECURITY OPERATIONS
-//    // =========================================================================
-//
-//    /**
-//     * Updates the trust level of a specific device.
-//     *
-//     * @param deviceId Device ID to update
-//     * @param request HTTP request for context capture
-//     * @return ResponseEntity confirming trust level update
-//     */
-//    @PatchMapping("/{deviceId}/trust-level")
-//    public ResponseEntity<AdminDeviceOperationResponse> updateDeviceTrustLevel(
-//            @PathVariable Long deviceId,
-//            HttpServletRequest request) {
-//        log.info("Admin updating trust level for device: {}", deviceId);
-//
-//        adminDeviceService.updateTrustLevel(deviceId, request);
-//
-//        log.info("Successfully updated trust level for device: {}", deviceId);
-//        return ResponseEntity.ok(AdminDeviceOperationResponse.trustLevelUpdated());
-//    }
-//
-//    /**
-//     * Blacklists a specific device, preventing future authentication.
-//     *
-//     * @param deviceId Device ID to blacklist
-//     * @param request HTTP request for context capture
-//     * @return ResponseEntity confirming device blacklist
-//     */
-//    @PostMapping("/{deviceId}/blacklist")
-//    public ResponseEntity<AdminDeviceOperationResponse> blacklistDevice(
-//            @PathVariable Long deviceId,
-//            HttpServletRequest request) {
-//        log.info("Admin blacklisting device: {}", deviceId);
-//
-//        adminDeviceService.blacklistDevice(deviceId, request);
-//
-//        log.info("Successfully blacklisted device: {}", deviceId);
-//        return ResponseEntity.ok(AdminDeviceOperationResponse.deviceBlacklisted());
-//    }
-//
-//    /**
-//     * Removes a device from the blacklist, allowing future authentication.
-//     *
-//     * @param deviceId Device ID to remove from blacklist
-//     * @param request HTTP request for context capture
-//     * @return ResponseEntity confirming blacklist removal
-//     */
-//    @DeleteMapping("/{deviceId}/blacklist")
-//    public ResponseEntity<AdminDeviceOperationResponse> removeDeviceFromBlacklist(
-//            @PathVariable Long deviceId,
-//            HttpServletRequest request) {
-//        log.info("Admin removing device from blacklist: {}", deviceId);
-//
-//        adminDeviceService.removeFromBlacklist(deviceId, request);
-//
-//        log.info("Successfully removed device from blacklist: {}", deviceId);
-//        return ResponseEntity.ok(AdminDeviceOperationResponse.deviceRemovedFromBlacklist());
-//    }
-//
-//    // =========================================================================
-//    // DEVICE SESSION MANAGEMENT
-//    // =========================================================================
-//
-//    /**
-//     * Disconnects all devices for a specific user, forcing re-authentication.
-//     *
-//     * @param userId User ID whose devices should be disconnected
-//     * @param request HTTP request for context capture
-//     * @return ResponseEntity confirming devices disconnection
-//     */
-//    @PostMapping("/user/{userId}/disconnect-all")
-//    public ResponseEntity<AdminDeviceOperationResponse> disconnectAllUserDevices(
-//            @PathVariable Long userId,
-//            HttpServletRequest request) {
-//        log.info("Admin disconnecting all devices for user: {}", userId);
-//
-//        adminDeviceService.disconnectAllUserDevices(userId, request);
-//
-//        log.info("Successfully disconnected all devices for user: {}", userId);
-//        return ResponseEntity.ok(AdminDeviceOperationResponse.allDevicesDisconnected());
-//    }
-//
-//    /**
-//     * Disconnects a specific device, invalidating its session.
-//     *
-//     * @param deviceId Device ID to disconnect
-//     * @param request HTTP request for context capture
-//     * @return ResponseEntity confirming device disconnection
-//     */
-//    @PostMapping("/{deviceId}/disconnect")
-//    public ResponseEntity<AdminDeviceOperationResponse> disconnectDevice(
-//            @PathVariable Long deviceId,
-//            HttpServletRequest request) {
-//        log.info("Admin disconnecting device: {}", deviceId);
-//
-//        adminDeviceService.disconnectDevice(deviceId, request);
-//
-//        log.info("Successfully disconnected device: {}", deviceId);
-//        return ResponseEntity.ok(AdminDeviceOperationResponse.deviceDisconnected());
-//    }
+
+    // =========================================================================
+    // DEVICE STATISTICS
+    // =========================================================================
+
+    /**
+     * Retrieves comprehensive device statistics for admin dashboard.
+     * Provides all device-related metrics in a single efficient call.
+     *
+     * GET /api/admin/device/stats
+     *
+     * Response format:
+     * {
+     *   "totalDevices": 320,
+     *   "trustedDevices": 280,
+     *   "untrustedDevices": 40,
+     *   "activeDevices": 150,
+     *   "inactiveDevices": 170,
+     *   "timestamp": "2024-12-24T10:00:00Z"
+     * }
+     *
+     * All metrics are computed atomically within a single transaction
+     * to ensure consistency across all statistics.
+     *
+     * Active devices are defined as devices with activity in the last 30 days.
+     *
+     * @return ResponseEntity with comprehensive device statistics
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getDeviceStats() {
+        log.info("Admin requesting device statistics");
+
+        Map<String, Object> stats = adminDeviceService.getDeviceStatistics();
+        stats.put("timestamp", Instant.now());
+
+        log.info("Device statistics retrieved - total: {}, trusted: {}, active: {}",
+                stats.get("totalDevices"), stats.get("trustedDevices"), stats.get("activeDevices"));
+
+        return ResponseEntity.ok(stats);
+    }
 }
