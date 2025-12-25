@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -166,24 +167,41 @@ public class AdminUserSearchController {
     }
 
     // ===============================
-    // STATISTICS OPERATIONS
+    // USER STATISTICS
     // ===============================
 
     /**
-     * Gets admin statistics including total user count.
+     * Retrieves comprehensive user statistics for admin dashboard.
+     * Provides all user-related metrics in a single efficient call.
+     *
      * GET /api/admin/users/stats
      *
-     * @return Statistics map with various metrics
+     * Response format:
+     * {
+     *   "totalUsers": 150,
+     *   "activeUsers": 142,
+     *   "deactivatedUsers": 8,
+     *   "verifiedUsers": 145,
+     *   "unverifiedUsers": 5,
+     *   "adminUsers": 5,
+     *   "regularUsers": 145,
+     *   "timestamp": "2024-12-24T10:00:00Z"
+     * }
+     *
+     * All metrics are computed atomically within a single transaction
+     * to ensure consistency across all statistics.
+     *
+     * @return ResponseEntity with comprehensive user statistics
      */
     @GetMapping("/stats")
-    public ResponseEntity<Map<String, Object>> getAdminStats() {
-        log.info("Admin get statistics request");
+    public ResponseEntity<Map<String, Object>> getUserStats() {
+        log.info("Admin requesting user statistics");
 
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("totalUsers", adminSearchService.getTotalUsers());
-        // TODO: Add more statistics as needed (active users, deactivated users, role distribution, etc.)
+        Map<String, Object> stats = adminSearchService.getUserStatistics();
+        stats.put("timestamp", Instant.now());
 
-        log.info("Admin statistics retrieved - totalUsers: {}", stats.get("totalUsers"));
+        log.info("User statistics retrieved - total: {}, active: {}, admins: {}",
+                stats.get("totalUsers"), stats.get("activeUsers"), stats.get("adminUsers"));
 
         return ResponseEntity.ok(stats);
     }

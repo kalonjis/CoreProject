@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Service for admin search and query operations on users.
@@ -70,6 +71,9 @@ public interface AdminSearchService {
      */
     User getUserById(Long userId);
 
+
+    // Page<User> getAllUsers(Pageable pageable)
+
     /**
      * Retrieves all devices associated with a user.
      *
@@ -91,4 +95,25 @@ public interface AdminSearchService {
      * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException if actor lacks admin privileges
      */
     Long getTotalUsers();
+
+    /**
+     * Retrieves comprehensive user statistics for administrative dashboards.
+     *
+     * Provides multiple metrics in a single call for efficiency:
+     * - totalUsers: Total number of users in the system
+     * - activeUsers: Number of enabled/active users
+     * - deactivatedUsers: Number of disabled users
+     * - verifiedUsers: Users with verified email
+     * - unverifiedUsers: Users without verified email
+     * - adminUsers: Users with ADMIN or SUPER_ADMIN role
+     * - regularUsers: Users without admin roles
+     *
+     * All statistics are computed atomically within a read-only transaction
+     * to ensure data consistency.
+     *
+     * @return Map containing user statistics (timestamp added by controller)
+     * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException
+     *         if actor lacks admin privileges
+     */
+    Map<String, Object> getUserStatistics();
 }
