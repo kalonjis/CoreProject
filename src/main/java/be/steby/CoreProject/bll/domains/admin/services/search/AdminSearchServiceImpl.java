@@ -1,9 +1,12 @@
 package be.steby.CoreProject.bll.domains.admin.services.search;
 
-import be.steby.CoreProject.bll.domains.device.services.DeviceService;
+import be.steby.CoreProject.bll.domains.admin.services.permissions.AdminPermissionValidator;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
+import be.steby.CoreProject.dal.repositories.DeviceRepository;
+import be.steby.CoreProject.dal.repositories.UserRepository;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -11,96 +14,95 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Service implementation for admin search and query operations on users.
- * Handles user searches, retrieval, and statistics with proper permission validation.
- *
- * Responsibilities:
- * - Validates admin permissions for all operations
- * - Delegates search/query operations to UserService
- * - Delegates device retrieval to DeviceService
- * - Provides read-only access to user data
- *
- * Delegation strategy:
- * - UserService → Core user search and retrieval operations
- * - DeviceService → Device-related queries
- *
- * Note: All methods are read-only and require admin privileges.
+ * Implementation of AdminSearchService.
+ * Handles administrative user search and query operations with proper permission validation.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AdminSearchServiceImpl implements AdminSearchService {
 
+    private final UserRepository userRepository;
+    private final DeviceRepository deviceRepository;
     private final UserService userService;
-    private final DeviceService deviceService;
-
-    // ===============================
-    // USER SEARCH OPERATIONS
-    // ===============================
+    private final AdminPermissionValidator adminPermissionValidator;
 
     @Override
     @Transactional(readOnly = true)
     public Page<User> searchUsers(String query, Pageable pageable) {
-        log.debug("Admin search users request - query: '{}', page: {}, size: {}",
-                query, pageable.getPageNumber(), pageable.getPageSize());
+        log.debug("Admin searching users - query: '{}'", query);
 
         // Validate admin permissions
-        userService.requireAdminPermissions();
+        User admin = userService.getAuthenticatedUser();
+        adminPermissionValidator.validateAdminRole(admin);
 
-        // Delegate to user service
-        Page<User> results = userService.searchUsers(query, pageable);
+        // Perform search
+        Page<User> users;
+        if (query == null || query.isBlank()) {
+            users = userRepository.findAll(pageable);
+        } else {
+            users = userRepository.searchByMultipleFields(query, pageable);
+        }
 
-        log.info("Admin search completed - query: '{}', results: {} users found",
-                query, results.getTotalElements());
+        log.debug("Search found {} users", users.getTotalElements());
 
-        return results;
+        return users;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<User> searchUsersByCriteria(
-            String username,
-            String firstname,
-            String lastname,
-            String email,
-            String phoneNumber,
-            Pageable pageable) {
-
-        log.debug("Admin search by criteria - username: {}, firstname: {}, lastname: {}, email: {}, phone: {}",
-                username, firstname, lastname, email, phoneNumber);
+    public Page<User> searchUsersByCriteria(String username, String firstname, String lastname,
+                                            String email, String phoneNumber, Pageable pageable) {
+        log.debug("Admin searching users by criteria");
 
         // Validate admin permissions
-        userService.requireAdminPermissions();
+        User admin = userService.getAuthenticatedUser();
+        adminPermissionValidator.validateAdminRole(admin);
 
-        // Delegate to user service
-        Page<User> results = userService.searchUsersByCriteria(
-                username, firstname, lastname, email, phoneNumber, pageable
-        );
+        // Perform criteria search
+        Page<User> users = userRepository.searchByCriteria(
+                username, firstname, lastname, email, phoneNumber, pageable);
 
-        log.info("Admin criteria search completed - results: {} users found", results.getTotalElements());
+        log.debug("Criteria search found {} users", users.getTotalElements());
 
-        return results;
+        return users;
     }
 
-    // ===============================
-    // USER RETRIEVAL OPERATIONS
-    // ===============================
+//    @Override
+//    @Transactional(readOnly = true)
+//    public Page<User> getAllUsers(Pageable pageable) {
+//        log.debug("Admin retrieving all users");
+//
+//        // Validate admin permissions
+//        User admin = userService.getAuthenticatedUser();
+//        adminPermissionValidator.validateAdminRole(admin);
+//
+//        // Get all users
+//        Page<User> users = userRepository.findAll(pageable);
+//
+//        log.debug("Retrieved {} users", users.getTotalElements());
+//
+//        return users;
+//    }
 
     @Override
     @Transactional(readOnly = true)
     public User getUserById(Long userId) {
-        log.debug("Admin get user by ID request - userId: {}", userId);
+        log.debug("Admin retrieving user by ID: {}", userId);
 
         // Validate admin permissions
-        userService.requireAdminPermissions();
+        User admin = userService.getAuthenticatedUser();
+        adminPermissionValidator.validateAdminRole(admin);
 
-        // Delegate to user service
+        // Get user
         User user = userService.getUserById(userId);
 
-        log.debug("Admin retrieved user - ID: {}, username: {}", user.getId(), user.getUsername());
+        log.debug("Retrieved user: {}", user.getUsername());
 
         return user;
     }
@@ -108,40 +110,63 @@ public class AdminSearchServiceImpl implements AdminSearchService {
     @Override
     @Transactional(readOnly = true)
     public List<Device> getUserDevices(Long userId) {
-        log.debug("Admin get user devices request - userId: {}", userId);
+        log.debug("Admin retrieving devices for user: {}", userId);
 
         // Validate admin permissions
-        userService.requireAdminPermissions();
+        User admin = userService.getAuthenticatedUser();
+        adminPermissionValidator.validateAdminRole(admin);
 
-        // Get user first (validates user exists)
+        // Get user and devices
         User user = userService.getUserById(userId);
+        List<Device> devices = deviceRepository.findByUser(user);
 
-        // Delegate to device service
-        List<Device> devices = deviceService.getUserDevices(user);
-
-        log.info("Admin retrieved devices for user {} - {} device(s) found",
-                user.getUsername(), devices.size());
+        log.debug("Retrieved {} devices for user: {}", devices.size(), userId);
 
         return devices;
     }
 
-    // ===============================
-    // STATISTICS OPERATIONS
-    // ===============================
+    @Override
+    public Long getTotalUsers() {
+        return 0L;
+    }
 
     @Override
     @Transactional(readOnly = true)
-    public Long getTotalUsers() {
-        log.debug("Admin get total users request");
+    public Map<String, Object> getUserStatistics() {
+        log.debug("Admin retrieving user statistics");
 
         // Validate admin permissions
-        userService.requireAdminPermissions();
+        User admin = userService.getAuthenticatedUser();
+        adminPermissionValidator.validateAdminRole(admin);
 
-        // Delegate to user service
-        Long totalUsers = userService.getTotalUsers();
+        // Gather all user statistics atomically
+        Map<String, Object> stats = new HashMap<>();
 
-        log.debug("Admin retrieved total users count: {}", totalUsers);
+        // Total user count
+        Long totalUsers = userRepository.count();
+        stats.put("totalUsers", totalUsers);
 
-        return totalUsers;
+        // Active vs deactivated users
+        Long activeUsers = userRepository.countByEnabled(true);
+        Long deactivatedUsers = userRepository.countByEnabled(false);
+        stats.put("activeUsers", activeUsers);
+        stats.put("deactivatedUsers", deactivatedUsers);
+
+        // Verified vs unverified users
+        Long verifiedUsers = userRepository.countByEmailVerified(true);
+        Long unverifiedUsers = userRepository.countByEmailVerified(false);
+        stats.put("verifiedUsers", verifiedUsers);
+        stats.put("unverifiedUsers", unverifiedUsers);
+
+        // Admin vs regular users
+        Long adminUsers = userRepository.countUsersWithAdminRoles();
+        Long regularUsers = totalUsers - adminUsers;
+        stats.put("adminUsers", adminUsers);
+        stats.put("regularUsers", regularUsers);
+
+        log.debug("User statistics computed - total: {}, active: {}, admins: {}",
+                totalUsers, activeUsers, adminUsers);
+
+        return stats;
     }
 }
