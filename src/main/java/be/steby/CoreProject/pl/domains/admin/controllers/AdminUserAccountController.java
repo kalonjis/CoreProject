@@ -44,7 +44,7 @@ public class AdminUserAccountController {
      * @param httpRequest HTTP request for context capture
      * @return 201 Created with operation response
      */
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<AccountOperationResponse> createUser(
             @Valid @RequestBody AdminUserCreateRequest request,
             HttpServletRequest httpRequest) {

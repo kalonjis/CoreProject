@@ -232,7 +232,8 @@ public class SecurityConstants {
      */
 
     private static final String[] ADMIN_USER_ROUTES = {
-            "/api/admin/users",                           // GET all users, POST create user
+            "/api/admin/users",                           // GET all users
+            "/api/admin/users/create",                    // POST create user
             "/api/admin/users/all",                       // GET paginated users
             "/api/admin/users/stats",                     // GET admin statistics
             "/api/admin/users/activate/**",               // PATCH activate user

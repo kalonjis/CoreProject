@@ -67,14 +67,14 @@ public class UsernameGeneratorServiceImpl implements UsernameGeneratorService  {
 
     /**
      * Generates username from full name in professional format.
-     * Strategy: lastname + firstname initials, incrementally add more letters if taken.
+     * Strategy: lastname.firstname initials, incrementally add more letters if taken.
      *
      * Examples:
-     * - Dupont, Jean → dupontj
-     * - If taken → dupontje
-     * - If taken → dupontjea
-     * - If taken → dupontjean
-     * - If all taken → dupontjean2
+     * - Dupont, Jean → dupont.j
+     * - If taken → dupont.je
+     * - If taken → dupont.jea
+     * - If taken → dupont.jean
+     * - If all taken → dupont.jean2
      *
      * @param firstname User's first name
      * @param lastname User's last name
@@ -99,7 +99,7 @@ public class UsernameGeneratorServiceImpl implements UsernameGeneratorService  {
         // Try with increasing firstname length
         for (int i = 1; i <= cleanFirstname.length(); i++) {
             String firstnamePart = cleanFirstname.substring(0, i);
-            String candidate = cleanLastname + firstnamePart;
+            String candidate = cleanLastname + "." + firstnamePart;
 
             // Check if available
             if (!userRepository.existsByUsernameIgnoreCase(candidate)) {
@@ -109,7 +109,7 @@ public class UsernameGeneratorServiceImpl implements UsernameGeneratorService  {
         }
 
         // All firstname letters used, add numeric suffix
-        String baseUsername = cleanLastname + cleanFirstname;
+        String baseUsername = cleanLastname + "." + cleanFirstname;
         return generateUniqueUsernameWithNumber(baseUsername);
     }
 

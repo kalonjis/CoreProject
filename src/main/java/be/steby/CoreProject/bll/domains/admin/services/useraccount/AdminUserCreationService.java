@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -237,8 +238,9 @@ public class AdminUserCreationService {
      *
      * Admin-created user characteristics:
      * - emailVerified = true (admin verified identity)
-     * - enabled = false (until first login with temp password)
-     * - everActivated = false (first activation pending)
+     * - enabled = true (immediately active)
+     * - everActivated = true (activated upon creation)
+     * - activatedAt = now (timestamp of activation)
      * - mustChangePassword = true (must change temp password)
      * - profileComplete = true (admin provided firstname/lastname)
      *
@@ -252,11 +254,12 @@ public class AdminUserCreationService {
         user.setPassword(passwordEncoder.encode(temporaryPassword));
 
         // Configure account states for admin creation
-        user.setEmailVerified(true);             // ✅ Admin verified identity
-        user.setEnabled(false);                  // ❌ Until first login
-        user.setEverActivated(false);            // First activation pending
-        user.setMustChangePassword(true);        // ✅ Must change temporary password
-        user.setProfileComplete(true);           // ✅ Admin provided firstname/lastname TODO: check in prod which data is needed to have a completed profile
+        user.setEmailVerified(true);
+        user.setEnabled(true);
+        user.setEverActivated(true);
+        user.setActivatedAt(Instant.now());
+        user.setMustChangePassword(true);
+        user.setProfileComplete(true);
 
         log.debug("User {} configured for admin creation: emailVerified=true, enabled=false, " +
                 "mustChangePassword=true, profileComplete=true", user.getUsername());

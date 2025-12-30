@@ -64,11 +64,12 @@ public class AccountMailerService extends BaseMailerService {
     public void sendAdminCreatedUserEmail(User user, String temporaryPassword) {
         log.info("Sending admin creation email with temporary password to: {}", user.getEmail());
 
-        String loginUrl = buildUrl("/login"); // Just the login page, no token
+        String loginUrl = buildUrl("/login");
 
         Context context = createBaseContext(user);
         context.setVariable("temporaryPassword", temporaryPassword);
         context.setVariable("loginUrl", loginUrl);
+        context.setVariable("username", user.getUsername());
 
         sendEmail("Welcome - Your Account Has Been Created",
                 "accounts/adminCreatedUser",

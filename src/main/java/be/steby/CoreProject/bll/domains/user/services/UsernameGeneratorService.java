@@ -22,11 +22,11 @@ public interface UsernameGeneratorService {
      * Generates username from full name.
      * Used for admin creation where firstname and lastname are provided.
      *
-     * Strategy: lastname + firstname initial, incrementally add more letters if taken.
+     * Strategy: lastname.firstname initial, incrementally add more letters if taken.
      * Examples:
-     * - Dupont, Jean → dupontj
-     * - If taken → dupontje
-     * - If taken → dupontjea
+     * - Dupont, Jean → dupont.j
+     * - If taken → dupont.je
+     * - If taken → dupont.jea
      * - etc.
      *
      * @param firstname The user's first name
