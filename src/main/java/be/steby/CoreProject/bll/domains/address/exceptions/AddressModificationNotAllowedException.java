@@ -1,0 +1,81 @@
+package be.steby.CoreProject.bll.domains.address.exceptions;
+
+import be.steby.CoreProject.dl.enums.AddressModificationStrategy;
+
+/**
+ * Exception thrown when an address modification is not allowed
+ * based on the configured modification strategy.
+ *
+ * <p>This exception is thrown in scenarios such as:</p>
+ * <ul>
+ *   <li>Attempting to modify an IMMUTABLE address</li>
+ *   <li>Non-owner attempting to modify an OWNER_ONLY address</li>
+ *   <li>Any other strategy-based modification restriction</li>
+ * </ul>
+ *
+ * <p>HTTP Status: 403 (Forbidden)</p>
+ *
+ * @see AddressDomainException
+ * @see AddressModificationStrategy
+ */
+public class AddressModificationNotAllowedException extends AddressDomainException {
+
+    private static final int STATUS = 403;
+
+    /**
+     * Creates a new exception with a custom message.
+     *
+     * @param message the error message
+     */
+    public AddressModificationNotAllowedException(String message) {
+        super(message, STATUS);
+    }
+
+    /**
+     * Creates a new exception for an immutable address.
+     *
+     * @param publicId the address public ID
+     * @return a new AddressModificationNotAllowedException
+     */
+    public static AddressModificationNotAllowedException immutableAddress(String publicId) {
+        return new AddressModificationNotAllowedException(
+                "Address is immutable and cannot be modified: " + publicId);
+    }
+
+    /**
+     * Creates a new exception for owner-only modification.
+     *
+     * @param publicId      the address public ID
+     * @param ownerUsername the username of the address owner
+     * @return a new AddressModificationNotAllowedException
+     */
+    public static AddressModificationNotAllowedException ownerOnly(String publicId, String ownerUsername) {
+        return new AddressModificationNotAllowedException(
+                "Only the owner (" + ownerUsername + ") can modify this address: " + publicId);
+    }
+
+    /**
+     * Creates a new exception for a specific strategy violation.
+     *
+     * @param publicId the address public ID
+     * @param strategy the strategy that prevented modification
+     * @return a new AddressModificationNotAllowedException
+     */
+    public static AddressModificationNotAllowedException forStrategy(
+            String publicId, AddressModificationStrategy strategy) {
+        return new AddressModificationNotAllowedException(
+                "Address modification not allowed due to " + strategy + " strategy: " + publicId);
+    }
+
+    /**
+     * Creates a new exception when user lacks permission.
+     *
+     * @param username the username of the user attempting modification
+     * @param publicId the address public ID
+     * @return a new AddressModificationNotAllowedException
+     */
+    public static AddressModificationNotAllowedException noPermission(String username, String publicId) {
+        return new AddressModificationNotAllowedException(
+                "User " + username + " does not have permission to modify address: " + publicId);
+    }
+}

@@ -5,10 +5,6 @@ import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategor
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.springframework.security.core.GrantedAuthority;
@@ -17,9 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Entity
@@ -219,6 +213,19 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(name = "reactivation_policy")
     private ReactivationPolicy reactivationPolicy;
+
+
+    /**
+     * Addresses linked to this user.
+     *
+     * Mapped by the 'user' field in UserAddress entity.
+     * Uses LAZY fetching to avoid loading all addresses on every user query.
+     */
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<UserAddress> addresses = new ArrayList<>();
+
+
+
 
     /**
      * Whether the user has activated one or more twoFactor method for authentication validation.
