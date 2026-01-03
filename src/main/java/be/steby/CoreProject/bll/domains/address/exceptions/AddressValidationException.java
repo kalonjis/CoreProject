@@ -1,0 +1,146 @@
+package be.steby.CoreProject.bll.domains.address.exceptions;
+
+import java.util.List;
+
+/**
+ * Exception thrown when address validation fails.
+ *
+ * <p>This exception is thrown in scenarios such as:</p>
+ * <ul>
+ *   <li>Missing required address fields</li>
+ *   <li>Invalid country code format</li>
+ *   <li>Invalid postal code format for the specified country</li>
+ *   <li>External validation service failures</li>
+ *   <li>Address format validation errors</li>
+ * </ul>
+ *
+ * <p>HTTP Status: 400 (Bad Request)</p>
+ *
+ * @see AddressDomainException
+ */
+public class AddressValidationException extends AddressDomainException {
+
+    private static final int STATUS = 400;
+
+    /**
+     * Creates a new exception with a custom message.
+     *
+     * @param message the error message
+     */
+    public AddressValidationException(String message) {
+        super(message, STATUS);
+    }
+
+    /**
+     * Creates a new exception with a message and cause.
+     *
+     * @param message the error message
+     * @param cause   the underlying cause
+     */
+    public AddressValidationException(String message, Throwable cause) {
+        super(message, STATUS, cause);
+    }
+
+    /**
+     * Creates a new exception for missing required field.
+     *
+     * @param fieldName the name of the missing field
+     * @return a new AddressValidationException
+     */
+    public static AddressValidationException missingRequiredField(String fieldName) {
+        return new AddressValidationException("Required field is missing: " + fieldName);
+    }
+
+    /**
+     * Creates a new exception for multiple missing required fields.
+     *
+     * @param fieldNames the names of the missing fields
+     * @return a new AddressValidationException
+     */
+    public static AddressValidationException missingRequiredFields(List<String> fieldNames) {
+        return new AddressValidationException(
+                "Required fields are missing: " + String.join(", ", fieldNames));
+    }
+
+    /**
+     * Creates a new exception for invalid country code.
+     *
+     * @param countryCode the invalid country code
+     * @return a new AddressValidationException
+     */
+    public static AddressValidationException invalidCountryCode(String countryCode) {
+        return new AddressValidationException(
+                "Invalid ISO 3166-1 alpha-2 country code: " + countryCode);
+    }
+
+    /**
+     * Creates a new exception for invalid postal code format.
+     *
+     * @param postalCode  the invalid postal code
+     * @param countryCode the country code
+     * @return a new AddressValidationException
+     */
+    public static AddressValidationException invalidPostalCode(String postalCode, String countryCode) {
+        return new AddressValidationException(
+                "Invalid postal code format '" + postalCode + "' for country: " + countryCode);
+    }
+
+    /**
+     * Creates a new exception for incomplete address.
+     *
+     * @return a new AddressValidationException
+     */
+    public static AddressValidationException incompleteAddress() {
+        return new AddressValidationException(
+                "Address is incomplete. Required fields: street name, postal code, city, country code");
+    }
+
+    /**
+     * Creates a new exception for invalid coordinates.
+     *
+     * @param latitude  the latitude value
+     * @param longitude the longitude value
+     * @return a new AddressValidationException
+     */
+    public static AddressValidationException invalidCoordinates(Double latitude, Double longitude) {
+        return new AddressValidationException(
+                "Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180. " +
+                        "Got: (" + latitude + ", " + longitude + ")");
+    }
+
+    /**
+     * Creates a new exception for field length exceeded.
+     *
+     * @param fieldName the field name
+     * @param maxLength the maximum allowed length
+     * @param actual    the actual length
+     * @return a new AddressValidationException
+     */
+    public static AddressValidationException fieldTooLong(String fieldName, int maxLength, int actual) {
+        return new AddressValidationException(
+                "Field '" + fieldName + "' exceeds maximum length of " + maxLength +
+                        " characters (actual: " + actual + ")");
+    }
+
+    /**
+     * Creates a new exception for external validation failure.
+     *
+     * @param serviceName the name of the validation service
+     * @param reason      the failure reason
+     * @return a new AddressValidationException
+     */
+    public static AddressValidationException externalValidationFailed(String serviceName, String reason) {
+        return new AddressValidationException(
+                "External validation failed (" + serviceName + "): " + reason);
+    }
+
+    /**
+     * Creates a new exception for address not deliverable.
+     *
+     * @param reason the reason why address is not deliverable
+     * @return a new AddressValidationException
+     */
+    public static AddressValidationException notDeliverable(String reason) {
+        return new AddressValidationException("Address is not deliverable: " + reason);
+    }
+}

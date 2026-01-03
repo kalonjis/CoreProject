@@ -180,6 +180,56 @@ public class SecurityConstants {
 
     // No EMAIL_CHANGE_CSRF_IGNORE - all routes keep CSRF protection ✅
 
+
+    // ========== ADDRESS DOMAIN (Profile) ==========
+
+    /**
+     * No public routes for addresses - all require authentication.
+     */
+    private static final String[] ADDRESS_PUBLIC_ROUTES = {
+            // None - all address routes require authentication
+    };
+
+    /**
+     * Authenticated address routes (require user authentication).
+     *
+     * <p>Endpoints:</p>
+     * <ul>
+     *   <li>GET    /addresses           → Search with query params</li>
+     *   <li>POST   /addresses           → Create new address</li>
+     *   <li>GET    /addresses/{id}      → Get by public ID</li>
+     *   <li>PUT    /addresses/{id}      → Update address</li>
+     *   <li>DELETE /addresses/{id}      → Soft delete</li>
+     *   <li>PATCH  /addresses/{id}/*    → Set default/primary/type</li>
+     * </ul>
+     *
+     * GET /api/profile/addresses                           → toutes (actives)
+     * GET /api/profile/addresses?type=BILLING              → type BILLING
+     * GET /api/profile/addresses?type=SHIPPING&active=true → shipping actives
+     * GET /api/profile/addresses?billingEligible=true      → éligibles facturation
+     * GET /api/profile/addresses?countryCode=BE            → en Belgique
+     * GET /api/profile/addresses?city=Bruxelles&type=RESIDENTIAL
+     * GET /api/profile/addresses?isPrimary=true            → adresse principale
+     * GET /api/profile/addresses?label=Maison              → label contient "Maison"
+     */
+    private static final String[] ADDRESS_AUTHENTICATED_ROUTES = {
+            "/api/profile/addresses",                    // GET search, POST create
+            "/api/profile/addresses/*",                  // GET, PUT, DELETE by publicId
+            "/api/profile/addresses/*/default",          // PATCH set as default
+            "/api/profile/addresses/*/primary",          // PATCH set as primary
+            "/api/profile/addresses/*/type",             // PATCH change type
+            "/api/profile/addresses/*/permanent"         // DELETE permanent remove
+    };
+
+/**
+ * CSRF protection ACTIVE for ALL address routes.
+ * All operations use cookies and are state-changing.
+ *
+ * ⚠️ SECURITY: Address routes are NEVER in CSRF_IGNORE.
+ */
+// No ADDRESS_CSRF_IGNORE - all routes keep CSRF protection ✅
+
+
     // ========== DEVICE DOMAIN ==========
 
     /**
@@ -347,7 +397,8 @@ public class SecurityConstants {
             ACCOUNT_AUTHENTICATED_ROUTES,
             PASSWORD_AUTHENTICATED_ROUTES,
             EMAIL_CHANGE_AUTHENTICATED_ROUTES,
-            DEVICE_AUTHENTICATED_ROUTES
+            DEVICE_AUTHENTICATED_ROUTES,
+            ADDRESS_AUTHENTICATED_ROUTES
     );
 
     /**
@@ -376,7 +427,8 @@ public class SecurityConstants {
             PASSWORD_CSRF_IGNORE,    // Only public routes
             DEVICE_CSRF_IGNORE,      // Only public routes
             EMAIL_CHANGE_CSRF_IGNORE, // Only public routes
-            DEBUG_ROUTES             // Only for development
+            DEBUG_ROUTES,             // Only for development,
+            ADDRESS_AUTHENTICATED_ROUTES // Only for development,
     );
 
     // ========== UTILITY METHODS ==========
