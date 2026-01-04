@@ -3,8 +3,8 @@ package be.steby.CoreProject.bll.domains.profile.services.address;
 import be.steby.CoreProject.bll.domains.address.exceptions.AddressAlreadyLinkedException;
 import be.steby.CoreProject.bll.domains.address.exceptions.AddressModificationNotAllowedException;
 import be.steby.CoreProject.bll.domains.address.exceptions.AddressNotFoundException;
+import be.steby.CoreProject.bll.domains.address.exceptions.AddressValidationException;
 import be.steby.CoreProject.bll.domains.address.services.AddressService;
-
 import be.steby.CoreProject.bll.specifications.UserAddressSpecification;
 import be.steby.CoreProject.dal.repositories.AddressRepository;
 import be.steby.CoreProject.dal.repositories.UserAddressRepository;
@@ -13,6 +13,7 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.UserAddress;
 import be.steby.CoreProject.dl.enums.AddressModificationStrategy;
 import be.steby.CoreProject.dl.enums.AddressType;
+import be.steby.CoreProject.pl.domains.profile.address.models.requests.UpdateUserAddressRequest;
 import be.steby.CoreProject.pl.domains.profile.address.models.requests.UserAddressSearchCriteria;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * Implementation of {@link UserAddressService}.
@@ -58,37 +60,37 @@ public class UserAddressServiceImpl implements UserAddressService {
             return userAddressRepository.findAll(spec);
         }
 
-        // Apply filters
+        // Apply type filter
         if (criteria.type() != null) {
             spec = spec.and(UserAddressSpecification.hasType(criteria.type()));
         }
 
-        if (criteria.active() != null) {
-            spec = criteria.active()
-                    ? spec.and(UserAddressSpecification.isActive())
-                    : spec.and(UserAddressSpecification.isInactive());
-        }
+        // Apply boolean filters using helper method
+        spec = applyBooleanFilter(spec, criteria.active(),
+                UserAddressSpecification::isActive,
+                UserAddressSpecification::isInactive);
 
-        if (criteria.isDefault() != null && criteria.isDefault()) {
-            spec = spec.and(UserAddressSpecification.isDefault());
-        }
+        spec = applyBooleanFilter(spec, criteria.isDefault(),
+                UserAddressSpecification::isDefault,
+                UserAddressSpecification::isNotDefault);
 
-        if (criteria.isPrimary() != null && criteria.isPrimary()) {
-            spec = spec.and(UserAddressSpecification.isPrimary());
-        }
+        spec = applyBooleanFilter(spec, criteria.isPrimary(),
+                UserAddressSpecification::isPrimary,
+                UserAddressSpecification::isNotPrimary);
 
-        if (criteria.billingEligible() != null && criteria.billingEligible()) {
-            spec = spec.and(UserAddressSpecification.isBillingEligible());
-        }
+        spec = applyBooleanFilter(spec, criteria.billingEligible(),
+                UserAddressSpecification::isBillingEligible,
+                UserAddressSpecification::isNotBillingEligible);
 
-        if (criteria.shippingEligible() != null && criteria.shippingEligible()) {
-            spec = spec.and(UserAddressSpecification.isShippingEligible());
-        }
+        spec = applyBooleanFilter(spec, criteria.shippingEligible(),
+                UserAddressSpecification::isShippingEligible,
+                UserAddressSpecification::isNotShippingEligible);
 
-        if (criteria.verified() != null && criteria.verified()) {
-            spec = spec.and(UserAddressSpecification.isVerifiedByOwner());
-        }
+        spec = applyBooleanFilter(spec, criteria.verified(),
+                UserAddressSpecification::isVerifiedByOwner,
+                UserAddressSpecification::isNotVerifiedByOwner);
 
+        // Apply string filters
         if (criteria.countryCode() != null && !criteria.countryCode().isBlank()) {
             spec = spec.and(UserAddressSpecification.hasCountry(criteria.countryCode()));
         }
@@ -105,15 +107,48 @@ public class UserAddressServiceImpl implements UserAddressService {
             spec = spec.and(UserAddressSpecification.labelContains(criteria.label()));
         }
 
+        // Apply validity filter (non-boolean, specific logic)
         if (criteria.validOnly() != null && criteria.validOnly()) {
             spec = spec.and(UserAddressSpecification.isCurrentlyValid());
         }
 
+        // Apply coordinates filter (non-boolean, specific logic)
         if (criteria.hasCoordinates() != null && criteria.hasCoordinates()) {
             spec = spec.and(UserAddressSpecification.hasCoordinates());
         }
 
         return userAddressRepository.findAll(spec);
+    }
+
+    /**
+     * Helper method to apply boolean filters consistently.
+     *
+     * <p>Handles three states:</p>
+     * <ul>
+     *   <li>null → no filter applied</li>
+     *   <li>true → applies positive specification</li>
+     *   <li>false → applies negative specification</li>
+     * </ul>
+     *
+     * @param spec current specification
+     * @param criterion the boolean criterion (null, true, or false)
+     * @param positiveSpec supplier for the positive specification
+     * @param negativeSpec supplier for the negative specification
+     * @return updated specification
+     */
+    private Specification<UserAddress> applyBooleanFilter(
+            Specification<UserAddress> spec,
+            Boolean criterion,
+            Supplier<Specification<UserAddress>> positiveSpec,
+            Supplier<Specification<UserAddress>> negativeSpec) {
+
+        if (criterion == null) {
+            return spec;
+        }
+
+        return criterion
+                ? spec.and(positiveSpec.get())
+                : spec.and(negativeSpec.get());
     }
 
     // endregion
@@ -242,9 +277,27 @@ public class UserAddressServiceImpl implements UserAddressService {
     @Transactional
     public UserAddress createAndLink(User user, Address address, AddressType addressType,
                                      String label, boolean isDefault, boolean isPrimary) {
+        return createAndLink(user, address, addressType, label, isDefault, isPrimary, true, true);
+    }
+
+    @Override
+    @Transactional
+    public UserAddress createAndLink(User user, Address address, AddressType addressType,
+                                     String label, boolean isDefault, boolean isPrimary,
+                                     boolean billingEligible, boolean shippingEligible) {
 
         Address savedAddress = addressService.findOrCreate(address);
-        return linkAddress(user, savedAddress, addressType, label, isDefault, isPrimary);
+
+        UserAddress userAddress = linkAddress(user, savedAddress, addressType, label, isDefault, isPrimary);
+
+        // Apply eligibility settings
+        if (!billingEligible || !shippingEligible) {
+            userAddress.setBillingEligible(billingEligible);
+            userAddress.setShippingEligible(shippingEligible);
+            userAddress = userAddressRepository.save(userAddress);
+        }
+
+        return userAddress;
     }
 
     @Override
@@ -255,12 +308,11 @@ public class UserAddressServiceImpl implements UserAddressService {
 
     @Override
     @Transactional
-    public void unlinkAddress(String publicId, User user) {
+    public UserAddress unlinkAddress(String publicId, User user) {
         UserAddress userAddress = getByPublicIdAndUser(publicId, user);
         userAddress.deactivate();
-        userAddressRepository.save(userAddress);
-
-        log.info("Unlinked address {} from user {}", publicId, user.getUsername());
+        log.info("Deactivated address link {} for user {}", publicId, user.getUsername());
+        return userAddressRepository.save(userAddress);
     }
 
     @Override
@@ -268,30 +320,30 @@ public class UserAddressServiceImpl implements UserAddressService {
     public void removeAddressLink(String publicId, User user) {
         UserAddress userAddress = getByPublicIdAndUser(publicId, user);
         userAddressRepository.delete(userAddress);
-
-        log.info("Removed address link {} for user {}", publicId, user.getUsername());
+        log.info("Permanently removed address link {} for user {}", publicId, user.getUsername());
     }
 
     // endregion
 
     // ========================================
-    // region Address Modification (with Strategy)
+    // region Address Update
     // ========================================
 
     @Override
     @Transactional
-    public UserAddress updateAddress(String userAddressPublicId, User user, Address updatedAddress) {
-        UserAddress userAddress = getByPublicIdAndUser(userAddressPublicId, user);
+    public UserAddress updateAddress(String publicId, User user, Address updatedAddress) {
+        UserAddress userAddress = getByPublicIdAndUser(publicId, user);
 
-        AddressModificationStrategy strategy = userAddress.getEffectiveStrategy(defaultStrategy);
+        AddressModificationStrategy strategy = userAddress.getModificationStrategy() != null
+                ? userAddress.getModificationStrategy()
+                : defaultStrategy;
 
         return switch (strategy) {
             case SHARED -> updateShared(userAddress, updatedAddress);
             case COPY_ON_WRITE -> updateCopyOnWrite(userAddress, user, updatedAddress);
             case OWNER_ONLY -> updateOwnerOnly(userAddress, user, updatedAddress);
-            case IMMUTABLE -> throw AddressModificationNotAllowedException.immutableAddress(
-                    userAddress.getAddress().getPublicId());
-            case VERSIONED -> updateVersioned(userAddress, updatedAddress);
+            case IMMUTABLE -> throw AddressModificationNotAllowedException.immutableAddress(publicId);
+            case VERSIONED -> updateVersioned(userAddress, user, updatedAddress);
         };
     }
 
@@ -345,13 +397,14 @@ public class UserAddressServiceImpl implements UserAddressService {
 
         if (!address.isCreatedBy(user.getUsername())) {
             throw AddressModificationNotAllowedException.ownerOnly(
-                    address.getPublicId(), address.getCreatedBy());
+                    address.getPublicId(), user.getUsername());
         }
 
         return updateShared(userAddress, updatedAddress);
     }
 
-    private UserAddress updateVersioned(UserAddress userAddress, Address updatedAddress) {
+    private UserAddress updateVersioned(UserAddress userAddress, User user, Address updatedAddress) {
+        // Create new address version
         Address newAddress = Address.builder()
                 .streetNumber(updatedAddress.getStreetNumber())
                 .streetName(updatedAddress.getStreetName())
@@ -365,29 +418,27 @@ public class UserAddressServiceImpl implements UserAddressService {
 
         Address savedAddress = addressRepository.save(newAddress);
 
+        // Deactivate old link
         userAddress.deactivate();
         userAddressRepository.save(userAddress);
 
+        // Create new link with new address version
         UserAddress newLink = new UserAddress(
-                userAddress.getUser(),
+                user,
                 savedAddress,
                 userAddress.getAddressType(),
                 userAddress.getLabel(),
                 userAddress.isDefault(),
                 userAddress.isPrimary()
         );
+        newLink.setBillingEligible(userAddress.isBillingEligible());
+        newLink.setShippingEligible(userAddress.isShippingEligible());
 
-        log.info("Versioned update: Created new address {} replacing {}",
-                savedAddress.getPublicId(), userAddress.getAddress().getPublicId());
+        log.info("Versioned update: Created new address {} replacing {} for user {}",
+                savedAddress.getPublicId(), userAddress.getAddress().getPublicId(), user.getUsername());
 
         return userAddressRepository.save(newLink);
     }
-
-    // endregion
-
-    // ========================================
-    // region Link Metadata Updates
-    // ========================================
 
     @Override
     @Transactional
@@ -403,6 +454,123 @@ public class UserAddressServiceImpl implements UserAddressService {
 
         return userAddressRepository.save(userAddress);
     }
+
+    @Override
+    @Transactional
+    public UserAddress updateUserAddress(String publicId, User user, UpdateUserAddressRequest request) {
+        UserAddress userAddress = getByPublicIdAndUser(publicId, user);
+
+        // Update address geographical data if provided
+        if (request.hasAddressChanges()) {
+            Address updatedAddress = buildUpdatedAddress(userAddress.getAddress(), request);
+            userAddress = updateAddress(publicId, user, updatedAddress);
+        }
+
+        // Update link metadata with smart empty string handling
+        if (request.label() != null) {
+            // Empty string = remove label, otherwise update
+            userAddress.setLabel(request.label().isBlank() ? null : request.label());
+        }
+
+        if (request.notes() != null) {
+            // Empty string = remove notes, otherwise update
+            userAddress.setNotes(request.notes().isBlank() ? null : request.notes());
+        }
+
+        // Update eligibility if provided
+        if (request.billingEligible() != null) {
+            userAddress.setBillingEligible(request.billingEligible());
+        }
+
+        if (request.shippingEligible() != null) {
+            userAddress.setShippingEligible(request.shippingEligible());
+        }
+
+        return userAddressRepository.save(userAddress);
+    }
+
+    /**
+     * Builds an updated Address entity with smart validation for required vs optional fields.
+     *
+     * <p><b>Field handling rules:</b></p>
+     * <ul>
+     *   <li><b>Required fields</b> (streetName, postalCode, city, countryCode): Cannot be empty, throws exception if blank</li>
+     *   <li><b>Optional fields</b> (streetNumber, complement, stateProvince): Empty string sets to null (removal)</li>
+     *   <li><b>Null fields</b>: Preserve existing value (no change)</li>
+     * </ul>
+     *
+     * @param existing the current address
+     * @param request  the update request
+     * @return the address with updated fields
+     * @throws AddressValidationException if a required field is set to empty string
+     */
+    private Address buildUpdatedAddress(Address existing, UpdateUserAddressRequest request) {
+        // Validate and update required fields
+        String streetName = existing.getStreetName();
+        if (request.streetName() != null) {
+            if (request.streetName().isBlank()) {
+                throw AddressValidationException.missingRequiredField("streetName");
+            }
+            streetName = request.streetName();
+        }
+
+        String postalCode = existing.getPostalCode();
+        if (request.postalCode() != null) {
+            if (request.postalCode().isBlank()) {
+                throw AddressValidationException.missingRequiredField("postalCode");
+            }
+            postalCode = request.postalCode();
+        }
+
+        String city = existing.getCity();
+        if (request.city() != null) {
+            if (request.city().isBlank()) {
+                throw AddressValidationException.missingRequiredField("city");
+            }
+            city = request.city();
+        }
+
+        String countryCode = existing.getCountryCode();
+        if (request.countryCode() != null) {
+            if (request.countryCode().isBlank()) {
+                throw AddressValidationException.missingRequiredField("countryCode");
+            }
+            countryCode = request.countryCode().toUpperCase();
+        }
+
+        // Handle optional fields - empty string = null (removal)
+        String streetNumber = existing.getStreetNumber();
+        if (request.streetNumber() != null) {
+            streetNumber = request.streetNumber().isBlank() ? null : request.streetNumber();
+        }
+
+        String complement = existing.getComplement();
+        if (request.complement() != null) {
+            complement = request.complement().isBlank() ? null : request.complement();
+        }
+
+        String stateProvince = existing.getStateProvince();
+        if (request.stateProvince() != null) {
+            stateProvince = request.stateProvince().isBlank() ? null : request.stateProvince();
+        }
+
+        return Address.builder()
+                .streetNumber(streetNumber)
+                .streetName(streetName)
+                .complement(complement)
+                .postalCode(postalCode)
+                .city(city)
+                .stateProvince(stateProvince)
+                .countryCode(countryCode)
+                .validated(false)  // Mark as not validated after modification
+                .build();
+    }
+
+    // endregion
+
+    // ========================================
+    // region Eligibility Management
+    // ========================================
 
     @Override
     @Transactional
