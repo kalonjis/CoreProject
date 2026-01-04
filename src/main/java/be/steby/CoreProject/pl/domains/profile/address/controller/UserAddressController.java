@@ -44,15 +44,17 @@ public class UserAddressController {
      *   <li>GET /addresses?type=BILLING → billing addresses</li>
      *   <li>GET /addresses?type=SHIPPING&active=true → active shipping addresses</li>
      *   <li>GET /addresses?billingEligible=true&countryCode=BE → billing-eligible in Belgium</li>
+     *   <li>GET /addresses?isDefault=false → non-default addresses</li>
+     *   <li>GET /addresses?isPrimary=true → primary address only</li>
      * </ul>
      *
      * @param type             filter by address type
-     * @param active           filter by active status
-     * @param isDefault        filter by default status
-     * @param isPrimary        filter by primary status
-     * @param billingEligible  filter by billing eligibility
-     * @param shippingEligible filter by shipping eligibility
-     * @param verified         filter by owner verification
+     * @param active           filter by active status (true/false/null)
+     * @param isDefault        filter by default status (true/false/null)
+     * @param isPrimary        filter by primary status (true/false/null)
+     * @param billingEligible  filter by billing eligibility (true/false/null)
+     * @param shippingEligible filter by shipping eligibility (true/false/null)
+     * @param verified         filter by owner verification (true/false/null)
      * @param countryCode      filter by country (ISO code)
      * @param city             filter by city
      * @param postalCode       filter by postal code
@@ -60,15 +62,6 @@ public class UserAddressController {
      * @param validOnly        only currently valid addresses
      * @param hasCoordinates   only addresses with geolocation
      * @param user             the authenticated user
-     *
-     *                         GET /api/profile/addresses                           → toutes (actives)
-     * GET /api/profile/addresses?type=BILLING              → type BILLING
-     * GET /api/profile/addresses?type=SHIPPING&active=true → shipping actives
-     * GET /api/profile/addresses?billingEligible=true      → éligibles facturation
-     * GET /api/profile/addresses?countryCode=BE            → en Belgique
-     * GET /api/profile/addresses?city=Bruxelles&type=RESIDENTIAL
-     * GET /api/profile/addresses?isPrimary=true            → adresse principale
-     * GET /api/profile/addresses?label=Maison              → label contient "Maison"
      * @return list of matching addresses
      */
     @GetMapping
@@ -143,18 +136,10 @@ public class UserAddressController {
                 request.addressType(),
                 request.label(),
                 request.isDefault(),
-                request.isPrimary()
+                request.isPrimary(),
+                request.isBillingEligible(),
+                request.isShippingEligible()
         );
-
-        // Update eligibility if specified
-        if (!request.isBillingEligible() || !request.isShippingEligible()) {
-            userAddress = userAddressService.updateEligibility(
-                    userAddress.getPublicId(),
-                    user,
-                    request.isBillingEligible(),
-                    request.isShippingEligible()
-            );
-        }
 
         log.info("User {} created new address: {}", user.getUsername(), userAddress.getPublicId());
         return ResponseEntity.status(HttpStatus.CREATED).body(UserAddressDTO.fromEntity(userAddress));
@@ -169,6 +154,13 @@ public class UserAddressController {
     /**
      * Updates an existing address.
      *
+     * <p>This method consolidates all update operations in a single transaction:</p>
+     * <ul>
+     *   <li>Address geographical data (street, city, etc.)</li>
+     *   <li>Link metadata (label, notes)</li>
+     *   <li>Eligibility settings (billing, shipping)</li>
+     * </ul>
+     *
      * @param publicId the address public ID
      * @param request  the update request
      * @param user     the authenticated user
@@ -180,38 +172,7 @@ public class UserAddressController {
             @Valid @RequestBody UpdateUserAddressRequest request,
             @AuthenticationPrincipal User user) {
 
-        UserAddress userAddress = userAddressService.getByPublicIdAndUser(publicId, user);
-
-        // Update address fields if provided
-        if (request.hasAddressChanges()) {
-            userAddress = userAddressService.updateAddress(
-                    publicId,
-                    user,
-                    request.toAddressEntity(userAddress.getAddress())
-            );
-        }
-
-        // Update metadata if provided
-        if (request.label() != null || request.notes() != null) {
-            userAddress = userAddressService.updateLinkMetadata(
-                    publicId,
-                    user,
-                    request.label(),
-                    request.notes()
-            );
-        }
-
-        // Update eligibility if provided
-        if (request.billingEligible() != null || request.shippingEligible() != null) {
-            boolean billing = request.billingEligible() != null
-                    ? request.billingEligible()
-                    : userAddress.isBillingEligible();
-            boolean shipping = request.shippingEligible() != null
-                    ? request.shippingEligible()
-                    : userAddress.isShippingEligible();
-
-            userAddress = userAddressService.updateEligibility(publicId, user, billing, shipping);
-        }
+        UserAddress userAddress = userAddressService.updateUserAddress(publicId, user, request);
 
         log.info("User {} updated address: {}", user.getUsername(), publicId);
         return ResponseEntity.ok(UserAddressDTO.fromEntity(userAddress));
@@ -283,16 +244,16 @@ public class UserAddressController {
      *
      * @param publicId the address public ID
      * @param user     the authenticated user
-     * @return 204 No Content
+     * @return the deactivated address
      */
     @DeleteMapping("/{publicId}")
-    public ResponseEntity<Void> unlinkAddress(
+    public ResponseEntity<UserAddressDTO> unlinkAddress(
             @PathVariable String publicId,
             @AuthenticationPrincipal User user) {
 
-        userAddressService.unlinkAddress(publicId, user);
+        UserAddress userAddress = userAddressService.unlinkAddress(publicId, user);
         log.info("User {} unlinked address: {}", user.getUsername(), publicId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(UserAddressDTO.fromEntity(userAddress));
     }
 
     /**

@@ -105,6 +105,15 @@ public class UserAddressSpecification {
     }
 
     /**
+     * Filters non-default addresses.
+     *
+     * @return specification filtering non-default addresses
+     */
+    public static Specification<UserAddress> isNotDefault() {
+        return (root, query, cb) -> cb.isFalse(root.get("isDefault"));
+    }
+
+    /**
      * Filters primary addresses.
      *
      * @return specification filtering primary addresses
@@ -114,12 +123,30 @@ public class UserAddressSpecification {
     }
 
     /**
+     * Filters non-primary addresses.
+     *
+     * @return specification filtering non-primary addresses
+     */
+    public static Specification<UserAddress> isNotPrimary() {
+        return (root, query, cb) -> cb.isFalse(root.get("isPrimary"));
+    }
+
+    /**
      * Filters addresses verified by owner.
      *
      * @return specification filtering verified addresses
      */
     public static Specification<UserAddress> isVerifiedByOwner() {
         return (root, query, cb) -> cb.isTrue(root.get("verifiedByOwner"));
+    }
+
+    /**
+     * Filters addresses not verified by owner.
+     *
+     * @return specification filtering non-verified addresses
+     */
+    public static Specification<UserAddress> isNotVerifiedByOwner() {
+        return (root, query, cb) -> cb.isFalse(root.get("verifiedByOwner"));
     }
 
     // endregion
@@ -138,12 +165,30 @@ public class UserAddressSpecification {
     }
 
     /**
+     * Filters non-billing-eligible addresses.
+     *
+     * @return specification filtering non-billing-eligible addresses
+     */
+    public static Specification<UserAddress> isNotBillingEligible() {
+        return (root, query, cb) -> cb.isFalse(root.get("billingEligible"));
+    }
+
+    /**
      * Filters shipping-eligible addresses.
      *
      * @return specification filtering shipping-eligible addresses
      */
     public static Specification<UserAddress> isShippingEligible() {
         return (root, query, cb) -> cb.isTrue(root.get("shippingEligible"));
+    }
+
+    /**
+     * Filters non-shipping-eligible addresses.
+     *
+     * @return specification filtering non-shipping-eligible addresses
+     */
+    public static Specification<UserAddress> isNotShippingEligible() {
+        return (root, query, cb) -> cb.isFalse(root.get("shippingEligible"));
     }
 
     // endregion

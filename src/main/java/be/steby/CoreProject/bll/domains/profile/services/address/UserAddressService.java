@@ -4,6 +4,7 @@ import be.steby.CoreProject.dl.entities.Address;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.UserAddress;
 import be.steby.CoreProject.dl.enums.AddressType;
+import be.steby.CoreProject.pl.domains.profile.address.models.requests.UpdateUserAddressRequest;
 import be.steby.CoreProject.pl.domains.profile.address.models.requests.UserAddressSearchCriteria;
 
 import java.util.List;
@@ -182,6 +183,25 @@ public interface UserAddressService {
                               String label, boolean isDefault, boolean isPrimary);
 
     /**
+     * Creates a new address and links it to the user with full configuration.
+     *
+     * <p>This method consolidates address creation and eligibility settings in a single operation.</p>
+     *
+     * @param user             the user
+     * @param address          the address data
+     * @param addressType      the type of address
+     * @param label            optional label
+     * @param isDefault        whether this should be the default for its type
+     * @param isPrimary        whether this should be the primary address
+     * @param billingEligible  whether eligible for billing
+     * @param shippingEligible whether eligible for shipping
+     * @return the created user address link
+     */
+    UserAddress createAndLink(User user, Address address, AddressType addressType,
+                              String label, boolean isDefault, boolean isPrimary,
+                              boolean billingEligible, boolean shippingEligible);
+
+    /**
      * Creates a new address and links it with minimal parameters.
      *
      * @param user        the user
@@ -196,8 +216,9 @@ public interface UserAddressService {
      *
      * @param publicId the user address public ID
      * @param user     the user (for ownership verification)
+     * @return the deactivated user address
      */
-    void unlinkAddress(String publicId, User user);
+    UserAddress unlinkAddress(String publicId, User user);
 
     /**
      * Permanently removes an address link.
@@ -239,6 +260,23 @@ public interface UserAddressService {
      * @return the updated user address
      */
     UserAddress updateLinkMetadata(String publicId, User user, String label, String notes);
+
+    /**
+     * Consolidated update operation for user addresses.
+     *
+     * <p>This method handles all update operations in a single transaction:</p>
+     * <ul>
+     *   <li>Address geographical data (if provided)</li>
+     *   <li>Link metadata (label, notes)</li>
+     *   <li>Eligibility settings (billing, shipping)</li>
+     * </ul>
+     *
+     * @param publicId the user address public ID
+     * @param user     the user
+     * @param request  the update request with optional fields
+     * @return the updated user address
+     */
+    UserAddress updateUserAddress(String publicId, User user, UpdateUserAddressRequest request);
 
     /**
      * Updates eligibility flags.
