@@ -295,6 +295,21 @@ public class SecurityConstants {
             "/api/admin/users/deactivation-categories"    // GET deactivation categories
     };
 
+    // Admin User - Address
+    private static final String[] ADMIN_USER_ADDRESS_ROUTES = {
+            "/api/admin/users/*/addresses",                  // GET: all user's addresses, POST: create a user address
+            "/api/admin/users/*/addresses/*/metadata",       // PATCH update 1 or more metadata of an address - /api/admin/users/{{userPublicId}}/addresses/{{addrLinkPublicId}}/metadata
+
+    };
+
+    // Admin Address
+    private static final String[] ADMIN_ADDRESS_ROUTES = {
+            "/api/admin/addresses",                  // GET all addresses
+            "/api/admin/addresses/*",                  // GET all address data along with it's linked users
+            "/api/admin/addresses/*/users"           // GET all users for linked to an address
+
+    };
+
 
     private static final String[] ADMIN_PASSWORD_ROUTES = {
             "/api/admin/password-reset/**",            // POST force password reset
@@ -341,6 +356,8 @@ public class SecurityConstants {
      */
     private static final String[] ADMIN_DOMAIN_ROUTES = concatenate(
             ADMIN_USER_ROUTES,
+            ADMIN_USER_ADDRESS_ROUTES,
+            ADMIN_ADDRESS_ROUTES,
             ADMIN_CACHE_DEVICE_ROUTES,
             ADMIN_CACHE_USER_ROUTES,
             ADMIN_SECURITY_ROUTES,
