@@ -1,6 +1,9 @@
 package be.steby.CoreProject.bll.domains.admin.services.address;
 
 import be.steby.CoreProject.dl.entities.UserAddress;
+import be.steby.CoreProject.pl.domains.admin.models.requests.UpdateUserAddressMetadataRequest;
+import be.steby.CoreProject.pl.domains.profile.address.models.requests.CreateUserAddressRequest;
+import be.steby.CoreProject.pl.domains.profile.address.models.requests.UserAddressSearchCriteria;
 
 import java.util.List;
 
@@ -24,10 +27,27 @@ import java.util.List;
 public interface AdminUserAddressService {
 
     /**
-     * Retrieves all addresses associated with a specific user.
+     * Retrieves addresses for a specific user with optional filtering.
      *
-     * <p>Returns all user addresses including inactive ones.
-     * Admins need to see the complete address history for audit purposes.</p>
+     * <p>Returns all user addresses (including inactive ones) by default.
+     * Supports comprehensive filtering through search criteria.</p>
+     *
+     * <h4>Available filters:</h4>
+     * <ul>
+     *   <li>type - Address type (RESIDENTIAL, BILLING, etc.)</li>
+     *   <li>active - Active status</li>
+     *   <li>isDefault - Default status for its type</li>
+     *   <li>isPrimary - Primary address flag</li>
+     *   <li>billingEligible - Billing eligibility</li>
+     *   <li>shippingEligible - Shipping eligibility</li>
+     *   <li>verified - Owner verification status</li>
+     *   <li>countryCode - Filter by country (ISO code)</li>
+     *   <li>city - Filter by city name</li>
+     *   <li>postalCode - Filter by postal code</li>
+     *   <li>label - Filter by label (contains)</li>
+     *   <li>validOnly - Only currently valid addresses</li>
+     *   <li>hasCoordinates - Only addresses with geolocation</li>
+     * </ul>
      *
      * <h4>Permission requirements:</h4>
      * <ul>
@@ -36,13 +56,17 @@ public interface AdminUserAddressService {
      * </ul>
      *
      * @param userPublicId User's public ID
-     * @return List of all addresses belonging to the user (empty list if user has no addresses)
+     * @param criteria     Search criteria (null or empty = no filters)
+     * @return List of addresses matching criteria (empty list if none found)
      * @throws be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException
      *         if user doesn't exist
      * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException
      *         if actor lacks admin privileges
      */
-    List<UserAddress> getUserAddresses(String userPublicId);
+    List<UserAddress> getUserAddresses(
+            String userPublicId,
+            UserAddressSearchCriteria criteria
+    );
 
     /**
      * Updates the metadata of a user address link as an administrator.
@@ -92,7 +116,7 @@ public interface AdminUserAddressService {
     UserAddress updateAddressMetadata(
             String userPublicId,
             String linkPublicId,
-            be.steby.CoreProject.pl.domains.admin.models.requests.UpdateUserAddressMetadataRequest request
+            UpdateUserAddressMetadataRequest request
     );
 
 
@@ -126,5 +150,59 @@ public interface AdminUserAddressService {
      * @throws be.steby.CoreProject.bll.domains.address.exceptions.AddressValidationException
      *         if address data is invalid
      */
-    UserAddress createAddress(String userPublicId, be.steby.CoreProject.pl.domains.profile.address.models.requests.CreateUserAddressRequest request);
+    UserAddress createAddress(String userPublicId, CreateUserAddressRequest request);
+
+
+    /**
+     * Soft deletes a user address link (sets active=false).
+     *
+     * <p>The link remains in the database for historical purposes but becomes
+     * inactive. The user will no longer see this address in their active addresses.
+     * The Address entity itself is not affected.</p>
+     *
+     * <p>Note: This is technically a PATCH operation but uses DELETE
+     * for semantic clarity and consistency with the existing API design.</p>
+     *
+     * <h4>Permission requirements:</h4>
+     * <ul>
+     *   <li>Actor must have ADMIN or SUPER_ADMIN role</li>
+     *   <li>No hierarchy restrictions</li>
+     * </ul>
+     *
+     * @param userPublicId User's public ID
+     * @param linkPublicId UserAddress link public ID
+     * @return The deactivated user address link
+     * @throws be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException
+     *         if user doesn't exist
+     * @throws be.steby.CoreProject.bll.domains.address.exceptions.AddressNotFoundException
+     *         if link doesn't exist or doesn't belong to user
+     * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException
+     *         if actor lacks admin privileges
+     */
+    UserAddress softDeleteAddress(String userPublicId, String linkPublicId);
+
+    /**
+     * Permanently deletes a user address link from the database.
+     *
+     * <p>This operation is irreversible. The UserAddress link is completely removed
+     * from the database. If this was the last link to the Address, the Address
+     * becomes orphaned and can be cleaned up later.</p>
+     *
+     * <h4>Permission requirements:</h4>
+     * <ul>
+     *   <li>Actor must have ADMIN or SUPER_ADMIN role</li>
+     *   <li>No hierarchy restrictions</li>
+     * </ul>
+     *
+     * @param userPublicId User's public ID
+     * @param linkPublicId UserAddress link public ID
+     * @throws be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException
+     *         if user doesn't exist
+     * @throws be.steby.CoreProject.bll.domains.address.exceptions.AddressNotFoundException
+     *         if link doesn't exist or doesn't belong to user
+     * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException
+     *         if actor lacks admin privileges
+     */
+    void hardDeleteAddress(String userPublicId, String linkPublicId);
+
 }

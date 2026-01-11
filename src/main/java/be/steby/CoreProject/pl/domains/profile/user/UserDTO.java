@@ -7,7 +7,7 @@ import java.time.Instant;
 import java.util.Set;
 
 public record UserDTO(
-        Long id,
+        String publicId,
         String username,
         String firstname,
         String lastname,
@@ -20,7 +20,7 @@ public record UserDTO(
 ) {
     public static UserDTO fromEntity(User u){
         return new UserDTO(
-                u.getId(),
+                u.getPublicId(),
                 u.getUsername(),
                 u.getFirstname(),
                 u.getLastname(),

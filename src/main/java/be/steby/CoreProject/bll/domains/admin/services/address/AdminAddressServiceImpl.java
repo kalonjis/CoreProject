@@ -108,4 +108,35 @@ public class AdminAddressServiceImpl implements AdminAddressService {
     }
 
     // endregion
+
+
+    @Override
+    @Transactional
+    public void deleteOrphanedAddress(String addressPublicId) {
+        log.debug("Admin deleting orphaned address: {}", addressPublicId);
+
+        // 1. Get authenticated admin
+        User admin = userService.getAuthenticatedUser();
+
+        // 2. Validate admin permissions
+        adminPermissionValidator.validateAdminRole(admin);
+
+        // 3. Verify address exists
+        Address address = addressService.getByPublicId(addressPublicId);
+
+        // 4. Check if address has any links (must be orphaned)
+        long linkCount = userAddressRepository.countByAddress(address);
+        if (linkCount > 0) {
+            log.warn("Admin {} attempted to delete address {} which has {} link(s)",
+                    admin.getUsername(), addressPublicId, linkCount);
+            throw be.steby.CoreProject.bll.domains.address.exceptions.AddressStillInUseException
+                    .forAddress(addressPublicId, linkCount);
+        }
+
+        // 5. Delete the orphaned address
+        addressService.delete(addressPublicId);
+
+        log.info("Admin {} successfully deleted orphaned address {}",
+                admin.getUsername(), addressPublicId);
+    }
 }

@@ -85,4 +85,39 @@ public interface AdminAddressService {
      *         if actor lacks admin privileges
      */
     List<UserAddress> getAddressUsers(String addressPublicId);
+
+    /**
+     * Deletes an orphaned address from the system.
+     *
+     * <p>An address can only be deleted if it has no active links to any users.
+     * This prevents accidental deletion of addresses still in use.</p>
+     *
+     * <h4>Validation:</h4>
+     * <ul>
+     *   <li>Checks if address has any UserAddress links</li>
+     *   <li>Throws exception if address is still in use</li>
+     *   <li>Only deletes truly orphaned addresses</li>
+     * </ul>
+     *
+     * <h4>Use cases:</h4>
+     * <ul>
+     *   <li>Cleanup after all users unlinked from address</li>
+     *   <li>Remove duplicate addresses</li>
+     *   <li>Database maintenance</li>
+     * </ul>
+     *
+     * <h4>Permission requirements:</h4>
+     * <ul>
+     *   <li>Actor must have ADMIN or SUPER_ADMIN role</li>
+     * </ul>
+     *
+     * @param addressPublicId Address public ID
+     * @throws be.steby.CoreProject.bll.domains.address.exceptions.AddressNotFoundException
+     *         if address doesn't exist
+     * @throws be.steby.CoreProject.bll.domains.address.exceptions.AddressStillInUseException
+     *         if address has active links
+     * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException
+     *         if actor lacks admin privileges
+     */
+    void deleteOrphanedAddress(String addressPublicId);
 }

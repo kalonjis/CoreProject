@@ -9,6 +9,7 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.UserAddress;
 import be.steby.CoreProject.pl.domains.admin.models.requests.UpdateUserAddressMetadataRequest;
 import be.steby.CoreProject.pl.domains.profile.address.models.requests.CreateUserAddressRequest;
+import be.steby.CoreProject.pl.domains.profile.address.models.requests.UserAddressSearchCriteria;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,8 +46,12 @@ public class AdminUserAddressServiceImpl implements AdminUserAddressService {
 
 
     @Override
-    public List<UserAddress> getUserAddresses(String userPublicId) {
-        log.debug("Admin retrieving addresses for user: {}", userPublicId);
+    public List<UserAddress> getUserAddresses(
+            String userPublicId,
+            UserAddressSearchCriteria criteria) {
+
+        log.debug("Admin retrieving addresses for user: {} with criteria: {}",
+                userPublicId, criteria != null ? "filtered" : "all");
 
         // 1. Get the target user
         User target = userService.getUserByPublicId(userPublicId);
@@ -57,11 +62,12 @@ public class AdminUserAddressServiceImpl implements AdminUserAddressService {
         // 3. Validate admin permissions
         adminPermissionValidator.validateAdminRole(admin);
 
-        // 4. Delegate to user address service
-        List<UserAddress> addresses = userAddressService.getAllForUser(target);
+        // 4. Delegate to user address service with search criteria
+        List<UserAddress> addresses = userAddressService.search(target, criteria);
 
-        log.info("Admin {} viewed {} address(es) of user {}",
-                admin.getUsername(), addresses.size(), target.getUsername());
+        log.info("Admin {} viewed {} address(es) of user {} (filtered: {})",
+                admin.getUsername(), addresses.size(), target.getUsername(),
+                criteria != null && criteria.hasFilters());
 
         return addresses;
     }
@@ -225,5 +231,56 @@ public class AdminUserAddressServiceImpl implements AdminUserAddressService {
                 admin.getUsername(), userAddress.getPublicId(), target.getUsername());
 
         return userAddress;
+    }
+
+
+    @Override
+    @Transactional
+    public UserAddress softDeleteAddress(String userPublicId, String linkPublicId) {
+        log.debug("Admin soft deleting address link - user: {}, link: {}", userPublicId, linkPublicId);
+
+        // 1. Get the target user
+        User target = userService.getUserByPublicId(userPublicId);
+
+        // 2. Get authenticated admin
+        User admin = userService.getAuthenticatedUser();
+
+        // 3. Validate admin permissions
+        adminPermissionValidator.validateAdminRole(admin);
+
+        log.debug("Admin {} soft deleting address {} for user {}",
+                admin.getUsername(), linkPublicId, target.getUsername());
+
+        // 4. Delegate to UserAddressService (sets active=false)
+        UserAddress userAddress = userAddressService.unlinkAddress(linkPublicId, target);
+
+        log.info("Admin {} successfully soft deleted address {} for user {}",
+                admin.getUsername(), linkPublicId, target.getUsername());
+
+        return userAddress;
+    }
+
+    @Override
+    @Transactional
+    public void hardDeleteAddress(String userPublicId, String linkPublicId) {
+        log.debug("Admin hard deleting address link - user: {}, link: {}", userPublicId, linkPublicId);
+
+        // 1. Get the target user
+        User target = userService.getUserByPublicId(userPublicId);
+
+        // 2. Get authenticated admin
+        User admin = userService.getAuthenticatedUser();
+
+        // 3. Validate admin permissions
+        adminPermissionValidator.validateAdminRole(admin);
+
+        log.debug("Admin {} hard deleting address {} for user {}",
+                admin.getUsername(), linkPublicId, target.getUsername());
+
+        // 4. Delegate to UserAddressService (permanent deletion)
+        userAddressService.removeAddressLink(linkPublicId, target);
+
+        log.info("Admin {} successfully hard deleted address {} for user {}",
+                admin.getUsername(), linkPublicId, target.getUsername());
     }
 }
