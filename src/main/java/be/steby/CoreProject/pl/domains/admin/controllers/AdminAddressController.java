@@ -198,4 +198,55 @@ public class AdminAddressController {
     }
 
     // endregion
+
+
+    // ========================================
+// region DELETE - Cleanup
+// ========================================
+
+    /**
+     * Deletes an orphaned address from the system.
+     *
+     * <p>An address can only be deleted if it has no links to any users.
+     * This endpoint is used for cleanup after all users have been unlinked
+     * from an address.</p>
+     *
+     * <h4>Example request:</h4>
+     * <pre>DELETE /api/admin/addresses/addr-123</pre>
+     *
+     * <h4>Validation:</h4>
+     * <ul>
+     *   <li>Verifies address exists</li>
+     *   <li>Checks address has zero links (orphaned)</li>
+     *   <li>Returns 409 Conflict if address still in use</li>
+     * </ul>
+     *
+     * <h4>Use cases:</h4>
+     * <ul>
+     *   <li>Cleanup after unlinking all users</li>
+     *   <li>Remove duplicate addresses</li>
+     *   <li>Database maintenance</li>
+     * </ul>
+     *
+     * <h4>Recommended workflow:</h4>
+     * <ol>
+     *   <li>GET /api/admin/addresses/{id} - verify userCount = 0</li>
+     *   <li>DELETE /api/admin/addresses/{id} - delete if orphaned</li>
+     * </ol>
+     *
+     * @param publicId Address public ID
+     * @return 204 No Content
+     */
+    @DeleteMapping("/{publicId}")
+    public ResponseEntity<Void> deleteOrphanedAddress(@PathVariable String publicId) {
+        log.debug("Admin request to delete orphaned address: {}", publicId);
+
+        adminAddressService.deleteOrphanedAddress(publicId);
+
+        log.info("Admin deleted orphaned address: {}", publicId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+// endregion
 }

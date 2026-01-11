@@ -299,13 +299,15 @@ public class SecurityConstants {
     private static final String[] ADMIN_USER_ADDRESS_ROUTES = {
             "/api/admin/users/*/addresses",                  // GET: all user's addresses, POST: create a user address
             "/api/admin/users/*/addresses/*/metadata",       // PATCH update 1 or more metadata of an address - /api/admin/users/{{userPublicId}}/addresses/{{addrLinkPublicId}}/metadata
+            "/api/admin/users/*/addresses/**",                // DELETE /api/admin/users/{stebyPublicId}/addresses/{oldAddressLinkId}
+            "/api/admin/users/*/addresses/*/permanent",      // DELETE /api/admin/users/{stebyPublicId}/addresses/{oldAddressLinkId}/permanent
 
     };
 
     // Admin Address
     private static final String[] ADMIN_ADDRESS_ROUTES = {
             "/api/admin/addresses",                  // GET all addresses
-            "/api/admin/addresses/*",                  // GET all address data along with it's linked users
+            "/api/admin/addresses/*",                // GET all address data along with it's linked users, DELETE orphan /api/admin/addresses/{sharedAddressId}
             "/api/admin/addresses/*/users"           // GET all users for linked to an address
 
     };

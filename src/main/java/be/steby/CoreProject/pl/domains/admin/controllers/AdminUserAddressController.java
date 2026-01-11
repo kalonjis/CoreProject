@@ -2,8 +2,10 @@ package be.steby.CoreProject.pl.domains.admin.controllers;
 
 import be.steby.CoreProject.bll.domains.admin.services.address.AdminUserAddressService;
 import be.steby.CoreProject.dl.entities.UserAddress;
+import be.steby.CoreProject.dl.enums.AddressType;
 import be.steby.CoreProject.pl.domains.admin.models.requests.UpdateUserAddressMetadataRequest;
 import be.steby.CoreProject.pl.domains.profile.address.models.requests.CreateUserAddressRequest;
+import be.steby.CoreProject.pl.domains.profile.address.models.requests.UserAddressSearchCriteria;
 import be.steby.CoreProject.pl.domains.profile.address.models.responses.UserAddressDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -50,43 +52,97 @@ public class AdminUserAddressController {
     // ========================================
 
     /**
-     * Retrieves all addresses for a specific user.
+     * Retrieves addresses for a specific user with optional filtering.
      *
-     * <p>Returns all user addresses including inactive ones.
-     * Admins can see the complete address history.</p>
+     * <p>Returns all user addresses (including inactive ones) by default.
+     * Supports comprehensive filtering through query parameters.</p>
      *
-     * <h4>Example request:</h4>
-     * <pre>GET /api/admin/users/abc-123/addresses</pre>
-     *
-     * <h4>Response:</h4>
+     * <h4>Example requests:</h4>
      * <pre>
-     * [
-     *   {
-     *     "publicId": "addr-123",
-     *     "address": {...},
-     *     "addressType": "RESIDENTIAL",
-     *     "label": "Home",
-     *     "isDefault": true,
-     *     "active": true,
-     *     ...
-     *   }
-     * ]
+     * # Get all addresses (no filters)
+     * GET /api/admin/users/abc-123/addresses
+     *
+     * # Get only inactive addresses
+     * GET /api/admin/users/abc-123/addresses?active=false
+     *
+     * # Get billing addresses in Belgium
+     * GET /api/admin/users/abc-123/addresses?type=BILLING&countryCode=BE
+     *
+     * # Get unverified addresses
+     * GET /api/admin/users/abc-123/addresses?verified=false
+     *
+     * # Combine multiple filters
+     * GET /api/admin/users/abc-123/addresses?active=true&billingEligible=true&isPrimary=true
      * </pre>
      *
-     * @param userPublicId User's public ID
-     * @return List of user addresses
+     * <h4>Available filters:</h4>
+     * <ul>
+     *   <li>type - Address type (RESIDENTIAL, BILLING, SHIPPING, etc.)</li>
+     *   <li>active - Active status (true/false)</li>
+     *   <li>isDefault - Default status (true/false)</li>
+     *   <li>isPrimary - Primary address flag (true/false)</li>
+     *   <li>billingEligible - Billing eligibility (true/false)</li>
+     *   <li>shippingEligible - Shipping eligibility (true/false)</li>
+     *   <li>verified - Owner verification status (true/false)</li>
+     *   <li>countryCode - Filter by country (ISO code, e.g., "BE")</li>
+     *   <li>city - Filter by city name</li>
+     *   <li>postalCode - Filter by postal code</li>
+     *   <li>label - Filter by label (contains, case-insensitive)</li>
+     *   <li>validOnly - Only currently valid addresses (true/false)</li>
+     *   <li>hasCoordinates - Only addresses with geolocation (true/false)</li>
+     * </ul>
+     *
+     * @param userPublicId      User's public ID
+     * @param type              filter by address type
+     * @param active            filter by active status (true/false/null)
+     * @param isDefault         filter by default status (true/false/null)
+     * @param isPrimary         filter by primary status (true/false/null)
+     * @param billingEligible   filter by billing eligibility (true/false/null)
+     * @param shippingEligible  filter by shipping eligibility (true/false/null)
+     * @param verified          filter by verification status (true/false/null)
+     * @param countryCode       filter by country (ISO code)
+     * @param city              filter by city
+     * @param postalCode        filter by postal code
+     * @param label             filter by label (contains)
+     * @param validOnly         only currently valid addresses
+     * @param hasCoordinates    only addresses with geolocation
+     * @return List of user addresses matching criteria
      */
     @GetMapping
     public ResponseEntity<List<UserAddressDTO>> getUserAddresses(
-            @PathVariable String userPublicId) {
+            @PathVariable String userPublicId,
+            @RequestParam(required = false) AddressType type,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) Boolean isDefault,
+            @RequestParam(required = false) Boolean isPrimary,
+            @RequestParam(required = false) Boolean billingEligible,
+            @RequestParam(required = false) Boolean shippingEligible,
+            @RequestParam(required = false) Boolean verified,
+            @RequestParam(required = false) String countryCode,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String postalCode,
+            @RequestParam(required = false) String label,
+            @RequestParam(required = false) Boolean validOnly,
+            @RequestParam(required = false) Boolean hasCoordinates) {
 
-        log.debug("Admin request to retrieve addresses for user: {}", userPublicId);
+        log.debug("Admin request to retrieve addresses for user: {} with filters", userPublicId);
 
-        List<UserAddress> addresses = adminUserAddressService.getUserAddresses(userPublicId);
+        // Build search criteria from query parameters
+        UserAddressSearchCriteria criteria = new UserAddressSearchCriteria(
+                type, active, isDefault, isPrimary,
+                billingEligible, shippingEligible, verified,
+                countryCode, city, postalCode, label,
+                validOnly, hasCoordinates
+        );
+
+        List<UserAddress> addresses = adminUserAddressService.getUserAddresses(userPublicId, criteria);
 
         List<UserAddressDTO> dtos = addresses.stream()
                 .map(UserAddressDTO::fromEntity)
                 .toList();
+
+        log.debug("Returning {} address(es) for user {} (filtered: {})",
+                dtos.size(), userPublicId, criteria.hasFilters());
 
         return ResponseEntity.ok(dtos);
     }
@@ -95,8 +151,8 @@ public class AdminUserAddressController {
 
 
     // ========================================
-// region POST - Create
-// ========================================
+    // region POST - Create
+    // ========================================
 
     /**
      * Creates a new address for a specific user.
@@ -216,6 +272,85 @@ public class AdminUserAddressController {
                 userPublicId, linkPublicId);
 
         return ResponseEntity.ok(UserAddressDTO.fromEntity(userAddress));
+    }
+
+    // endregion
+
+
+    // ========================================
+    // region DELETE - Remove
+    // ========================================
+
+    /**
+     * Soft deletes a user address link (deactivation).
+     *
+     * <p>Sets the address link as inactive (active=false). The link remains in
+     * the database for historical purposes but the user won't see it anymore.
+     * The Address entity itself is not affected.</p>
+     *
+     * <h4>Example request:</h4>
+     * <pre>DELETE /api/admin/users/user-123/addresses/addr-456</pre>
+     *
+     * <h4>Use cases:</h4>
+     * <ul>
+     *   <li>User moved, keep address history</li>
+     *   <li>Temporary deactivation</li>
+     *   <li>Address no longer relevant but keep for audit</li>
+     * </ul>
+     *
+     * @param userPublicId User's public ID
+     * @param linkPublicId UserAddress link public ID
+     * @return The deactivated address link
+     */
+    @DeleteMapping("/{linkPublicId}")
+    public ResponseEntity<UserAddressDTO> softDeleteAddress(
+            @PathVariable String userPublicId,
+            @PathVariable String linkPublicId) {
+
+        log.debug("Admin request to soft delete address - user: {}, link: {}",
+                userPublicId, linkPublicId);
+
+        UserAddress userAddress = adminUserAddressService.softDeleteAddress(userPublicId, linkPublicId);
+
+        log.info("Admin soft deleted address {} for user {}", linkPublicId, userPublicId);
+
+        return ResponseEntity.ok(UserAddressDTO.fromEntity(userAddress));
+    }
+
+    /**
+     * Permanently deletes a user address link.
+     *
+     * <p>Completely removes the UserAddress link from the database. This operation
+     * is irreversible. If this was the last link to the Address, the Address
+     * becomes orphaned and can be cleaned up using the address cleanup endpoint.</p>
+     *
+     * <h4>Example request:</h4>
+     * <pre>DELETE /api/admin/users/user-123/addresses/addr-456/permanent</pre>
+     *
+     * <h4>Use cases:</h4>
+     * <ul>
+     *   <li>Correct data entry error</li>
+     *   <li>Remove duplicate address</li>
+     *   <li>Permanent cleanup after verification</li>
+     * </ul>
+     *
+     * @param userPublicId User's public ID
+     * @param linkPublicId UserAddress link public ID
+     * @return 204 No Content
+     */
+    @DeleteMapping("/{linkPublicId}/permanent")
+    public ResponseEntity<Void> hardDeleteAddress(
+            @PathVariable String userPublicId,
+            @PathVariable String linkPublicId) {
+
+        log.debug("Admin request to hard delete address - user: {}, link: {}",
+                userPublicId, linkPublicId);
+
+        adminUserAddressService.hardDeleteAddress(userPublicId, linkPublicId);
+
+        log.info("Admin permanently deleted address {} for user {}", linkPublicId, userPublicId);
+
+        return ResponseEntity.noContent().build();
     }
 
     // endregion
