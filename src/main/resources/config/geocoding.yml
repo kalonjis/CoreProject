@@ -1,0 +1,16 @@
+# Geocoding configuration
+geocoding:
+  nominatim:
+    # Nominatim API base URL (OpenStreetMap)
+    url: https://nominatim.openstreetmap.org
+
+    # User-Agent header (MANDATORY for Nominatim)
+    # Format: AppName/Version (contact@example.com)
+    # Replace with your actual app name and contact email
+    user-agent: CoreProject/0.0.1 (kalonj1981@hotmail.com)
+
+    # HTTP request timeout in milliseconds
+    timeout: 5000
+
+    # Enable retry on transient failures (timeout, 503)
+    retry-enabled: true
