@@ -168,7 +168,7 @@ public interface AddressService {
      * @param validationSource the source of validation
      * @return the updated address
      */
-    Address markAsValidated(String publicId, String validationSource);
+    Address markAsValidated(Address address, String validationSource);
 
     /**
      * Sets geolocation coordinates for an address.
@@ -178,7 +178,7 @@ public interface AddressService {
      * @param longitude the longitude
      * @return the updated address
      */
-    Address setCoordinates(String publicId, Double latitude, Double longitude);
+    Address setCoordinates(Address address, Double latitude, Double longitude);
 
     /**
      * Sets the formatted address string.
@@ -187,7 +187,7 @@ public interface AddressService {
      * @param formattedAddress the formatted address string
      * @return the updated address
      */
-    Address setFormattedAddress(String publicId, String formattedAddress);
+    Address setFormattedAddress(Address address, String formattedAddress);
 
     /**
      * Gets all addresses pending validation.

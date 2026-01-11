@@ -1,11 +1,13 @@
 package be.steby.CoreProject.bll.domains.address.services;
 
+import be.steby.CoreProject.bll.domains.address.events.AddressGeocodingRequestedEvent;
 import be.steby.CoreProject.bll.domains.address.exceptions.AddressNotFoundException;
 
 import be.steby.CoreProject.dal.repositories.AddressRepository;
 import be.steby.CoreProject.dl.entities.Address;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ import java.util.Optional;
 public class AddressServiceImpl implements AddressService {
 
     private final AddressRepository addressRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ========================================
     // region Lookup
@@ -53,6 +56,25 @@ public class AddressServiceImpl implements AddressService {
     // region Creation
     // ========================================
 
+    /**
+     * Creates a new address with optional duplicate detection.
+     * Triggers asynchronous geocoding for newly created addresses.
+     *
+     * Workflow:
+     * 1. Check for duplicates if enabled
+     * 2. Save address to database (synchronous)
+     * 3. Publish AddressGeocodingRequestedEvent for NEW addresses only
+     * 4. Return saved address immediately (non-blocking)
+     *
+     * The geocoding process runs in background:
+     * - AddressGeocodingListener picks up the event
+     * - GeocodingService calls Nominatim API
+     * - Address is updated with coordinates asynchronously
+     *
+     * @param address the address to create
+     * @param detectDuplicates if true, checks for existing duplicates before creating
+     * @return the saved address (new or existing duplicate)
+     */
     @Override
     @Transactional
     public Address create(Address address, boolean detectDuplicates) {
@@ -64,16 +86,31 @@ public class AddressServiceImpl implements AddressService {
             }
         }
 
+        // Save new address
         Address saved = addressRepository.save(address);
         log.info("Created new address: {}", saved.getPublicId());
+
+        // Publish event for asynchronous geocoding (only for NEW addresses)
+        // This does NOT block the current thread - geocoding happens in background
+        eventPublisher.publishEvent(new AddressGeocodingRequestedEvent(saved.getId()));
+        log.debug("Geocoding event published for address ID: {}", saved.getId());
+
         return saved;
     }
 
+    /**
+     * Creates a new address with duplicate detection enabled by default.
+     *
+     * @param address the address to create
+     * @return the saved address (new or existing duplicate)
+     */
     @Override
     @Transactional
     public Address create(Address address) {
+        log.debug("Creating new address with duplicate detection");
         return create(address, true);
     }
+
 
     @Override
     @Transactional
@@ -151,7 +188,8 @@ public class AddressServiceImpl implements AddressService {
         return findDuplicate(address).orElseGet(() -> {
             Address saved = addressRepository.save(address);
             log.info("Created new address (findOrCreate): {}", saved.getPublicId());
-            return saved;
+
+            return create(address, false);
         });
     }
 
@@ -184,28 +222,25 @@ public class AddressServiceImpl implements AddressService {
 
     @Override
     @Transactional
-    public Address markAsValidated(String publicId, String validationSource) {
-        Address address = getByPublicId(publicId);
+    public Address markAsValidated(Address address, String validationSource) {
         address.setValidated(true);
         address.setValidationSource(validationSource);
-        log.info("Marked address {} as validated by {}", publicId, validationSource);
+        log.info("Marked address {} as validated by {}", address.getId(), validationSource);
         return addressRepository.save(address);
     }
 
     @Override
     @Transactional
-    public Address setCoordinates(String publicId, Double latitude, Double longitude) {
-        Address address = getByPublicId(publicId);
+    public Address setCoordinates(Address address, Double latitude, Double longitude) {
         address.setLatitude(latitude);
         address.setLongitude(longitude);
-        log.debug("Set coordinates for address {}: ({}, {})", publicId, latitude, longitude);
+        log.debug("Set coordinates for address {}: ({}, {})", address.getId(), latitude, longitude);
         return addressRepository.save(address);
     }
 
     @Override
     @Transactional
-    public Address setFormattedAddress(String publicId, String formattedAddress) {
-        Address address = getByPublicId(publicId);
+    public Address setFormattedAddress(Address address, String formattedAddress) {
         address.setFormattedAddress(formattedAddress);
         return addressRepository.save(address);
     }

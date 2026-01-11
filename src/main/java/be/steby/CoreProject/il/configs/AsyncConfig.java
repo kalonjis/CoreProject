@@ -120,6 +120,40 @@ public class AsyncConfig implements AsyncConfigurer {
         return executor;
     }
 
+
+    /**
+     * Executor for geocoding operations.
+     *
+     * Configuration:
+     * - Core pool size: 2 threads (rate-limited API, no need for many threads)
+     * - Max pool size: 5 threads (handles burst if multiple addresses created)
+     * - Queue capacity: 100 (addresses waiting for geocoding)
+     *
+     * This executor is dedicated to external geocoding API calls (Nominatim)
+     * to avoid blocking other async operations.
+     *
+     * @return configured ThreadPoolTaskExecutor for geocoding tasks
+     */
+    @Bean(name = "geocodingExecutor")
+    public Executor geocodingExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+
+        // Small pool because Nominatim is rate-limited to 1 req/sec
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(5);
+        executor.setQueueCapacity(100);
+
+        // Thread naming for easier debugging in logs
+        executor.setThreadNamePrefix("geocoding-");
+
+        // Graceful shutdown: wait for tasks to complete
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(60);
+
+        executor.initialize();
+        return executor;
+    }
+
     /**
      * Bean qui expose tous les executors pour le monitoring
      */
@@ -129,6 +163,7 @@ public class AsyncConfig implements AsyncConfigurer {
             @Qualifier("smsExecutor") ThreadPoolTaskExecutor smsExecutor,
             @Qualifier("activityLogExecutor") ThreadPoolTaskExecutor activityLogExecutor,
             @Qualifier("eventListenerExecutor") ThreadPoolTaskExecutor eventListenerExecutor,
+            @Qualifier("geocodingExecutor") ThreadPoolTaskExecutor geocodingExecutor,
             @Qualifier("generalPurposeExecutor") ThreadPoolTaskExecutor generalPurposeExecutor) {
 
         Map<String, ThreadPoolTaskExecutor> executors = new HashMap<>();
@@ -136,6 +171,7 @@ public class AsyncConfig implements AsyncConfigurer {
         executors.put("sms", smsExecutor);
         executors.put("activityLog", activityLogExecutor);
         executors.put("eventListener", eventListenerExecutor);
+        executors.put("geocodingExecutor", geocodingExecutor);
         executors.put("general", generalPurposeExecutor);
         return executors;
     }
