@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Logback Configuration for CoreProject
+    ======================================
+
+    This configuration provides:
+    - Correlation ID in every log line for request tracing
+    - Thread name for identifying which executor processed the task
+    - Color-coded console output for development
+    - Rolling file appender for production (30 days retention)
+    - Profile-based configuration (dev vs prod)
+
+    Log format:
+    [TIMESTAMP] [LEVEL] [CORRELATION_ID] [THREAD] [LOGGER] - MESSAGE
+
+    Example:
+    2025-01-12 14:32:01 INFO  [abc12-def34] [Email-1] c.s.C.b.d.a.s.AccountMailer - Sending welcome email
+
+    @see CorrelationIdFilter - generates and manages correlation IDs
+    @see MdcTaskDecorator - propagates correlation ID to async threads
+-->
+<configuration scan="true" scanPeriod="30 seconds">
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         PROPERTIES
+         Define reusable values for patterns, paths, and retention
+         ═══════════════════════════════════════════════════════════════════════ -->
+
+    <!-- Application name (used in log file names) -->
+    <property name="APP_NAME" value="coreproject"/>
+
+    <!-- Log directory for file output -->
+    <property name="LOG_DIR" value="./logs"/>
+
+    <!--
+        Console pattern with colors (for development)
+
+        Components:
+        - %d{yyyy-MM-dd HH:mm:ss} : Timestamp
+        - %highlight(%-5level) : Log level with color (ERROR=red, WARN=yellow, etc.)
+        - %cyan([%X{correlationId:-N/A}]) : Correlation ID in cyan (or "N/A" if missing)
+        - %yellow([%15.15t]) : Thread name in yellow, padded to 15 chars
+        - %logger{40} : Logger name (class), max 40 chars with abbreviation
+        - %msg%n : The actual log message + newline
+    -->
+    <property name="CONSOLE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss} %highlight(%-5level) %cyan([%X{correlationId:-N/A}]) %yellow([%15.15t]) %logger{40} - %msg%n"/>
+
+    <!--
+        File pattern without colors (colors don't work in files)
+        Same structure as console but without ANSI color codes
+    -->
+    <property name="FILE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss} %-5level [%X{correlationId:-N/A}] [%15.15t] %logger{40} - %msg%n"/>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         APPENDERS
+         Define where logs are written (console, files, etc.)
+         ═══════════════════════════════════════════════════════════════════════ -->
+
+    <!--
+        CONSOLE APPENDER
+        Writes colored logs to stdout (terminal/IDE console)
+    -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!--
+        ROLLING FILE APPENDER
+        Writes logs to files with daily rotation and automatic cleanup
+
+        Rotation policy:
+        - New file created each day (coreproject-2025-01-12.log)
+        - Files older than 30 days are automatically deleted
+        - Maximum total size: 3GB (oldest files deleted if exceeded)
+    -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- Current log file -->
+        <file>${LOG_DIR}/${APP_NAME}.log</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- Archived log file name pattern (daily rotation) -->
+            <fileNamePattern>${LOG_DIR}/${APP_NAME}-%d{yyyy-MM-dd}.log</fileNamePattern>
+
+            <!-- Keep 30 days of history -->
+            <maxHistory>30</maxHistory>
+
+            <!-- Maximum total size of all log files (prevents disk full) -->
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!--
+        ERROR FILE APPENDER
+        Separate file containing only ERROR and WARN level logs
+        Useful for quick error investigation without searching through all logs
+    -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/${APP_NAME}-error.log</file>
+
+        <!-- Filter: only WARN and ERROR levels -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>WARN</level>
+        </filter>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/${APP_NAME}-error-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         LOGGERS
+         Configure log levels for specific packages
+         ═══════════════════════════════════════════════════════════════════════ -->
+
+    <!-- Application logs: DEBUG level for detailed tracing -->
+    <logger name="be.steby.CoreProject" level="DEBUG"/>
+
+    <!-- Hibernate SQL: INFO to reduce noise (change to DEBUG to see queries) -->
+    <logger name="org.hibernate.SQL" level="INFO"/>
+    <logger name="org.hibernate.type" level="INFO"/>
+
+    <!-- Spring Framework: INFO level (WARN in prod to reduce noise) -->
+    <logger name="org.springframework" level="INFO"/>
+
+    <!-- Spring Security: INFO level (DEBUG for auth troubleshooting) -->
+    <logger name="org.springframework.security" level="INFO"/>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SPRING PROFILES
+         Different configurations based on active Spring profile
+         ═══════════════════════════════════════════════════════════════════════ -->
+
+    <!--
+        DEVELOPMENT PROFILE
+        - Console output only (colored)
+        - DEBUG level for application code
+        - No file output (cleaner for local dev)
+    -->
+    <springProfile name="dev,local,default">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!--
+        PRODUCTION PROFILE
+        - Console output (for container logs / CloudWatch / etc.)
+        - File output with rotation (for local investigation)
+        - Separate error file for quick issue detection
+        - INFO level to reduce log volume
+    -->
+    <springProfile name="prod,production">
+        <!-- Reduce application log level in production -->
+        <logger name="be.steby.CoreProject" level="INFO"/>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
+        </root>
+    </springProfile>
+
+    <!--
+        STAGING/TEST PROFILE
+        - Same as production but keeps DEBUG for application
+        - Useful for pre-production debugging
+    -->
+    <springProfile name="staging,test">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
+        </root>
+    </springProfile>
+
+</configuration>
