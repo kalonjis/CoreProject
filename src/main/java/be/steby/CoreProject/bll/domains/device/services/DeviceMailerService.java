@@ -1,11 +1,10 @@
 package be.steby.CoreProject.bll.domains.device.services;
 
-import be.steby.CoreProject.bll.common.services.mailer.BaseMailerService;
+import be.steby.CoreProject.bll.common.services.notification.mailer.BaseMailerService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.il.utils.MailerUtil;
+import be.steby.CoreProject.il.mail.EmailComposer;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 
@@ -25,8 +24,8 @@ import org.thymeleaf.context.Context;
 @Slf4j
 public class DeviceMailerService extends BaseMailerService {
 
-    public DeviceMailerService(MailerUtil mailerUtil) {
-        super(mailerUtil);
+    public DeviceMailerService(EmailComposer emailComposer) {
+        super(emailComposer);
     }
 
     /**

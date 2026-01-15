@@ -1,3 +1,12 @@
+# =============================================================================
+# Mail Configuration
+# =============================================================================
+# Location: src/main/resources/config/mail.yml
+# =============================================================================
+
+# ===========================================================================
+# Spring Mail (SMTP) Configuration
+# ===========================================================================
 spring:
   mail:
     host: ${APP_MAIL_HOST}
@@ -12,3 +21,70 @@ spring:
             enable: true
           ssl:
             trust: smtp.gmail.com
+
+# ===========================================================================
+# Fallback Strategy Configuration
+# ===========================================================================
+app:
+  mail:
+    fallback:
+      # Strategy for handling failed emails
+      # Options:
+      #   - database  : Store in DB, retry via scheduled job (simple, default)
+      #   - rabbitmq  : Send to RabbitMQ queue (scalable, production-ready)
+      strategy: database
+
+      # Database strategy settings
+      database:
+        max-retries: 5
+        initial-retry-delay-seconds: 60
+        retry-cron: "0 */2 * * * *"
+        retry-batch-size: 10
+        cleanup-sent-after-days: 7
+        stuck-threshold-minutes: 15
+
+      # RabbitMQ strategy settings
+      rabbitmq:
+        exchange: email.exchange
+        routing-key: email.failed
+        queue: email.failed.queue
+        dlq:
+          exchange: email.dlx
+          routing-key: email.dead
+          queue: email.dead.queue
+        retry:
+          max-attempts: 5
+          initial-interval-ms: 60000
+          multiplier: 2.0
+          max-interval-ms: 3600000
+
+---
+# =============================================================================
+# Development Profile
+# =============================================================================
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+app:
+  mail:
+    fallback:
+      strategy: database
+      database:
+        retry-cron: "0 * * * * *"
+        retry-batch-size: 5
+
+---
+# =============================================================================
+# Production Profile
+# =============================================================================
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+app:
+  mail:
+    fallback:
+      strategy: rabbitmq
