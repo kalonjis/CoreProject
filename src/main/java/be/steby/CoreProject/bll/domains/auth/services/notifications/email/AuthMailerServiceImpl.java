@@ -1,9 +1,9 @@
 package be.steby.CoreProject.bll.domains.auth.services.notifications.email;
 
-import be.steby.CoreProject.bll.common.services.mailer.BaseMailerService;
+import be.steby.CoreProject.bll.common.services.notification.mailer.BaseMailerService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
-import be.steby.CoreProject.il.utils.MailerUtil;
+import be.steby.CoreProject.il.mail.EmailComposer;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,8 +39,8 @@ public class AuthMailerServiceImpl extends BaseMailerService implements AuthMail
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy à HH:mm");
     //private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
-    public AuthMailerServiceImpl(MailerUtil mailerUtil) {
-        super(mailerUtil);
+    public AuthMailerServiceImpl(EmailComposer emailComposer) {
+        super(emailComposer);
     }
 
     @Override

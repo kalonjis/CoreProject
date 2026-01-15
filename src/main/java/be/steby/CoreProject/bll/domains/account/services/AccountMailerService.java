@@ -1,11 +1,10 @@
 package be.steby.CoreProject.bll.domains.account.services;
 
-import be.steby.CoreProject.bll.common.services.mailer.BaseMailerService;
+import be.steby.CoreProject.bll.common.services.notification.mailer.BaseMailerService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
-import be.steby.CoreProject.il.utils.MailerUtil;
+import be.steby.CoreProject.il.mail.EmailComposer;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 
@@ -24,10 +23,10 @@ public class AccountMailerService extends BaseMailerService {
     private final DeactivationMessageService deactivationMessageService;
 
     public AccountMailerService(
-            MailerUtil mailerUtil,
+            EmailComposer emailComposer,
             DeactivationMessageService deactivationMessageService
     ) {
-        super(mailerUtil);
+        super(emailComposer);
         this.deactivationMessageService = deactivationMessageService;
     }
 

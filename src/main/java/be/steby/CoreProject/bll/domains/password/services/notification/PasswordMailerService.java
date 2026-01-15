@@ -1,9 +1,9 @@
 package be.steby.CoreProject.bll.domains.password.services.notification;
 
-import be.steby.CoreProject.bll.common.services.mailer.BaseMailerService;
+import be.steby.CoreProject.bll.common.services.notification.mailer.BaseMailerService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.PasswordResetType;
-import be.steby.CoreProject.il.utils.MailerUtil;
+import be.steby.CoreProject.il.mail.EmailComposer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
@@ -27,8 +27,8 @@ import org.thymeleaf.context.Context;
 @Slf4j
 public class PasswordMailerService extends BaseMailerService {
 
-    public PasswordMailerService(MailerUtil mailerUtil) {
-        super(mailerUtil);
+    public PasswordMailerService(EmailComposer emailComposer) {
+        super(emailComposer);
     }
 
     /**

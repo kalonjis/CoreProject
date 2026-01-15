@@ -1,0 +1,181 @@
+# =============================================================================
+# RESILIENCE4J CONFIGURATION
+# =============================================================================
+# Fault tolerance configuration for external service calls.
+# Documentation: https://resilience4j.readme.io/docs/getting-started-3
+#
+# Architecture:
+#   - Each external service has its own Circuit Breaker instance
+#   - Naming convention: [service]Backend (e.g., smtpBackend, twilioBackend)
+#
+# Pattern execution order (inner to outer):
+#   Retry → CircuitBreaker → TimeLimiter → Bulkhead → Method
+#   So Retry happens LAST (after circuit breaker decides to let the call through)
+# =============================================================================
+
+resilience4j:
+
+  # ===========================================================================
+  # CIRCUIT BREAKER
+  # ===========================================================================
+  # Opens the circuit after too many failures, preventing cascade failures.
+  # States: CLOSED (normal) → OPEN (blocking) → HALF_OPEN (testing)
+  # ===========================================================================
+  circuitbreaker:
+    configs:
+      # -------------------------
+      # Default config for all circuit breakers
+      # -------------------------
+      default:
+        # Sliding window to track call results
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+
+        # Minimum calls before calculating failure rate
+        minimumNumberOfCalls: 5
+
+        # Failure rate threshold to open circuit (percentage)
+        failureRateThreshold: 50
+
+        # Time to wait in OPEN state before transitioning to HALF_OPEN
+        waitDurationInOpenState: 30s
+
+        # Calls permitted in HALF_OPEN state to test if backend recovered
+        permittedNumberOfCallsInHalfOpenState: 3
+
+        # Automatically transition from OPEN to HALF_OPEN (don't wait for a call)
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
+        # Record these exceptions as failures
+        recordExceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.mail.MailException
+          - jakarta.mail.MessagingException
+
+        # Ignore these exceptions (don't count as failure OR success)
+        ignoreExceptions:
+          - java.lang.IllegalArgumentException
+
+    instances:
+      # -------------------------
+      # SMTP Mail Server
+      # -------------------------
+      smtpBackend:
+        baseConfig: default
+        # Override: longer wait for email server recovery
+        waitDurationInOpenState: 60s
+        # Register health indicator for /actuator/health
+        registerHealthIndicator: true
+
+      # -------------------------
+      # Twilio SMS API (for future use)
+      # -------------------------
+      twilioBackend:
+        baseConfig: default
+        waitDurationInOpenState: 30s
+        registerHealthIndicator: true
+
+      # -------------------------
+      # Nominatim Geocoding API (for future use)
+      # -------------------------
+      nominatimBackend:
+        baseConfig: default
+        # Nominatim is rate-limited, be more patient
+        waitDurationInOpenState: 120s
+        slidingWindowSize: 5
+        minimumNumberOfCalls: 3
+        registerHealthIndicator: true
+
+  # ===========================================================================
+  # RETRY
+  # ===========================================================================
+  # Automatically retry failed calls before giving up.
+  # ===========================================================================
+  retry:
+    configs:
+      default:
+        # Maximum retry attempts (including initial call)
+        maxAttempts: 3
+
+        # Wait between retries
+        waitDuration: 2s
+
+        # Exponential backoff: wait doubles after each retry
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+
+        # Only retry on these exceptions
+        retryExceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.mail.MailSendException
+
+        # Never retry on these (no point retrying bad input)
+        ignoreExceptions:
+          - java.lang.IllegalArgumentException
+          - org.springframework.mail.MailParseException
+
+    instances:
+      smtpBackend:
+        baseConfig: default
+        # Email: 3 attempts with exponential backoff
+        # Attempt 1: immediate
+        # Attempt 2: after 2s
+        # Attempt 3: after 4s (2s * 2)
+        maxAttempts: 3
+        waitDuration: 2s
+
+      twilioBackend:
+        baseConfig: default
+        # SMS: fewer retries, faster
+        maxAttempts: 2
+        waitDuration: 1s
+
+      nominatimBackend:
+        baseConfig: default
+        # Geocoding: respect rate limit (1 req/sec)
+        maxAttempts: 2
+        waitDuration: 3s
+
+  # ===========================================================================
+  # TIME LIMITER
+  # ===========================================================================
+  # Timeout for async operations (CompletableFuture).
+  # Note: For sync calls, use RestTemplate/WebClient timeouts instead.
+  # ===========================================================================
+  timelimiter:
+    configs:
+      default:
+        # Cancel call after this duration
+        timeoutDuration: 10s
+        # Should we cancel the running future on timeout?
+        cancelRunningFuture: true
+
+    instances:
+      smtpBackend:
+        baseConfig: default
+        timeoutDuration: 30s  # Email can be slow
+
+      twilioBackend:
+        baseConfig: default
+        timeoutDuration: 10s
+
+      nominatimBackend:
+        baseConfig: default
+        timeoutDuration: 15s
+
+# =============================================================================
+# ACTUATOR - Expose Resilience4j metrics
+# =============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, circuitbreakers, circuitbreakerevents
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true

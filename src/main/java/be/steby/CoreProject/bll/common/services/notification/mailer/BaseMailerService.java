@@ -1,7 +1,7 @@
-package be.steby.CoreProject.bll.common.services.mailer;
+package be.steby.CoreProject.bll.common.services.notification.mailer;
 
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.il.utils.MailerUtil;
+import be.steby.CoreProject.il.mail.EmailComposer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.thymeleaf.context.Context;
@@ -19,7 +19,7 @@ import java.time.format.DateTimeFormatter;
 @RequiredArgsConstructor
 public abstract class BaseMailerService {
 
-    protected final MailerUtil mailerUtil;
+    protected final EmailComposer emailComposer;
 
     @Value("${url.front_server}")
     protected String frontUrl;
@@ -140,6 +140,6 @@ public abstract class BaseMailerService {
      * @param recipients The recipient email addresses
      */
     protected void sendEmail(String subject, String templateName, Context context, String... recipients) {
-        mailerUtil.sendMail(subject, templateName, context, recipients);
+        emailComposer.sendMail(subject, templateName, context, recipients);
     }
 }

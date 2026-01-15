@@ -2,31 +2,21 @@ package be.steby.CoreProject.bll.common.services.notification.mailer;
 
 
 import be.steby.CoreProject.bll.domains.account.services.DeactivationMessageService;
-import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
-import be.steby.CoreProject.dl.enums.TwoFactorType;
-import be.steby.CoreProject.il.utils.MailerUtil;
-import lombok.RequiredArgsConstructor;
-import be.steby.CoreProject.bll.domains.account.services.DeactivationMessageService;
-import be.steby.CoreProject.il.utils.MailerUtil;
+import be.steby.CoreProject.il.mail.EmailComposer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class MailerServiceImpl implements MailerService {
-    private final MailerUtil mailerUtil;
+    private final EmailComposer emailComposer;
 
     private final DeactivationMessageService deactivationMessageService;
 
@@ -57,7 +47,7 @@ public class MailerServiceImpl implements MailerService {
         context.setVariable("username", user.getUsername());
         context.setVariable("temporaryPassword", "The password you defined");
         context.setVariable("url", confirmationUrl);
-        mailerUtil.sendMail("Account confirmation", "accounts/signupConfirmation", context, user.getEmail());
+        emailComposer.sendMail("Account confirmation", "accounts/signupConfirmation", context, user.getEmail());
     }
 
     @Override

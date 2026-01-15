@@ -22,6 +22,7 @@ spring:
       - classpath:config/common-validation.yml
       - classpath:config/logging.yml
       - classpath:config/geocoding.yml
+      - classpath:config/resilience4j.yml
 
 url:
   back_server: ${URL_BACK_SERVER}
