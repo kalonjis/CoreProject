@@ -272,8 +272,6 @@ public class SecurityConstants {
 
     // ========== ADMIN DOMAIN ==========
 
-    // ========== ADMIN DOMAIN ==========
-
     /**
      * Administrative routes requiring ADMIN or SUPER_ADMIN authority.
      *
@@ -352,6 +350,61 @@ public class SecurityConstants {
             "/api/admin/device/list/**"              // GET devices by user
     };
 
+
+    // ========== ACTUATOR / MONITORING DOMAIN ==========
+
+    /**
+     * Public actuator routes - accessible without authentication.
+     * Only health endpoint is public for load balancers and monitoring tools.
+     */
+    private static final String[] ACTUATOR_PUBLIC_ROUTES = {
+            "/actuator/health",           // Health check for load balancers
+            "/actuator/health/**",        // Health check details (liveness, readiness)
+            "/actuator/info"              // Application info (non-sensitive)
+    };
+
+    /**
+     * Authenticated actuator routes - require authentication.
+     * These expose metrics but no sensitive operations.
+     */
+    private static final String[] ACTUATOR_AUTHENTICATED_ROUTES = {
+            "/actuator/metrics",
+            "/actuator/metrics/**",
+            "/actuator/prometheus"
+    };
+
+    /**
+     * Admin-only actuator routes - require ADMIN role.
+     * These expose sensitive information or allow state changes.
+     */
+    private static final String[] ACTUATOR_ADMIN_ROUTES = {
+            "/actuator",                      // Actuator index
+            "/actuator/circuitbreakers",
+            "/actuator/circuitbreakers/**",
+            "/actuator/circuitbreakerevents",
+            "/actuator/circuitbreakerevents/**",
+            "/actuator/retries",
+            "/actuator/retries/**",
+            "/actuator/retryevents",
+            "/actuator/retryevents/**",
+            "/actuator/env",
+            "/actuator/env/**",
+            "/actuator/configprops",
+            "/actuator/beans",
+            "/actuator/mappings",
+            "/actuator/loggers",
+            "/actuator/loggers/**"
+    };
+
+    /**
+     * Circuit Breaker Admin API routes.
+     * Allow manual control of Circuit Breakers.
+     */
+    private static final String[] CIRCUIT_BREAKER_ADMIN_ROUTES = {
+            "/api/admin/circuit-breaker/**"
+    };
+
+
     /**
      * Aggregated admin routes.
      * All routes require ADMIN or SUPER_ADMIN authority.
@@ -404,7 +457,8 @@ public class SecurityConstants {
             EMAIL_CHANGE_PUBLIC_ROUTES,
             DEVICE_PUBLIC_ROUTES,
             SWAGGER_ROUTES,
-            DEBUG_ROUTES
+            DEBUG_ROUTES,
+            ACTUATOR_PUBLIC_ROUTES
     );
 
     /**
@@ -417,14 +471,20 @@ public class SecurityConstants {
             PASSWORD_AUTHENTICATED_ROUTES,
             EMAIL_CHANGE_AUTHENTICATED_ROUTES,
             DEVICE_AUTHENTICATED_ROUTES,
-            ADDRESS_AUTHENTICATED_ROUTES
+            ADDRESS_AUTHENTICATED_ROUTES,
+            ACTUATOR_AUTHENTICATED_ROUTES
     );
 
     /**
      * Routes requiring ADMIN or SUPER_ADMIN authority.
      * All admin routes have CSRF protection (not in CSRF_IGNORE).
      */
-    public static final String[] ADMIN_ROUTES = ADMIN_DOMAIN_ROUTES;
+    public static final String[] ADMIN_ROUTES = concatenate(
+            ADMIN_DOMAIN_ROUTES,
+            ACTUATOR_ADMIN_ROUTES,
+            CIRCUIT_BREAKER_ADMIN_ROUTES
+    );
+
 
     /**
      * Routes that bypass CSRF protection.
@@ -447,7 +507,8 @@ public class SecurityConstants {
             DEVICE_CSRF_IGNORE,      // Only public routes
             EMAIL_CHANGE_CSRF_IGNORE, // Only public routes
             DEBUG_ROUTES,             // Only for development,
-            ADDRESS_AUTHENTICATED_ROUTES // Only for development,
+            ADDRESS_AUTHENTICATED_ROUTES, // Only for development,
+            ACTUATOR_PUBLIC_ROUTES
     );
 
     // ========== UTILITY METHODS ==========

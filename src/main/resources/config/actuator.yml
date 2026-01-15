@@ -1,0 +1,126 @@
+# =============================================================================
+# Actuator Configuration
+# =============================================================================
+# Location: src/main/resources/config/actuator.yml
+#
+# Endpoints available at: http://localhost:8080/actuator
+# =============================================================================
+
+management:
+  # ===========================================================================
+  # Endpoints Exposure
+  # ===========================================================================
+  endpoints:
+    web:
+      exposure:
+        # Endpoints to expose (be careful in production!)
+        include:
+          - health
+          - info
+          - metrics
+          - circuitbreakers
+          - circuitbreakerevents
+          - retries
+          - retryevents
+          - prometheus
+      base-path: /actuator
+
+  # ===========================================================================
+  # Health Endpoint Configuration
+  # ===========================================================================
+  endpoint:
+    health:
+      show-details: when_authorized  # always, never, when_authorized
+      show-components: when_authorized
+      probes:
+        enabled: true  # Kubernetes liveness/readiness probes
+
+    # Circuit Breaker specific endpoints
+    circuitbreakers:
+      enabled: true
+    circuitbreakerevents:
+      enabled: true
+
+  # ===========================================================================
+  # Health Indicators
+  # ===========================================================================
+  health:
+    # Circuit Breaker health indicator
+    circuitbreakers:
+      enabled: true
+
+    # RabbitMQ health (auto-enabled if RabbitMQ is on classpath)
+    rabbit:
+      enabled: true
+
+    # Database health
+    db:
+      enabled: true
+
+    # Mail health (checks SMTP connection)
+    mail:
+      enabled: true
+
+  # ===========================================================================
+  # Metrics Configuration
+  # ===========================================================================
+  metrics:
+    enabled: true
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name:CoreProject}
+      environment: ${spring.profiles.active:default}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.75, 0.95, 0.99
+
+---
+# =============================================================================
+# Development Profile - More permissive
+# =============================================================================
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"  # Expose all endpoints in dev
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+
+---
+# =============================================================================
+# Production Profile - Restricted
+# =============================================================================
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - metrics
+          - prometheus
+        # Circuit breaker endpoints secured or disabled in prod
+        # Use prometheus for monitoring instead
+  endpoint:
+    health:
+      show-details: when_authorized
+
+  # Secure actuator endpoints (configure with Spring Security)
+  server:
+    port: 8081  # Separate port for actuator (optional, more secure)
