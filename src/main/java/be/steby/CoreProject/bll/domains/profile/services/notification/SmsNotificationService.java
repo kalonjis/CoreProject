@@ -1,16 +1,16 @@
 package be.steby.CoreProject.bll.domains.profile.services.notification;
 
 import be.steby.CoreProject.bll.common.exceptions.phone.PhoneException;
-import be.steby.CoreProject.bll.domains.profile.events.PhoneVerificationInitiatedEvent;
 import be.steby.CoreProject.bll.common.services.notification.sms.BaseSmsService;
-import be.steby.CoreProject.il.utils.SmsUtil;
+import be.steby.CoreProject.bll.domains.profile.events.PhoneVerificationInitiatedEvent;
+import be.steby.CoreProject.il.sms.TwilioSmsSender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
  * Service for sending SMS verification notifications via SMS.
- * Extends BasePhoneService to inherit common SMS utilities.
- * 
+ * Extends BaseSmsService to inherit common SMS utilities.
+ *
  * This service is responsible for:
  * - Sending SMS verification codes via SMS
  * - Formatting verification messages
@@ -20,33 +20,33 @@ import org.springframework.stereotype.Service;
 @Service
 public class SmsNotificationService extends BaseSmsService {
 
-    public SmsNotificationService(SmsUtil smsUtil) {
-        super(smsUtil);
+    public SmsNotificationService(TwilioSmsSender twilioSmsSender) {
+        super(twilioSmsSender);
     }
 
     /**
      * Sends SMS verification code via SMS.
      * Uses the phone number and verification code from the event.
-     * 
+     *
      * @param event The SMS verification initiated event containing phone number and code
      * @throws PhoneException if SMS sending fails
      */
     public void sendPhoneVerification(PhoneVerificationInitiatedEvent event) {
         log.info("Sending phone number verification SMS to: {}", maskPhoneNumber(event.phoneNumber()));
-        
+
         try {
             // Format the verification message
             String message = formatVerificationMessage(event.verificationCode());
-            
-            // Use inherited method from BasePhoneService
+
+            // Use inherited method from BaseSmsService
             sendSms(message, event.phoneNumber());
-            
-            log.info("Phone verification SMS sent successfully to: {}", 
+
+            log.info("Phone verification SMS sent successfully to: {}",
                     maskPhoneNumber(event.phoneNumber()));
-            
+
         } catch (Exception e) {
             log.error("Failed to send SMS verification SMS to: {}",
-                     maskPhoneNumber(event.phoneNumber()), e);
+                    maskPhoneNumber(event.phoneNumber()), e);
             throw new PhoneException("Failed to send verification SMS", e);
         }
     }
@@ -54,12 +54,11 @@ public class SmsNotificationService extends BaseSmsService {
     /**
      * Formats the verification message for SMS.
      * Creates a user-friendly message containing the verification code.
-     * 
+     *
      * @param verificationCode The 6-digit verification code
      * @return Formatted SMS message
      */
     private String formatVerificationMessage(String verificationCode) {
         return String.format("Your verification code: %s", verificationCode);
     }
-
 }

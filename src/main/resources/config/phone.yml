@@ -1,8 +1,18 @@
+# =============================================================================
+# Phone/SMS Configuration
+# =============================================================================
+# Location: src/main/resources/config/phone.yml
+# =============================================================================
+
+# ===========================================================================
+# Twilio Configuration
+# ===========================================================================
 phone:
   twilio:
     account-sid: ${TWILIO_ACCOUNT_SID}
     auth-token: ${TWILIO_AUTH_TOKEN}
     from-number: ${TWILIO_FROM_NUMBER:+15005550006}
+
   sms:
     enabled: ${SMS_ENABLED:true}
     simulation-mode: ${SMS_SIMULATION_MODE:true}
@@ -12,3 +22,96 @@ phone:
     templates:
       two-factor-code: "Votre code de vérification : {code}"
       account-notification: "Notification de sécurité : {message}"
+
+# ===========================================================================
+# Fallback Strategy Configuration
+# ===========================================================================
+app:
+  sms:
+    fallback:
+      # Strategy for handling failed SMS
+      # Options:
+      #   - database  : Store in DB, retry via scheduled job (simple, default)
+      #   - rabbitmq  : Send to RabbitMQ queue (scalable, production-ready)
+      strategy: database
+
+      # Database strategy settings
+      database:
+        max-retries: 5
+        initial-retry-delay-seconds: 60
+        retry-cron: "0 */2 * * * *"        # Every 2 minutes
+        retry-batch-size: 10
+        cleanup-sent-after-days: 7
+        cleanup-cron: "0 0 3 * * *"         # Daily at 3 AM
+        stuck-threshold-minutes: 15
+        stuck-check-cron: "0 */15 * * * *"  # Every 15 minutes
+
+      # RabbitMQ strategy settings (for future use)
+      rabbitmq:
+        exchange: sms.exchange
+        routing-key: sms.failed
+        queue: sms.failed.queue
+        dlq:
+          exchange: sms.dlx
+          routing-key: sms.dead
+          queue: sms.dead.queue
+        retry:
+          max-attempts: 5
+          initial-interval-ms: 60000
+          multiplier: 2.0
+          max-interval-ms: 3600000
+
+---
+# =============================================================================
+# Development Profile
+# =============================================================================
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+phone:
+  sms:
+    simulation-mode: true  # Don't send real SMS in dev
+
+app:
+  sms:
+    fallback:
+      strategy: database
+      database:
+        retry-cron: "0 * * * * *"  # Every minute in dev for faster testing
+        retry-batch-size: 5
+
+---
+# =============================================================================
+# Test Profile
+# =============================================================================
+spring:
+  config:
+    activate:
+      on-profile: test
+
+phone:
+  sms:
+    enabled: false
+    simulation-mode: true
+
+---
+# =============================================================================
+# Production Profile
+# =============================================================================
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+phone:
+  sms:
+    simulation-mode: false  # Send real SMS in production
+
+app:
+  sms:
+    fallback:
+      strategy: database  # Or switch to rabbitmq for high volume
+      database:
+        retry-batch-size: 20
