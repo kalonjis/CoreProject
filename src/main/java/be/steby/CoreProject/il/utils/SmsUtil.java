@@ -22,7 +22,11 @@ import jakarta.annotation.PostConstruct;
  * - Twilio SDK initialization
  * - Basic SMS sending with SMS number validation
  * - SMS length validation and warnings
- * - Async SMS delivery
+ * - Async and sync SMS delivery
+ *
+ * Provides two sending modes:
+ * - {@link #sendSms}: Asynchronous (fire-and-forget)
+ * - {@link #sendSmsSync}: Synchronous (blocking, throws on failure)
  *
  * This class follows KISS & SoC principles:
  * - No business logic (templates, formatting, etc.)
@@ -71,11 +75,17 @@ public class SmsUtil {
         }
     }
 
+    // =========================================================================
+    // ASYNC METHODS (fire-and-forget)
+    // =========================================================================
+
     /**
-     * Sends an SMS message to a single recipient.
+     * Sends an SMS message to a single recipient asynchronously.
      *
-     * This is the core SMS sending method. All other SMS operations
-     * should ultimately use this method.
+     * Use for non-critical notifications where delivery confirmation is not needed:
+     * - Security alerts
+     * - Notification messages
+     * - Marketing SMS
      *
      * @param message The SMS content to send
      * @param phoneNumber The recipient's SMS number
@@ -85,6 +95,80 @@ public class SmsUtil {
      */
     @Async("smsExecutor")
     public void sendSms(String message, String phoneNumber) {
+        doSendSms(message, phoneNumber);
+    }
+
+    /**
+     * Sends an SMS message to multiple recipients asynchronously.
+     *
+     * @param message The SMS content to send
+     * @param phoneNumbers The recipients' SMS numbers
+     * @throws SmsSendingException if any SMS sending fails
+     * @throws InvalidPhoneNumberFormatException if any SMS number is invalid
+     * @throws SmsMessageException if message content is invalid
+     */
+    @Async("smsExecutor")
+    public void sendSms(String message, String... phoneNumbers) {
+        log.debug("Sending SMS to {} recipients", phoneNumbers.length);
+        for (String phoneNumber : phoneNumbers) {
+            doSendSms(message, phoneNumber);
+        }
+    }
+
+    // =========================================================================
+    // SYNC METHODS (blocking, for critical messages)
+    // =========================================================================
+
+    /**
+     * Sends an SMS message to a single recipient synchronously (blocking).
+     *
+     * Use for time-sensitive messages where immediate feedback is required:
+     * - 2FA verification codes
+     * - Password reset codes
+     * - Any OTP-based authentication
+     *
+     * The caller can catch exceptions and provide alternatives if delivery fails.
+     *
+     * @param message The SMS content to send
+     * @param phoneNumber The recipient's SMS number
+     * @throws SmsSendingException if SMS sending fails
+     * @throws InvalidPhoneNumberFormatException if SMS number is invalid
+     * @throws SmsMessageException if message content is invalid
+     */
+    public void sendSmsSync(String message, String phoneNumber) throws SmsSendingException {
+        doSendSms(message, phoneNumber);
+    }
+
+    /**
+     * Sends an SMS message to multiple recipients synchronously (blocking).
+     *
+     * @param message The SMS content to send
+     * @param phoneNumbers The recipients' SMS numbers
+     * @throws SmsSendingException if any SMS sending fails
+     * @throws InvalidPhoneNumberFormatException if any SMS number is invalid
+     * @throws SmsMessageException if message content is invalid
+     */
+    public void sendSmsSync(String message, String... phoneNumbers) throws SmsSendingException {
+        log.debug("Sending SMS synchronously to {} recipients", phoneNumbers.length);
+        for (String phoneNumber : phoneNumbers) {
+            doSendSms(message, phoneNumber);
+        }
+    }
+
+    // =========================================================================
+    // CORE SENDING LOGIC
+    // =========================================================================
+
+    /**
+     * Core SMS sending logic shared by async and sync methods.
+     *
+     * @param message The SMS content to send
+     * @param phoneNumber The recipient's SMS number
+     * @throws SmsSendingException if SMS sending fails
+     * @throws InvalidPhoneNumberFormatException if SMS number is invalid
+     * @throws SmsMessageException if message content is invalid
+     */
+    private void doSendSms(String message, String phoneNumber) {
         log.debug("Sending SMS to: {}", maskPhoneNumber(phoneNumber));
 
         validateMessage(message);
@@ -100,24 +184,6 @@ public class SmsUtil {
         }
 
         sendViaTwilio(message, phoneNumber);
-    }
-
-    /**
-     * Sends an SMS message to multiple recipients.
-     *
-     * @param message The SMS content to send
-     * @param phoneNumbers The recipients' SMS numbers
-     * @throws SmsSendingException if any SMS sending fails
-     * @throws InvalidPhoneNumberFormatException if any SMS number is invalid
-     * @throws SmsMessageException if message content is invalid
-     */
-    @Async("smsExecutor")
-    public void sendSms(String message, String... phoneNumbers) {
-        log.debug("Sending SMS to {} recipients", phoneNumbers.length);
-
-        for (String phoneNumber : phoneNumbers) {
-            sendSms(message, phoneNumber);
-        }
     }
 
     /**
@@ -152,7 +218,7 @@ public class SmsUtil {
         if (messageLength <= SMS_SINGLE_LENGTH) {
             return 1;
         }
-        return (messageLength + SMS_SEGMENT_LENGTH - 1) / SMS_SEGMENT_LENGTH; // Ceiling division
+        return (messageLength + SMS_SEGMENT_LENGTH - 1) / SMS_SEGMENT_LENGTH;
     }
 
     /**
@@ -168,7 +234,7 @@ public class SmsUtil {
 
         log.info("SMS SIMULATION - TO: {} - MESSAGE: '{}'", displayNumber, message);
 
-        // Simulate some processing time (ignore interruption, it's just simulation)
+        // Simulate some processing time
         try {
             Thread.sleep(100);
         } catch (InterruptedException e) {
@@ -202,7 +268,8 @@ public class SmsUtil {
 
         } catch (Exception e) {
             log.error("Failed to send SMS to {}: {}", maskPhoneNumber(phoneNumber), e.getMessage());
-            throw new SmsSendingException("Failed to send SMS to " + maskPhoneNumber(phoneNumber) + ": " + e.getMessage(), e);
+            throw new SmsSendingException(
+                    "Failed to send SMS to " + maskPhoneNumber(phoneNumber) + ": " + e.getMessage(), e);
         }
     }
 
@@ -217,12 +284,9 @@ public class SmsUtil {
         if (phoneNumber == null || phoneNumber.length() < 6) {
             return "****";
         }
-
-        // Keep first 6 characters (usually country code + few digits), mask the rest
         int visibleLength = Math.min(6, phoneNumber.length() - 4);
         String visiblePart = phoneNumber.substring(0, visibleLength);
-        String maskedPart = "X".repeat(phoneNumber.length() - visibleLength);
-
+        String maskedPart = "*".repeat(phoneNumber.length() - visibleLength);
         return visiblePart + maskedPart;
     }
 }

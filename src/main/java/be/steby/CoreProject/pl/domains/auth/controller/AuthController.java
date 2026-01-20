@@ -15,10 +15,7 @@ import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.pl.domains.auth.models.requests.ChooseTwoFactorMethodRequest;
 import be.steby.CoreProject.pl.domains.auth.models.requests.LoginRequest;
 import be.steby.CoreProject.pl.domains.auth.models.requests.TwoFactorVerificationRequest;
-import be.steby.CoreProject.pl.domains.auth.models.responses.AuthOperationResponse;
-import be.steby.CoreProject.pl.domains.auth.models.responses.TwoFactorAuthDTO;
-import be.steby.CoreProject.pl.domains.auth.models.responses.TwoFactorOperationResponse;
-import be.steby.CoreProject.pl.domains.auth.models.responses.UserSessionResponse;
+import be.steby.CoreProject.pl.domains.auth.models.responses.*;
 import be.steby.CoreProject.pl.domains.profile.user.UserDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,6 +23,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.GrantedAuthority;
@@ -230,21 +228,24 @@ public class AuthController {
 
 
     /**
-     * Choose a two-factor authentication method and initiate verification process.
+     * Phase 2: Choose 2FA method
      *
      * User selects which 2FA method to use from their available options during login flow.
-     * For methods requiring codes (EMAIL, SMS, TOTP), a verification code is generated and sent.
-     * For backup codes, no code generation is needed - user will provide their saved code.
+     * For methods requiring codes (EMAIL, SMS), a verification code is generated and sent.
+     * For TOTP and backup codes, no code generation is needed.
+     *
+     * Returns 503 Service Unavailable if code delivery fails (EMAIL/SMS unavailable).
+     * In this case, alternativeMethods contains fallback options (TOTP, BACKUP_CODES).
      *
      * @param request the chosen 2FA method
      * @param twoFactorSessionToken JWT session token from cookie
      * @param httpRequest HTTP request for context
      * @param httpResponse HTTP response to manage cookies
-     * @return ResponseEntity with method selection confirmation
+     * @return ResponseEntity with method selection result
      */
     @PreAuthorize("isAnonymous()")
     @PostMapping("/2fa/choose-method")
-    public ResponseEntity<TwoFactorOperationResponse> chooseTwoFactorMethod(
+    public ResponseEntity<TwoFactorMethodChosenResponse> chooseTwoFactorMethod(
             @Valid @RequestBody ChooseTwoFactorMethodRequest request,
             @CookieValue(name = "2fa_session_token") String twoFactorSessionToken,
             HttpServletRequest httpRequest,
@@ -259,12 +260,23 @@ public class AuthController {
                 httpRequest
         );
 
+        // Handle delivery failure - return 503 with alternatives
+        if (result.deliveryFailed()) {
+            log.warn("2FA code delivery failed for method: {} - Alternatives: {}",
+                    result.chosenMethod(), result.alternativeMethods());
+
+            return ResponseEntity
+                    .status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(TwoFactorMethodChosenResponse.deliveryFailed(result));
+        }
+
+        // Success - set token cookie and return success response
         authCookieService.set2FAToken(httpResponse, result.twoFactorToken());
 
         log.info("2FA method chosen successfully: {} - Code generated: {}",
                 request.twoFactorType(), result.codeGenerated());
 
-        return ResponseEntity.ok(TwoFactorOperationResponse.methodChosen(result.chosenMethod()));
+        return ResponseEntity.ok(TwoFactorMethodChosenResponse.success(result));
     }
 
     /**
@@ -311,7 +323,12 @@ public class AuthController {
 
     /**
      * Resend 2FA verification code
-     * Allows user to request a new verification code if the original was not received
+     *
+     * Allows user to request a new verification code if the original was not received.
+     * Only applicable for EMAIL and SMS methods.
+     *
+     * Returns 503 Service Unavailable if code delivery fails.
+     * The TwoFactorCodeDeliveryException is handled by GlobalExceptionHandler.
      *
      * @param twoFactorTokenCookie JWT token from 2FA cookie
      * @param httpRequest HTTP request for context
@@ -330,6 +347,7 @@ public class AuthController {
         log.info("2FA code resend requested");
 
         // BLL: Validate 2FA token and resend verification code
+        // Throws TwoFactorCodeDeliveryException if delivery fails
         authService.resendTwoFactorCode(twoFactorTokenCookie, httpRequest);
 
         log.info("2FA code resent successfully");
