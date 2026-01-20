@@ -81,6 +81,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 1. Public routes - no authentication required
                         .requestMatchers(PUBLIC_ROUTES).permitAll()
+                        .requestMatchers(ACTUATOR_PUBLIC_ROUTES).permitAll()
 
                         // 2. OPTIONS requests - allow for CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

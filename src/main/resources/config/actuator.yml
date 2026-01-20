@@ -1,19 +1,25 @@
 # =============================================================================
-# Actuator Configuration
+# Actuator Configuration - CONFIGURATION PRINCIPALE
 # =============================================================================
-# Location: src/main/resources/config/actuator.yml
-#
-# Endpoints available at: http://localhost:8080/actuator
+# IMPORTANT:
+# - Port principal (API) : 8443 (HTTPS)
+# - Port actuator (monitoring) : 8081 (HTTP, local uniquement)
+# - Prometheus scrape : http://localhost:8081/actuator/prometheus
 # =============================================================================
 
 management:
+  # Port séparé pour actuator (HTTP uniquement, pour Prometheus)
+  server:
+    port: 8081
+    ssl:
+      enabled: false  # Actuator en HTTP (monitoring local)
+
   # ===========================================================================
   # Endpoints Exposure
   # ===========================================================================
   endpoints:
     web:
       exposure:
-        # Endpoints to expose (be careful in production!)
         include:
           - health
           - info
@@ -30,12 +36,12 @@ management:
   # ===========================================================================
   endpoint:
     health:
-      show-details: when_authorized  # always, never, when_authorized
+      show-details: when_authorized
       show-components: when_authorized
       probes:
-        enabled: true  # Kubernetes liveness/readiness probes
+        enabled: true
 
-    # Circuit Breaker specific endpoints
+    # Circuit Breaker endpoints
     circuitbreakers:
       enabled: true
     circuitbreakerevents:
@@ -45,24 +51,17 @@ management:
   # Health Indicators
   # ===========================================================================
   health:
-    # Circuit Breaker health indicator
     circuitbreakers:
       enabled: true
-
-    # RabbitMQ health (auto-enabled if RabbitMQ is on classpath)
     rabbit:
       enabled: true
-
-    # Database health
     db:
       enabled: true
-
-    # Mail health (checks SMTP connection)
     mail:
       enabled: true
 
   # ===========================================================================
-  # Metrics Configuration
+  # Metrics Configuration (Prometheus)
   # ===========================================================================
   metrics:
     enabled: true
@@ -80,7 +79,7 @@ management:
 
 ---
 # =============================================================================
-# Development Profile - More permissive
+# Development Profile
 # =============================================================================
 spring:
   config:
@@ -91,7 +90,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"  # Expose all endpoints in dev
+        include: "*"  # Tous les endpoints en dev
   endpoint:
     health:
       show-details: always
@@ -99,7 +98,7 @@ management:
 
 ---
 # =============================================================================
-# Production Profile - Restricted
+# Production Profile
 # =============================================================================
 spring:
   config:
@@ -115,12 +114,6 @@ management:
           - info
           - metrics
           - prometheus
-        # Circuit breaker endpoints secured or disabled in prod
-        # Use prometheus for monitoring instead
   endpoint:
     health:
       show-details: when_authorized
-
-  # Secure actuator endpoints (configure with Spring Security)
-  server:
-    port: 8081  # Separate port for actuator (optional, more secure)

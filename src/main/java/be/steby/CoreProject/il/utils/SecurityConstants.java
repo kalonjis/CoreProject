@@ -357,10 +357,11 @@ public class SecurityConstants {
      * Public actuator routes - accessible without authentication.
      * Only health endpoint is public for load balancers and monitoring tools.
      */
-    private static final String[] ACTUATOR_PUBLIC_ROUTES = {
+    public static final String[] ACTUATOR_PUBLIC_ROUTES = {
             "/actuator/health",           // Health check for load balancers
             "/actuator/health/**",        // Health check details (liveness, readiness)
-            "/actuator/info"              // Application info (non-sensitive)
+            "/actuator/info",              // Application info (non-sensitive)
+            "/actuator/prometheus"
     };
 
     /**
