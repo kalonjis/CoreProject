@@ -520,7 +520,7 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * Gets available 2FA alternatives when primary method fails.
-     * Returns only methods that don't require external delivery (TOTP, BACKUP_CODES).
+     * Includes all enabled methods except the one that failed.
      *
      * @param user the user
      * @param failedMethod the method that failed
@@ -530,10 +530,8 @@ public class AuthServiceImpl implements AuthService {
         return twoFactorFactory.getEnabledTwoFactorMethods(user).stream()
                 .map(TwoFactorAuth::getType)
                 .filter(type -> type != failedMethod)
-                .filter(type -> type == TwoFactorType.TOTP || type == TwoFactorType.BACKUP_CODES)
                 .toList();
     }
-
 
 
     // =========================================================================
