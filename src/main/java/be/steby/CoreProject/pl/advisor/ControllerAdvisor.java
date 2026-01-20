@@ -1,6 +1,7 @@
 package be.steby.CoreProject.pl.advisor;
 
 import be.steby.CoreProject.bll.domains.auth.exceptions.PasswordChangeRequiredException;
+import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorCodeDeliveryException;
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
 import be.steby.CoreProject.bll.exceptions.TokenExpiredException;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
@@ -105,5 +106,38 @@ public class ControllerAdvisor {
                 .body(response);
     }
 
+
+    /**
+     * Handles TwoFactorCodeDeliveryException when 2FA code delivery fails.
+     *
+     * Returns 503 Service Unavailable with:
+     * - Error message explaining the failure
+     * - The method that failed
+     * - Available alternative methods
+     *
+     * @param error the TwoFactorCodeDeliveryException
+     * @return ResponseEntity with 503 status and alternatives
+     */
+    @ExceptionHandler(TwoFactorCodeDeliveryException.class)
+    public ResponseEntity<Map<String, Object>> handleTwoFactorCodeDeliveryException(
+            TwoFactorCodeDeliveryException error) {
+
+        log.warn("2FA code delivery failed for method {}: {} - Alternatives: {}",
+                error.getFailedMethod(), error.getMessage(), error.getAlternativeMethods());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("error", "2FA_DELIVERY_FAILED");
+        response.put("message", error.getMessage());
+        response.put("failedMethod", error.getFailedMethod().name());
+        response.put("alternativeMethods", error.getAlternativeMethods().stream()
+                .map(Enum::name)
+                .toList());
+        response.put("timestamp", LocalDateTime.now());
+
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header("Content-Type", "application/json")
+                .body(response);
+    }
 }
 

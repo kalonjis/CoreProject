@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.common.services.notification.mailer;
 
+import be.steby.CoreProject.bll.common.exceptions.mail.MailDeliveryException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.il.mail.EmailComposer;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,10 @@ import java.time.format.DateTimeFormatter;
  * Base class for all domain-specific mailer services.
  * Provides common utilities for email sending such as username formatting,
  * URL building, and time formatting.
+ *
+ * Provides two sending modes:
+ * - {@link #sendEmail}: Asynchronous with fallback (fire-and-forget)
+ * - {@link #sendEmailSync}: Synchronous without fallback (throws on failure)
  */
 @RequiredArgsConstructor
 public abstract class BaseMailerService {
@@ -132,7 +137,10 @@ public abstract class BaseMailerService {
     }
 
     /**
-     * Sends an email using the mailer utility.
+     * Sends an email asynchronously using the mailer utility.
+     *
+     * If delivery fails, the email is queued for later retry.
+     * Use for non-critical emails where delayed delivery is acceptable.
      *
      * @param subject The email subject
      * @param templateName The template name (without "emails/" prefix)
@@ -141,5 +149,25 @@ public abstract class BaseMailerService {
      */
     protected void sendEmail(String subject, String templateName, Context context, String... recipients) {
         emailComposer.sendMail(subject, templateName, context, recipients);
+    }
+
+    /**
+     * Sends an email synchronously using the mailer utility.
+     *
+     * If delivery fails, throws immediately instead of queuing for retry.
+     * Use for time-sensitive emails where delayed delivery is useless:
+     * - 2FA verification codes
+     * - Password reset tokens
+     * - Any OTP-based authentication
+     *
+     * @param subject The email subject
+     * @param templateName The template name (without "emails/" prefix)
+     * @param context The template context
+     * @param recipients The recipient email addresses
+     * @throws MailDeliveryException if sending fails
+     */
+    protected void sendEmailSync(String subject, String templateName, Context context, String... recipients)
+            throws MailDeliveryException {
+        emailComposer.sendMailSync(subject, templateName, context, recipients);
     }
 }

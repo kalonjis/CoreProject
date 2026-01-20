@@ -2,7 +2,6 @@ package be.steby.CoreProject.bll.domains.auth.listeners;
 
 import be.steby.CoreProject.bll.domains.auth.events.TwoFactorEnabledEvent;
 import be.steby.CoreProject.bll.domains.auth.events.TwoFactorInitiateActivationEvent;
-import be.steby.CoreProject.bll.domains.auth.events.TwoFactorVerificationRequestedEvent;
 import be.steby.CoreProject.bll.domains.auth.services.notifications.email.AuthMailerService;
 import be.steby.CoreProject.bll.domains.auth.services.notifications.sms.AuthSmsService;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +14,11 @@ import org.springframework.stereotype.Component;
 /**
  * Listener for two-factor authentication events.
  * Handles email and SMS notifications for 2FA operations.
+ *
+ * NOTE: Login 2FA verification codes are now sent SYNCHRONOUSLY directly
+ * from AuthService, not via events. This listener only handles:
+ * - 2FA activation codes (during setup)
+ * - 2FA enabled confirmations
  *
  * Uses async executors to avoid blocking the main thread:
  * - emailExecutor for email notifications
@@ -69,9 +73,10 @@ public class TwoFactorNotificationListener {
         }
     }
 
-
     /**
      * Handles TwoFactorEnabledEvent by sending confirmation via appropriate channel.
+     *
+     * Sends a confirmation email/SMS when 2FA is successfully enabled.
      * Runs asynchronously to not block the main authentication flow.
      */
     @EventListener
@@ -87,7 +92,6 @@ public class TwoFactorNotificationListener {
                     authMailerService.sendTwoFactorEnabledConfirmation(event.user(), event.type());
                     log.info("2FA enabled confirmation email sent to user: {}", event.user().getEmail());
                 }
-
                 default -> {
                     log.warn("Unknown 2FA type for enabled confirmation: {}", event.type());
                 }
@@ -100,52 +104,13 @@ public class TwoFactorNotificationListener {
         }
     }
 
-    /**
-     * Handles 2FA verification code requests by sending code via appropriate channel.
-     * Triggered during login initiation when 2FA is required and during code resends.
-     *
-     * @param event Event containing user info and verification code
-     */
-    @EventListener
-    @Async("emailExecutor") // Default executor, but SMS will use smsExecutor internally
-    public void handleTwoFactorVerificationRequested(TwoFactorVerificationRequestedEvent event) {
-        log.debug("Handling 2FA verification request for user: {} with type: {}",
-                event.user().getEmail(), event.twoFactorType());
-
-        try {
-            switch (event.twoFactorType()) {
-                case EMAIL -> {
-                    authMailerService.sendTwoFactorVerificationCode(
-                            event.user(),
-                            event.verificationCode(),
-                            event.httpRequest()
-                    );
-                    log.info("2FA verification email sent to user: {}", event.user().getEmail());
-                }
-                case SMS -> {
-                    authSmsService.sendTwoFactorVerificationCode(
-                            event.user(),
-                            event.verificationCode()
-                    );
-                    log.info("2FA verification SMS sent to user: {}", event.user().getUsername());
-                }
-                case TOTP -> {
-                    // TOTP apps don't need external notification - code is generated in app
-                    log.debug("TOTP verification - no external notification needed");
-                }
-                case BACKUP_CODES -> {
-                    // Backup codes don't need external notification - user has them saved
-                    log.debug("Backup codes verification - no external notification needed");
-                }
-                default -> {
-                    log.warn("Unknown 2FA type for verification: {}", event.twoFactorType());
-                }
-            }
-
-        } catch (Exception e) {
-            // Log error but don't fail the authentication flow
-            log.error("Failed to send 2FA verification code to user: {} for type: {} - Error: {}",
-                    event.user().getUsername(), event.twoFactorType(), e.getMessage(), e);
-        }
-    }
+    // =========================================================================
+    // NOTE: handleTwoFactorVerificationRequested has been REMOVED
+    // =========================================================================
+    // Login 2FA codes are now sent synchronously from AuthService.chooseTwoFactorMethod()
+    // and AuthService.resendTwoFactorCode() to provide immediate feedback on delivery
+    // failures and allow users to choose alternative methods.
+    //
+    // The TwoFactorVerificationRequestedEvent is no longer used for login flow.
+    // =========================================================================
 }

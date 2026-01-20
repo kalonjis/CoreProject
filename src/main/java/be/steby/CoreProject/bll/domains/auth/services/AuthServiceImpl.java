@@ -1,13 +1,17 @@
 package be.steby.CoreProject.bll.domains.auth.services;
 
+import be.steby.CoreProject.bll.common.exceptions.mail.MailDeliveryException;
+import be.steby.CoreProject.bll.common.exceptions.phone.SmsSendingException;
 import be.steby.CoreProject.bll.common.utils.IpLocationUtils;
 import be.steby.CoreProject.bll.domains.account.exceptions.AccountActivationException;
-import be.steby.CoreProject.bll.domains.auth.events.TwoFactorVerificationRequestedEvent;
 import be.steby.CoreProject.bll.domains.auth.exceptions.*;
 import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
 import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
+import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorCodeDeliveryException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorNotEnabledException;
 import be.steby.CoreProject.bll.domains.auth.models.*;
+import be.steby.CoreProject.bll.domains.auth.services.notifications.email.AuthMailerService;
+import be.steby.CoreProject.bll.domains.auth.services.notifications.sms.AuthSmsService;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.TwoFactorFactory;
 import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.auth.services.login_attempt.LoginAttemptService;
@@ -52,6 +56,8 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenServiceImpl refreshTokenService;
     private final DeviceConfirmationTokenServiceImpl deviceConfirmationTokenService;
     private final JwtUtil jwtUtil;
+    private final AuthMailerService authMailerService;
+    private final AuthSmsService authSmsService;
 
 
     // ✅ NEW: Login attempt service for brute force protection
@@ -233,22 +239,33 @@ public class AuthServiceImpl implements AuthService {
         // 1. Validate token and extract claims
         Claims claims = jwtUtil.validate2FAToken(twoFactorToken);
         TwoFactorTokenClaims twoFactorClaims = extractTwoFactorClaims(claims);
+        TwoFactorType twoFactorType = twoFactorClaims.twoFactorType();
 
-        // 2. Load user
+        // 2. Validate that this method supports resend
+        if (twoFactorType == TwoFactorType.TOTP || twoFactorType == TwoFactorType.BACKUP_CODES) {
+            throw new IllegalStateException("Cannot resend code for " + twoFactorType);
+        }
+
+        // 3. Load user
         User user = userService.getUserByPublicId(twoFactorClaims.publicId());
 
-        // 3. Generate new verification code using TwoFactorFactory
+        // 4. Generate new verification code
         String newVerificationCode = twoFactorFactory.generateCode(user);
 
-        // 4. Publish resend event to trigger code sending (email/SMS/etc.)
-        eventPublisher.publishEvent(new TwoFactorVerificationRequestedEvent(
-                user,
-                twoFactorClaims.twoFactorType(),
-                newVerificationCode,
-                httpRequest
-        ));
-
-        log.info("2FA verification code resent for user: {}", user.getUsername());
+        // 5. Send the code SYNCHRONOUSLY - throw exception if delivery fails
+        try {
+            sendVerificationCodeSync(user, twoFactorType, newVerificationCode, httpRequest);
+            log.info("2FA verification code resent successfully for user: {}", user.getUsername());
+        } catch (MailDeliveryException | SmsSendingException e) {
+            log.warn("Failed to resend 2FA code via {}: {}", twoFactorType, e.getMessage());
+            List<TwoFactorType> alternatives = getAvailableAlternatives(user, twoFactorType);
+            throw new TwoFactorCodeDeliveryException(
+                    "Unable to send verification code. Please try another method.",
+                    twoFactorType,
+                    alternatives,
+                    e
+            );
+        }
     }
 
     @Override
@@ -349,13 +366,13 @@ public class AuthServiceImpl implements AuthService {
         String publicId = claims.get("publicId", String.class);
         User user = userService.getUserByPublicId(publicId);
 
-        // 2. Verify user has this method enabled (Factory handles this check)
+        // 2. Verify user has this method enabled
         if (!twoFactorFactory.isMethodEnabled(user, chosenType)) {
             log.warn("User {} attempted to choose unavailable 2FA method: {}", user.getUsername(), chosenType);
             throw new TwoFactorNotEnabledException("Chosen two-factor method is not enabled");
         }
 
-        // 3. Generate verification code if needed (not for backup codes)
+        // 3. Generate verification code if needed (not for backup codes or TOTP)
         String verificationCodeHash = null;
         String plainCode = null;
         boolean codeGenerated = false;
@@ -366,33 +383,36 @@ public class AuthServiceImpl implements AuthService {
             plainCode = codeResult.plainCode();
             codeGenerated = true;
 
-            // Publish event to send the code (email/SMS/etc.)
-            eventPublisher.publishEvent(new TwoFactorVerificationRequestedEvent(
-                    user,
-                    chosenType,
-                    plainCode,
-                    httpRequest
-            ));
-
-            log.debug("Verification code generated and sent for method: {}", chosenType);
+            // 4. Send the code SYNCHRONOUSLY - handle delivery failure
+            try {
+                sendVerificationCodeSync(user, chosenType, plainCode, httpRequest);
+                log.debug("Verification code sent successfully for method: {}", chosenType);
+            } catch (MailDeliveryException | SmsSendingException e) {
+                log.warn("Failed to send 2FA code via {}: {}", chosenType, e.getMessage());
+                List<TwoFactorType> alternatives = getAvailableAlternatives(user, chosenType);
+                return TwoFactorMethodChosenResult.deliveryFailed(
+                        chosenType,
+                        "Unable to send verification code. Please try another method.",
+                        alternatives
+                );
+            }
         }
 
-        // 4. Generate full 2FA token with chosen method
+        // 5. Generate full 2FA token with chosen method
         String twoFactorToken = jwtUtil.generate2FAToken(user, verificationCodeHash, chosenType);
 
-        // 5. Build result with masked target info
+        // 6. Build result with masked target info
         String maskedTarget = getMaskedTarget(user, chosenType);
 
         log.info("2FA method chosen successfully for user: {} with method: {}", user.getUsername(), chosenType);
 
-        return new TwoFactorMethodChosenResult(
+        return TwoFactorMethodChosenResult.success(
                 twoFactorToken,
                 chosenType,
                 codeGenerated,
                 maskedTarget
         );
     }
-
 
     @Override
     public List<TwoFactorAuth> getAllTwoFactorMethodsWithStatus(User user) {
@@ -476,6 +496,44 @@ public class AuthServiceImpl implements AuthService {
             return String.format("Account temporarily locked due to too many failed login attempts. Try again in %d minutes.", minutesUntilUnlock);
         }
     }
+
+
+    /**
+     * Sends verification code synchronously via the appropriate channel.
+     *
+     * @param user the recipient user
+     * @param type the 2FA method type (EMAIL or SMS)
+     * @param code the verification code to send
+     * @param httpRequest HTTP request for context
+     * @throws MailDeliveryException if email delivery fails
+     * @throws SmsSendingException if SMS delivery fails
+     */
+    private void sendVerificationCodeSync(User user, TwoFactorType type, String code,
+                                          HttpServletRequest httpRequest)
+            throws MailDeliveryException, SmsSendingException {
+        switch (type) {
+            case EMAIL -> authMailerService.sendTwoFactorCodeSync(user, code, httpRequest);
+            case SMS -> authSmsService.sendTwoFactorCodeSync(user, code);
+            default -> throw new IllegalArgumentException("Unsupported 2FA type for code sending: " + type);
+        }
+    }
+
+    /**
+     * Gets available 2FA alternatives when primary method fails.
+     * Returns only methods that don't require external delivery (TOTP, BACKUP_CODES).
+     *
+     * @param user the user
+     * @param failedMethod the method that failed
+     * @return list of alternative methods
+     */
+    private List<TwoFactorType> getAvailableAlternatives(User user, TwoFactorType failedMethod) {
+        return twoFactorFactory.getEnabledTwoFactorMethods(user).stream()
+                .map(TwoFactorAuth::getType)
+                .filter(type -> type != failedMethod)
+                .filter(type -> type == TwoFactorType.TOTP || type == TwoFactorType.BACKUP_CODES)
+                .toList();
+    }
+
 
 
     // =========================================================================
