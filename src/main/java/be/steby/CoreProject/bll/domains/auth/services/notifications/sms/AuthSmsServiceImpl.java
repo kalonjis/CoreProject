@@ -4,7 +4,7 @@ import be.steby.CoreProject.bll.common.exceptions.phone.SmsSendingException;
 import be.steby.CoreProject.bll.common.services.notification.sms.BaseSmsService;
 import be.steby.CoreProject.bll.domains.auth.exceptions.phone.InvalidPhoneNumberException;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.il.utils.SmsUtil;
+import be.steby.CoreProject.il.sms.TwilioSmsSender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -28,8 +28,8 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class AuthSmsServiceImpl extends BaseSmsService implements AuthSmsService {
 
-    public AuthSmsServiceImpl(SmsUtil smsUtil) {
-        super(smsUtil);
+    public AuthSmsServiceImpl(TwilioSmsSender twilioSmsSender) {
+        super(twilioSmsSender);
     }
 
     // =========================================================================
@@ -39,7 +39,7 @@ public class AuthSmsServiceImpl extends BaseSmsService implements AuthSmsService
     /**
      * Sends 2FA verification code via SMS asynchronously.
      *
-     * @param user The user receiving the verification code
+     * @param user             The user receiving the verification code
      * @param verificationCode 6-digit verification code
      */
     @Override
@@ -72,9 +72,9 @@ public class AuthSmsServiceImpl extends BaseSmsService implements AuthSmsService
      * Use this for login 2FA where immediate feedback is required.
      * If delivery fails, throws exception so caller can offer alternatives.
      *
-     * @param user The user receiving the verification code
+     * @param user             The user receiving the verification code
      * @param verificationCode 6-digit verification code
-     * @throws SmsSendingException if SMS delivery fails
+     * @throws SmsSendingException         if SMS delivery fails
      * @throws InvalidPhoneNumberException if phone number is not verified
      */
     @Override
@@ -115,17 +115,5 @@ public class AuthSmsServiceImpl extends BaseSmsService implements AuthSmsService
      */
     private String formatVerificationMessage(String verificationCode) {
         return "Your verification code: " + verificationCode;
-    }
-
-    /**
-     * Sends SMS synchronously using the SMS utility.
-     * Delegates to SmsUtil's sync method.
-     *
-     * @param message The SMS content
-     * @param phoneNumber The recipient's phone number
-     * @throws SmsSendingException if sending fails
-     */
-    private void sendSmsSync(String message, String phoneNumber) throws SmsSendingException {
-        smsUtil.sendSmsSync(message, phoneNumber);
     }
 }

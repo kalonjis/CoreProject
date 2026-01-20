@@ -1,17 +1,26 @@
 package be.steby.CoreProject.bll.common.services.notification.sms;
 
+import be.steby.CoreProject.bll.common.exceptions.phone.SmsSendingException;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.il.utils.SmsUtil;
+import be.steby.CoreProject.il.sms.SmsMessage;
+import be.steby.CoreProject.il.sms.TwilioSmsSender;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 
 /**
  * Base class for all domain-specific SMS services.
  * Provides common utilities for SMS sending such as username formatting,
- * message templating, and time formatting.
+ * message templating, and phone number validation.
  *
  * This class follows the same pattern as BaseMailerService but for SMS operations.
  * Domain-specific SMS services should extend this class to inherit common functionality.
+ *
+ * Provides two sending modes:
+ * - {@link #sendSms}: With fallback (queues for retry if delivery fails)
+ * - {@link #sendSmsSync}: Without fallback (throws immediately on failure)
+ *
+ * Architecture:
+ * DomainSmsService → BaseSmsService → TwilioSmsSender → Twilio API
+ *                    (this class)     (resilience)
  *
  * @author Steby Team
  * @since 2.0.0
@@ -19,8 +28,7 @@ import org.springframework.beans.factory.annotation.Value;
 @RequiredArgsConstructor
 public abstract class BaseSmsService {
 
-    protected final SmsUtil smsUtil;
-
+    protected final TwilioSmsSender twilioSmsSender;
 
     /**
      * Formats a message using the configured template.
@@ -30,7 +38,7 @@ public abstract class BaseSmsService {
      * - "Your code: {code}" → "Your code: 123456"
      * - "Alert: {message}" → "Alert: Suspicious login detected"
      *
-     * @param template The message template
+     * @param template     The message template
      * @param placeholders Key-value pairs for placeholder replacement
      * @return The formatted message
      */
@@ -48,34 +56,59 @@ public abstract class BaseSmsService {
     }
 
     /**
-     * Sends an SMS using the SMS utility.
-     * This is the main method that domain services should use for sending SMS.
+     * Sends an SMS with Circuit Breaker and Retry protection.
+     * If delivery fails, the SMS is queued for later retry.
      *
-     * @param message The SMS content to send
-     * @param phoneNumber The recipient's notification number
+     * Use for non-critical SMS where delayed delivery is acceptable:
+     * - Security notifications
+     * - Marketing SMS
+     * - General alerts
+     *
+     * @param message     The SMS content to send
+     * @param phoneNumber The recipient's phone number
      */
     protected void sendSms(String message, String phoneNumber) {
-        smsUtil.sendSms(message, phoneNumber);
+        SmsMessage smsMessage = SmsMessage.of(message, phoneNumber);
+        twilioSmsSender.send(smsMessage);
     }
 
     /**
-     * Sends an SMS to multiple recipients.
+     * Sends an SMS to multiple recipients with Circuit Breaker and Retry protection.
+     * Each recipient receives a separate SMS (Twilio API constraint).
      *
-     * @param message The SMS content to send
-     * @param phoneNumbers The recipients' notification numbers
+     * @param message      The SMS content to send
+     * @param phoneNumbers The recipients' phone numbers
      */
     protected void sendSms(String message, String... phoneNumbers) {
-        smsUtil.sendSms(message, phoneNumbers);
+        for (String phoneNumber : phoneNumbers) {
+            sendSms(message, phoneNumber);
+        }
     }
 
-
+    /**
+     * Sends an SMS synchronously without fallback.
+     * If delivery fails, throws immediately instead of queuing for retry.
+     *
+     * Use for time-sensitive SMS where delayed delivery is useless:
+     * - 2FA verification codes (expire in minutes)
+     * - Password reset codes
+     * - Any OTP-based authentication
+     *
+     * @param message     The SMS content to send
+     * @param phoneNumber The recipient's phone number
+     * @throws SmsSendingException if sending fails after all retries or circuit is open
+     */
+    protected void sendSmsSync(String message, String phoneNumber) throws SmsSendingException {
+        SmsMessage smsMessage = SmsMessage.of(message, phoneNumber);
+        twilioSmsSender.sendWithoutFallback(smsMessage);
+    }
 
     /**
-     * Masks notification number for secure logging.
+     * Masks phone number for secure logging.
      * Shows only the first few digits and country code.
      *
-     * @param phoneNumber The notification number to mask
-     * @return Masked notification number for logging
+     * @param phoneNumber The phone number to mask
+     * @return Masked phone number for logging
      */
     protected String maskPhoneNumber(String phoneNumber) {
         if (phoneNumber == null || phoneNumber.length() < 6) {
@@ -91,26 +124,24 @@ public abstract class BaseSmsService {
     }
 
     /**
-     * Validates that a user has a valid notification number for SMS operations.
+     * Validates that a user has a valid phone number for SMS operations.
      * This is a common validation that most domain services will need.
      *
      * @param user The user to validate
-     * @return true if user has a valid notification number, false otherwise
+     * @return true if user has a valid phone number, false otherwise
      */
     protected boolean hasValidPhoneNumber(User user) {
         return user.getPhoneNumber() != null && !user.getPhoneNumber().trim().isEmpty();
     }
 
     /**
-     * Validates that a user has a verified notification number for SMS operations.
+     * Validates that a user has a verified phone number for SMS operations.
      * More strict validation for sensitive operations like 2FA.
      *
      * @param user The user to validate
-     * @return true if user has a verified notification number, false otherwise
+     * @return true if user has a verified phone number, false otherwise
      */
     protected boolean hasVerifiedPhoneNumber(User user) {
         return hasValidPhoneNumber(user) && user.isPhoneNumberVerified();
     }
-
-
 }

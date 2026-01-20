@@ -29,10 +29,10 @@ resilience4j:
         waitDurationInOpenState: 60s
         failureRateThreshold: 50
 
-      # Future: Twilio SMS
-      # twilioBackend:
-      #   baseConfig: default
-      #   waitDurationInOpenState: 30s
+      twilioBackend:
+        baseConfig: default
+        waitDurationInOpenState: 30s  # Twilio recovers faster than SMTP
+        failureRateThreshold: 50
 
       # Future: Nominatim Geocoding
       # nominatimBackend:
@@ -63,9 +63,27 @@ resilience4j:
         ignoreExceptions:
           - be.steby.CoreProject.bll.common.exceptions.mail.MailException
 
+      # Twilio-specific retry config
+      twilioRetryConfig:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - com.twilio.exception.ApiConnectionException
+          - com.twilio.exception.ApiException
+        ignoreExceptions:
+          - be.steby.CoreProject.bll.common.exceptions.phone.InvalidPhoneNumberFormatException
+
     instances:
       smtpBackend:
         baseConfig: default
+        maxAttempts: 3
+
+      twilioBackend:
+        baseConfig: twilioRetryConfig
         maxAttempts: 3
 
     # Metrics configuration
@@ -88,6 +106,10 @@ resilience4j:
         baseConfig: default
         timeoutDuration: 30s
 
+      twilioBackend:
+        baseConfig: default
+        timeoutDuration: 15s  # Twilio API should respond faster
+
     metrics:
       enabled: true
 
@@ -104,6 +126,10 @@ resilience4j:
       smtpBackend:
         baseConfig: default
         maxConcurrentCalls: 10
+
+      twilioBackend:
+        baseConfig: default
+        maxConcurrentCalls: 15  # Twilio can handle more concurrent calls
 
     metrics:
       enabled: true
@@ -122,6 +148,10 @@ resilience4j:
       smtpBackend:
         baseConfig: default
         limitForPeriod: 5  # 5 emails per second max
+
+      twilioBackend:
+        baseConfig: default
+        limitForPeriod: 10  # 10 SMS per second max (Twilio limit depends on your plan)
 
     metrics:
       enabled: true
