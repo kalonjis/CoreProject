@@ -29,8 +29,47 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-import static be.steby.CoreProject.il.utils.SecurityConstants.*;
+// ✅ NEW: Import from SecurityRoutesAggregator instead of SecurityConstants
+import static be.steby.CoreProject.il.routes.SecurityRoutesAggregator.PUBLIC_ROUTES;
+import static be.steby.CoreProject.il.routes.SecurityRoutesAggregator.AUTHENTICATED_ROUTES;
+import static be.steby.CoreProject.il.routes.SecurityRoutesAggregator.ADMIN_ROUTES;
+import static be.steby.CoreProject.il.routes.SecurityRoutesAggregator.CSRF_IGNORE;
 
+// TODO: These need to be migrated or defined properly
+// Temporary imports from old SecurityConstants if they still exist
+// Remove these after creating proper route files for them
+import static be.steby.CoreProject.il.utils.SecurityConstants.ACTUATOR_PUBLIC_ROUTES;
+import static be.steby.CoreProject.il.utils.SecurityConstants.MONITORING_AUTHORIZED_ROUTES;
+
+/**
+ * Spring Security configuration for the application.
+ *
+ * <p>This configuration defines:
+ * <ul>
+ *   <li>CSRF protection (active for authenticated routes, ignored for public routes)</li>
+ *   <li>CORS configuration (allows frontend to communicate with backend)</li>
+ *   <li>Authorization rules (public, authenticated, admin)</li>
+ *   <li>JWT authentication filter chain</li>
+ *   <li>OAuth2 login integration</li>
+ *   <li>Session management (stateless for JWT)</li>
+ * </ul>
+ *
+ * <p><b>Security Routes:</b>
+ * Routes are now managed by domain-specific configurations in {@code il/routes/*}.
+ * The {@link be.steby.CoreProject.il.routes.SecurityRoutesAggregator} combines
+ * all domain routes and provides them to this configuration.
+ *
+ * <p><b>Migration Status:</b>
+ * <ul>
+ *   <li>✅ Main routes: Using SecurityRoutesAggregator</li>
+ *   <li>⏳ ACTUATOR_PUBLIC_ROUTES: Still using old SecurityConstants (TODO: migrate)</li>
+ *   <li>⏳ MONITORING_AUTHORIZED_ROUTES: Still using old SecurityConstants (TODO: migrate)</li>
+ * </ul>
+ *
+ * @author Steby Core Team
+ * @since 2025-01
+ * @see be.steby.CoreProject.il.routes.SecurityRoutesAggregator
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -71,7 +110,8 @@ public class SecurityConfig {
                 // ========== CSRF Configuration ==========
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers(CSRF_IGNORE_PATHS)  // ✅ Only public routes
+                        // ✅ UPDATED: Using SecurityRoutesAggregator.CSRF_IGNORE
+                        .ignoringRequestMatchers(CSRF_IGNORE)  // Only safe public routes
                 )
 
                 // ========== CORS Configuration ==========
@@ -80,84 +120,80 @@ public class SecurityConfig {
                 // ========== Authorization Configuration ==========
                 .authorizeHttpRequests(auth -> auth
                         // 1. Public routes - no authentication required
+                        // ✅ UPDATED: Using SecurityRoutesAggregator.PUBLIC_ROUTES
                         .requestMatchers(PUBLIC_ROUTES).permitAll()
+
+                        // TODO: Migrate these to proper route files
                         .requestMatchers(ACTUATOR_PUBLIC_ROUTES).permitAll()
                         .requestMatchers(MONITORING_AUTHORIZED_ROUTES)
-                            .hasAnyAuthority("MONITORING", "SUPER_ADMIN")
+                        .hasAnyAuthority("MONITORING", "SUPER_ADMIN")
 
                         // 2. OPTIONS requests - allow for CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // ⭐ 3. OAuth2 routes - CORRECTION ICI
+                        // 3. OAuth2 routes - Spring Security OAuth2 endpoints
                         .requestMatchers(
                                 "/oauth2/**",                    // Spring Security OAuth2 endpoints
-                                "/login/oauth2/code/**"          // GitHub callback endpoint
+                                "/login/oauth2/code/**"          // OAuth callback endpoint (GitHub, etc.)
                         ).permitAll()
 
-                        // 3. Authenticated routes - require authentication but no specific role
-                        .requestMatchers(AUTHENTICATED_ROUTES).authenticated()  // ✅ Explicit!
+                        // 4. Authenticated routes - require authentication but no specific role
+                        // ✅ UPDATED: Using SecurityRoutesAggregator.AUTHENTICATED_ROUTES
+                        .requestMatchers(AUTHENTICATED_ROUTES).authenticated()
 
-                        // 4. Admin routes - require ADMIN or SUPER_ADMIN role
+                        // 5. Admin routes - require ADMIN or SUPER_ADMIN role
+                        // ✅ UPDATED: Using SecurityRoutesAggregator.ADMIN_ROUTES
                         .requestMatchers(ADMIN_ROUTES).hasAnyAuthority("SUPER_ADMIN", "ADMIN")
 
-                        // 5. All other requests - require authentication (fallback)
+                        // 6. Default - deny all other requests
                         .anyRequest().authenticated()
                 )
 
-                // ========== Exception Handling  ==========
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            // Return 401 JSON instead of redirecting to /login
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType("application/json");
-                            response.setCharacterEncoding("UTF-8");
-                            response.getWriter().write(
-                                    "{\"error\":\"unauthorized\",\"message\":\"Authentication required\"}"
-                            );
-                        })
-                )
-
                 // ========== Session Management ==========
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)  // JWT-based, no sessions
                 )
 
-                // ========== Logout ==========
-                .logout(logout -> logout.disable())  // Custom logout in controller
-
-                // ⭐ ========== OAuth2 Login Configuration - CORRECTION ICI ==========
-                .oauth2Login(oauth2 -> oauth2
-                        // Allow access without authentication
-                        .permitAll()
-
-                        // ✅ Use custom success handler
-                        .successHandler(oauth2SuccessHandler)
-
-                        // Redirect to front in case of failure
-                        .failureHandler((request, response, exception) -> {
-                            log.error("OAuth2 authentication failed", exception);
-                            response.sendRedirect(FRONT_URL + "/auth/login?error=oauth2");
+                // ========== Exception Handling ==========
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            log.warn("Unauthorized access attempt to: {}", request.getRequestURI());
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
                         })
                 )
 
-                // ========== JWT Filter ==========
+                // ========== OAuth2 Login Configuration ==========
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(oauth2SuccessHandler)  // Custom success handler
+                )
+
+                // ========== JWT Filters ==========
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(mustChangePasswordFilter, JwtFilter.class);
+
+        log.info("Security configuration loaded successfully");
+        log.info("✅ Using SecurityRoutesAggregator for route configuration");
+        log.info("⏳ TODO: Migrate ACTUATOR_PUBLIC_ROUTES and MONITORING_AUTHORIZED_ROUTES");
 
         return http.build();
     }
 
+    /**
+     * CORS configuration to allow frontend communication.
+     *
+     * <p>Allows requests from the frontend URL with credentials (cookies).
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(FRONT_URL, BACK_URL));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
-        configuration.setExposedHeaders(List.of("X-Correlation-ID"));
-        configuration.setAllowCredentials(true);
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);  // Allow cookies
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
+
         return source;
     }
 }

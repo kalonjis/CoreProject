@@ -30,7 +30,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/monitoring")
-@PreAuthorize("hasAnyAuthority('MONITORING', 'ADMIN', 'SUPER_ADMIN')")
+@PreAuthorize("hasAuthority('MONITORING')")
 @RequiredArgsConstructor
 @Slf4j
 public class MonitoringController {
