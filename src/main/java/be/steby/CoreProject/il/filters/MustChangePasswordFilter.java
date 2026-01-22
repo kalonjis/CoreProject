@@ -19,7 +19,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import static be.steby.CoreProject.il.utils.SecurityConstants.PUBLIC_ROUTES;
+// ✅ UPDATED: Import from SecurityRoutesAggregator instead of SecurityConstants
+import static be.steby.CoreProject.il.routes.SecurityRoutesAggregator.PUBLIC_ROUTES;
 
 /**
  * Filter that enforces password change requirement for users with mustChangePassword flag.
@@ -28,14 +29,23 @@ import static be.steby.CoreProject.il.utils.SecurityConstants.PUBLIC_ROUTES;
  * If a user has mustChangePassword=true, they can ONLY access specific endpoints
  * to change their password or logout.
  *
- * <p>Security flow:
- * 1. JwtFilter authenticates user
- * 2. MustChangePasswordFilter checks mustChangePassword flag
- * 3. If true, only allows access to whitelisted endpoints
- * 4. Otherwise, throws PasswordChangeRequiredException (delegated to ControllerAdvisor)
+ * <p><b>Security Flow:</b>
+ * <ol>
+ *   <li>JwtFilter authenticates user</li>
+ *   <li>MustChangePasswordFilter checks mustChangePassword flag</li>
+ *   <li>If true, only allows access to whitelisted endpoints</li>
+ *   <li>Otherwise, throws PasswordChangeRequiredException (delegated to ControllerAdvisor)</li>
+ * </ol>
+ *
+ * <p><b>Migration Status:</b>
+ * <ul>
+ *   <li>✅ PUBLIC_ROUTES: Using SecurityRoutesAggregator</li>
+ *   <li>✅ ALLOWED_ENDPOINTS: Hardcoded (specific to password change flow)</li>
+ * </ul>
  *
  * @author Steby Core Team
  * @since 2025-01
+ * @see be.steby.CoreProject.il.routes.SecurityRoutesAggregator
  */
 @Component
 @Order(2) // Execute AFTER JwtFilter (which is Order 1)
@@ -61,62 +71,71 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
     /**
      * Endpoints that users with mustChangePassword=true can access.
      *
-     * ✅ CRITICAL: These endpoints allow users to:
-     * - Change their password (/api/password/change)
-     * - Logout properly (/api/auth/logout)
-     * - Check their status (/api/auth/me, /api/auth/status)
+     * <p><b>✅ CRITICAL: These endpoints allow users to:</b>
+     * <ul>
+     *   <li>Change their password (/api/password/change)</li>
+     *   <li>Logout properly (/api/auth/logout)</li>
+     *   <li>Check their status (/api/auth/me, /api/auth/status)</li>
+     * </ul>
      *
-     * ⚠️ SECURITY: Keep this list minimal!
+     * <p><b>⚠️ SECURITY: Keep this list minimal!</b>
+     * Only endpoints strictly necessary for password change flow should be here.
+     *
+     * <p><b>Note:</b> These are hardcoded here because they are specific to the
+     * password change enforcement flow and not part of general route configuration.
      */
     private static final List<String> ALLOWED_ENDPOINTS = List.of(
-            "/api/password/change",         // ✅ MUST be accessible to change password
-            "/api/auth/logout",             // ✅ Allow proper logout
-            "/api/auth/me",                 // ✅ Allow checking own user details
-            "/api/auth/session",            // ✅ Allow checking own user details
-            "/api/auth/status"              // ✅ Allow checking auth status
+            "/api/password/change",      // Change password endpoint
+            "/api/password/define",       // Define password (for OAuth users)
+            "/api/auth/logout",           // Allow logout
+            "/api/auth/me",               // Check user status
+            "/api/auth/status"            // Check authentication status
     );
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
 
         String requestURI = request.getRequestURI();
 
-        // Skip filter for public routes (reuses SecurityConstants.PUBLIC_ROUTES)
+        // Skip filter for public routes (they don't require authentication anyway)
+        // ✅ UPDATED: Using PUBLIC_ROUTES from SecurityRoutesAggregator
         if (isPublicRoute(requestURI)) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        // Get authenticated user from SecurityContext (set by JwtFilter)
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication != null
-                && authentication.isAuthenticated()
-                && authentication.getPrincipal() instanceof User user) {
+        if (authentication != null && authentication.isAuthenticated()) {
+            Object principal = authentication.getPrincipal();
 
-            // Check if user must change password
-            if (user.isMustChangePassword()) {
-                log.debug("User {} has mustChangePassword=true, checking endpoint access",
-                        user.getUsername());
+            if (principal instanceof User) {
+                User user = (User) principal;
 
-                // Check if current endpoint is allowed
-                if (!isEndpointAllowed(requestURI)) {
-                    log.warn("User {} attempted to access {} but must change password first",
-                            user.getUsername(), requestURI);
+                // Check if user must change password
+                if (user.isMustChangePassword()) {
+                    log.debug("User {} must change password, checking endpoint access", user.getUsername());
 
-                    // 🔥 FIX: Lancer l'exception au lieu de continuer
-                    PasswordChangeRequiredException exception = new PasswordChangeRequiredException(
-                            "Password change required. Please change your password before accessing this resource."
-                    );
+                    // Only allow access to whitelisted endpoints
+                    if (!isEndpointAllowed(requestURI)) {
+                        log.warn("User {} with mustChangePassword=true attempted to access restricted endpoint: {}",
+                                user.getUsername(), requestURI);
 
-                    // Déléguer à ControllerAdvisor via HandlerExceptionResolver
-                    exceptionResolver.resolveException(request, response, null, exception);
-                    return; // Important: ne pas continuer la chaîne de filtres
+                        // Create exception
+                        PasswordChangeRequiredException exception = new PasswordChangeRequiredException(
+                                "Password change required. Please change your password before accessing other resources."
+                        );
+
+                        // Delegate to ControllerAdvisor via HandlerExceptionResolver
+                        exceptionResolver.resolveException(request, response, null, exception);
+                        return; // Important: don't continue the filter chain
+                    }
+
+                    log.debug("User {} accessing allowed endpoint: {}", user.getUsername(), requestURI);
                 }
-
-                log.debug("User {} accessing allowed endpoint: {}", user.getUsername(), requestURI);
             }
         }
 
@@ -124,7 +143,13 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Checks if the request URI matches any public route from SecurityConstants.
+     * Checks if the request URI matches any public route from SecurityRoutesAggregator.
+     *
+     * <p>Public routes don't require authentication, so this filter doesn't need to
+     * process them (mustChangePassword only applies to authenticated users).
+     *
+     * <p><b>✅ UPDATED:</b> Now uses {@code PUBLIC_ROUTES} from {@link be.steby.CoreProject.il.routes.SecurityRoutesAggregator}
+     * instead of the old {@code SecurityConstants}.
      *
      * @param requestURI The request URI
      * @return true if the URI is a public route
@@ -137,6 +162,11 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
                         String prefix = publicRoute.substring(0, publicRoute.length() - 3);
                         return requestURI.startsWith(prefix);
                     }
+                    // Handle single wildcard (e.g., "/api/device/*")
+                    if (publicRoute.endsWith("/*")) {
+                        String prefix = publicRoute.substring(0, publicRoute.length() - 2);
+                        return requestURI.startsWith(prefix);
+                    }
                     // Exact match
                     return requestURI.equals(publicRoute);
                 });
@@ -144,6 +174,13 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
 
     /**
      * Checks if the endpoint is allowed for users with mustChangePassword=true.
+     *
+     * <p>Users who must change their password can only access:
+     * <ul>
+     *   <li>Password change endpoints</li>
+     *   <li>Logout endpoint</li>
+     *   <li>Status check endpoints</li>
+     * </ul>
      *
      * @param requestURI The request URI
      * @return true if endpoint is allowed
