@@ -82,6 +82,8 @@ public class SecurityConfig {
                         // 1. Public routes - no authentication required
                         .requestMatchers(PUBLIC_ROUTES).permitAll()
                         .requestMatchers(ACTUATOR_PUBLIC_ROUTES).permitAll()
+                        .requestMatchers(MONITORING_AUTHORIZED_ROUTES)
+                            .hasAnyAuthority("MONITORING", "SUPER_ADMIN")
 
                         // 2. OPTIONS requests - allow for CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

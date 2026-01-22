@@ -405,6 +405,20 @@ public class SecurityConstants {
             "/api/admin/circuit-breaker/**"
     };
 
+    // ========== ADMIN MONITORING DOMAIN ==========
+
+    /**
+     * Admin Monitoring API routes.
+     * Bridge API to expose Actuator data to authenticated admin users.
+     * Solves the port separation issue (Actuator on 8081, API on 8443).
+     */
+    private static final String[] ADMIN_MONITORING_ROUTES = {
+            "/api/admin/monitoring/health",           // GET full health status
+            "/api/admin/monitoring/health/**",        // GET component health
+            "/api/admin/monitoring/metrics/**",       // GET specific metrics
+            "/api/admin/monitoring/circuit-breakers"  // GET circuit breaker status
+    };
+
 
     /**
      * Aggregated admin routes.
@@ -418,8 +432,25 @@ public class SecurityConstants {
             ADMIN_CACHE_USER_ROUTES,
             ADMIN_SECURITY_ROUTES,
             ADMIN_DEVICE_ROUTES,
-            ADMIN_PASSWORD_ROUTES
+            ADMIN_PASSWORD_ROUTES,
+            ADMIN_MONITORING_ROUTES
     );
+
+
+// ========== MONITORING DOMAIN ==========
+
+    private static final String[] MONITORING_ROUTES = {
+            "/api/monitoring/**"
+    };
+
+// ========== AGGREGATED ROUTES ==========
+
+    /**
+     * Routes requiring specific MONITORING authority (+ admins).
+     * NOT in AUTHENTICATED_ROUTES because not all authenticated users can access.
+     */
+    public static final String[] MONITORING_AUTHORIZED_ROUTES = MONITORING_ROUTES;
+
 
     /**
      * CSRF protection ACTIVE for ALL admin routes.
