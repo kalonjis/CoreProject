@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
  * @since 2025-01
  */
 public enum UserRole {
+    MONITORING(-1),
     SUPER_ADMIN(0),
     ADMIN(1),
     MODERATOR(2),
@@ -80,6 +81,7 @@ public enum UserRole {
      */
     public String getDescription() {
         return switch (this) {
+            case MONITORING -> "Technical rôle only";
             case SUPER_ADMIN -> "Super Administrator - Full system access";
             case ADMIN -> "Administrator - User and content management";
             case MODERATOR -> "Moderator - Content and interaction moderation";
