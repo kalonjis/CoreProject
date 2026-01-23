@@ -9,3 +9,15 @@ server:
   # Configuration pour écouter sur le port 8080 aussi
   http:
     port: ${APP_SERVER_HTTP_PORT}
+
+  # ========== GZIP Compression ==========
+  compression:
+    enabled: true
+    mime-types:
+      - application/json
+      - application/xml
+      - application/hal+json
+      - text/html
+      - text/xml
+      - text/plain
+    min-response-size: 1024  # Compresse uniquement si > 1KB
