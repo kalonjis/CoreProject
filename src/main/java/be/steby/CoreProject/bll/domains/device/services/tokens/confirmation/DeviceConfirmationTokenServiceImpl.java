@@ -30,40 +30,46 @@ public class DeviceConfirmationTokenServiceImpl extends BaseTokenServiceImpl<Dev
     private Long deviceconfirmationTokenDurationMs;
 
     private final DeviceConfirmationAttemptServiceImpl attemptService;
+    private final DeviceTokenRepository deviceTokenRepository;
 
-    /**
-     * Constructs a new {@link DeviceConfirmationTokenServiceImpl} using the provided token repository.
-     *
-     * @param deviceTokenRepository The repository specifically for refresh tokens,
-     *                              qualified to ensure correct repository injection
-     */
     public DeviceConfirmationTokenServiceImpl(
-            @Qualifier("deviceTokenRepository")
-            DeviceTokenRepository deviceTokenRepository,
-            DeviceConfirmationAttemptServiceImpl attemptService, SecureTokenService secureTokenService) {
+            @Qualifier("deviceTokenRepository") DeviceTokenRepository deviceTokenRepository,
+            DeviceConfirmationAttemptServiceImpl attemptService,
+            SecureTokenService secureTokenService) {
         super(deviceTokenRepository, DeviceConfirmationToken.class, secureTokenService);
         this.attemptService = attemptService;
+        this.deviceTokenRepository = deviceTokenRepository;
     }
 
     /**
-     * Creates a new refresh token for a user with the configured expiration time.
-     *
-     * @param user The user for whom to create the refresh token
-     * @return The newly created refresh token
+     * Creates a new device confirmation token.
+     * Revokes existing tokens for this device before creating new one.
      */
     @Transactional
     public DeviceConfirmationToken createDeviceConfirmationToken(User user, Long deviceId) {
         if (attemptService.hasExceededAttempts(user, deviceId)) {
             throw new MaxAttemptsReachedException("Too many attempts. Please try again later.");
         }
+
+        int revokedCount = deviceTokenRepository.revokeAllByUserAndDevice(user.getId(), deviceId);
+        if (revokedCount > 0) {
+            log.debug("Revoked {} existing device confirmation token(s) for device {} of user {}",
+                    revokedCount, deviceId, user.getUsername());
+        }
+
         attemptService.recordAttempt(user, deviceId);
-        DeviceConfirmationToken token = super.createToken(user, TokenType.DEVICE_CONFIRMATION, deviceconfirmationTokenDurationMs, false);
+
+        DeviceConfirmationToken token = super.createToken(
+                user,
+                TokenType.DEVICE_CONFIRMATION,
+                deviceconfirmationTokenDurationMs,
+                false
+        );
+
         token.setDeviceId(deviceId);
         saveToken(token);
         return token;
     }
-
-
     @Transactional
     public int getDeviceConfirmationTokenDurationInSeconds() {
         long durationInSeconds = deviceconfirmationTokenDurationMs / 1000;
@@ -72,5 +78,4 @@ public class DeviceConfirmationTokenServiceImpl extends BaseTokenServiceImpl<Dev
         }
         return (int) durationInSeconds;
     }
-
 }
