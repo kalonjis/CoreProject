@@ -3,8 +3,8 @@ package be.steby.CoreProject.bll.domains.device.services;
 import be.steby.CoreProject.bll.common.utils.IpLocationUtils;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.device.events.DevicePersistedEvent;
+import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.device.events.DeviceTrustLevelChangedEvent;
-import be.steby.CoreProject.bll.domains.device.exceptions.DeviceDomainException;
 import be.steby.CoreProject.bll.domains.device.exceptions.DeviceNotFoundException;
 import be.steby.CoreProject.bll.domains.device.exceptions.InvalidDeviceArgumentException;
 import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
@@ -233,8 +233,12 @@ public class DeviceServiceImpl implements DeviceService {
         User user = userService.getAuthenticatedUser();
         Device currentDevice = detectCurrentDevice(request);
 
-        DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
-                user, currentDevice.getId());
+        eventPublisher.publishEvent(new DeviceSecurityEvent(
+                user,
+                currentDevice,
+                DeviceSecurityEvent.DeviceSecurityType.CONFIRMATION_LINK_REQUESTED
+        ));
+
 
         log.info("Confirmation link requested for device {} of user {}",
                 currentDevice.getId(), user.getUsername());
