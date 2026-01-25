@@ -33,4 +33,22 @@ public interface AuthSmsService {
      * @throws SmsSendingException if SMS delivery fails
      */
     void sendTwoFactorCodeSync(User user, String verificationCode) throws SmsSendingException;
+
+    /**
+     * Sends SMS 2FA activation verification code.
+     *
+     * Sends a verification code via SMS for the SMS 2FA setup process.
+     * This is used when a user is enabling SMS 2FA for the first time.
+     *
+     * The message format should be clear and include:
+     * - The verification code
+     * - Instructions that code is for 2FA setup
+     * - Expiration warning
+     *
+     * @param user The user setting up SMS 2FA
+     * @param verificationCode The 6-digit verification code
+     * @param phoneNumber The phone number to send SMS to
+     * @throws SmsSendingException if SMS delivery fails
+     */
+    void sendTwoFactorActivationCode(User user, String verificationCode, String phoneNumber);
 }

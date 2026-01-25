@@ -2,6 +2,7 @@ package be.steby.CoreProject.bll.domains.auth.listeners;
 
 import be.steby.CoreProject.bll.domains.auth.events.TwoFactorEnabledEvent;
 import be.steby.CoreProject.bll.domains.auth.events.TwoFactorInitiateActivationEvent;
+import be.steby.CoreProject.bll.domains.auth.events.TwoFactorSmsActivationEvent;
 import be.steby.CoreProject.bll.domains.auth.services.notifications.email.AuthMailerService;
 import be.steby.CoreProject.bll.domains.auth.services.notifications.sms.AuthSmsService;
 import lombok.RequiredArgsConstructor;
@@ -104,13 +105,61 @@ public class TwoFactorNotificationListener {
         }
     }
 
-    // =========================================================================
-    // NOTE: handleTwoFactorVerificationRequested has been REMOVED
-    // =========================================================================
-    // Login 2FA codes are now sent synchronously from AuthService.chooseTwoFactorMethod()
-    // and AuthService.resendTwoFactorCode() to provide immediate feedback on delivery
-    // failures and allow users to choose alternative methods.
-    //
-    // The TwoFactorVerificationRequestedEvent is no longer used for login flow.
-    // =========================================================================
+    /**
+     * Handles TwoFactorSmsActivationEvent by sending verification code via SMS.
+     *
+     * This method processes TwoFactorSmsActivationEvent by sending the
+     * verification code via SMS to the user's phone number. This is specifically
+     * for the activation/setup phase of SMS 2FA.
+     *
+     * The SMS message contains the 6-digit verification code that the user
+     * must enter to complete the SMS 2FA activation process.
+     *
+     * Runs asynchronously to avoid blocking the main activation flow.
+     * SMS delivery failures are logged but do not affect the activation process.
+     *
+     * @param event the SMS two-factor activation event containing user, code, and phone number
+     */
+    @EventListener
+    @Async("smsExecutor")
+    public void handleTwoFactorSmsActivationInitiated(TwoFactorSmsActivationEvent event) {
+        log.debug("Handling SMS 2FA activation for user: {} to phone: {}",
+                event.user().getUsername(),
+                maskPhoneNumber(event.phoneNumber()));
+
+        try {
+            // Send activation verification code via SMS
+            authSmsService.sendTwoFactorActivationCode(
+                    event.user(),
+                    event.verificationCode(),
+                    event.phoneNumber()
+            );
+
+            log.info("SMS 2FA activation code sent successfully to user: {} (phone: {})",
+                    event.user().getUsername(),
+                    maskPhoneNumber(event.phoneNumber()));
+
+        } catch (Exception e) {
+            // Log error but don't fail the activation initiation
+            // The user can request a resend if SMS delivery fails
+            log.error("Failed to send SMS 2FA activation code to user: {} (phone: {}) - Error: {}",
+                    event.user().getUsername(),
+                    maskPhoneNumber(event.phoneNumber()),
+                    e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Masks a phone number for logging purposes.
+     * Shows only last 4 digits for privacy.
+     *
+     * @param phoneNumber The phone number to mask
+     * @return Masked phone number (e.g., "****1234")
+     */
+    private String maskPhoneNumber(String phoneNumber) {
+        if (phoneNumber == null || phoneNumber.length() < 4) {
+            return "****";
+        }
+        return "****" + phoneNumber.substring(phoneNumber.length() - 4);
+    }
 }

@@ -1,8 +1,14 @@
 package be.steby.CoreProject.pl.domains.auth.controller;
 
+import be.steby.CoreProject.bll.domains.auth.models.TwoFactorActivationResult;
+import be.steby.CoreProject.bll.domains.auth.services.cookies.AuthCookieService;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.smstwofactor.SmsTwoFactorService;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
+import be.steby.CoreProject.pl.domains.auth.models.requests.SmsTwoFactorActivationRequest;
+import be.steby.CoreProject.pl.domains.auth.models.requests.TwoFactorVerificationRequest;
 import be.steby.CoreProject.pl.domains.auth.models.responses.TwoFactorOperationResponse;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +44,7 @@ import org.springframework.web.bind.annotation.*;
 public class SmsTwoFactorController {
     
     private final SmsTwoFactorService smsTwoFactorService;
+    private final AuthCookieService authCookieService;
     
     /**
      * Enable SMS-based two-factor authentication for the authenticated user.
@@ -125,6 +132,106 @@ public class SmsTwoFactorController {
         // Return standardized response using factory method
         return ResponseEntity.ok(
             TwoFactorOperationResponse.disabled(TwoFactorType.SMS)
+        );
+    }
+
+
+    /**
+     * Initiate SMS two-factor authentication activation process.
+     *
+     * This endpoint starts the setup process for SMS-based 2FA by:
+     * 1. Validating that SMS 2FA is not already enabled
+     * 2. Validating that user has a verified phone number
+     * 3. Generating a verification code and activation token
+     * 4. Publishing an event to send the verification SMS
+     * 5. Setting the activation token as an HttpOnly cookie
+     *
+     * The activation token is a JWT containing:
+     * - User's public ID
+     * - Hashed verification code
+     * - Expiration time (typically 10 minutes)
+     *
+     * Response: 200 OK with standardized TwoFactorOperationResponse
+     *
+     * Possible errors:
+     * - 400 Bad Request: User has no verified phone number
+     * - 409 Conflict: SMS 2FA already enabled
+     * - 429 Too Many Requests: Rate limit exceeded
+     * - 401 Unauthorized: User not authenticated
+     *
+     * @param httpResponse HTTP response for setting the activation cookie
+     * @return ResponseEntity containing operation success details
+     */
+    @PostMapping("/setup/initiate")
+    public ResponseEntity<TwoFactorOperationResponse> initiateSmsSetup(
+            HttpServletResponse httpResponse
+    ) {
+        log.info("SMS 2FA setup initiation request received");
+
+        TwoFactorActivationResult result = smsTwoFactorService.initiateActivation();
+
+        // Set activation token in HttpOnly cookie
+        authCookieService.set2FAActivationToken(httpResponse, result.twoFaActivationToken());
+
+        log.info("SMS 2FA setup initiated successfully");
+
+        return ResponseEntity.ok(
+                TwoFactorOperationResponse.initiateActivationSuccess(result.twoFactorType())
+        );
+    }
+
+    /**
+     * Verify code and activate SMS two-factor authentication.
+     *
+     * This endpoint completes the SMS 2FA setup process by:
+     * 1. Extracting the activation token from the HttpOnly cookie
+     * 2. Validating the JWT token (expiration, signature)
+     * 3. Verifying the provided code against the hashed code in token
+     * 4. Creating/reactivating SMS 2FA configuration
+     * 5. Setting SMS 2FA as primary method
+     * 6. Clearing the activation cookie
+     *
+     * Security measures:
+     * - Rate limiting on verification attempts (5 per 15 minutes)
+     * - Constant-time comparison for code verification
+     * - Token expiration validation
+     *
+     * Response: 200 OK with standardized TwoFactorOperationResponse
+     *
+     * Possible errors:
+     * - 400 Bad Request: Invalid or missing activation token
+     * - 400 Bad Request: Invalid verification code format
+     * - 401 Unauthorized: Invalid verification code
+     * - 429 Too Many Requests: Rate limit exceeded
+     *
+     * @param activationToken JWT activation token from HttpOnly cookie
+     * @param request Request body containing the 6-digit verification code
+     * @param httpResponse HTTP response for clearing the activation cookie
+     * @return ResponseEntity containing operation success details
+     */
+    @PostMapping("/setup/verify")
+    public ResponseEntity<TwoFactorOperationResponse> verifySmsSetup(
+            @CookieValue(name = "2fa_activation_token") String activationToken,
+            @Valid @RequestBody TwoFactorVerificationRequest request,
+            HttpServletResponse httpResponse
+    ) {
+        log.info("SMS 2FA setup verification request received");
+
+        // Convert to BLL request with activation token
+        SmsTwoFactorActivationRequest smsRequest = new SmsTwoFactorActivationRequest(
+                request.verificationCode()
+        );
+
+        // Verify and activate
+        smsTwoFactorService.verifyAndActivateSmsTwoFactor(smsRequest.toBll(activationToken));
+
+        // Clear activation cookie on success
+        authCookieService.clear2FAActivationToken(httpResponse);
+
+        log.info("SMS 2FA activated successfully");
+
+        return ResponseEntity.ok(
+                TwoFactorOperationResponse.enabled(TwoFactorType.SMS)
         );
     }
 }

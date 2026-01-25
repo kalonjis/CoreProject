@@ -31,6 +31,8 @@ public final class TwoFactorRoutes {
             // SMS 2FA
             "/api/auth/2fa/sms/enable",
             "/api/auth/2fa/sms/disable",
+            "/api/auth/2fa/sms/setup/initiate",
+            "/api/auth/2fa/sms/setup/verify",
 
             // TOTP (Authenticator App) 2FA
             "/api/auth/2fa/totp/enable",
@@ -83,7 +85,10 @@ public final class TwoFactorRoutes {
             "/api/auth/2fa/backup-codes/enable",
             "/api/auth/2fa/backup-codes/disable",
             "/api/profile/SMS/request-verification",
-            "/api/profile/SMS/verify"
+            "/api/profile/SMS/verify",
+            "/api/auth/2fa/sms/setup/initiate",
+            "/api/auth/2fa/sms/setup/verify"
+
     };
 
     private TwoFactorRoutes() {
