@@ -41,6 +41,7 @@ public class DeviceNotificationListener {
             case BLACKLISTED_DEVICE_ATTEMPT -> handleBlacklistedDevice(event);
             case NEW_DEVICE_DETECTED -> handleNewDevice(event);
             case SUSPICIOUS_LOGIN -> handleSuspiciousLogin(event);
+            case CONFIRMATION_LINK_REQUESTED -> handleConfirmationLinkRequest(event);
         }
     }
 
@@ -106,6 +107,30 @@ public class DeviceNotificationListener {
             log.info("New device detection notification sent for user: {}", event.user().getUsername());
         } catch (MaxAttemptsReachedException e) {
             log.warn("New device alert skipped - max attempts reached for user {} device {}",
+                    event.user().getUsername(), event.device().getId());
+        }
+    }
+
+
+    /**
+     * Handles manual confirmation link requests.
+     * Unlike UNCONFIRMED_DEVICE, this always sends the email without timing checks.
+     */
+    private void handleConfirmationLinkRequest(DeviceSecurityEvent event) {
+        try {
+            // Crée un nouveau token (ancien révoqué automatiquement dans le service)
+            DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
+                    event.user(), event.device().getId());
+
+            // Envoie l'email (même template que new device alert)
+            mailerService.sendNewDeviceAlert(
+                    event.user(), event.device(), token.getPublicId());
+
+            log.info("Confirmation link resent for device: {} of user: {}",
+                    event.device().getId(), event.user().getUsername());
+
+        } catch (MaxAttemptsReachedException e) {
+            log.warn("Confirmation link request skipped - max attempts reached for user {} device {}",
                     event.user().getUsername(), event.device().getId());
         }
     }

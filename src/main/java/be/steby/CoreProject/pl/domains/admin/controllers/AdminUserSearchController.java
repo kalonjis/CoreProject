@@ -3,6 +3,7 @@ package be.steby.CoreProject.pl.domains.admin.controllers;
 import be.steby.CoreProject.bll.domains.admin.services.search.AdminSearchService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.pl.domains.admin.models.responses.AdminUserDTO;
 import be.steby.CoreProject.pl.domains.profile.user.UserDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -53,14 +53,15 @@ public class AdminUserSearchController {
      * @return Paginated list of users
      */
     @GetMapping("/search")
-    public ResponseEntity<Page<User>> searchUsers(
+    public ResponseEntity<Page<AdminUserDTO>> searchUsers(
             @RequestParam(required = false) String query,
             @PageableDefault(size = 20) Pageable pageable) {
 
         log.info("Admin user search - query: '{}', page: {}, size: {}",
                 query, pageable.getPageNumber(), pageable.getPageSize());
 
-        Page<User> users = adminSearchService.searchUsers(query, pageable);
+        Page<AdminUserDTO> users = adminSearchService.searchUsers(query, pageable)
+                .map(AdminUserDTO::fromEntity);
 
         log.info("Admin search completed - {} users found", users.getTotalElements());
 
@@ -82,7 +83,7 @@ public class AdminUserSearchController {
      * @return Paginated list of users matching criteria
      */
     @GetMapping("/searchbycriteria")
-    public ResponseEntity<Page<User>> searchUsersByCriteria(
+    public ResponseEntity<Page<AdminUserDTO>> searchUsersByCriteria(
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String firstname,
             @RequestParam(required = false) String lastname,
@@ -93,8 +94,9 @@ public class AdminUserSearchController {
         log.info("Admin criteria search - username: {}, firstname: {}, lastname: {}, email: {}, phone: {}",
                 username, firstname, lastname, email, phoneNumber);
 
-        Page<User> users = adminSearchService.searchUsersByCriteria(
-                username, firstname, lastname, email, phoneNumber, pageable);
+        Page<AdminUserDTO> users = adminSearchService.searchUsersByCriteria(
+                username, firstname, lastname, email, phoneNumber, pageable)
+                .map(AdminUserDTO::fromEntity);
 
         log.info("Admin criteria search completed - {} users found", users.getTotalElements());
 
@@ -111,7 +113,7 @@ public class AdminUserSearchController {
      * @return Paginated list of all users
      */
     @GetMapping("/all")
-    public ResponseEntity<Page<User>> getAllUsers(
+    public ResponseEntity<Page<AdminUserDTO>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id,asc") String sort) {
@@ -119,7 +121,8 @@ public class AdminUserSearchController {
         log.info("Admin list all users - page: {}, size: {}, sort: {}", page, size, sort);
 
         Pageable pageable = buildPageable(page, size, sort);
-        Page<User> users = adminSearchService.searchUsers(null, pageable);
+        Page<AdminUserDTO> users = adminSearchService.searchUsers(null, pageable)
+                .map(AdminUserDTO::fromEntity);
 
         log.info("Admin list completed - {} total users", users.getTotalElements());
 

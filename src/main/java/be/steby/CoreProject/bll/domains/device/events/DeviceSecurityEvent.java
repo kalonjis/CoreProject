@@ -35,6 +35,11 @@ public record DeviceSecurityEvent(
         /**
          * New device detected for the user.
          */
-        NEW_DEVICE_DETECTED
+        NEW_DEVICE_DETECTED,
+
+        /**
+         * Manual device confirmation requested
+         */
+        CONFIRMATION_LINK_REQUESTED
     }
 }
