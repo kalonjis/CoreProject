@@ -273,7 +273,7 @@ public class DeviceServiceImpl implements DeviceService {
     @Transactional
     public int disconnectAllOtherDevices(HttpServletRequest request) {
         Device currentDevice = detectCurrentDevice(request);
-        User currentUser = currentDevice.getUser();
+        User currentUser = userService.getAuthenticatedUser();
 
         int disconnectedDevices = disconnectAllDevicesExceptCurrent(currentUser, currentDevice.getId());
 

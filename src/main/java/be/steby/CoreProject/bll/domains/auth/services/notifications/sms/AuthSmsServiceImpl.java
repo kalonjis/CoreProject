@@ -91,6 +91,54 @@ public class AuthSmsServiceImpl extends BaseSmsService implements AuthSmsService
         log.info("2FA verification SMS sent successfully to user: {} (sync)", user.getUsername());
     }
 
+    /**
+     * Sends SMS 2FA activation verification code.
+     *
+     * Sends a verification code via SMS for the SMS 2FA setup process.
+     * Uses synchronous sending to ensure delivery confirmation.
+     *
+     * @param user The user setting up SMS 2FA
+     * @param verificationCode The 6-digit verification code
+     * @param phoneNumber The phone number to send SMS to
+     * @throws SmsSendingException if SMS delivery fails
+     */
+    @Override
+    public void sendTwoFactorActivationCode(User user, String verificationCode, String phoneNumber) {
+        log.info("Sending SMS 2FA activation code to user: {} (phone: {})",
+                user.getUsername(), maskPhoneNumber(phoneNumber));
+
+        String message = formatActivationMessage(verificationCode);
+
+        // Use synchronous sending for activation flow
+        // This ensures we can report delivery failures to the user
+        sendSmsSync(message, phoneNumber);
+
+        log.info("SMS 2FA activation code sent successfully to user: {}", user.getUsername());
+    }
+
+    /**
+     * Formats the activation verification message for SMS.
+     *
+     * @param verificationCode The 6-digit code
+     * @return Formatted SMS message
+     */
+    private String formatActivationMessage(String verificationCode) {
+        return String.format(
+                "Your verification code for 2FA setup: %s. " +
+                        "This code expires in 10 minutes. " +
+                        "Do not share this code with anyone.",
+                verificationCode
+        );
+    }
+
+    /**
+     * Masks phone number for logging.
+     *
+     * @param phoneNumber The phone number to mask
+     * @return Masked phone number
+     */
+
+
     // =========================================================================
     // PRIVATE HELPERS
     // =========================================================================

@@ -1,5 +1,7 @@
 package be.steby.CoreProject.bll.domains.auth.services.twofactor.smstwofactor;
 
+import be.steby.CoreProject.bll.domains.auth.models.SmsTwoFactorActivationBllRequest;
+import be.steby.CoreProject.bll.domains.auth.models.TwoFactorActivationResult;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.SmsTwoFactorAlreadyEnabledException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.SmsTwoFactorNotEnabledException;
@@ -74,4 +76,50 @@ public interface SmsTwoFactorService {
      * @throws SmsTwoFactorNotEnabledException if SMS 2FA is not enabled for the user
      */
     boolean verifyCode(User user, String providedCode, String expectedCode);
+
+
+    // ===========================================================================
+    // SETUP FLOW (Two-step activation)
+    // ===========================================================================
+
+    /**
+     * Initiate SMS 2FA activation process.
+     *
+     * Step 1 of 2: Generates a verification code and sends it via SMS.
+     * The activation token is returned for cookie storage.
+     *
+     * Process:
+     * 1. Validates that SMS 2FA is not already enabled
+     * 2. Validates that user has a verified phone number
+     * 3. Checks rate limiting for activation attempts
+     * 4. Generates a secure 6-digit verification code
+     * 5. Creates JWT activation token with hashed code
+     * 6. Publishes event to send SMS with plain code
+     *
+     * @return TwoFactorActivationResult containing the activation token
+     * @throws SmsTwoFactorAlreadyEnabledException if SMS 2FA is already enabled
+     * @throws InvalidPhoneNumberException if user has no verified phone number
+     * @throws MaxAttemptsReachedException if too many activation attempts
+     */
+    TwoFactorActivationResult initiateActivation();
+
+    /**
+     * Verify code and activate SMS 2FA.
+     *
+     * Step 2 of 2: Validates the provided code against the hashed value
+     * in the activation token. On success, SMS 2FA is enabled.
+     *
+     * Process:
+     * 1. Validates the activation token (JWT)
+     * 2. Extracts user and hashed code from token
+     * 3. Checks rate limiting for verification attempts
+     * 4. Verifies the provided code against hashed code
+     * 5. Creates and saves SMS 2FA configuration
+     * 6. Sets SMS 2FA as primary method
+     *
+     * @param request the activation request containing code and token
+     * @throws InvalidVerificationCodeException if code is invalid
+     * @throws MaxAttemptsReachedException if too many verification attempts
+     */
+    void verifyAndActivateSmsTwoFactor(SmsTwoFactorActivationBllRequest request);
 }
