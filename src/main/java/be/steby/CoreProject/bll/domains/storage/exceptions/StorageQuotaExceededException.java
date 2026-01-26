@@ -1,0 +1,93 @@
+package be.steby.CoreProject.bll.domains.storage.exceptions;
+
+/**
+ * Exception thrown when storage quota is exceeded.
+ *
+ * <p>Provides details about current usage and limits
+ * for informative error messages.</p>
+ *
+ * <p>HTTP Status: 413 (Payload Too Large).</p>
+ *
+ * @see StorageDomainException
+ */
+public class StorageQuotaExceededException extends StorageDomainException {
+
+    private static final int STATUS = 413;
+
+    private final long currentUsage;
+    private final long quotaLimit;
+    private final long requestedSize;
+
+    /**
+     * Creates exception with quota details.
+     *
+     * @param currentUsage  current storage usage in bytes
+     * @param quotaLimit    maximum allowed storage in bytes
+     * @param requestedSize size of the file being uploaded
+     */
+    public StorageQuotaExceededException(long currentUsage, long quotaLimit, long requestedSize) {
+        super(buildMessage(currentUsage, quotaLimit, requestedSize), STATUS);
+        this.currentUsage = currentUsage;
+        this.quotaLimit = quotaLimit;
+        this.requestedSize = requestedSize;
+    }
+
+    private static String buildMessage(long currentUsage, long quotaLimit, long requestedSize) {
+        return String.format(
+                "Storage quota exceeded. Current: %s, Limit: %s, Requested: %s",
+                formatBytes(currentUsage),
+                formatBytes(quotaLimit),
+                formatBytes(requestedSize)
+        );
+    }
+
+    private static String formatBytes(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
+        return String.format("%.1f MB", bytes / (1024.0 * 1024));
+    }
+
+    /**
+     * Returns current storage usage in bytes.
+     */
+    public long getCurrentUsage() {
+        return currentUsage;
+    }
+
+    /**
+     * Returns the quota limit in bytes.
+     */
+    public long getQuotaLimit() {
+        return quotaLimit;
+    }
+
+    /**
+     * Returns the size of the requested file in bytes.
+     */
+    public long getRequestedSize() {
+        return requestedSize;
+    }
+
+    /**
+     * Returns available space before quota.
+     *
+     * @return available bytes
+     */
+    public long getAvailableSpace() {
+        return Math.max(0, quotaLimit - currentUsage);
+    }
+
+    /**
+     * Returns current usage as formatted string.
+     */
+    public String getFormattedCurrentUsage() {
+        return formatBytes(currentUsage);
+    }
+
+    /**
+     * Returns quota limit as formatted string.
+     */
+    public String getFormattedQuotaLimit() {
+        return formatBytes(quotaLimit);
+    }
+}

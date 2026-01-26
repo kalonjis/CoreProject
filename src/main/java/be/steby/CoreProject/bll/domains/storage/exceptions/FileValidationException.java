@@ -1,0 +1,88 @@
+package be.steby.CoreProject.bll.domains.storage.exceptions;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Exception thrown when file validation fails.
+ *
+ * <p>Contains detailed validation errors for client feedback.
+ * Can hold multiple validation failures.</p>
+ *
+ * <p>Common validation failures:
+ * <ul>
+ *   <li>File too large</li>
+ *   <li>Invalid MIME type</li>
+ *   <li>Blocked extension</li>
+ *   <li>Image dimensions exceeded</li>
+ *   <li>Empty file</li>
+ * </ul>
+ *
+ * <p>HTTP Status: 400 (Bad Request).</p>
+ *
+ * @see StorageDomainException
+ */
+public class FileValidationException extends StorageDomainException {
+
+    private static final int STATUS = 400;
+
+    private final List<String> validationErrors;
+
+    /**
+     * Creates exception with a single error message.
+     *
+     * @param message the validation error message
+     */
+    public FileValidationException(String message) {
+        super(message, STATUS);
+        this.validationErrors = Collections.singletonList(message);
+    }
+
+    /**
+     * Creates exception with multiple validation errors.
+     *
+     * @param errors list of validation error messages
+     */
+    public FileValidationException(List<String> errors) {
+        super("File validation failed: " + String.join(", ", errors), STATUS);
+        this.validationErrors = errors != null ? errors : Collections.emptyList();
+    }
+
+    /**
+     * Creates exception with a summary message and detailed errors.
+     *
+     * @param message summary message
+     * @param errors  list of validation error messages
+     */
+    public FileValidationException(String message, List<String> errors) {
+        super(message, STATUS);
+        this.validationErrors = errors != null ? errors : Collections.emptyList();
+    }
+
+    /**
+     * Returns all validation errors.
+     *
+     * @return immutable list of error messages
+     */
+    public List<String> getValidationErrors() {
+        return Collections.unmodifiableList(validationErrors);
+    }
+
+    /**
+     * Checks if there are multiple validation errors.
+     *
+     * @return true if more than one error
+     */
+    public boolean hasMultipleErrors() {
+        return validationErrors.size() > 1;
+    }
+
+    /**
+     * Returns the first validation error.
+     *
+     * @return first error or null if none
+     */
+    public String getFirstError() {
+        return validationErrors.isEmpty() ? null : validationErrors.get(0);
+    }
+}
