@@ -27,6 +27,7 @@ spring:
       - classpath:config/geocoding.yml
       - classpath:config/resilience4j.yml
       - classpath:config/actuator.yml
+      - classpath:config/storage.yml
 
 url:
   back_server: ${URL_BACK_SERVER}

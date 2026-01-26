@@ -1,0 +1,123 @@
+# =============================================================================
+# File Storage Configuration
+# =============================================================================
+# Centralized configuration for the file storage system.
+# Supports local filesystem storage (Phase 1) with future cloud support.
+#
+# Environment variables:
+#   - STORAGE_BASE_PATH: Base directory for file storage
+#   - STORAGE_MAX_FILE_SIZE: Global max file size (e.g., 50MB)
+# =============================================================================
+
+storage:
+  # ===========================================================================
+  # General Settings
+  # ===========================================================================
+
+  # Base path for file storage (absolute or relative to app root)
+  base-path: ${STORAGE_BASE_PATH}
+
+  # Global maximum file size (applies to all categories unless overridden)
+  max-file-size: ${STORAGE_MAX_FILE_SIZE:52428800}  # 50MB in bytes
+
+  # Allowed origins for file serving (CORS)
+  allowed-origins:
+    - ${URL_FRONT_SERVER}
+
+  # ===========================================================================
+  # Category-Specific Settings
+  # ===========================================================================
+
+  categories:
+    # -------------------------------------------------------------------------
+    # Avatar Configuration
+    # -------------------------------------------------------------------------
+    avatar:
+      max-file-size: 2097152  # 2MB
+      allowed-types:
+        - image/jpeg
+        - image/png
+        - image/webp
+      max-width: 1024
+      max-height: 1024
+      # Auto-resize to these dimensions if larger
+      target-width: 256
+      target-height: 256
+
+    # -------------------------------------------------------------------------
+    # Document Configuration
+    # -------------------------------------------------------------------------
+    document:
+      max-file-size: 10485760  # 10MB
+      allowed-types:
+        - application/pdf
+        - application/msword
+        - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+        - image/jpeg
+        - image/png
+
+    # -------------------------------------------------------------------------
+    # Product Image Configuration
+    # -------------------------------------------------------------------------
+    product-image:
+      max-file-size: 5242880  # 5MB
+      allowed-types:
+        - image/jpeg
+        - image/png
+        - image/webp
+      max-width: 4096
+      max-height: 4096
+
+    # -------------------------------------------------------------------------
+    # Temporary Files Configuration
+    # -------------------------------------------------------------------------
+    temporary:
+      max-file-size: 52428800  # 50MB
+      allowed-types:
+        - "*/*"  # All types allowed for temp
+      retention-hours: 24  # Auto-delete after 24h
+
+  # ===========================================================================
+  # Cleanup Settings
+  # ===========================================================================
+
+  cleanup:
+    # Enable scheduled cleanup job
+    enabled: true
+    # Cron expression for cleanup (daily at 3 AM)
+    cron: "0 0 3 * * ?"
+    # Days to keep deleted files before physical removal
+    retention-days: 30
+    # Hours to keep temporary files
+    temp-retention-hours: 24
+
+  # ===========================================================================
+  # Security Settings
+  # ===========================================================================
+
+  security:
+    # Generate checksum for duplicate detection
+    checksum-enabled: true
+    # Validate MIME type from file content (not just extension)
+    strict-mime-validation: true
+    # Block executable files
+    block-executables: true
+    # Blocked extensions (case-insensitive)
+    blocked-extensions:
+      - exe
+      - bat
+      - cmd
+      - sh
+      - ps1
+      - msi
+      - dll
+      - jar
+
+
+spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 55MB
+      file-size-threshold: 2KB

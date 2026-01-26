@@ -1,0 +1,60 @@
+package be.steby.CoreProject.bll.domains.storage.exceptions;
+
+/**
+ * General exception for file storage operations.
+ *
+ * <p>Used for unexpected storage failures such as:
+ * <ul>
+ *   <li>I/O errors during file operations</li>
+ *   <li>Storage initialization failures</li>
+ *   <li>Filesystem permission issues</li>
+ * </ul>
+ *
+ * <p>HTTP Status: 500 (Internal Server Error) by default.</p>
+ *
+ * @see StorageDomainException
+ */
+public class FileStorageException extends StorageDomainException {
+
+    /**
+     * Creates exception with message.
+     * Status defaults to 500 (Internal Server Error).
+     *
+     * @param message the error message
+     */
+    public FileStorageException(String message) {
+        super(message, 500);
+    }
+
+    /**
+     * Creates exception with message and custom status.
+     *
+     * @param message the error message
+     * @param status  the HTTP status code
+     */
+    public FileStorageException(String message, int status) {
+        super(message, status);
+    }
+
+    /**
+     * Creates exception with message and cause.
+     * Status defaults to 500 (Internal Server Error).
+     *
+     * @param message the error message
+     * @param cause   the underlying cause
+     */
+    public FileStorageException(String message, Throwable cause) {
+        super(message, 500, cause);
+    }
+
+    /**
+     * Creates exception with message, status, and cause.
+     *
+     * @param message the error message
+     * @param status  the HTTP status code
+     * @param cause   the underlying cause
+     */
+    public FileStorageException(String message, int status, Throwable cause) {
+        super(message, status, cause);
+    }
+}
