@@ -45,7 +45,14 @@ public enum FileCategory {
      * Temporary files pending processing.
      * Private, auto-deleted after processing.
      */
-    TEMPORARY("temp", false);
+    TEMPORARY("temp", false),
+
+    /**
+     * GPX trace files for activities (hiking, running, cycling).
+     * Contains GPS coordinates, elevation, timestamps.
+     * Private by default (user's personal activities).
+     */
+    GPX_TRACK("gpx", false);
 
     /**
      * Subdirectory name for this category.
