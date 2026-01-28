@@ -10,6 +10,7 @@ import be.steby.CoreProject.il.routes.emailchange.EmailChangeRoutes;
 import be.steby.CoreProject.il.routes.admin.AdminRoutes;
 import be.steby.CoreProject.il.routes.actuator.ActuatorRoutes;
 import be.steby.CoreProject.il.routes.monitoring.MonitoringRoutes;
+import be.steby.CoreProject.il.routes.profile.ProfileRoutes;
 import be.steby.CoreProject.il.routes.storage.StorageRoutes;
 import be.steby.CoreProject.il.routes.swagger.SwaggerRoutes;
 import be.steby.CoreProject.il.routes.debug.DebugRoutes;
@@ -50,7 +51,8 @@ public final class SecurityRoutesAggregator {
             ActuatorRoutes.PUBLIC,
             MonitoringRoutes.PUBLIC,
             SwaggerRoutes.PUBLIC,
-            DebugRoutes.PUBLIC
+            DebugRoutes.PUBLIC,
+            ProfileRoutes.PUBLIC
     );
 
     // ========== AUTHENTICATED ROUTES ==========
@@ -67,7 +69,8 @@ public final class SecurityRoutesAggregator {
             MonitoringRoutes.AUTHENTICATED,
             SwaggerRoutes.AUTHENTICATED,
             DebugRoutes.AUTHENTICATED,
-            StorageRoutes.AUTHENTICATED
+            StorageRoutes.AUTHENTICATED,
+            ProfileRoutes.AUTHENTICATED
     );
 
     // ========== ADMIN ROUTES ==========
@@ -111,7 +114,8 @@ public final class SecurityRoutesAggregator {
             MonitoringRoutes.CSRF_IGNORE,
             SwaggerRoutes.CSRF_IGNORE,
             DebugRoutes.CSRF_IGNORE,
-            StorageRoutes.CSRF_IGNORE
+            StorageRoutes.CSRF_IGNORE,
+            ProfileRoutes.CSRF_IGNORE
     );
 
     private SecurityRoutesAggregator() {
