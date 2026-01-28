@@ -77,6 +77,21 @@ storage:
         - "*/*"  # All types allowed for temp
       retention-hours: 24  # Auto-delete after 24h
 
+  # -------------------------------------------------------------------------
+  # GPX Trace Configuration
+  # -------------------------------------------------------------------------
+
+  gpx-trace:
+    max-file-size: 20971520  # 20MB - handles ultra-trails (~24h of tracking)
+    allowed-types:
+      - application/gpx+xml
+      - application/xml
+      - text/xml
+    # GPX-specific validation
+    validate-structure: true  # Parse and validate GPX XML structure
+    max-track-points: 100000  # Maximum number of track points allowed
+
+
   # ===========================================================================
   # Cleanup Settings
   # ===========================================================================
@@ -112,6 +127,8 @@ storage:
       - msi
       - dll
       - jar
+
+
 
 
 spring:

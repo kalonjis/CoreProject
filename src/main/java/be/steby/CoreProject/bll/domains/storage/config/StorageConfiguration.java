@@ -119,6 +119,14 @@ public class StorageConfiguration {
         private Integer retentionHours;
 
         /**
+         * Maximum allowed track points in GPX file.
+         * Only applicable to GPX_TRACK category.
+         * Prevents DoS via extremely large files.
+         */
+        private Integer maxTrackPoints;
+
+
+        /**
          * Checks if a MIME type is allowed.
          *
          * @param mimeType the MIME type to check
