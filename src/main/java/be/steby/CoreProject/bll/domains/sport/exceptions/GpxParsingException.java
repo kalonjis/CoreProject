@@ -1,0 +1,25 @@
+package be.steby.CoreProject.bll.domains.sport.exceptions;
+
+/**
+ * Exception thrown when GPX file parsing fails.
+ *
+ * <p>May be caused by:
+ * <ul>
+ *   <li>Invalid XML structure</li>
+ *   <li>Missing required GPX elements</li>
+ *   <li>Invalid coordinate values</li>
+ *   <li>File read errors</li>
+ * </ul>
+ *
+ * @see SportDomainException
+ */
+public class GpxParsingException extends SportDomainException {
+
+    public GpxParsingException(String message) {
+        super(message, 400);
+    }
+
+    public GpxParsingException(String message, Throwable cause) {
+        super(message, 400, cause);
+    }
+}
