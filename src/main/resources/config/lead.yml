@@ -1,0 +1,14 @@
+lead:
+  rate-limit:
+    ip:
+      max-requests: 5
+      window-minutes: 60
+    email:
+      max-requests: 3
+      window-minutes: 60
+  email:
+    default-recipient: ${APP_MAIL_USERNAME}
+    recipients:
+      commercial: ${APP_MAIL_USERNAME}
+      partnership: ${APP_MAIL_USERNAME}
+      press: ${APP_MAIL_USERNAME}

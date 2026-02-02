@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>New Lead</title>
+</head>
+<body>
+<h2>New Lead Received</h2>
+
+<table style="border-collapse: collapse; width: 100%; max-width: 600px;">
+    <tr>
+        <td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5; font-weight: bold;">Reference ID</td>
+        <td style="padding: 8px; border: 1px solid #ddd;" th:text="${referenceId}"></td>
+    </tr>
+    <tr>
+        <td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5; font-weight: bold;">Type</td>
+        <td style="padding: 8px; border: 1px solid #ddd;" th:text="${leadType}"></td>
+    </tr>
+    <tr>
+        <td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5; font-weight: bold;">From</td>
+        <td style="padding: 8px; border: 1px solid #ddd;" th:text="${visitorName} + ' <' + ${visitorEmail} + '>'"></td>
+    </tr>
+    <tr>
+        <td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5; font-weight: bold;">Subject</td>
+        <td style="padding: 8px; border: 1px solid #ddd;" th:text="${subject}"></td>
+    </tr>
+    <tr>
+        <td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5; font-weight: bold;">Submitted</td>
+        <td style="padding: 8px; border: 1px solid #ddd;" th:text="${submittedAt}"></td>
+    </tr>
+</table>
+
+<h3>Message</h3>
+<div style="padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; white-space: pre-wrap;" th:text="${message}"></div>
+
+<hr style="margin-top: 30px;">
+<p style="color: #888; font-size: 12px;">
+    IP Address: <span th:text="${ipAddress}"></span>
+</p>
+</body>
+</html>

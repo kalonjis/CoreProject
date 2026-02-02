@@ -1,6 +1,5 @@
 package be.steby.CoreProject.pl.domains.profile.controller;
 
-import be.steby.CoreProject.bll.domains.profile.models.phone.PhoneVerificationRequestBLL;
 import be.steby.CoreProject.bll.domains.profile.models.phone.PhoneVerificationTokenResult;
 import be.steby.CoreProject.bll.domains.profile.services.cookies.PhoneVerificationCookieService;
 import be.steby.CoreProject.bll.domains.profile.services.phone.PhoneNumberVerificationService;
