@@ -1,7 +1,5 @@
 package be.steby.CoreProject.pl.domains.profile.models.responses;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-
 /**
  * Response model for SMS verification operations.
  * 

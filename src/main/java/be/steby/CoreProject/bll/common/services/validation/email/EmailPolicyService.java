@@ -13,6 +13,27 @@ public interface EmailPolicyService {
     EmailValidationResult validateEmail(String email);
 
     /**
+     * Validates email format only (regex + length).
+     * Does NOT check domain policies or availability.
+     *
+     * @param email The email address to validate
+     * @return The validation result
+     */
+    EmailValidationResult validateEmailFormat(String email);
+
+    /**
+     * Validates email format and domain policies.
+     * Does NOT check availability.
+     *
+     * <p>Useful for contact forms where existing users can submit.</p>
+     *
+     * @param email The email address to validate
+     * @return The validation result
+     */
+    EmailValidationResult validateEmailFormatAndDomain(String email);
+
+
+    /**
      * Vérifie si une adresse email est disponible (non utilisée par un autre utilisateur).
      *
      * @param email L'adresse email à vérifier

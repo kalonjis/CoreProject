@@ -3,7 +3,6 @@ package be.steby.CoreProject.pl.domains.profile.models.requests.phone;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
 
 /**
  * Request for updating or setting a phone number.

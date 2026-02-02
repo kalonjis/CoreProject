@@ -1,0 +1,69 @@
+package be.steby.CoreProject.pl.domains.Lead.models.requests;
+
+import be.steby.CoreProject.bll.domains.lead.models.LeadRequest;
+import be.steby.CoreProject.dl.enums.LeadType;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+/**
+ * Request model for submitting a public inquiry.
+ *
+ * <p>Used by anonymous visitors to submit inquiries through the
+ * public contact form.</p>
+ *
+ * <p>Validations:</p>
+ * <ul>
+ *   <li>Email: Required, valid format, max 254 characters</li>
+ *   <li>Name: Optional, max 100 characters</li>
+ *   <li>Subject: Required, 5-255 characters</li>
+ *   <li>Message: Required, 10-5000 characters</li>
+ *   <li>Inquiry type: Required</li>
+ *   <li>Website: Honeypot field, must be empty</li>
+ * </ul>
+ *
+ * <p>Usage: POST /api/inquiry</p>
+ */
+public record SubmitLeadRequest(
+
+        @NotBlank(message = "Email is required")
+        @Email(message = "Invalid email format")
+        @Size(max = 254, message = "Email cannot exceed 254 characters")
+        String email,
+
+        @Size(max = 100, message = "Name cannot exceed 100 characters")
+        String name,
+
+        @NotBlank(message = "Subject is required")
+        @Size(min = 5, max = 255, message = "Subject must be between 5 and 255 characters")
+        String subject,
+
+        @NotBlank(message = "Message is required")
+        @Size(min = 10, max = 5000, message = "Message must be between 10 and 5000 characters")
+        String message,
+
+        @NotNull(message = "Inquiry type is required")
+        LeadType leadType,
+
+        // Honeypot field - should always be empty (bots fill this)
+        String website
+
+) {
+
+    /**
+     * Converts this PL request to the BLL model.
+     *
+     * @return InquiryRequest for service layer
+     */
+    public LeadRequest toBllModel() {
+        return new LeadRequest(
+                email != null ? email.toLowerCase().trim() : null,
+                name != null ? name.trim() : null,
+                subject.trim(),
+                message.trim(),
+                leadType,
+                website
+        );
+    }
+}

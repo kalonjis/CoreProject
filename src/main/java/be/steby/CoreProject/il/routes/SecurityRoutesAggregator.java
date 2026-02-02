@@ -1,5 +1,6 @@
 package be.steby.CoreProject.il.routes;
 
+import be.steby.CoreProject.il.routes.lead.LeadRoutes;
 import be.steby.CoreProject.il.routes.password.PasswordRoutes;
 import be.steby.CoreProject.il.routes.auth.AuthRoutes;
 import be.steby.CoreProject.il.routes.auth.TwoFactorRoutes;
@@ -53,7 +54,8 @@ public final class SecurityRoutesAggregator {
             MonitoringRoutes.PUBLIC,
             SwaggerRoutes.PUBLIC,
             DebugRoutes.PUBLIC,
-            ProfileRoutes.PUBLIC
+            ProfileRoutes.PUBLIC,
+            LeadRoutes.PUBLIC
     );
 
     // ========== AUTHENTICATED ROUTES ==========
@@ -118,7 +120,8 @@ public final class SecurityRoutesAggregator {
             DebugRoutes.CSRF_IGNORE,
             StorageRoutes.CSRF_IGNORE,
             ProfileRoutes.CSRF_IGNORE,
-            SportRoutes.CSRF_IGNORE
+            SportRoutes.CSRF_IGNORE,
+            LeadRoutes.CSRF_IGNORE
     );
 
     private SecurityRoutesAggregator() {

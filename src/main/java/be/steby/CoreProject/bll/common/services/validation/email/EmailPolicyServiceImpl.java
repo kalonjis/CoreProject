@@ -72,6 +72,60 @@ public class EmailPolicyServiceImpl implements EmailPolicyService {
         return new EmailValidationResult(validationErrors.isEmpty(), validationErrors);
     }
 
+
+    @Override
+    public EmailValidationResult validateEmailFormat(String email) {
+        if (email == null || email.isBlank()) {
+            return EmailValidationResult.invalid("Email address cannot be empty");
+        }
+
+        List<String> errors = new ArrayList<>();
+
+        // Format validation
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
+            errors.add("Email address is not in a valid format");
+        }
+
+        // Length validation
+        if (email.length() > 254) {
+            errors.add("Email address cannot exceed 254 characters");
+        }
+
+        return errors.isEmpty()
+                ? EmailValidationResult.valid()
+                : EmailValidationResult.invalid(errors);
+    }
+
+    @Override
+    public EmailValidationResult validateEmailFormatAndDomain(String email) {
+        // First check format
+        EmailValidationResult formatResult = validateEmailFormat(email);
+        if (!formatResult.isValid()) {
+            return formatResult;
+        }
+
+        List<String> errors = new ArrayList<>();
+        String domain = extractDomain(email);
+
+        if (domain != null) {
+            // Check blacklist
+            if (isEmailDomainBlacklisted(email)) {
+                errors.add("The domain " + domain + " is not allowed");
+                log.warn("Blacklisted domain detected: {} for email {}", domain, email);
+            }
+
+            // Check whitelist (if enabled)
+            if (emailSecurityProperties.isRequireDomainWhitelist() && !isEmailDomainAllowed(email)) {
+                errors.add("The domain " + domain + " is not in the list of allowed domains");
+            }
+        }
+
+        return errors.isEmpty()
+                ? EmailValidationResult.valid()
+                : EmailValidationResult.invalid(errors);
+    }
+
+
     @Override
     public boolean isEmailAvailable(String email) {
         return !userService.existsByEmail(email);
