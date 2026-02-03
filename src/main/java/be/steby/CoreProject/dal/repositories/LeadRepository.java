@@ -60,7 +60,7 @@ public interface LeadRepository extends JpaRepository<Lead, Long> {
      * @param leadType the inquiry type
      * @return list of inquiries for this type
      */
-    List<Lead> findByInquiryTypeOrderBySubmittedAtDesc(LeadType leadType);
+    List<Lead> findByLeadTypeOrderBySubmittedAtDesc(LeadType leadType);
 
     /**
      * Finds all inquiries submitted within a time range.
