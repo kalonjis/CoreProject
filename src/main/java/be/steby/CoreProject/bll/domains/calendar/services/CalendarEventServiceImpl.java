@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.calendar.services;
 
+import be.steby.CoreProject.bll.domains.address.services.AddressService;
 import be.steby.CoreProject.bll.domains.calendar.events.CalendarEventCancelledEvent;
 import be.steby.CoreProject.bll.domains.calendar.events.CalendarEventCreatedEvent;
 import be.steby.CoreProject.bll.domains.calendar.exceptions.CalendarEventNotFoundException;
@@ -7,6 +8,7 @@ import be.steby.CoreProject.bll.domains.calendar.models.CalendarEventCreateReque
 import be.steby.CoreProject.bll.domains.calendar.models.CalendarEventUpdateRequest;
 import be.steby.CoreProject.bll.exceptions.OwnershipException;
 import be.steby.CoreProject.dal.CalendarEventRepository;
+import be.steby.CoreProject.dl.entities.Address;
 import be.steby.CoreProject.dl.entities.CalendarEvent;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.EventStatus;
@@ -21,18 +23,27 @@ import java.util.List;
 
 /**
  * Implementation of {@link CalendarEventService}.
- * 
+ *
  * <p>Handles all calendar event business logic with proper transaction management,
  * validation, security checks, and domain event publishing.</p>
- * 
- * <h3>Key Features</h3>
+ *
+ * <h4>Key Features:</h4>
  * <ul>
  *   <li>Automatic ownership verification for all write operations</li>
  *   <li>Domain event publishing for audit trails</li>
  *   <li>Comprehensive business rule validation</li>
  *   <li>Read-only optimization for query operations</li>
+ *   <li>Address deduplication via AddressService integration</li>
  * </ul>
- * 
+ *
+ * <h4>Address Handling:</h4>
+ * <p>When creating or updating events with address data:</p>
+ * <ol>
+ *   <li>AddressService.findOrCreate() checks for duplicates</li>
+ *   <li>Existing address reused if found</li>
+ *   <li>New address created with async geocoding if not found</li>
+ * </ol>
+ *
  * @see CalendarEventService
  * @author Steby Corp
  */
@@ -43,12 +54,17 @@ import java.util.List;
 public class CalendarEventServiceImpl implements CalendarEventService {
 
     private final CalendarEventRepository eventRepository;
+    private final AddressService addressService;
     private final ApplicationEventPublisher eventPublisher;
+
+    // =========================================================================
+    // Create Operations
+    // =========================================================================
 
     /**
      * {@inheritDoc}
-     * 
-     * <p>Validates dates, creates entity, persists, and emits creation event.</p>
+     *
+     * <p>Validates dates, resolves address, creates entity, persists, and emits creation event.</p>
      */
     @Override
     @Transactional
@@ -58,12 +74,16 @@ public class CalendarEventServiceImpl implements CalendarEventService {
         // Validate business rules
         validateEventDates(request.startDateTime(), request.endDateTime());
 
+        // Resolve address if provided
+        Address resolvedAddress = resolveAddress(request.address());
+
         // Build entity
         CalendarEvent event = CalendarEvent.builder()
                 .ownerPublicId(owner.getPublicId())
                 .title(request.title())
                 .description(request.description())
                 .location(request.location())
+                .address(resolvedAddress)
                 .startDateTime(request.startDateTime())
                 .endDateTime(request.endDateTime())
                 .allDay(request.allDay())
@@ -79,11 +99,17 @@ public class CalendarEventServiceImpl implements CalendarEventService {
         // Emit domain event
         eventPublisher.publishEvent(new CalendarEventCreatedEvent(savedEvent, owner));
 
-        log.info("Calendar event created: {} for user: {}", 
-                 savedEvent.getPublicId(), owner.getUsername());
+        log.info("Calendar event created: {} for user: {} (address: {})",
+                savedEvent.getPublicId(),
+                owner.getUsername(),
+                resolvedAddress != null ? resolvedAddress.getPublicId() : "none");
 
         return savedEvent;
     }
+
+    // =========================================================================
+    // Read Operations
+    // =========================================================================
 
     /**
      * {@inheritDoc}
@@ -108,11 +134,11 @@ public class CalendarEventServiceImpl implements CalendarEventService {
      */
     @Override
     public List<CalendarEvent> getUserEventsInRange(String ownerPublicId, Instant startDate, Instant endDate) {
-        log.debug("Retrieving events for user {} from {} to {}", 
-                  ownerPublicId, startDate, endDate);
-        
+        log.debug("Retrieving events for user {} from {} to {}",
+                ownerPublicId, startDate, endDate);
+
         validateEventDates(startDate, endDate);
-        
+
         return eventRepository.findByOwnerAndDateRange(ownerPublicId, startDate, endDate);
     }
 
@@ -125,9 +151,13 @@ public class CalendarEventServiceImpl implements CalendarEventService {
         return eventRepository.findUpcomingEvents(ownerPublicId, Instant.now());
     }
 
+    // =========================================================================
+    // Update Operations
+    // =========================================================================
+
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>Supports partial updates - only provided fields are modified.</p>
      */
     @Override
@@ -142,6 +172,10 @@ public class CalendarEventServiceImpl implements CalendarEventService {
         if (request.title() != null) event.setTitle(request.title());
         if (request.description() != null) event.setDescription(request.description());
         if (request.location() != null) event.setLocation(request.location());
+        if (request.address() != null) {
+            Address resolvedAddress = resolveAddress(request.address());
+            event.setAddress(resolvedAddress);
+        }
         if (request.startDateTime() != null) event.setStartDateTime(request.startDateTime());
         if (request.endDateTime() != null) event.setEndDateTime(request.endDateTime());
         if (request.allDay() != null) event.setAllDay(request.allDay());
@@ -163,7 +197,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>Soft delete - sets status to CANCELLED and emits cancellation event.</p>
      */
     @Override
@@ -186,7 +220,7 @@ public class CalendarEventServiceImpl implements CalendarEventService {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>Hard delete - permanently removes the event from database.</p>
      */
     @Override
@@ -204,16 +238,16 @@ public class CalendarEventServiceImpl implements CalendarEventService {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>Throws OwnershipException if ownership doesn't match.</p>
      */
     @Override
     public void verifyOwnership(CalendarEvent event, User user) {
         if (!event.getOwnerPublicId().equals(user.getPublicId())) {
-            log.warn("User {} attempted to access event owned by {}", 
-                     user.getPublicId(), event.getOwnerPublicId());
+            log.warn("User {} attempted to access event owned by {}",
+                    user.getPublicId(), event.getOwnerPublicId());
             throw new OwnershipException(
-                "You do not have permission to modify this event");
+                    "You do not have permission to modify this event");
         }
     }
 
@@ -222,10 +256,41 @@ public class CalendarEventServiceImpl implements CalendarEventService {
     // =========================================================================
 
     /**
+     * Resolves an address by finding an existing duplicate or creating new.
+     *
+     * <p>Uses AddressService.findOrCreate() which:</p>
+     * <ul>
+     *   <li>Searches for existing address with same street, city, postal code</li>
+     *   <li>Returns existing if found (deduplication)</li>
+     *   <li>Creates new and triggers async geocoding if not found</li>
+     * </ul>
+     *
+     * @param address the address to resolve (may be null)
+     * @return resolved address entity, or null if input was null
+     */
+    private Address resolveAddress(Address address) {
+        if (address == null) {
+            return null;
+        }
+
+        log.debug("Resolving address: {} {}, {} {}",
+                address.getStreetName(),
+                address.getStreetNumber(),
+                address.getPostalCode(),
+                address.getCity());
+
+        Address resolved = addressService.findOrCreate(address);
+
+        log.debug("Address resolved to: {}", resolved.getPublicId());
+
+        return resolved;
+    }
+
+    /**
      * Validates that end date is after or equal to start date.
-     * 
-     * @param startDateTime Event start date/time
-     * @param endDateTime Event end date/time
+     *
+     * @param startDateTime event start date/time
+     * @param endDateTime   event end date/time
      * @throws IllegalArgumentException if end date is before start date
      */
     private void validateEventDates(Instant startDateTime, Instant endDateTime) {

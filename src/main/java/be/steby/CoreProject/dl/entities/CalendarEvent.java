@@ -78,7 +78,8 @@ import java.time.Instant;
     @Index(name = "idx_calendar_event_public_id", columnList = "public_id"),
     @Index(name = "idx_calendar_event_owner", columnList = "owner_public_id"),
     @Index(name = "idx_calendar_event_start", columnList = "start_date_time"),
-    @Index(name = "idx_calendar_event_status", columnList = "status")
+    @Index(name = "idx_calendar_event_status", columnList = "status"),
+    @Index(name = "idx_calendar_event_address", columnList = "address_id")
 })
 @Getter
 @Setter
@@ -167,6 +168,52 @@ public class CalendarEvent extends BaseEntity<Long> {
      */
     @Column(name = "location", length = 300)
     private String location;
+
+
+    /**
+     * Physical address for the event location.
+     *
+     * <p>Optional reference to a structured {@link Address} entity for events
+     * that take place at a specific physical location. This provides full
+     * address details including street, city, postal code, and geocoding
+     * information.</p>
+     *
+     * <h4>Relationship with {@code location}:</h4>
+     * <ul>
+     *   <li>{@code location} (String) - Free-text location description
+     *       (e.g., "Meeting Room A", "Teams Call", "Client Office")</li>
+     *   <li>{@code address} (Address) - Structured physical address with
+     *       full postal information and optional geocoding</li>
+     * </ul>
+     *
+     * <p>Both fields can be used together: {@code location} provides context
+     * (e.g., "Conference Room B") while {@code address} provides the physical
+     * location of the building.</p>
+     *
+     * <h4>Usage Patterns:</h4>
+     * <ul>
+     *   <li><b>Virtual meeting:</b> location="Teams Meeting", address=null</li>
+     *   <li><b>Internal meeting:</b> location="Room 3A", address=null</li>
+     *   <li><b>External meeting:</b> location="Client HQ", address={street, city...}</li>
+     *   <li><b>Site visit:</b> location=null, address={street, city...}</li>
+     * </ul>
+     *
+     * <h4>Fetch Strategy:</h4>
+     * <p>Uses LAZY fetching to avoid loading address data unnecessarily
+     * when listing events. Address is loaded on-demand when accessed.</p>
+     *
+     * <h4>Sharing:</h4>
+     * <p>Multiple events can reference the same Address entity, allowing
+     * for address reuse and normalization (e.g., all events at "Client HQ"
+     * share the same address record).</p>
+     *
+     * @see Address
+     * @see #getDisplayLocation()
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "address_id")
+    private Address address;
+
 
     // =========================================================================
     // Date & Time
@@ -372,4 +419,100 @@ public class CalendarEvent extends BaseEntity<Long> {
      */
     @Column(name = "reminder_minutes")
     private Integer reminderMinutes;
+
+
+    // =========================================================================
+    // Convenience Methods
+    // =========================================================================
+
+    /**
+     * Returns a display-friendly location string.
+     *
+     * <p>Combines the {@code location} field and {@code address} into a single
+     * human-readable string suitable for display in UI.</p>
+     *
+     * <h4>Logic:</h4>
+     * <ol>
+     *   <li>If both location and address exist: "location - formatted address"</li>
+     *   <li>If only address exists: formatted address</li>
+     *   <li>If only location exists: location</li>
+     *   <li>If neither exists: null</li>
+     * </ol>
+     *
+     * <h4>Examples:</h4>
+     * <ul>
+     *   <li>"Conference Room B - Rue de la Loi 16, 1000 Bruxelles"</li>
+     *   <li>"Rue de la Loi 16, 1000 Bruxelles"</li>
+     *   <li>"Teams Meeting"</li>
+     *   <li>null</li>
+     * </ul>
+     *
+     * @return combined location string, or null if no location info available
+     */
+    public String getDisplayLocation() {
+        boolean hasLocation = location != null && !location.isBlank();
+        boolean hasAddress = address != null;
+
+        if (hasLocation && hasAddress) {
+            String addressText = getAddressDisplayText();
+            if (addressText != null && !addressText.isBlank()) {
+                return location + " - " + addressText;
+            }
+            return location;
+        }
+
+        if (hasAddress) {
+            return getAddressDisplayText();
+        }
+
+        if (hasLocation) {
+            return location;
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns the display text for the address.
+     *
+     * <p>Uses the address's formatted address if available,
+     * otherwise builds a simple representation from components.</p>
+     *
+     * @return address display text, or null if no address
+     */
+    private String getAddressDisplayText() {
+        if (address == null) {
+            return null;
+        }
+
+        // Use formatted address if available
+        if (address.getFormattedAddress() != null && !address.getFormattedAddress().isBlank()) {
+            return address.getFormattedAddress();
+        }
+
+        // Build simple representation
+        StringBuilder sb = new StringBuilder();
+
+        if (address.getStreetName() != null) {
+            sb.append(address.getStreetName());
+            if (address.getStreetNumber() != null) {
+                sb.append(" ").append(address.getStreetNumber());
+            }
+        }
+
+        if (address.getPostalCode() != null || address.getCity() != null) {
+            if (sb.length() > 0) sb.append(", ");
+            if (address.getPostalCode() != null) {
+                sb.append(address.getPostalCode()).append(" ");
+            }
+            if (address.getCity() != null) {
+                sb.append(address.getCity());
+            }
+        }
+
+        return sb.length() > 0 ? sb.toString().trim() : null;
+    }
+
 }
+
+
