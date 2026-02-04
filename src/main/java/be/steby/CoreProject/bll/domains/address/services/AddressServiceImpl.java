@@ -3,11 +3,15 @@ package be.steby.CoreProject.bll.domains.address.services;
 import be.steby.CoreProject.bll.domains.address.events.AddressGeocodingRequestedEvent;
 import be.steby.CoreProject.bll.domains.address.exceptions.AddressNotFoundException;
 
+import be.steby.CoreProject.bll.domains.address.specifications.AddressSpecification;
 import be.steby.CoreProject.dal.repositories.AddressRepository;
 import be.steby.CoreProject.dl.entities.Address;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -215,6 +219,161 @@ public class AddressServiceImpl implements AddressService {
     }
 
     // endregion
+
+
+    // ========================================
+    // region Suggestions/Autocomplete
+    // ========================================
+
+
+    /**
+     * Supported fields for autocomplete search.
+     */
+    private static final String FIELD_STREET_NAME = "streetName";
+    private static final String FIELD_CITY = "city";
+    private static final String FIELD_POSTAL_CODE = "postalCode";
+
+    private static final int MIN_QUERY_LENGTH = 2;
+    private static final int MAX_LIMIT = 20;
+    private static final int DEFAULT_LIMIT = 10;
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Implementation uses JPA Specifications for dynamic query building.
+     * The search uses prefix matching (LIKE 'query%') which can leverage
+     * database indexes efficiently.</p>
+     */
+    @Override
+    public List<Address> searchSuggestions(String field, String query, int limit) {
+        // Validate inputs
+        validateSuggestionParams(field, query, limit);
+
+        // Sanitize query
+        String sanitizedQuery = sanitizeQuery(query);
+        if (sanitizedQuery.length() < MIN_QUERY_LENGTH) {
+            log.debug("Query too short for suggestions: '{}' (min {} chars)",
+                    sanitizedQuery, MIN_QUERY_LENGTH);
+            return List.of();
+        }
+
+        // Build specification based on field
+        Specification<Address> spec = buildSuggestionSpecification(field, sanitizedQuery);
+
+        // Determine sort order based on field
+        Sort sort = buildSuggestionSort(field);
+
+        // Execute query with pagination
+        int effectiveLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
+        PageRequest pageRequest = PageRequest.of(0, effectiveLimit, sort);
+
+        List<Address> results = addressRepository.findAll(spec, pageRequest).getContent();
+
+        log.debug("Suggestion search for field '{}' with query '{}' returned {} results",
+                field, sanitizedQuery, results.size());
+
+        return results;
+    }
+
+    /**
+     * Validates the suggestion search parameters.
+     *
+     * @param field the field to search in
+     * @param query the search query
+     * @param limit the maximum results
+     * @throws IllegalArgumentException if parameters are invalid
+     */
+    private void validateSuggestionParams(String field, String query, int limit) {
+        if (field == null || field.isBlank()) {
+            throw new IllegalArgumentException("Search field cannot be null or blank");
+        }
+
+        if (!isValidSuggestionField(field)) {
+            throw new IllegalArgumentException(
+                    "Invalid search field: '" + field + "'. " +
+                            "Supported fields: " + FIELD_STREET_NAME + ", " + FIELD_CITY + ", " + FIELD_POSTAL_CODE
+            );
+        }
+
+        if (query == null || query.isBlank()) {
+            throw new IllegalArgumentException("Search query cannot be null or blank");
+        }
+
+        if (limit < 1) {
+            throw new IllegalArgumentException("Limit must be at least 1");
+        }
+    }
+
+    /**
+     * Checks if the given field is valid for suggestion search.
+     *
+     * @param field the field name to validate
+     * @return true if the field is supported
+     */
+    private boolean isValidSuggestionField(String field) {
+        return FIELD_STREET_NAME.equals(field)
+                || FIELD_CITY.equals(field)
+                || FIELD_POSTAL_CODE.equals(field);
+    }
+
+    /**
+     * Sanitizes the search query by trimming whitespace and converting to lowercase.
+     *
+     * @param query the raw query string
+     * @return sanitized query string
+     */
+    private String sanitizeQuery(String query) {
+        return query.trim().toLowerCase();
+    }
+
+    /**
+     * Builds the JPA Specification for the suggestion search based on the field.
+     *
+     * @param field the field to search in
+     * @param query the sanitized search query
+     * @return the specification for the search
+     */
+    private Specification<Address> buildSuggestionSpecification(String field, String query) {
+        return switch (field) {
+            case FIELD_STREET_NAME -> AddressSpecification.streetNameStartsWith(query);
+            case FIELD_CITY -> AddressSpecification.cityStartsWith(query);
+            case FIELD_POSTAL_CODE -> AddressSpecification.postalCodeStartsWith(query);
+            default -> throw new IllegalArgumentException("Unsupported field: " + field);
+        };
+    }
+
+    /**
+     * Builds the sort order for suggestion results based on the searched field.
+     *
+     * <p>Results are sorted alphabetically by the searched field first,
+     * then by secondary fields for consistent ordering.</p>
+     *
+     * @param field the field being searched
+     * @return the sort order
+     */
+    private Sort buildSuggestionSort(String field) {
+        return switch (field) {
+            case FIELD_STREET_NAME -> Sort.by(
+                    Sort.Order.asc("streetName"),
+                    Sort.Order.asc("streetNumber"),
+                    Sort.Order.asc("city")
+            );
+            case FIELD_CITY -> Sort.by(
+                    Sort.Order.asc("city"),
+                    Sort.Order.asc("postalCode"),
+                    Sort.Order.asc("streetName")
+            );
+            case FIELD_POSTAL_CODE -> Sort.by(
+                    Sort.Order.asc("postalCode"),
+                    Sort.Order.asc("city"),
+                    Sort.Order.asc("streetName")
+            );
+            default -> Sort.by(Sort.Order.asc("streetName"));
+        };
+    }
+
+    // endregion
+
 
     // ========================================
     // region Validation

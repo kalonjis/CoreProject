@@ -2,6 +2,7 @@ package be.steby.CoreProject.dal.repositories;
 
 import be.steby.CoreProject.dl.entities.Address;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -21,14 +22,21 @@ import java.util.Optional;
  *   <li>CRUD operations on addresses</li>
  *   <li>Duplicate detection to avoid redundant address entries</li>
  *   <li>Geographical queries (by city, postal code, country)</li>
+ *   <li>Specification-based searches for autocomplete functionality</li>
  *   <li>Orphaned address cleanup support</li>
  * </ul>
  *
+ * <h4>Specification Support:</h4>
+ * <p>Extends {@link JpaSpecificationExecutor} to enable dynamic query building
+ * using {@link be.steby.CoreProject.bll.specifications.AddressSpecification}.
+ * This is particularly useful for autocomplete/suggestion features.</p>
+ *
  * @see Address
  * @see UserAddressRepository
+ * @see be.steby.CoreProject.bll.specifications.AddressSpecification
  */
 @Repository
-public interface AddressRepository extends JpaRepository<Address, Long> {
+public interface AddressRepository extends JpaRepository<Address, Long>, JpaSpecificationExecutor<Address> {
 
     // ========================================
     // region Public ID Lookup

@@ -157,6 +157,63 @@ public interface AddressService {
 
     // endregion
 
+
+    // ========================================
+    // region Suggestions/Autocomplete
+    // ========================================
+
+    /**
+     * Searches addresses for autocomplete suggestions based on a specific field.
+     *
+     * <p>This method is optimized for autocomplete/typeahead functionality,
+     * returning addresses that match the given query in the specified field.</p>
+     *
+     * <h4>Supported Fields:</h4>
+     * <ul>
+     *   <li>{@code streetName} - Searches in street name field</li>
+     *   <li>{@code city} - Searches in city field</li>
+     *   <li>{@code postalCode} - Searches in postal code field</li>
+     * </ul>
+     *
+     * <h4>Search Strategy:</h4>
+     * <p>Uses prefix matching ({@code LIKE 'query%'}) for optimal index usage.
+     * Results are ordered alphabetically by the searched field.</p>
+     *
+     * <h4>Example Usage:</h4>
+     * <pre>{@code
+     * // User types "rue de la" in street name field
+     * List<Address> suggestions = addressService.searchSuggestions("streetName", "rue de la", 10);
+     *
+     * // User types "1000" in postal code field
+     * List<Address> suggestions = addressService.searchSuggestions("postalCode", "1000", 10);
+     * }</pre>
+     *
+     * @param field the field to search in ("streetName", "city", or "postalCode")
+     * @param query the search query (minimum 2 characters recommended)
+     * @param limit maximum number of results to return (1-20)
+     * @return list of matching addresses, ordered alphabetically
+     * @throws IllegalArgumentException if field is not supported or query is blank
+     */
+    List<Address> searchSuggestions(String field, String query, int limit);
+
+    /**
+     * Searches addresses for autocomplete suggestions with default limit.
+     *
+     * <p>Convenience method that uses a default limit of 10 results.</p>
+     *
+     * @param field the field to search in ("streetName", "city", or "postalCode")
+     * @param query the search query (minimum 2 characters recommended)
+     * @return list of matching addresses, ordered alphabetically (max 10)
+     * @throws IllegalArgumentException if field is not supported or query is blank
+     * @see #searchSuggestions(String, String, int)
+     */
+    default List<Address> searchSuggestions(String field, String query) {
+        return searchSuggestions(field, query, 10);
+    }
+
+// endregion
+
+
     // ========================================
     // region Validation
     // ========================================
