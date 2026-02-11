@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.address.monitoring;
 
+import be.steby.CoreProject.bll.domains.address.services.geocoding.GeocodingRetryService;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.circuitbreaker.event.*;
@@ -17,16 +18,13 @@ import org.springframework.stereotype.Component;
  * - Ignored errors
  * - Rate limiting issues
  *
+ * Key feature: Automatically triggers retry of failed geocoding attempts
+ * when the circuit breaker recovers (HALF_OPEN → CLOSED).
+ *
  * Why Nominatim needs monitoring:
  * - External dependency with strict rate limits (1 req/sec)
  * - Free tier may have availability issues
  * - Timeouts can cascade if circuit breaker doesn't protect
- *
- * In production, you could extend this to:
- * - Send alerts via Slack/Teams when circuit opens
- * - Track metrics in Prometheus/Grafana
- * - Queue failed addresses for manual review
- * - Switch to backup geocoding provider (Google Maps API)
  *
  * Location: src/main/java/be/steby/CoreProject/bll/domains/address/monitoring/
  */
@@ -38,6 +36,7 @@ public class NominatimCircuitBreakerEventListener {
     private static final String NOMINATIM_BACKEND = "nominatimBackend";
 
     private final CircuitBreakerRegistry circuitBreakerRegistry;
+    private final GeocodingRetryService geocodingRetryService;
 
     /**
      * Registers event listeners for Nominatim circuit breaker.
@@ -79,7 +78,6 @@ public class NominatimCircuitBreakerEventListener {
                 // - PagerDuty incident
                 // - Email to ops team
                 // - Switch to backup provider (Google Maps API)
-                // alertService.sendCriticalAlert("Nominatim Circuit Breaker OPENED - Geocoding unavailable");
             }
 
             case OPEN_TO_HALF_OPEN -> {
@@ -88,18 +86,16 @@ public class NominatimCircuitBreakerEventListener {
                                 "Backend: '{}', Attempting {} test calls",
                         event.getCircuitBreakerName(),
                         cb.getCircuitBreakerConfig().getPermittedNumberOfCallsInHalfOpenState());
-                // TODO: Send recovery attempt notification
-                // alertService.sendInfoNotification("Nominatim Circuit Breaker testing recovery");
             }
 
             case HALF_OPEN_TO_CLOSED -> {
                 log.info("🟢 CIRCUIT BREAKER CLOSED - Nominatim geocoding service RECOVERED! " +
                                 "Backend: '{}', Service is now available",
                         event.getCircuitBreakerName());
-                // TODO: Send recovery notification
-                // - Notify team that geocoding is back online
-                // - Trigger queued address geocoding (if implemented)
-                // alertService.sendRecoveryNotification("Nominatim Circuit Breaker recovered - Geocoding operational");
+
+                // Trigger retry of all pending failed geocoding attempts
+                log.info("🔄 Triggering retry of pending failed geocoding attempts...");
+                geocodingRetryService.retryAllPendingGeocoding();
             }
 
             case HALF_OPEN_TO_OPEN -> {
@@ -108,7 +104,6 @@ public class NominatimCircuitBreakerEventListener {
                         event.getCircuitBreakerName());
                 log.error("❌ Recovery test failed. Circuit breaker will wait before retrying again");
                 // TODO: Send escalation alert (service still down after recovery attempt)
-                // alertService.sendEscalationAlert("Nominatim still down - Manual intervention required");
             }
 
             case CLOSED_TO_FORCED_OPEN -> {
@@ -119,11 +114,24 @@ public class NominatimCircuitBreakerEventListener {
             case FORCED_OPEN_TO_CLOSED, FORCED_OPEN_TO_HALF_OPEN -> {
                 log.info("⚙️ CIRCUIT BREAKER MANUAL TRANSITION - From: {}, To: {}",
                         transition.getFromState(), transition.getToState());
+
+                // If transitioning to CLOSED, also trigger retry
+                if (transition == CircuitBreaker.StateTransition.FORCED_OPEN_TO_CLOSED) {
+                    log.info("🔄 Triggering retry of pending failed geocoding attempts after manual close...");
+                    geocodingRetryService.retryAllPendingGeocoding();
+                }
             }
 
             default -> {
                 log.debug("Circuit Breaker state transition: {} → {}",
                         transition.getFromState(), transition.getToState());
+
+                // Handle any transition TO CLOSED state (including manual OPEN → CLOSED)
+                if (transition.getToState() == CircuitBreaker.State.CLOSED) {
+                    log.info("🟢 Circuit breaker transitioned to CLOSED state");
+                    log.info("🔄 Triggering retry of pending failed geocoding attempts...");
+                    geocodingRetryService.retryAllPendingGeocoding();
+                }
             }
         }
     }
@@ -180,6 +188,12 @@ public class NominatimCircuitBreakerEventListener {
         log.warn("🔄 Nominatim Circuit Breaker RESET manually - Backend: '{}', New state: {}",
                 event.getCircuitBreakerName(),
                 cb.getState());
+
+        // If reset to CLOSED, trigger retry of pending failed geocoding
+        if (cb.getState() == CircuitBreaker.State.CLOSED) {
+            log.info("🔄 Triggering retry of pending failed geocoding attempts after reset...");
+            geocodingRetryService.retryAllPendingGeocoding();
+        }
     }
 
     /**
@@ -191,6 +205,6 @@ public class NominatimCircuitBreakerEventListener {
                 "Backend: '{}'", event.getCircuitBreakerName());
 
         // Note: This is expected behavior when circuit is open
-        // Addresses will remain un-geocoded until circuit recovers
+        // Addresses will be queued in failed_geocoding table for later retry
     }
 }

@@ -1,4 +1,12 @@
-# Geocoding configuration
+# =============================================================================
+# Geocoding Configuration
+# =============================================================================
+# Location: src/main/resources/config/geocoding.yml
+# =============================================================================
+
+# ===========================================================================
+# Nominatim Provider Configuration (existing)
+# ===========================================================================
 geocoding:
   nominatim:
     # Nominatim API base URL (OpenStreetMap)
@@ -6,7 +14,6 @@ geocoding:
 
     # User-Agent header (MANDATORY for Nominatim)
     # Format: AppName/Version (contact@example.com)
-    # Replace with your actual app name and contact email
     user-agent: CoreProject/0.0.1 (kalonj1981@hotmail.com)
 
     # HTTP request timeout in milliseconds
@@ -14,3 +21,67 @@ geocoding:
 
     # Enable retry on transient failures (timeout, 503)
     retry-enabled: true
+
+# ===========================================================================
+# Fallback/Retry Strategy Configuration (NEW)
+# ===========================================================================
+app:
+  geocoding:
+    fallback:
+      database:
+        # Maximum retry attempts before marking as permanently failed
+        max-retries: 5
+
+        # Batch size for retry job (conservative due to rate limits)
+        retry-batch-size: 5
+
+        # Retry job schedule - every 5 minutes
+        # Conservative to respect Nominatim's 1 req/sec limit
+        retry-cron: "0 */5 * * * *"
+
+        # Cleanup successful records after X days
+        cleanup-success-after-days: 7
+
+        # Cleanup job schedule - daily at 4 AM
+        cleanup-cron: "0 0 4 * * *"
+
+        # Records stuck in RETRYING for this long will be reset
+        stuck-threshold-minutes: 30
+
+        # Stuck check schedule - every 30 minutes
+        stuck-check-cron: "0 */30 * * * *"
+
+---
+# =============================================================================
+# Development Profile
+# =============================================================================
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+app:
+  geocoding:
+    fallback:
+      database:
+        # More frequent retries in dev for testing
+        retry-cron: "0 */2 * * * *"
+        retry-batch-size: 3
+
+---
+# =============================================================================
+# Production Profile
+# =============================================================================
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+app:
+  geocoding:
+    fallback:
+      database:
+        # Conservative in production
+        retry-cron: "0 */10 * * * *"
+        retry-batch-size: 10
+        max-retries: 10

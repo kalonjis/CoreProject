@@ -18,19 +18,19 @@ import java.util.Optional;
 
 /**
  * Service for retrying failed geocoding attempts.
- * 
+ *
  * Responsibilities:
  * - Process batch of pending failed geocoding attempts
  * - Retry geocoding using the GeocodingProvider
  * - Update address with coordinates on success
  * - Update failed geocoding status (SUCCESS/FAILED/PENDING)
  * - Respect max retry attempts (default: 5)
- * 
+ *
  * Triggered by:
  * - Circuit breaker state transition (OPEN → HALF_OPEN → CLOSED)
  * - Manual admin API call
  * - Scheduled batch job (optional)
- * 
+ *
  * Location: src/main/java/be/steby/CoreProject/bll/domains/address/services/geocoding/
  */
 @Slf4j
@@ -46,7 +46,7 @@ public class GeocodingRetryService {
 
     /**
      * Processes all pending failed geocoding attempts asynchronously.
-     * 
+     *
      * Workflow:
      * 1. Fetch all PENDING failed geocoding records
      * 2. For each record:
@@ -55,7 +55,7 @@ public class GeocodingRetryService {
      *    c. Update address with coordinates on success
      *    d. Update failed geocoding status
      * 3. Log summary statistics
-     * 
+     *
      * This method is async to avoid blocking the circuit breaker event listener.
      */
     @Async("geocodingExecutor")
@@ -78,42 +78,63 @@ public class GeocodingRetryService {
 
         for (FailedGeocodingEntity attempt : pendingAttempts) {
             try {
-                RetryResult result = retrySingleGeocoding(attempt);
-                
+                // Extract address ID before entering transaction to avoid lazy loading issues
+                Long addressId = attempt.getAddress().getId();
+                Long attemptId = attempt.getId();
+
+                RetryResult result = retrySingleGeocoding(attemptId, addressId);
+
                 switch (result) {
                     case SUCCESS -> successCount++;
                     case FAILED -> failedCount++;
                     case EXHAUSTED -> exhaustedCount++;
                 }
 
+                // Respect Nominatim rate limit: 1 request per second
+                // (NominatimProvider also enforces this, but belt-and-suspenders approach)
+                Thread.sleep(1100);
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Geocoding retry batch interrupted");
+                break;
             } catch (Exception e) {
-                log.error("Unexpected error retrying geocoding for address ID {}: {}", 
-                         attempt.getAddress().getId(), e.getMessage(), e);
+                log.error("Unexpected error retrying geocoding for attempt ID {}: {}",
+                        attempt.getId(), e.getMessage(), e);
                 failedCount++;
             }
         }
 
-        log.info("✅ Batch geocoding retry completed - Success: {}, Failed: {}, Exhausted: {}", 
+        log.info("✅ Batch geocoding retry completed - Success: {}, Failed: {}, Exhausted: {}",
                 successCount, failedCount, exhaustedCount);
     }
 
     /**
      * Retries geocoding for a single failed attempt.
-     * 
-     * @param attempt The failed geocoding entity to retry
+     *
+     * This method reloads both the FailedGeocodingEntity and Address from the database
+     * to ensure they are fully initialized within the current transaction.
+     *
+     * @param attemptId The ID of the failed geocoding attempt
+     * @param addressId The ID of the address to geocode
      * @return Result of the retry attempt
      */
     @Transactional
-    protected RetryResult retrySingleGeocoding(FailedGeocodingEntity attempt) {
-        Address address = attempt.getAddress();
-        
-        log.debug("Retrying geocoding for address ID: {} (attempt {}/{})", 
-                 address.getId(), attempt.getRetryCount() + 1, MAX_RETRY_ATTEMPTS);
+    protected RetryResult retrySingleGeocoding(Long attemptId, Long addressId) {
+        // Reload entities within this transaction to avoid LazyInitializationException
+        FailedGeocodingEntity attempt = failedGeocodingRepository.findById(attemptId)
+                .orElseThrow(() -> new IllegalStateException("Failed geocoding attempt not found: " + attemptId));
+
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new IllegalStateException("Address not found: " + addressId));
+
+        log.debug("Retrying geocoding for address ID: {} (attempt {}/{})",
+                addressId, attempt.getRetryCount() + 1, MAX_RETRY_ATTEMPTS);
 
         // Check if max retries reached
         if (!attempt.canRetry(MAX_RETRY_ATTEMPTS)) {
-            log.warn("Max retry attempts reached for address ID: {} - Marking as FAILED", 
-                    address.getId());
+            log.warn("Max retry attempts reached for address ID: {} - Marking as FAILED",
+                    addressId);
             attempt.markAsFailed("Max retry attempts (" + MAX_RETRY_ATTEMPTS + ") reached");
             failedGeocodingRepository.save(attempt);
             return RetryResult.EXHAUSTED;
@@ -133,7 +154,7 @@ public class GeocodingRetryService {
                 address.setLatitude(geocodingResult.latitude());
                 address.setLongitude(geocodingResult.longitude());
                 address.setValidated(true);
-                
+
                 if (geocodingResult.formattedAddress() != null) {
                     address.setFormattedAddress(geocodingResult.formattedAddress());
                 }
@@ -144,8 +165,8 @@ public class GeocodingRetryService {
                 attempt.markAsSuccess();
                 failedGeocodingRepository.save(attempt);
 
-                log.info("✅ Geocoding retry SUCCESS for address ID: {} - Coordinates: [{}, {}]", 
-                        address.getId(), geocodingResult.latitude(), geocodingResult.longitude());
+                log.info("✅ Geocoding retry SUCCESS for address ID: {} - Coordinates: [{}, {}]",
+                        addressId, geocodingResult.latitude(), geocodingResult.longitude());
 
                 return RetryResult.SUCCESS;
 
@@ -156,7 +177,7 @@ public class GeocodingRetryService {
                 failedGeocodingRepository.save(attempt);
 
                 log.warn("⚠️ Geocoding retry returned no results for address ID: {} " +
-                        "(attempt {}/{})", address.getId(), attempt.getRetryCount(), MAX_RETRY_ATTEMPTS);
+                        "(attempt {}/{})", addressId, attempt.getRetryCount(), MAX_RETRY_ATTEMPTS);
 
                 return RetryResult.FAILED;
             }
@@ -168,7 +189,7 @@ public class GeocodingRetryService {
             failedGeocodingRepository.save(attempt);
 
             log.error("❌ Geocoding retry FAILED for address ID: {} - Error: {} " +
-                    "(attempt {}/{})", address.getId(), errorMsg, 
+                            "(attempt {}/{})", addressId, errorMsg,
                     attempt.getRetryCount(), MAX_RETRY_ATTEMPTS);
 
             return RetryResult.FAILED;
@@ -177,9 +198,9 @@ public class GeocodingRetryService {
 
     /**
      * Manually retries geocoding for a specific address.
-     * 
+     *
      * Used by admin API to force retry a single address.
-     * 
+     *
      * @param addressId The ID of the address to retry
      * @return true if retry was successful
      */
@@ -199,7 +220,8 @@ public class GeocodingRetryService {
             return false;
         }
 
-        RetryResult result = retrySingleGeocoding(attemptOpt.get());
+        FailedGeocodingEntity attempt = attemptOpt.get();
+        RetryResult result = retrySingleGeocoding(attempt.getId(), addressId);
         return result == RetryResult.SUCCESS;
     }
 
@@ -209,10 +231,10 @@ public class GeocodingRetryService {
     protected enum RetryResult {
         /** Geocoding succeeded, address updated with coordinates */
         SUCCESS,
-        
+
         /** Geocoding failed, will retry later */
         FAILED,
-        
+
         /** Max retries exhausted, marked as permanently failed */
         EXHAUSTED
     }
