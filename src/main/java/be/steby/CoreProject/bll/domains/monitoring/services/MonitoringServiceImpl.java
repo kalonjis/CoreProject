@@ -1,11 +1,11 @@
 package be.steby.CoreProject.bll.domains.monitoring.services;
 
 import be.steby.CoreProject.bll.domains.monitoring.models.*;
-import be.steby.CoreProject.bll.domains.monitoring.services.MonitoringService;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.actuate.health.HealthComponent;
 import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.boot.actuate.metrics.MetricsEndpoint;
@@ -15,10 +15,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of MonitoringService.
+ * Implementation of {@link MonitoringService}.
  *
- * Bridge between Spring Boot Actuator and the monitoring domain.
- * Returns BLL models (records) - mapping to Response is done in PL.
+ * <p>Bridge between Spring Boot Actuator and the monitoring domain.
+ * Returns BLL models (records) - mapping to Response is done in PL.</p>
+ *
+ * <h4>Data sources:</h4>
+ * <ul>
+ *   <li>Health: Spring Boot Actuator HealthEndpoint</li>
+ *   <li>JVM/CPU/Disk metrics: Micrometer MetricsEndpoint</li>
+ *   <li>DB Pool: HikariCP metrics via Micrometer</li>
+ *   <li>Executors: ThreadPoolTaskExecutor beans via ExecutorMonitoringService</li>
+ *   <li>Circuit Breakers: Resilience4j CircuitBreakerRegistry</li>
+ * </ul>
  */
 @Service
 @RequiredArgsConstructor
@@ -28,6 +37,7 @@ public class MonitoringServiceImpl implements MonitoringService {
     private final HealthEndpoint healthEndpoint;
     private final MetricsEndpoint metricsEndpoint;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
+    private final ExecutorMonitoringService executorMonitoringService;
 
     // =========================================================================
     // HEALTH
@@ -54,11 +64,12 @@ public class MonitoringServiceImpl implements MonitoringService {
         log.debug("Building dashboard metrics");
 
         return new DashboardMetrics(
-            buildJvmMetrics(),
-            buildCpuMetrics(),
-            buildDiskMetrics(),
-            buildDbPoolMetrics(),
-            getMetricValue("process.uptime", null)
+                buildJvmMetrics(),
+                buildCpuMetrics(),
+                buildDiskMetrics(),
+                buildDbPoolMetrics(),
+                executorMonitoringService.getAllMetrics(),
+                getMetricValue("process.uptime", null)
         );
     }
 
@@ -71,9 +82,9 @@ public class MonitoringServiceImpl implements MonitoringService {
         log.debug("Retrieving all circuit breakers status");
 
         return circuitBreakerRegistry.getAllCircuitBreakers()
-            .stream()
-            .map(this::mapCircuitBreaker)
-            .collect(Collectors.toList());
+                .stream()
+                .map(this::mapCircuitBreaker)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -81,8 +92,8 @@ public class MonitoringServiceImpl implements MonitoringService {
         log.debug("Retrieving circuit breaker: {}", name);
 
         CircuitBreaker cb = circuitBreakerRegistry.find(name)
-            .orElseThrow(() -> new IllegalArgumentException(
-                "Circuit breaker not found: " + name));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Circuit breaker not found: " + name));
 
         return mapCircuitBreaker(cb);
     }
@@ -96,13 +107,13 @@ public class MonitoringServiceImpl implements MonitoringService {
         double heapMax = getMetricValue("jvm.memory.max", List.of("area:heap"));
 
         int heapPercent = heapMax > 0
-            ? (int) Math.round((heapUsed / heapMax) * 100)
-            : 0;
+                ? (int) Math.round((heapUsed / heapMax) * 100)
+                : 0;
 
         return new JvmMetrics(
-            (long) heapUsed,
-            (long) heapMax,
-            heapPercent
+                (long) heapUsed,
+                (long) heapMax,
+                heapPercent
         );
     }
 
@@ -111,8 +122,8 @@ public class MonitoringServiceImpl implements MonitoringService {
         double processCpu = getMetricValue("process.cpu.usage", null);
 
         return new CpuMetrics(
-            (int) Math.round(systemCpu * 100),
-            (int) Math.round(processCpu * 100)
+                (int) Math.round(systemCpu * 100),
+                (int) Math.round(processCpu * 100)
         );
     }
 
@@ -121,21 +132,21 @@ public class MonitoringServiceImpl implements MonitoringService {
         double diskTotal = getMetricValue("disk.total", null);
 
         int freePercent = diskTotal > 0
-            ? (int) Math.round((diskFree / diskTotal) * 100)
-            : 0;
+                ? (int) Math.round((diskFree / diskTotal) * 100)
+                : 0;
 
         return new DiskMetrics(
-            (long) diskFree,
-            (long) diskTotal,
-            freePercent
+                (long) diskFree,
+                (long) diskTotal,
+                freePercent
         );
     }
 
     private DbPoolMetrics buildDbPoolMetrics() {
         return new DbPoolMetrics(
-            (int) getMetricValue("hikaricp.connections.active", null),
-            (int) getMetricValue("hikaricp.connections.idle", null),
-            (int) getMetricValue("hikaricp.connections.max", null)
+                (int) getMetricValue("hikaricp.connections.active", null),
+                (int) getMetricValue("hikaricp.connections.idle", null),
+                (int) getMetricValue("hikaricp.connections.max", null)
         );
     }
 
@@ -159,14 +170,14 @@ public class MonitoringServiceImpl implements MonitoringService {
         CircuitBreaker.Metrics metrics = cb.getMetrics();
 
         return new CircuitBreakerStatus(
-            cb.getName(),
-            cb.getState().name(),
-            metrics.getFailureRate(),
-            metrics.getSlowCallRate(),
-            metrics.getNumberOfBufferedCalls(),
-            metrics.getNumberOfFailedCalls(),
-            metrics.getNumberOfSuccessfulCalls(),
-            metrics.getNumberOfNotPermittedCalls()
+                cb.getName(),
+                cb.getState().name(),
+                metrics.getFailureRate(),
+                metrics.getSlowCallRate(),
+                metrics.getNumberOfBufferedCalls(),
+                metrics.getNumberOfFailedCalls(),
+                metrics.getNumberOfSuccessfulCalls(),
+                metrics.getNumberOfNotPermittedCalls()
         );
     }
 }

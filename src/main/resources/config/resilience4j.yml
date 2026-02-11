@@ -34,10 +34,14 @@ resilience4j:
         waitDurationInOpenState: 30s  # Twilio recovers faster than SMTP
         failureRateThreshold: 50
 
-      # Future: Nominatim Geocoding
-      # nominatimBackend:
-      #   baseConfig: default
-      #   waitDurationInOpenState: 120s
+      # Nominatim Geocoding Circuit Breaker
+      # Longer wait duration due to potential rate limiting and API instability
+      nominatimBackend:
+        baseConfig: default
+        waitDurationInOpenState: 120s  # 2 minutes - Nominatim may have longer outages
+        failureRateThreshold: 60       # Slightly more tolerant (60% vs 50%)
+        slowCallDurationThreshold: 8s  # 8s threshold (Nominatim can be slower)
+        slidingWindowSize: 20          # Larger window for better statistics
 
     # Metrics configuration
     metrics:
@@ -77,6 +81,17 @@ resilience4j:
         ignoreExceptions:
           - be.steby.CoreProject.bll.common.exceptions.phone.InvalidPhoneNumberFormatException
 
+      # Nominatim-specific retry config
+      nominatimRetryConfig:
+        maxAttempts: 2                 # Only 1 retry
+        waitDuration: 2s               # 2s wait (respects 1 req/sec rate limit)
+        enableExponentialBackoff: false # Fixed delay to maintain rate limit compliance
+        retryExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+
     instances:
       smtpBackend:
         baseConfig: default
@@ -85,6 +100,10 @@ resilience4j:
       twilioBackend:
         baseConfig: twilioRetryConfig
         maxAttempts: 3
+
+      nominatimBackend:
+        baseConfig: nominatimRetryConfig
+        maxAttempts: 2
 
     # Metrics configuration
     metrics:
@@ -110,6 +129,10 @@ resilience4j:
         baseConfig: default
         timeoutDuration: 15s  # Twilio API should respond faster
 
+      nominatimBackend:
+        baseConfig: default
+        timeoutDuration: 10s  # Nominatim should respond within 10s (config is 5s + buffer)
+
     metrics:
       enabled: true
 
@@ -130,6 +153,11 @@ resilience4j:
       twilioBackend:
         baseConfig: default
         maxConcurrentCalls: 15  # Twilio can handle more concurrent calls
+
+      nominatimBackend:
+        baseConfig: default
+        maxConcurrentCalls: 1   # IMPORTANT: 1 call at a time (rate limit: 1 req/sec)
+        maxWaitDuration: 5s     # Wait up to 5s for slot availability
 
     metrics:
       enabled: true
@@ -152,6 +180,12 @@ resilience4j:
       twilioBackend:
         baseConfig: default
         limitForPeriod: 10  # 10 SMS per second max (Twilio limit depends on your plan)
+
+      nominatimBackend:
+        baseConfig: default
+        limitForPeriod: 1    # CRITICAL: 1 request per second (Nominatim policy)
+        limitRefreshPeriod: 1s
+        timeoutDuration: 5s  # Wait up to 5s if rate limit reached
 
     metrics:
       enabled: true

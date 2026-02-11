@@ -10,8 +10,15 @@ import java.util.List;
 /**
  * Mapper for Monitoring domain.
  *
- * Converts BLL models (records) to PL responses (records).
- * Controls explicitly what data is exposed via the API.
+ * <p>Converts BLL models (records) to PL responses (records).
+ * Controls explicitly what data is exposed via the API.</p>
+ *
+ * <h4>Mapping strategy:</h4>
+ * <ul>
+ *   <li>BLL records contain domain logic (e.g., calculated percentages)</li>
+ *   <li>Response records are flat DTOs optimized for JSON serialization</li>
+ *   <li>Calculated fields (like queueUsagePercent) are pre-computed here</li>
+ * </ul>
  */
 @Component
 public class MonitoringMapper {
@@ -22,6 +29,9 @@ public class MonitoringMapper {
 
     /**
      * Maps DashboardMetrics (BLL) to DashboardMetricsResponse (PL).
+     *
+     * @param model BLL dashboard metrics
+     * @return Response DTO for API
      */
     public DashboardMetricsResponse toResponse(DashboardMetrics model) {
         return new DashboardMetricsResponse(
@@ -29,6 +39,7 @@ public class MonitoringMapper {
                 toCpuResponse(model.cpu()),
                 toDiskResponse(model.disk()),
                 toDbPoolResponse(model.dbPool()),
+                toExecutorResponseList(model.executors()),
                 model.uptime()
         );
     }
@@ -65,11 +76,59 @@ public class MonitoringMapper {
     }
 
     // =========================================================================
+    // EXECUTOR METRICS
+    // =========================================================================
+
+    /**
+     * Maps list of ExecutorMetrics (BLL) to list of ExecutorMetricsResponse (PL).
+     *
+     * @param models List of BLL executor metrics
+     * @return List of response DTOs
+     */
+    private List<DashboardMetricsResponse.ExecutorMetricsResponse> toExecutorResponseList(
+            List<ExecutorMetrics> models) {
+        if (models == null) {
+            return List.of();
+        }
+        return models.stream()
+                .map(this::toExecutorResponse)
+                .toList();
+    }
+
+    /**
+     * Maps single ExecutorMetrics (BLL) to ExecutorMetricsResponse (PL).
+     *
+     * <p>Pre-computes derived fields (queueUsagePercent, saturated) from
+     * the BLL model's methods to avoid client-side calculation.</p>
+     *
+     * @param model BLL executor metrics
+     * @return Response DTO
+     */
+    private DashboardMetricsResponse.ExecutorMetricsResponse toExecutorResponse(
+            ExecutorMetrics model) {
+        return new DashboardMetricsResponse.ExecutorMetricsResponse(
+                model.name(),
+                model.activeCount(),
+                model.poolSize(),
+                model.corePoolSize(),
+                model.maxPoolSize(),
+                model.queueSize(),
+                model.queueCapacity(),
+                model.queueUsagePercent(),
+                model.completedTaskCount(),
+                model.isSaturated()
+        );
+    }
+
+    // =========================================================================
     // CIRCUIT BREAKERS
     // =========================================================================
 
     /**
      * Maps CircuitBreakerStatus (BLL) to CircuitBreakerStatusResponse (PL).
+     *
+     * @param model BLL circuit breaker status
+     * @return Response DTO
      */
     public CircuitBreakerStatusResponse toResponse(CircuitBreakerStatus model) {
         return new CircuitBreakerStatusResponse(
@@ -85,7 +144,10 @@ public class MonitoringMapper {
     }
 
     /**
-     * Maps list of CircuitBreakerStatus to list of responses.
+     * Maps list of CircuitBreakerStatus (BLL) to list of responses (PL).
+     *
+     * @param models List of BLL circuit breaker statuses
+     * @return List of response DTOs
      */
     public List<CircuitBreakerStatusResponse> toResponseList(List<CircuitBreakerStatus> models) {
         return models.stream()
