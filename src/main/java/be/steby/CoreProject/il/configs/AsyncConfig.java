@@ -35,6 +35,11 @@ import java.util.concurrent.Executor;
  *   <li>{@code geocodingExecutor} - Dedicated to external geocoding API calls</li>
  * </ul>
  *
+ * <h4>Monitoring:</h4>
+ * <p>All executors are exposed via the {@link #executors} bean for monitoring purposes.
+ * The {@link be.steby.CoreProject.bll.domains.monitoring.services.ExecutorMonitoringService}
+ * uses this to collect metrics like queue size, active threads, etc.</p>
+ *
  * @see MdcTaskDecorator
  * @see CustomAsyncExceptionHandler
  */
@@ -67,7 +72,7 @@ public class AsyncConfig implements AsyncConfigurer {
      * @return configured ThreadPoolTaskExecutor for general tasks
      */
     @Bean(name = "generalPurposeExecutor")
-    public Executor generalPurposeExecutor() {
+    public ThreadPoolTaskExecutor generalPurposeExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(4);
         executor.setMaxPoolSize(8);
@@ -75,7 +80,7 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.setThreadNamePrefix("General-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(30);
-        executor.setTaskDecorator(mdcTaskDecorator); // MDC propagation
+        executor.setTaskDecorator(mdcTaskDecorator);
         executor.initialize();
         return executor;
     }
@@ -93,7 +98,7 @@ public class AsyncConfig implements AsyncConfigurer {
      * @return configured ThreadPoolTaskExecutor for email tasks
      */
     @Bean(name = "emailExecutor")
-    public Executor emailExecutor() {
+    public ThreadPoolTaskExecutor emailExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(2);
         executor.setMaxPoolSize(5);
@@ -101,7 +106,7 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.setThreadNamePrefix("Email-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(30);
-        executor.setTaskDecorator(mdcTaskDecorator); // MDC propagation
+        executor.setTaskDecorator(mdcTaskDecorator);
         executor.initialize();
         return executor;
     }
@@ -119,7 +124,7 @@ public class AsyncConfig implements AsyncConfigurer {
      * @return configured ThreadPoolTaskExecutor for SMS tasks
      */
     @Bean(name = "smsExecutor")
-    public Executor smsExecutor() {
+    public ThreadPoolTaskExecutor smsExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(2);
         executor.setMaxPoolSize(4);
@@ -127,7 +132,7 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.setThreadNamePrefix("SMS-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(30);
-        executor.setTaskDecorator(mdcTaskDecorator); // MDC propagation
+        executor.setTaskDecorator(mdcTaskDecorator);
         executor.initialize();
         return executor;
     }
@@ -146,7 +151,7 @@ public class AsyncConfig implements AsyncConfigurer {
      * @return configured ThreadPoolTaskExecutor for activity logging
      */
     @Bean(name = "activityLogExecutor")
-    public Executor activityLogExecutor() {
+    public ThreadPoolTaskExecutor activityLogExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(3);
         executor.setMaxPoolSize(6);
@@ -154,7 +159,7 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.setThreadNamePrefix("ActivityLog-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(60);
-        executor.setTaskDecorator(mdcTaskDecorator); // MDC propagation
+        executor.setTaskDecorator(mdcTaskDecorator);
         executor.initialize();
         return executor;
     }
@@ -171,14 +176,14 @@ public class AsyncConfig implements AsyncConfigurer {
      *
      * @return configured ThreadPoolTaskExecutor for security monitoring
      */
-    @Bean("securityMonitoringExecutor")
-    public Executor securityMonitoringExecutor() {
+    @Bean(name = "securityMonitoringExecutor")
+    public ThreadPoolTaskExecutor securityMonitoringExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(1);
         executor.setMaxPoolSize(3);
         executor.setQueueCapacity(50);
         executor.setThreadNamePrefix("SecurityMonitoring-");
-        executor.setTaskDecorator(mdcTaskDecorator); // MDC propagation
+        executor.setTaskDecorator(mdcTaskDecorator);
         executor.initialize();
         return executor;
     }
@@ -196,7 +201,7 @@ public class AsyncConfig implements AsyncConfigurer {
      * @return configured ThreadPoolTaskExecutor for event listeners
      */
     @Bean(name = "eventListenerExecutor")
-    public Executor eventListenerExecutor() {
+    public ThreadPoolTaskExecutor eventListenerExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(2);
         executor.setMaxPoolSize(4);
@@ -204,7 +209,7 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.setThreadNamePrefix("EventListener-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(30);
-        executor.setTaskDecorator(mdcTaskDecorator); // MDC propagation
+        executor.setTaskDecorator(mdcTaskDecorator);
         executor.initialize();
         return executor;
     }
@@ -223,7 +228,7 @@ public class AsyncConfig implements AsyncConfigurer {
      * @return configured ThreadPoolTaskExecutor for geocoding tasks
      */
     @Bean(name = "geocodingExecutor")
-    public Executor geocodingExecutor() {
+    public ThreadPoolTaskExecutor geocodingExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(2);
         executor.setMaxPoolSize(5);
@@ -231,7 +236,7 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.setThreadNamePrefix("Geocoding-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(60);
-        executor.setTaskDecorator(mdcTaskDecorator); // MDC propagation
+        executor.setTaskDecorator(mdcTaskDecorator);
         executor.initialize();
         return executor;
     }
