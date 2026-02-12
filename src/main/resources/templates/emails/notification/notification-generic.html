@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Notification</title>
+    <style>
+        /* Reset */
+        body, table, td, p, a, li, blockquote {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        table, td {
+            mso-table-lspace: 0;
+            mso-table-rspace: 0;
+        }
+        img {
+            -ms-interpolation-mode: bicubic;
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+        }
+
+        /* Base */
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            background-color: #f4f4f7;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+        }
+
+        /* Container */
+        .email-wrapper {
+            width: 100%;
+            background-color: #f4f4f7;
+            padding: 30px 0;
+        }
+        .email-content {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        /* Header */
+        .email-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px 40px;
+            text-align: center;
+        }
+        .email-header h1 {
+            margin: 0;
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .email-header .subtitle {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        /* Body */
+        .email-body {
+            padding: 40px;
+        }
+        .greeting {
+            font-size: 18px;
+            color: #333333;
+            margin-bottom: 20px;
+        }
+        .notification-content {
+            background-color: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        .notification-content p {
+            margin: 0;
+            color: #4a5568;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        /* Priority Badge */
+        .priority-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+        .priority-normal {
+            background-color: #e2e8f0;
+            color: #4a5568;
+        }
+        .priority-high {
+            background-color: #fed7d7;
+            color: #c53030;
+        }
+        .priority-urgent {
+            background-color: #c53030;
+            color: #ffffff;
+        }
+        .priority-low {
+            background-color: #c6f6d5;
+            color: #276749;
+        }
+
+        /* CTA Button */
+        .cta-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 15px;
+            transition: transform 0.2s;
+        }
+        .cta-button:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Footer */
+        .email-footer {
+            background-color: #f8f9fa;
+            padding: 25px 40px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+        }
+        .email-footer p {
+            margin: 0;
+            color: #718096;
+            font-size: 13px;
+        }
+        .email-footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media only screen and (max-width: 620px) {
+            .email-body, .email-header, .email-footer {
+                padding: 25px 20px !important;
+            }
+            .email-header h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="email-wrapper">
+    <table class="email-content" role="presentation" cellpadding="0" cellspacing="0" width="100%">
+        <!-- Header -->
+        <tr>
+            <td class="email-header">
+                <h1 th:text="${title}">Notification</h1>
+                <p class="subtitle">You have a new notification</p>
+            </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+            <td class="email-body">
+                <!-- Greeting -->
+                <p class="greeting">
+                    Hello <span th:text="${userName}">User</span>,
+                </p>
+
+                <!-- Priority Badge (if HIGH or URGENT) -->
+                <div th:if="${priority.name() == 'HIGH' or priority.name() == 'URGENT'}">
+                        <span class="priority-badge"
+                              th:classappend="${priority.name() == 'URGENT'} ? 'priority-urgent' : 'priority-high'"
+                              th:text="${priority.name()}">HIGH</span>
+                </div>
+
+                <!-- Notification Content -->
+                <div class="notification-content">
+                    <p th:text="${body}">
+                        This is the notification message content.
+                    </p>
+                </div>
+
+                <!-- CTA Button -->
+                <div th:if="${hasAction}" class="cta-container">
+                    <a th:href="${actionUrl}" class="cta-button">
+                        View Details
+                    </a>
+                </div>
+
+                <p style="color: #718096; font-size: 14px; margin-top: 25px;">
+                    If you have any questions, feel free to reply to this email.
+                </p>
+            </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+            <td class="email-footer">
+                <p>
+                    This email was sent from <a th:href="${appBaseUrl}" th:text="${appBaseUrl}">our application</a>.
+                </p>
+                <p style="margin-top: 10px;">
+                    <a th:href="${appBaseUrl + '/account/notifications/preferences'}">Manage notification preferences</a>
+                </p>
+            </td>
+        </tr>
+    </table>
+</div>
+</body>
+</html>

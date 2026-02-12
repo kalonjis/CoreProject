@@ -1,0 +1,158 @@
+# ===========================================================================
+# Notification Configuration
+# ===========================================================================
+# Configuration for the notification system including scheduling, channels,
+# SSE settings, and email templates.
+#
+# Location: src/main/resources/config/notification.yml
+# ===========================================================================
+
+app:
+  notification:
+    # =========================================================================
+    # General Settings
+    # =========================================================================
+    enabled: true
+
+    # =========================================================================
+    # Scheduler Configuration
+    # =========================================================================
+    scheduler:
+      # Enable/disable the notification scheduler
+      enabled: true
+
+      # Interval for processing scheduled notifications (milliseconds)
+      # Default: 60000 (1 minute)
+      process-interval: 60000
+
+      # Cron expression for cleanup job
+      # Default: 3:00 AM daily
+      cleanup-cron: "0 0 3 * * ?"
+
+      # Days to keep dismissed notifications before deletion
+      retention-days: 90
+
+      # Days to keep read notifications (0 = forever)
+      read-retention-days: 0
+
+    # =========================================================================
+    # SSE (Server-Sent Events) Configuration
+    # =========================================================================
+    sse:
+      # Connection timeout in milliseconds
+      # Default: 30 minutes (1800000ms)
+      timeout: 1800000
+
+      # Heartbeat interval in milliseconds
+      # Keeps connection alive and detects dead connections
+      # Default: 30 seconds
+      heartbeat-interval: 30000
+
+      # Enable heartbeat mechanism
+      heartbeat-enabled: true
+
+    # =========================================================================
+    # Channel Configuration
+    # =========================================================================
+    channels:
+      # In-App (SSE) channel
+      in-app:
+        enabled: true
+
+      # Email channel
+      email:
+        enabled: ${spring.mail.enabled:true}
+        # Template base path (relative to templates/emails/)
+        template-base: notification/
+        # Templates for different notification types
+        templates:
+          generic: notification-generic
+          reminder: notification-reminder
+          security: notification-security
+
+      # Push notifications (future implementation)
+      push:
+        enabled: false
+        # VAPID keys for Web Push (configure when implementing)
+        # vapid-public-key: ${VAPID_PUBLIC_KEY:}
+        # vapid-private-key: ${VAPID_PRIVATE_KEY:}
+
+      # SMS channel
+      sms:
+        enabled: false
+        # Only for critical notifications (SECURITY, URGENT priority)
+        critical-only: true
+
+    # =========================================================================
+    # Default Channel Preferences by Notification Type
+    # =========================================================================
+    # These defaults are used when user has no explicit preference
+    defaults:
+      channels:
+        reminder:
+          - IN_APP
+          - PUSH
+        confirmation:
+          - IN_APP
+          - EMAIL
+        alert:
+          - IN_APP
+          - PUSH
+          - EMAIL
+        security:
+          - IN_APP
+          - PUSH
+          - EMAIL
+        social:
+          - IN_APP
+          - PUSH
+        info:
+          - IN_APP
+        system:
+          - IN_APP
+          - EMAIL
+
+    # =========================================================================
+    # Rate Limiting
+    # =========================================================================
+    rate-limit:
+      # Maximum notifications per user per hour (0 = unlimited)
+      max-per-hour: 100
+
+      # Maximum emails per user per day
+      max-emails-per-day: 50
+
+      # Cooldown between similar notifications (seconds)
+      # Prevents spam for repeated actions
+      cooldown-seconds: 60
+
+    # =========================================================================
+    # Quiet Hours (Global Defaults)
+    # =========================================================================
+    quiet-hours:
+      # Enable quiet hours feature
+      enabled: true
+
+      # Default quiet hours (can be overridden per user)
+      default-start: "22:00"
+      default-end: "08:00"
+
+      # Bypass quiet hours for these priorities
+      bypass-priorities:
+        - URGENT
+
+    # =========================================================================
+    # Digest Configuration
+    # =========================================================================
+    digest:
+      # Enable digest feature
+      enabled: true
+
+      # Time to send daily digest (24h format)
+      daily-send-time: "08:00"
+
+      # Day to send weekly digest (1=Monday, 7=Sunday)
+      weekly-send-day: 1
+
+      # Minimum notifications to include in digest
+      min-notifications: 3
