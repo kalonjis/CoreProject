@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.notification.listeners;
 
+import be.steby.CoreProject.bll.domains.notification.config.NotificationConfiguration;
 import be.steby.CoreProject.bll.domains.notification.events.NotificationCreatedEvent;
 import be.steby.CoreProject.dl.entities.Notification;
 import be.steby.CoreProject.dl.entities.User;
@@ -30,11 +31,11 @@ import org.thymeleaf.context.Context;
  * </ul>
  *
  * <h4>Email Templates:</h4>
- * <p>Uses Thymeleaf templates located in {@code resources/templates/mail/notification/}:</p>
+ * <p>Uses Thymeleaf templates configured in notification.yml:</p>
  * <ul>
- *   <li>{@code notification-generic.html} - Default template</li>
- *   <li>{@code notification-security.html} - Security alerts</li>
- *   <li>{@code notification-reminder.html} - Reminders</li>
+ *   <li>{@code notification-generic} - Default template</li>
+ *   <li>{@code notification-security} - Security alerts</li>
+ *   <li>{@code notification-reminder} - Reminders</li>
  * </ul>
  *
  * <h4>Execution Order:</h4>
@@ -42,6 +43,7 @@ import org.thymeleaf.context.Context;
  * {@link InAppNotificationListener}.</p>
  *
  * @see NotificationCreatedEvent
+ * @see NotificationConfiguration
  * @see EmailComposer
  */
 @Component
@@ -50,21 +52,10 @@ import org.thymeleaf.context.Context;
 public class EmailNotificationListener {
 
     private final EmailComposer emailComposer;
+    private final NotificationConfiguration notificationConfig;
 
     @Value("${app.base-url:http://localhost:4200}")
     private String appBaseUrl;
-
-    @Value("${spring.mail.enabled:true}")
-    private boolean mailEnabled;
-
-    // =========================================================================
-    // Template Paths
-    // =========================================================================
-
-    private static final String TEMPLATE_BASE = "mail/notification/";
-    private static final String TEMPLATE_GENERIC = TEMPLATE_BASE + "notification-generic";
-    private static final String TEMPLATE_SECURITY = TEMPLATE_BASE + "notification-security";
-    private static final String TEMPLATE_REMINDER = TEMPLATE_BASE + "notification-reminder";
 
     /**
      * Handles notification delivery via email.
@@ -83,9 +74,9 @@ public class EmailNotificationListener {
             return;
         }
 
-        // Check if mail is enabled
-        if (!mailEnabled) {
-            log.debug("Email disabled, skipping email notification {}",
+        // Check if email channel is globally enabled
+        if (!notificationConfig.isChannelEnabled(NotificationChannel.EMAIL)) {
+            log.debug("Email channel disabled globally, skipping notification {}",
                     event.getNotificationPublicId());
             return;
         }
@@ -108,7 +99,6 @@ public class EmailNotificationListener {
             String template = selectTemplate(notification.getType());
             String subject = buildSubject(notification);
 
-            //TODO check si c'etait bien sendMail ou une autre methode
             emailComposer.sendMail(
                     subject,
                     template,
@@ -168,13 +158,10 @@ public class EmailNotificationListener {
 
     /**
      * Selects the appropriate email template based on notification type.
+     * Template paths are configured in notification.yml.
      */
     private String selectTemplate(NotificationType type) {
-        return switch (type) {
-            case SECURITY -> TEMPLATE_SECURITY;
-            case REMINDER -> TEMPLATE_REMINDER;
-            default -> TEMPLATE_GENERIC;
-        };
+        return notificationConfig.getEmailTemplate(type);
     }
 
     /**

@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.notification.services;
 
+import be.steby.CoreProject.bll.domains.notification.config.NotificationConfiguration;
 import be.steby.CoreProject.dal.repositories.NotificationPreferenceRepository;
 import be.steby.CoreProject.dl.entities.NotificationPreference;
 import be.steby.CoreProject.dl.entities.User;
@@ -22,7 +23,7 @@ import java.util.*;
  *
  * <h4>Default Behavior:</h4>
  * <p>When no explicit preference exists for a user/type/channel combination,
- * the system applies sensible defaults:</p>
+ * the system applies defaults from configuration (notification.yml):</p>
  * <ul>
  *   <li><b>IN_APP:</b> Always enabled by default</li>
  *   <li><b>EMAIL:</b> Enabled by default for CONFIRMATION, SECURITY, SYSTEM</li>
@@ -30,24 +31,8 @@ import java.util.*;
  *   <li><b>SMS:</b> Disabled by default (explicit opt-in required)</li>
  * </ul>
  *
- * <h4>Usage Example:</h4>
- * <pre>{@code
- * // Get enabled channels for a notification
- * Set<NotificationChannel> channels = preferenceService.getEnabledChannels(
- *     user, NotificationType.REMINDER);
- *
- * // Check if in quiet hours
- * boolean quiet = preferenceService.isInQuietHours(
- *     user, NotificationChannel.PUSH, LocalTime.now());
- *
- * // Update a preference
- * preferenceService.setPreference(
- *     user, NotificationType.SOCIAL, NotificationChannel.EMAIL, false);
- * }</pre>
- *
  * @see NotificationPreference
- * @see NotificationType
- * @see NotificationChannel
+ * @see NotificationConfiguration
  */
 @Service
 @RequiredArgsConstructor
@@ -56,47 +41,7 @@ import java.util.*;
 public class NotificationPreferenceService {
 
     private final NotificationPreferenceRepository preferenceRepository;
-
-    // =========================================================================
-    // Default Channel Configuration
-    // =========================================================================
-
-    /**
-     * Default enabled channels per notification type.
-     *
-     * <p>Applied when no explicit user preference exists.</p>
-     */
-    private static final Map<NotificationType, Set<NotificationChannel>> DEFAULT_CHANNELS = Map.of(
-            NotificationType.REMINDER, Set.of(
-                    NotificationChannel.IN_APP,
-                    NotificationChannel.PUSH
-            ),
-            NotificationType.CONFIRMATION, Set.of(
-                    NotificationChannel.IN_APP,
-                    NotificationChannel.EMAIL
-            ),
-            NotificationType.ALERT, Set.of(
-                    NotificationChannel.IN_APP,
-                    NotificationChannel.PUSH,
-                    NotificationChannel.EMAIL
-            ),
-            NotificationType.SECURITY, Set.of(
-                    NotificationChannel.IN_APP,
-                    NotificationChannel.PUSH,
-                    NotificationChannel.EMAIL
-            ),
-            NotificationType.SOCIAL, Set.of(
-                    NotificationChannel.IN_APP,
-                    NotificationChannel.PUSH
-            ),
-            NotificationType.INFO, Set.of(
-                    NotificationChannel.IN_APP
-            ),
-            NotificationType.SYSTEM, Set.of(
-                    NotificationChannel.IN_APP,
-                    NotificationChannel.EMAIL
-            )
-    );
+    private final NotificationConfiguration notificationConfig;
 
     // =========================================================================
     // Channel Queries
@@ -105,11 +50,12 @@ public class NotificationPreferenceService {
     /**
      * Gets the enabled channels for a user and notification type.
      *
-     * <p>Merges explicit user preferences with defaults:</p>
+     * <p>Merges explicit user preferences with defaults from config:</p>
      * <ol>
-     *   <li>Start with default channels for the type</li>
+     *   <li>Start with default channels for the type (from notification.yml)</li>
      *   <li>Remove explicitly disabled channels</li>
      *   <li>Add explicitly enabled channels</li>
+     *   <li>Filter out globally disabled channels</li>
      * </ol>
      *
      * @param user the user
@@ -117,9 +63,9 @@ public class NotificationPreferenceService {
      * @return set of enabled channels
      */
     public Set<NotificationChannel> getEnabledChannels(User user, NotificationType type) {
-        // Start with defaults
+        // Start with defaults from configuration
         Set<NotificationChannel> channels = new HashSet<>(
-                DEFAULT_CHANNELS.getOrDefault(type, Set.of(NotificationChannel.IN_APP))
+                notificationConfig.getDefaultChannels(type)
         );
 
         // Get user's explicit preferences
@@ -128,9 +74,12 @@ public class NotificationPreferenceService {
         Set<NotificationChannel> enabled = preferenceRepository
                 .findEnabledChannelsByUserAndType(user, type);
 
-        // Apply preferences
+        // Apply user preferences
         channels.removeAll(disabled);
         channels.addAll(enabled);
+
+        // Filter out globally disabled channels
+        channels.removeIf(channel -> !notificationConfig.isChannelEnabled(channel));
 
         return channels;
     }
@@ -144,6 +93,11 @@ public class NotificationPreferenceService {
      * @return true if the channel is enabled
      */
     public boolean isChannelEnabled(User user, NotificationType type, NotificationChannel channel) {
+        // First check if channel is globally enabled
+        if (!notificationConfig.isChannelEnabled(channel)) {
+            return false;
+        }
+
         // Check explicit preference first
         Optional<NotificationPreference> preference = preferenceRepository
                 .findByUserAndNotificationTypeAndChannel(user, type, channel);
@@ -152,10 +106,8 @@ public class NotificationPreferenceService {
             return preference.get().isEnabled();
         }
 
-        // Fall back to default
-        Set<NotificationChannel> defaults = DEFAULT_CHANNELS.getOrDefault(
-                type, Set.of(NotificationChannel.IN_APP));
-        return defaults.contains(channel);
+        // Fall back to default from configuration
+        return notificationConfig.getDefaultChannels(type).contains(channel);
     }
 
     // =========================================================================
@@ -165,18 +117,48 @@ public class NotificationPreferenceService {
     /**
      * Checks if the user is currently in quiet hours for a channel.
      *
+     * <p>First checks user's explicit quiet hours, then falls back to
+     * global defaults from configuration if quiet hours feature is enabled.</p>
+     *
      * @param user    the user
      * @param channel the channel to check
      * @param time    the current time
      * @return true if in quiet hours
      */
     public boolean isInQuietHours(User user, NotificationChannel channel, LocalTime time) {
+        // Check user's explicit quiet hours first
         List<NotificationPreference> preferences = preferenceRepository
                 .findByUserAndChannel(user, channel);
 
-        return preferences.stream()
-                .filter(NotificationPreference::hasQuietHours)
-                .anyMatch(p -> p.isInQuietHours(time));
+        boolean hasUserQuietHours = preferences.stream()
+                .anyMatch(NotificationPreference::hasQuietHours);
+
+        if (hasUserQuietHours) {
+            return preferences.stream()
+                    .filter(NotificationPreference::hasQuietHours)
+                    .anyMatch(p -> p.isInQuietHours(time));
+        }
+
+        // Fall back to global defaults if quiet hours feature is enabled
+        if (notificationConfig.getQuietHours().isEnabled()) {
+            LocalTime defaultStart = notificationConfig.getQuietHours().getDefaultStart();
+            LocalTime defaultEnd = notificationConfig.getQuietHours().getDefaultEnd();
+            return isTimeInRange(time, defaultStart, defaultEnd);
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks if a time is within a range (handles overnight ranges).
+     */
+    private boolean isTimeInRange(LocalTime time, LocalTime start, LocalTime end) {
+        if (start.isAfter(end)) {
+            // Overnight (e.g., 22:00 - 08:00)
+            return time.isAfter(start) || time.isBefore(end);
+        } else {
+            return !time.isBefore(start) && time.isBefore(end);
+        }
     }
 
     /**
@@ -187,10 +169,26 @@ public class NotificationPreferenceService {
      * @return optional containing quiet hours if configured
      */
     public Optional<QuietHoursConfig> getQuietHours(User user, NotificationChannel channel) {
-        return preferenceRepository.findByUserAndChannel(user, channel).stream()
+        // Check user preferences first
+        Optional<QuietHoursConfig> userConfig = preferenceRepository
+                .findByUserAndChannel(user, channel).stream()
                 .filter(NotificationPreference::hasQuietHours)
                 .findFirst()
                 .map(p -> new QuietHoursConfig(p.getQuietHoursStart(), p.getQuietHoursEnd()));
+
+        if (userConfig.isPresent()) {
+            return userConfig;
+        }
+
+        // Return global defaults if enabled
+        if (notificationConfig.getQuietHours().isEnabled()) {
+            return Optional.of(new QuietHoursConfig(
+                    notificationConfig.getQuietHours().getDefaultStart(),
+                    notificationConfig.getQuietHours().getDefaultEnd()
+            ));
+        }
+
+        return Optional.empty();
     }
 
     /**
@@ -233,23 +231,28 @@ public class NotificationPreferenceService {
     public Map<NotificationType, Map<NotificationChannel, Boolean>> getPreferenceMatrix(User user) {
         Map<NotificationType, Map<NotificationChannel, Boolean>> matrix = new EnumMap<>(NotificationType.class);
 
-        // Initialize with defaults
+        // Initialize with defaults from configuration
         for (NotificationType type : NotificationType.values()) {
             Map<NotificationChannel, Boolean> channelMap = new EnumMap<>(NotificationChannel.class);
-            Set<NotificationChannel> defaults = DEFAULT_CHANNELS.getOrDefault(
-                    type, Set.of(NotificationChannel.IN_APP));
+            Set<NotificationChannel> defaults = notificationConfig.getDefaultChannels(type);
 
             for (NotificationChannel channel : NotificationChannel.values()) {
-                channelMap.put(channel, defaults.contains(channel));
+                // Channel is enabled if: globally enabled AND in defaults
+                boolean enabled = notificationConfig.isChannelEnabled(channel)
+                        && defaults.contains(channel);
+                channelMap.put(channel, enabled);
             }
             matrix.put(type, channelMap);
         }
 
-        // Override with explicit preferences
+        // Override with explicit user preferences
         List<NotificationPreference> preferences = preferenceRepository.findByUser(user);
         for (NotificationPreference pref : preferences) {
-            matrix.get(pref.getNotificationType())
-                    .put(pref.getChannel(), pref.isEnabled());
+            // Only apply if channel is globally enabled
+            if (notificationConfig.isChannelEnabled(pref.getChannel())) {
+                matrix.get(pref.getNotificationType())
+                        .put(pref.getChannel(), pref.isEnabled());
+            }
         }
 
         return matrix;
@@ -303,12 +306,11 @@ public class NotificationPreferenceService {
             LocalTime start,
             LocalTime end) {
 
-        // Update all preferences for this channel
         List<NotificationPreference> preferences = preferenceRepository
                 .findByUserAndChannel(user, channel);
 
         if (preferences.isEmpty()) {
-            // Create a preference to hold quiet hours
+            // Create preferences to hold quiet hours
             for (NotificationType type : NotificationType.values()) {
                 NotificationPreference pref = NotificationPreference.builder()
                         .user(user)
@@ -361,7 +363,9 @@ public class NotificationPreferenceService {
     @Transactional
     public void enableAllChannels(User user, NotificationType type) {
         for (NotificationChannel channel : NotificationChannel.values()) {
-            setPreference(user, type, channel, true);
+            if (notificationConfig.isChannelEnabled(channel)) {
+                setPreference(user, type, channel, true);
+            }
         }
         log.debug("All channels enabled for user={}, type={}", user.getPublicId(), type);
     }

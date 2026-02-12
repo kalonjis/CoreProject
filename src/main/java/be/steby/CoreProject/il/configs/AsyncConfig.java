@@ -241,6 +241,33 @@ public class AsyncConfig implements AsyncConfigurer {
         return executor;
     }
 
+
+    /**
+     * Thread pool dedicated to notification processing.
+     *
+     * <p>Configuration rationale:</p>
+     * <ul>
+     *   <li>Core pool: 2 threads (notifications are I/O bound)</li>
+     *   <li>Max pool: 6 threads (handles notification bursts)</li>
+     *   <li>Queue: 200 (buffer for notification spikes)</li>
+     * </ul>
+     *
+     * @return configured ThreadPoolTaskExecutor for notification tasks
+     */
+    @Bean(name = "notificationExecutor")
+    public ThreadPoolTaskExecutor notificationExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(6);
+        executor.setQueueCapacity(200);
+        executor.setThreadNamePrefix("Notification-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
+        executor.setTaskDecorator(mdcTaskDecorator);
+        executor.initialize();
+        return executor;
+    }
+
     /**
      * Exposes all executors as a Map for monitoring purposes.
      *
@@ -256,6 +283,7 @@ public class AsyncConfig implements AsyncConfigurer {
             @Qualifier("activityLogExecutor") ThreadPoolTaskExecutor activityLogExecutor,
             @Qualifier("eventListenerExecutor") ThreadPoolTaskExecutor eventListenerExecutor,
             @Qualifier("geocodingExecutor") ThreadPoolTaskExecutor geocodingExecutor,
+            @Qualifier("notificationExecutor") ThreadPoolTaskExecutor notificationExecutor,
             @Qualifier("generalPurposeExecutor") ThreadPoolTaskExecutor generalPurposeExecutor,
             @Qualifier("securityMonitoringExecutor") ThreadPoolTaskExecutor securityMonitoringExecutor) {
 
@@ -265,6 +293,7 @@ public class AsyncConfig implements AsyncConfigurer {
         executors.put("activityLog", activityLogExecutor);
         executors.put("eventListener", eventListenerExecutor);
         executors.put("geocoding", geocodingExecutor);
+        executors.put("notification", notificationExecutor);
         executors.put("general", generalPurposeExecutor);
         executors.put("securityMonitoring", securityMonitoringExecutor);
         return executors;
