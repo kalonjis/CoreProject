@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.notification.listeners;
+package be.steby.CoreProject.bll.domains.calendar.listeners;
 
 import be.steby.CoreProject.bll.domains.calendar.events.CalendarEventCancelledEvent;
 import be.steby.CoreProject.bll.domains.calendar.events.CalendarEventCreatedEvent;
