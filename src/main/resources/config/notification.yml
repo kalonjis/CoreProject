@@ -23,7 +23,7 @@ app:
 
       # Interval for processing scheduled notifications (milliseconds)
       # Default: 60000 (1 minute)
-      process-interval: 60000
+      process-interval: 15000
 
       # Cron expression for cleanup job
       # Default: 3:00 AM daily
