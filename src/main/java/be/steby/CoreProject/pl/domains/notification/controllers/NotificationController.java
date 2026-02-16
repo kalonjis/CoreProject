@@ -91,22 +91,24 @@ public class NotificationController {
      * @return SSE emitter for the connection
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(
-            summary = "Subscribe to real-time notifications",
-            description = "Establishes an SSE connection for receiving notifications in real-time"
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "SSE connection established"),
-            @ApiResponse(responseCode = "401", description = "Not authenticated")
-    })
     public SseEmitter streamNotifications(@AuthenticationPrincipal User user) {
-        log.info("SSE connection requested by user: {}", user.getPublicId());
+        log.info("🔗 [SSE] Stream requested by user: {}", user.getPublicId());
 
         // Create emitter with configured timeout
-        SseEmitter emitter = new SseEmitter(sseConfig.getTimeout());
+        long timeout = sseConfig.getTimeout();
+        log.info("🔗 [SSE] Creating emitter with timeout: {}ms ({}min)",
+                timeout, timeout / 60000);
+
+        SseEmitter emitter = new SseEmitter(timeout);
 
         // Register the emitter
+        log.info("🔗 [SSE] Registering emitter for user: {}", user.getPublicId());
         sseEmitterManager.register(user.getPublicId(), emitter);
+
+        // Vérifier immédiatement que l'enregistrement a fonctionné
+        boolean isRegistered = sseEmitterManager.isConnected(user.getPublicId());
+        log.info("🔗 [SSE] Post-register check: isConnected={}, connectionCount={}",
+                isRegistered, sseEmitterManager.getConnectionCount());
 
         // Send initial connection confirmation
         try {
@@ -116,9 +118,15 @@ public class NotificationController {
                             "status", "connected",
                             "userId", user.getPublicId()
                     )));
+            log.info("✅ [SSE] Connection confirmation sent to user: {}", user.getPublicId());
+
+            // Re-vérifier après l'envoi
+            boolean stillRegistered = sseEmitterManager.isConnected(user.getPublicId());
+            log.info("🔗 [SSE] Post-send check: isConnected={}", stillRegistered);
+
         } catch (Exception e) {
-            log.warn("Failed to send connection confirmation to user {}: {}",
-                    user.getPublicId(), e.getMessage());
+            log.error("❌ [SSE] Failed to send connection confirmation to user {}: {}",
+                    user.getPublicId(), e.getMessage(), e);
         }
 
         return emitter;

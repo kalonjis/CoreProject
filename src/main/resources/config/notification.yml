@@ -51,6 +51,8 @@ app:
       # Enable heartbeat mechanism
       heartbeat-enabled: true
 
+      max-connections: 10000
+
     # =========================================================================
     # Channel Configuration
     # =========================================================================

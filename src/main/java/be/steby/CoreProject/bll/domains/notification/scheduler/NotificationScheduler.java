@@ -73,9 +73,9 @@ public class NotificationScheduler {
      *   <li>Delayed notifications</li>
      * </ul>
      */
-    @Scheduled(fixedRateString = "${app.notification.scheduler.process-interval:60000}")
+    @Scheduled(fixedRateString = "${app.notification.scheduler.process-interval:15000}")
     public void processScheduledNotifications() {
-        log.trace("Running scheduled notification processor");
+        log.trace("Running scheduled notification processor at {}", Instant.now());
 
         try {
             int processed = notificationService.processScheduledNotifications();
@@ -84,7 +84,7 @@ public class NotificationScheduler {
                 log.info("Processed {} scheduled notification(s)", processed);
             }
         } catch (Exception e) {
-            log.error("Error processing scheduled notifications: {}", e.getMessage(), e);
+            log.error("❌ Error processing scheduled notifications: {}", e.getMessage(), e);
         }
     }
 

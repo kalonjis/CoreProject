@@ -62,20 +62,33 @@ public class SseHeartbeatScheduler {
         int connectionCount = emitterManager.getConnectionCount();
 
         if (connectionCount == 0) {
+            log.debug("[Heartbeat] No SSE connections, skipping");
             return; // No connections, nothing to do
         }
 
-        log.trace("Sending heartbeats to {} SSE connections", connectionCount);
+        log.info("Sending heartbeats to {} SSE connections", connectionCount);
+
+        final int[] success = {0};
+        final int[] failed = {0};
 
         emitterManager.forEachEmitter((userId, emitter) -> {
             try {
                 emitter.send(SseEmitter.event()
                         .name("heartbeat")
                         .data("ping"));
+                success[0]++;
+                log.trace("[Heartbeat] Sent to user {}", userId);
             } catch (IOException e) {
-                log.debug("Heartbeat failed for user {}, connection will be removed", userId);
+                failed[0]++;
+                log.warn("[Heartbeat] Failed for user {}: {} - connection will be removed",
+                        userId, e.getMessage());
                 // Connection cleanup happens automatically via emitter callbacks
             }
         });
+
+        if (failed[0] > 0) {
+            log.warn("[Heartbeat] Result: {}/{} success, {} failed",
+                    success[0], connectionCount, failed[0]);
+        }
     }
 }

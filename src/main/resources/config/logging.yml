@@ -4,3 +4,10 @@ logging:
     # Optionnel : réduire le bruit de Hibernate si besoin
     org.hibernate.SQL: INFO
     org.hibernate.type: INFO
+
+    # SSE debugging
+    be.steby.CoreProject.il.sse: DEBUG
+    be.steby.CoreProject.pl.domains.notification.controllers.NotificationController: DEBUG
+
+    be.steby.CoreProject.bll.domains.notification: DEBUG
+    be.steby.CoreProject.bll.domains.calendar.listeners: DEBUG
