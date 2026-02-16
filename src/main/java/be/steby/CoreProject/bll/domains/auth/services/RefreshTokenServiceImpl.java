@@ -31,7 +31,7 @@ import java.util.List;
 @Slf4j
 public class RefreshTokenServiceImpl extends BaseTokenServiceImpl<RefreshToken> {
 
-    @Value("${security.jwt.refresh-token.expiration}")
+    @Value("${domains.auth.refresh-token-expiration}")
     private Long refreshTokenDurationMs;
 
     private final RefreshTokenRepository refreshTokenRepository;

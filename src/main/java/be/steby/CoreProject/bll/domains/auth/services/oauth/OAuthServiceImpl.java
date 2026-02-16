@@ -5,13 +5,13 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.BlacklistedDeviceExcepti
 import be.steby.CoreProject.bll.domains.auth.exceptions.InvalidOAuth2ProviderException;
 import be.steby.CoreProject.bll.domains.auth.models.LoginTokens;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.auth.services.jwt.AuthJwtService;
 import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.dl.enums.OAuthProvider;
-import be.steby.CoreProject.il.Jwt.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +37,7 @@ public class OAuthServiceImpl implements OAuthService {
     private final OAuthAccountService oauthAccountService;
     private final DeviceService deviceService;
     private final RefreshTokenServiceImpl refreshTokenService;
-    private final JwtUtil jwtUtil;
+    private final AuthJwtService authJwtService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -145,7 +145,7 @@ public class OAuthServiceImpl implements OAuthService {
      * Generates access and refresh tokens for successful login.
      */
     private LoginTokens generateTokens(User user, Device device) {
-        String accessToken = jwtUtil.generateAccessToken(user, device);
+        String accessToken = authJwtService.generateAccessToken(user, device);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, device);
 
         return new LoginTokens(

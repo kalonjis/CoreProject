@@ -8,13 +8,13 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.SmsTwoFactorAl
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.SmsTwoFactorNotEnabledException;
 import be.steby.CoreProject.bll.domains.auth.models.SmsTwoFactorActivationBllRequest;
 import be.steby.CoreProject.bll.domains.auth.models.TwoFactorActivationResult;
+import be.steby.CoreProject.bll.domains.auth.services.twofactor.jwt.TwoFactorJwtService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.TwoFactorAuthRepository;
 import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
-import be.steby.CoreProject.il.Jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +48,7 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
     private final SecureRandom secureRandom = new SecureRandom();
     private final SmsTwoFactorActivationAttemptService smsTwoFactorActivationAttemptService;
     private final SmsTwoFactorVerificationAttemptService smsTwoFactorVerificationAttemptService;
-    private final JwtUtil jwtUtil;
+    private final TwoFactorJwtService twoFactorJwtService;
     
     @Override
     @Transactional
@@ -180,7 +180,7 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
 
         // 5. Hash the verification code before storing in JWT
         String hashedCode = passwordEncoder.encode(verificationCode);
-        String activationToken = jwtUtil.generate2FAActivationToken(user, hashedCode);
+        String activationToken = twoFactorJwtService.generateActivationToken(user, hashedCode);
 
         // 6. Publish event to send SMS (plain code for SMS message)
         TwoFactorSmsActivationEvent event = new TwoFactorSmsActivationEvent(
@@ -200,7 +200,7 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
         log.info("Starting SMS 2FA verification and activation process");
 
         // 1. Validate activation token and extract claims
-        Claims claims = jwtUtil.validate2FAActivationToken(request.activationToken());
+        Claims claims = twoFactorJwtService.validateActivationToken(request.activationToken());
         String userPublicId = claims.get("publicId", String.class);
         String hashedExpectedCode = claims.get("verificationCode", String.class);
 

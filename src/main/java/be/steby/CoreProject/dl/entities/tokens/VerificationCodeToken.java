@@ -46,7 +46,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class SmsToken extends BaseToken {
+public class VerificationCodeToken extends BaseToken {
 
     /**
      * The hashed verification code sent to the user via SMS.
@@ -71,7 +71,7 @@ public class SmsToken extends BaseToken {
      * 
      * @param verificationCodeHash the hashed verification code to store
      */
-    public SmsToken(String verificationCodeHash) {
+    public VerificationCodeToken(String verificationCodeHash) {
         this.verificationCodeHash = verificationCodeHash;
     }
 }

@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.auth.exceptions.twofactor;
 
-import be.steby.CoreProject.bll.domains.auth.exceptions.AuthenticationException;
+import be.steby.CoreProject.bll.domains.auth.exceptions.AuthDomainException;
 
 /**
  * Exception thrown when attempting to perform operations on email-based 2FA
@@ -17,7 +17,7 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.AuthenticationException;
  * @author Steby Team
  * @since 2.0.0
  */
-public class EmailTwoFactorNotEnabledException extends AuthenticationException {
+public class EmailTwoFactorNotEnabledException extends TwoFactorDomainException {
     
     /**
      * Creates a new exception with a descriptive message.

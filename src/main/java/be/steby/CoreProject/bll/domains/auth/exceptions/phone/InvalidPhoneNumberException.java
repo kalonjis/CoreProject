@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.auth.exceptions.phone;
 
-import be.steby.CoreProject.bll.domains.auth.exceptions.AuthenticationException;
+import be.steby.CoreProject.bll.domains.auth.exceptions.AuthDomainException;
 
 /**
  * Exception thrown when a user doesn't have a valid phone number configured
@@ -9,7 +9,7 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.AuthenticationException;
  * This exception extends AuthenticationException as it's related to authentication
  * flow interruption due to missing or invalid phone configuration.
  */
-public class InvalidPhoneNumberException extends AuthenticationException {
+public class InvalidPhoneNumberException extends AuthDomainException {
 
     public InvalidPhoneNumberException(String message) {
         super(message);

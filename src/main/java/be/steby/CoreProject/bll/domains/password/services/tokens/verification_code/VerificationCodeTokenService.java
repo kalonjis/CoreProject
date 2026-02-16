@@ -1,12 +1,12 @@
-package be.steby.CoreProject.bll.domains.password.services.tokens.sms;
+package be.steby.CoreProject.bll.domains.password.services.tokens.verification_code;
 
 import be.steby.CoreProject.bll.common.services.passwordgenerator.TemporaryPasswordGeneratorService;
 import be.steby.CoreProject.bll.common.services.tokens.BaseTokenServiceImpl;
 import be.steby.CoreProject.bll.common.services.tokens.SecureTokenService;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
-import be.steby.CoreProject.dal.repositories.tokens.SmsTokenRepository;
+import be.steby.CoreProject.dal.repositories.tokens.VerificationCodeTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.entities.tokens.SmsToken;
+import be.steby.CoreProject.dl.entities.tokens.VerificationCodeToken;
 import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -44,43 +44,43 @@ import java.util.Optional;
  * </ul>
  * 
  * <h4>Rate Limiting:</h4>
- * <p>Delegates rate limiting to dedicated {@link SmsAttemptServiceImpl} for proper
+ * <p>Delegates rate limiting to dedicated {@link VerificationCodeAttemptServiceImpl} for proper
  * separation of concerns and consistency with other token services in the application.</p>
  * 
  * @see BaseTokenServiceImpl
- * @see SmsToken
- * @see SmsAttemptServiceImpl
+ * @see VerificationCodeToken
+ * @see VerificationCodeAttemptServiceImpl
  */
 @Service
 @Slf4j
-public class SmsTokenServiceImpl extends BaseTokenServiceImpl<SmsToken> {
+public class VerificationCodeTokenService extends BaseTokenServiceImpl<VerificationCodeToken> {
 
     @Value("${security.sms-password-reset.token.expiration:600000}")
     private Long smsTokenDurationMs; // Default: 10 minutes
 
-    private final SmsTokenRepository smsTokenRepository;
-    private final SmsAttemptServiceImpl smsAttemptService;
+    private final VerificationCodeTokenRepository verificationCodeTokenRepository;
+    private final VerificationCodeAttemptServiceImpl verificationCodeAttemptService;
     private final TemporaryPasswordGeneratorService passwordGeneratorService;
     private final PasswordEncoder passwordEncoder;
 
     /**
-     * Constructs a new {@link SmsTokenServiceImpl} using the provided dependencies.
+     * Constructs a new {@link VerificationCodeTokenService} using the provided dependencies.
      *
-     * @param smsTokenRepository The repository specifically for SMS password reset tokens
-     * @param smsAttemptService Service for tracking and limiting SMS-specific attempts
+     * @param verificationCodeTokenRepository The repository specifically for SMS password reset tokens
+     * @param verificationCodeAttemptService Service for tracking and limiting SMS-specific attempts
      * @param secureTokenService Service for secure token generation
      * @param passwordGeneratorService Service for generating verification codes
      * @param passwordEncoder Encoder for hashing verification codes
      */
-    public SmsTokenServiceImpl(
-            @Qualifier("smsTokenRepository") SmsTokenRepository smsTokenRepository,
-            SmsAttemptServiceImpl smsAttemptService,
+    public VerificationCodeTokenService(
+            @Qualifier("verificationCodeTokenRepository") VerificationCodeTokenRepository verificationCodeTokenRepository,
+            VerificationCodeAttemptServiceImpl verificationCodeAttemptService,
             SecureTokenService secureTokenService,
             TemporaryPasswordGeneratorService passwordGeneratorService,
             PasswordEncoder passwordEncoder) {
-        super(smsTokenRepository, SmsToken.class, secureTokenService);
-        this.smsTokenRepository = smsTokenRepository;
-        this.smsAttemptService = smsAttemptService;
+        super(verificationCodeTokenRepository, VerificationCodeToken.class, secureTokenService);
+        this.verificationCodeTokenRepository = verificationCodeTokenRepository;
+        this.verificationCodeAttemptService = verificationCodeAttemptService;
         this.passwordGeneratorService = passwordGeneratorService;
         this.passwordEncoder = passwordEncoder;
     }
@@ -104,11 +104,11 @@ public class SmsTokenServiceImpl extends BaseTokenServiceImpl<SmsToken> {
      * @throws MaxAttemptsReachedException if rate limits are exceeded
      */
     @Transactional
-    public SmsCodeGenerationResult createSmsPasswordResetToken(User user) {
+    public CodeGenerationResult createSmsPasswordResetToken(User user) {
         log.debug("Creating SMS password reset token for user: {}", user.getUsername());
 
         // Check SMS-specific rate limiting
-        if (smsAttemptService.hasExceededAttempts(user)) {
+        if (verificationCodeAttemptService.hasExceededAttempts(user)) {
             log.warn("User {} exceeded SMS password reset attempts", user.getUsername());
             throw new MaxAttemptsReachedException("Too many SMS password reset attempts. Please try again later.");
         }
@@ -121,20 +121,20 @@ public class SmsTokenServiceImpl extends BaseTokenServiceImpl<SmsToken> {
         String codeHash = passwordEncoder.encode(verificationCode);
 
         // Revoke any existing SMS tokens for this user (one active token policy)
-        smsTokenRepository.revokeAllUserSmsTokens(user);
+        verificationCodeTokenRepository.revokeAllUserSmsTokens(user);
 
         // Create new token with hashed code
-        SmsToken token = super.createToken(user, TokenType.SMS_PASSWORD_RESET, smsTokenDurationMs, false);
+        VerificationCodeToken token = super.createToken(user, TokenType.SMS_PASSWORD_RESET, smsTokenDurationMs, false);
         token.setVerificationCodeHash(codeHash);
-        smsTokenRepository.save(token);
+        verificationCodeTokenRepository.save(token);
 
         // Record attempt for rate limiting
-        smsAttemptService.recordAttempt(user);
+        verificationCodeAttemptService.recordAttempt(user);
 
         log.info("SMS password reset token created successfully for user: {} (token: {})", 
                 user.getUsername(), token.getToken());
 
-        return new SmsCodeGenerationResult(token, verificationCode);
+        return new CodeGenerationResult(token, verificationCode);
     }
 
     /**
@@ -160,13 +160,13 @@ public class SmsTokenServiceImpl extends BaseTokenServiceImpl<SmsToken> {
         log.debug("Validating SMS verification code for user: {}", user.getUsername());
 
         // Find active SMS token for user
-        Optional<SmsToken> tokenOpt = smsTokenRepository.findByUserAndRevokedFalse(user);
+        Optional<VerificationCodeToken> tokenOpt = verificationCodeTokenRepository.findByUserAndRevokedFalse(user);
         if (tokenOpt.isEmpty()) {
             log.debug("No active SMS token found for user: {}", user.getUsername());
             return false;
         }
 
-        SmsToken token = tokenOpt.get();
+        VerificationCodeToken token = tokenOpt.get();
 
         // Verify token is still valid (not expired)
         if (token.isExpired()) {
@@ -181,7 +181,7 @@ public class SmsTokenServiceImpl extends BaseTokenServiceImpl<SmsToken> {
         if (isValid) {
             // Success: revoke token (one-time use) and reset attempt counters
             revokeToken(token);
-            smsAttemptService.resetAttempts(user);
+            verificationCodeAttemptService.resetAttempts(user);
             log.info("SMS verification code validated successfully for user: {}", user.getUsername());
         } else {
             log.debug("Invalid SMS verification code provided for user: {}", user.getUsername());
@@ -201,11 +201,11 @@ public class SmsTokenServiceImpl extends BaseTokenServiceImpl<SmsToken> {
      * @return Optional containing the token if found and valid
      */
     @Transactional(readOnly = true)
-    public Optional<SmsToken> findValidTokenByReference(String tokenReference, User user) {
-        Optional<SmsToken> tokenOpt = smsTokenRepository.findValidByToken(tokenReference, Instant.now());
+    public Optional<VerificationCodeToken> findValidTokenByReference(String tokenReference, User user) {
+        Optional<VerificationCodeToken> tokenOpt = verificationCodeTokenRepository.findValidByToken(tokenReference, Instant.now());
         
         if (tokenOpt.isPresent()) {
-            SmsToken token = tokenOpt.get();
+            VerificationCodeToken token = tokenOpt.get();
             // Security check: ensure token belongs to the requesting user
             if (!token.getUser().getId().equals(user.getId())) {
                 log.warn("Token ownership mismatch: token {} requested by user {} but belongs to user {}", 
@@ -224,8 +224,8 @@ public class SmsTokenServiceImpl extends BaseTokenServiceImpl<SmsToken> {
      * @return Optional containing the token if found and valid
      */
     @Transactional(readOnly = true)
-    public Optional<SmsToken> findValidTokenByReference(String tokenReference) {
-        return smsTokenRepository.findValidByToken(tokenReference, Instant.now());
+    public Optional<VerificationCodeToken> findValidTokenByReference(String tokenReference) {
+        return verificationCodeTokenRepository.findValidByToken(tokenReference, Instant.now());
     }
 
     /**
@@ -259,7 +259,7 @@ public class SmsTokenServiceImpl extends BaseTokenServiceImpl<SmsToken> {
         log.debug("Starting cleanup of expired and revoked SMS password reset tokens");
         
         try {
-            smsTokenRepository.deleteExpiredAndRevokedTokens(Instant.now());
+            verificationCodeTokenRepository.deleteExpiredAndRevokedTokens(Instant.now());
             log.debug("SMS password reset token cleanup completed successfully");
         } catch (Exception e) {
             log.error("Failed to cleanup expired SMS password reset tokens", e);
@@ -269,11 +269,11 @@ public class SmsTokenServiceImpl extends BaseTokenServiceImpl<SmsToken> {
     // ========== RESULT CLASSES ==========
 
     /**
-     * Result class for SMS code generation containing both the token and plain verification code.
+     * Result class for verification code generation containing both the token and plain verification code.
      * The plain code is needed for SMS sending, while the token contains the hashed version.
      */
-    public record SmsCodeGenerationResult(
-            SmsToken token,
+    public record CodeGenerationResult(
+            VerificationCodeToken token,
             String plainVerificationCode
     ) {}
 }

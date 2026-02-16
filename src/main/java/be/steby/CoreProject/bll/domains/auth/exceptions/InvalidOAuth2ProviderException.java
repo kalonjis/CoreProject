@@ -4,7 +4,7 @@ package be.steby.CoreProject.bll.domains.auth.exceptions;
  * Exception thrown when an unsupported or invalid OAuth2 provider is requested.
  * Returns HTTP 400 (Bad Request) as it indicates a client error with invalid input.
  */
-public class InvalidOAuth2ProviderException extends AuthenticationException {
+public class InvalidOAuth2ProviderException extends AuthDomainException {
 
     /**
      * Creates a new exception for an invalid OAuth2 provider.

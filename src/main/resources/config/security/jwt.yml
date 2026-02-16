@@ -1,13 +1,27 @@
+
 security:
   jwt:
     secret: ${JWT_SECRET}
-    access-token:
-      expiration: 900000  # 15 minutes
-      #expiration: 15000  # 15 minutes
-      name: "access_token"
-    refresh-token:
-      expiration: 604800000  # 7 days
-      name: "refresh_token"
-    2fa-token:
-      expiration: 600000   # 10 minutes
-      name: "2fa_token"
+
+domains:
+  auth:
+    jwt:
+      access-token-expiration: 3600000
+      access-token-cookie-name: access_token
+      refresh-token-cookie-name: refresh_token
+    refresh-token-expiration: 604800000
+
+  twofactor:
+    jwt:
+      expiration: 600000
+      token-cookie-name: 2fa_token
+      session-cookie-name: 2fa_session_token
+
+  profile:
+    jwt:
+      phone-verification-expiration: 600000
+
+  password:
+    jwt:
+      verification-expiration: 600000
+      permission-expiration: 900000

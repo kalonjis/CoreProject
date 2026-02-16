@@ -22,7 +22,7 @@ import java.util.List;
  * @author Steby Team
  * @since 2.0.0
  */
-public class TwoFactorCodeDeliveryException extends CoreProjectException {
+public class TwoFactorCodeDeliveryException extends TwoFactorDomainException {
 
     private final TwoFactorType failedMethod;
     private final List<TwoFactorType> alternativeMethods;

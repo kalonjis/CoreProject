@@ -2,7 +2,7 @@ package be.steby.CoreProject.bll.domains.password.services;
 
 import be.steby.CoreProject.bll.common.services.passwordgenerator.TemporaryPasswordGeneratorService;
 import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordResetTokenException;
-import be.steby.CoreProject.il.Jwt.JwtUtil;
+import be.steby.CoreProject.bll.domains.password.services.jwt.PasswordResetJwtService;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +30,7 @@ import org.springframework.stereotype.Service;
 public class PasswordCodeService {
 
     private final TemporaryPasswordGeneratorService temporaryPasswordGeneratorService;
-    private final JwtUtil jwtUtil;
+    private final PasswordResetJwtService passwordResetJwtService;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -82,7 +82,7 @@ public class PasswordCodeService {
         String hashedCode = passwordEncoder.encode(code);
         
         // Generate JWT token with hashed code
-        String jwtToken = jwtUtil.generatePasswordResetSmsToken(email, hashedCode);
+        String jwtToken = passwordResetJwtService.generateSmsVerificationToken(email, hashedCode);
         
         log.debug("SMS verification code stored in JWT for email: {}", email);
         return jwtToken;
@@ -105,7 +105,7 @@ public class PasswordCodeService {
 
         try {
             // Validate and extract claims from JWT token
-            Claims claims = jwtUtil.validatePasswordResetSmsToken(jwtToken);
+            Claims claims = passwordResetJwtService.validateSmsVerificationToken(jwtToken);
 
             // Delegate to the new method that avoids double JWT parsing
             return validateSmsCodeWithClaims(email, providedCode, claims);

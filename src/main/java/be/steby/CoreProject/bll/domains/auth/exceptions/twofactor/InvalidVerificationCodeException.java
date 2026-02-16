@@ -1,7 +1,6 @@
 package be.steby.CoreProject.bll.domains.auth.exceptions.twofactor;
 
-import be.steby.CoreProject.bll.domains.auth.exceptions.AuthenticationException;
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
+import be.steby.CoreProject.bll.domains.auth.exceptions.AuthDomainException;
 
 /**
  * Exception thrown when an invalid verification code is provided during 2FA operations.
@@ -17,7 +16,7 @@ import be.steby.CoreProject.bll.exceptions.CoreProjectException;
  * @author Steby Team
  * @since 2.0.0
  */
-public class InvalidVerificationCodeException extends AuthenticationException {
+public class InvalidVerificationCodeException extends TwoFactorDomainException {
 
     /**
      * Constructs a new InvalidVerificationCodeException with the specified detail message.
