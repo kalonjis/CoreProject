@@ -81,8 +81,10 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public Notification send(NotificationRequest request) {
-        log.debug("Creating notification for user: {}, type: {}",
-                request.recipient().getPublicId(), request.type());
+        log.info("Creating notification for user: {}, type: {}, scheduledFor: {}",
+                request.recipient().getPublicId(),
+                request.type(),
+                request.scheduledFor());
 
         // Build notification entity
         Notification notification = buildNotification(request);
@@ -94,17 +96,21 @@ public class NotificationServiceImpl implements NotificationService {
         // Persist notification
         notification = notificationRepository.save(notification);
 
-        log.info("Notification created: {} for user: {} via channels: {}",
+        log.info("✅ Notification created: {} for user: {} via channels: {} (scheduledFor: {})",
                 notification.getPublicId(),
                 request.recipient().getPublicId(),
-                channels);
+                channels,
+                notification.getScheduledFor());
 
-        // Publish event for delivery (if immediate)
+        // Publish event for delivery
         if (request.isImmediate()) {
+            log.debug("Publishing immediate delivery event for notification {}",
+                    notification.getPublicId());
             eventPublisher.publishEvent(new NotificationCreatedEvent(notification, channels));
         } else {
-            log.debug("Notification {} scheduled for: {}",
-                    notification.getPublicId(), request.scheduledFor());
+            log.info("📅 Notification {} scheduled for delivery at: {} (will be processed by scheduler)",
+                    notification.getPublicId(),
+                    notification.getScheduledFor());
         }
 
         return notification;
@@ -335,25 +341,48 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public int processScheduledNotifications() {
+        Instant now = Instant.now();
         List<Notification> scheduled = notificationRepository
-                .findScheduledReadyForDelivery(Instant.now());
+                .findScheduledReadyForDelivery(now);
 
-        log.debug("Processing {} scheduled notifications", scheduled.size());
+        if (scheduled.isEmpty()) {
+            log.trace("No scheduled notifications ready for delivery at {}", now);
+            return 0;
+        }
+
+        log.info("Processing {} scheduled notification(s) ready for delivery", scheduled.size());
 
         int processed = 0;
+        int failed = 0;
+
         for (Notification notification : scheduled) {
             try {
+                log.debug("Processing scheduled notification: {} (scheduledFor: {}, recipient: {})",
+                        notification.getPublicId(),
+                        notification.getScheduledFor(),
+                        notification.getRecipient().getPublicId());
+
                 // Publish event for delivery
                 eventPublisher.publishEvent(
                         new NotificationCreatedEvent(notification, notification.getChannels())
                 );
                 processed++;
+
+                log.info("✅ Scheduled notification {} dispatched for delivery",
+                        notification.getPublicId());
+
             } catch (Exception e) {
-                log.error("Failed to process scheduled notification: {} - {}",
-                        notification.getPublicId(), e.getMessage());
+                failed++;
+                log.error("❌ Failed to process scheduled notification: {} - {}",
+                        notification.getPublicId(), e.getMessage(), e);
                 notification.markAsFailed();
                 notificationRepository.save(notification);
             }
+        }
+
+        if (failed > 0) {
+            log.warn("Processed {}/{} scheduled notifications ({} failed)",
+                    processed, scheduled.size(), failed);
         }
 
         return processed;

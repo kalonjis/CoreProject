@@ -86,32 +86,38 @@ public class SseEmitterManager {
      * @param emitter      the SSE emitter to register
      */
     public void register(String userPublicId, SseEmitter emitter) {
+        log.info("🔗 [SSE] Registering emitter for user: {} (current connections: {})",
+                userPublicId, emitters.size());
+
         // Complete existing connection if any
         SseEmitter existing = emitters.get(userPublicId);
         if (existing != null) {
-            log.debug("Replacing existing SSE connection for user: {}", userPublicId);
+            log.warn("🔗 [SSE] Replacing existing connection for user: {}", userPublicId);
             completeQuietly(existing);
         }
 
         // Configure cleanup callbacks
         emitter.onCompletion(() -> {
-            log.debug("SSE connection completed for user: {}", userPublicId);
+            log.info("🔗 [SSE] onCompletion triggered for user: {}", userPublicId);
+            if (log.isDebugEnabled()) {
+                log.debug("🔗 [SSE] onCompletion stack trace:", new Exception("Stack trace"));
+            }
             remove(userPublicId);
         });
 
         emitter.onTimeout(() -> {
-            log.debug("SSE connection timed out for user: {}", userPublicId);
+            log.warn("🔗 [SSE] onTimeout triggered for user: {}", userPublicId);
             remove(userPublicId);
         });
 
         emitter.onError(throwable -> {
-            log.debug("SSE connection error for user {}: {}", userPublicId, throwable.getMessage());
+            log.error("🔗 [SSE] onError triggered for user {}: {}", userPublicId, throwable.getMessage());
             remove(userPublicId);
         });
 
         // Register the new emitter
         emitters.put(userPublicId, emitter);
-        log.info("SSE connection registered for user: {} (total connections: {})",
+        log.info("✅ [SSE] Emitter REGISTERED for user: {} (total connections: {})",
                 userPublicId, emitters.size());
     }
 
@@ -126,7 +132,12 @@ public class SseEmitterManager {
      * @return optional containing the emitter if user is connected
      */
     public Optional<SseEmitter> getEmitter(String userPublicId) {
-        return Optional.ofNullable(emitters.get(userPublicId));
+        SseEmitter emitter = emitters.get(userPublicId);
+        if (emitter == null) {
+            log.trace("🔍 [SSE] getEmitter: user {} NOT found (connections: {})",
+                    userPublicId, emitters.size());
+        }
+        return Optional.ofNullable(emitter);
     }
 
     /**
@@ -136,7 +147,12 @@ public class SseEmitterManager {
      * @return true if user has an active SSE connection
      */
     public boolean isConnected(String userPublicId) {
-        return emitters.containsKey(userPublicId);
+        boolean connected = emitters.containsKey(userPublicId);
+        if (!connected && log.isDebugEnabled()) {
+            log.debug("🔍 [SSE] isConnected: user {} = false (connections: {}, keys: {})",
+                    userPublicId, emitters.size(), emitters.keySet());
+        }
+        return connected;
     }
 
     // =========================================================================
@@ -154,8 +170,10 @@ public class SseEmitterManager {
     public void remove(String userPublicId) {
         SseEmitter removed = emitters.remove(userPublicId);
         if (removed != null) {
-            log.debug("SSE connection removed for user: {} (remaining connections: {})",
+            log.info("🗑️ [SSE] Emitter REMOVED for user: {} (remaining: {})",
                     userPublicId, emitters.size());
+        } else {
+            log.debug("🗑️ [SSE] remove called but user {} was not in map", userPublicId);
         }
     }
 
