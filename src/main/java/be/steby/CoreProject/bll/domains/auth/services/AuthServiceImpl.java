@@ -10,9 +10,11 @@ import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorCodeDeliveryException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorNotEnabledException;
 import be.steby.CoreProject.bll.domains.auth.models.*;
+import be.steby.CoreProject.bll.domains.auth.services.jwt.AuthJwtService;
 import be.steby.CoreProject.bll.domains.auth.services.notifications.email.AuthMailerService;
 import be.steby.CoreProject.bll.domains.auth.services.notifications.sms.AuthSmsService;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.TwoFactorFactory;
+import be.steby.CoreProject.bll.domains.auth.services.twofactor.jwt.TwoFactorJwtService;
 import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.auth.services.login_attempt.LoginAttemptService;
 import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
@@ -27,7 +29,6 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
-import be.steby.CoreProject.il.Jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -55,7 +56,8 @@ public class AuthServiceImpl implements AuthService {
     private final DeviceService deviceService;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final DeviceConfirmationTokenServiceImpl deviceConfirmationTokenService;
-    private final JwtUtil jwtUtil;
+    private final AuthJwtService authJwtService;
+    private final TwoFactorJwtService twoFactorJwtService;
     private final AuthMailerService authMailerService;
     private final AuthSmsService authSmsService;
 
@@ -147,7 +149,7 @@ public class AuthServiceImpl implements AuthService {
                 loginAttemptService.clearFailedAttempts(username, clientIpAddress);
 
                 // Generate lightweight session token (no verification code)
-                String sessionToken = jwtUtil.generate2FASessionToken(user);
+                String sessionToken = twoFactorJwtService.generateSessionToken(user);
 
                 return LoginInitiationResult.requiresTwoFactor(sessionToken);
             }
@@ -163,11 +165,70 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public List<TwoFactorAuth> getEnabledTwoFactorMethods(String twoFactorSessionToken) {
-        Claims claims = jwtUtil.validate2FASessionToken(twoFactorSessionToken);
+        Claims claims = twoFactorJwtService.validateSessionToken(twoFactorSessionToken);
         String publicId = claims.get("publicId", String.class);
         User user = userService.getUserByPublicId(publicId);
         return twoFactorFactory.getEnabledTwoFactorMethods(user);
     }
+
+    @Override
+    public TwoFactorMethodChosenResult chooseTwoFactorMethod(String twoFactorSessionToken, TwoFactorType chosenType,
+                                                             HttpServletRequest httpRequest) {
+        log.info("Processing 2FA method choice: {}", chosenType);
+
+        // 1. Validate session token and extract user info
+        Claims claims = twoFactorJwtService.validateSessionToken(twoFactorSessionToken);
+        String publicId = claims.get("publicId", String.class);
+        User user = userService.getUserByPublicId(publicId);
+
+        // 2. Verify user has this method enabled
+        if (!twoFactorFactory.isMethodEnabled(user, chosenType)) {
+            log.warn("User {} attempted to choose unavailable 2FA method: {}", user.getUsername(), chosenType);
+            throw new TwoFactorNotEnabledException("Chosen two-factor method is not enabled");
+        }
+
+        // 3. Generate verification code if needed (not for backup codes or TOTP)
+        String verificationCodeHash = null;
+        String plainCode = null;
+        boolean codeGenerated = false;
+
+        if (chosenType != TwoFactorType.BACKUP_CODES && chosenType != TwoFactorType.TOTP) {
+            CodeGenerationResult codeResult = twoFactorFactory.generateCodeForType(user, chosenType);
+            verificationCodeHash = codeResult.hashedCode();
+            plainCode = codeResult.plainCode();
+            codeGenerated = true;
+
+            // 4. Send the code SYNCHRONOUSLY - handle delivery failure
+            try {
+                sendVerificationCodeSync(user, chosenType, plainCode, httpRequest);
+                log.debug("Verification code sent successfully for method: {}", chosenType);
+            } catch (MailDeliveryException | SmsSendingException e) {
+                log.warn("Failed to send 2FA code via {}: {}", chosenType, e.getMessage());
+                List<TwoFactorType> alternatives = getAvailableAlternatives(user, chosenType);
+                return TwoFactorMethodChosenResult.deliveryFailed(
+                        chosenType,
+                        "Unable to send verification code. Please try another method.",
+                        alternatives
+                );
+            }
+        }
+
+        // 5. Generate full 2FA token with chosen method
+        String twoFactorToken = twoFactorJwtService.generateVerificationToken(user, verificationCodeHash, chosenType);
+
+        // 6. Build result with masked target info
+        String maskedTarget = getMaskedTarget(user, chosenType);
+
+        log.info("2FA method chosen successfully for user: {} with method: {}", user.getUsername(), chosenType);
+
+        return TwoFactorMethodChosenResult.success(
+                twoFactorToken,
+                chosenType,
+                codeGenerated,
+                maskedTarget
+        );
+    }
+
 
 
     @Override
@@ -175,7 +236,7 @@ public class AuthServiceImpl implements AuthService {
         log.info("Verifying 2FA code for login completion");
 
         // 1. Validate and extract 2FA token
-        Claims claims = jwtUtil.validate2FAToken(twoFactorToken);
+        Claims claims = twoFactorJwtService.validateVerificationToken(twoFactorToken);
         TwoFactorTokenClaims twoFactorClaims = extractTwoFactorClaims(claims);
 
         // 2. Load user for factory operations
@@ -237,7 +298,7 @@ public class AuthServiceImpl implements AuthService {
         log.info("Resending 2FA verification code");
 
         // 1. Validate token and extract claims
-        Claims claims = jwtUtil.validate2FAToken(twoFactorToken);
+        Claims claims = twoFactorJwtService.validateSessionToken(twoFactorToken);
         TwoFactorTokenClaims twoFactorClaims = extractTwoFactorClaims(claims);
         TwoFactorType twoFactorType = twoFactorClaims.twoFactorType();
 
@@ -271,7 +332,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public TwoFactorSessionInfo getTwoFactorSessionInfo(String twoFactorToken) {
         // 1. Validate token and extract claims
-        Claims claims = jwtUtil.validate2FAToken(twoFactorToken);
+        Claims claims = twoFactorJwtService.validateSessionToken(twoFactorToken);
         TwoFactorTokenClaims twoFactorClaims = extractTwoFactorClaims(claims);
 
         // 2. Calculate time remaining
@@ -329,7 +390,7 @@ public class AuthServiceImpl implements AuthService {
         // Rotate refresh token
         RefreshToken newRefreshToken = refreshTokenService.rotateToken(validatedToken);
 
-        String newAccessToken = jwtUtil.generateAccessToken(
+        String newAccessToken = authJwtService.generateAccessToken(
                 newRefreshToken.getUser(),
                 newRefreshToken.getDevice()
         );
@@ -355,64 +416,6 @@ public class AuthServiceImpl implements AuthService {
         return twoFactorFactory.getEnabledTwoFactorMethods(user);
     }
 
-
-    @Override
-    public TwoFactorMethodChosenResult chooseTwoFactorMethod(String twoFactorSessionToken, TwoFactorType chosenType,
-                                                             HttpServletRequest httpRequest) {
-        log.info("Processing 2FA method choice: {}", chosenType);
-
-        // 1. Validate session token and extract user info
-        Claims claims = jwtUtil.validate2FASessionToken(twoFactorSessionToken);
-        String publicId = claims.get("publicId", String.class);
-        User user = userService.getUserByPublicId(publicId);
-
-        // 2. Verify user has this method enabled
-        if (!twoFactorFactory.isMethodEnabled(user, chosenType)) {
-            log.warn("User {} attempted to choose unavailable 2FA method: {}", user.getUsername(), chosenType);
-            throw new TwoFactorNotEnabledException("Chosen two-factor method is not enabled");
-        }
-
-        // 3. Generate verification code if needed (not for backup codes or TOTP)
-        String verificationCodeHash = null;
-        String plainCode = null;
-        boolean codeGenerated = false;
-
-        if (chosenType != TwoFactorType.BACKUP_CODES && chosenType != TwoFactorType.TOTP) {
-            CodeGenerationResult codeResult = twoFactorFactory.generateCodeForType(user, chosenType);
-            verificationCodeHash = codeResult.hashedCode();
-            plainCode = codeResult.plainCode();
-            codeGenerated = true;
-
-            // 4. Send the code SYNCHRONOUSLY - handle delivery failure
-            try {
-                sendVerificationCodeSync(user, chosenType, plainCode, httpRequest);
-                log.debug("Verification code sent successfully for method: {}", chosenType);
-            } catch (MailDeliveryException | SmsSendingException e) {
-                log.warn("Failed to send 2FA code via {}: {}", chosenType, e.getMessage());
-                List<TwoFactorType> alternatives = getAvailableAlternatives(user, chosenType);
-                return TwoFactorMethodChosenResult.deliveryFailed(
-                        chosenType,
-                        "Unable to send verification code. Please try another method.",
-                        alternatives
-                );
-            }
-        }
-
-        // 5. Generate full 2FA token with chosen method
-        String twoFactorToken = jwtUtil.generate2FAToken(user, verificationCodeHash, chosenType);
-
-        // 6. Build result with masked target info
-        String maskedTarget = getMaskedTarget(user, chosenType);
-
-        log.info("2FA method chosen successfully for user: {} with method: {}", user.getUsername(), chosenType);
-
-        return TwoFactorMethodChosenResult.success(
-                twoFactorToken,
-                chosenType,
-                codeGenerated,
-                maskedTarget
-        );
-    }
 
     @Override
     public List<TwoFactorAuth> getAllTwoFactorMethodsWithStatus(User user) {
@@ -686,7 +689,7 @@ public class AuthServiceImpl implements AuthService {
      * @return LoginTokens containing access token and refresh token data
      */
     private LoginTokens generateTokens(User user, Device device) {
-        String accessToken = jwtUtil.generateAccessToken(user, device);
+        String accessToken = authJwtService.generateAccessToken(user, device);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, device);
 
         return new LoginTokens(

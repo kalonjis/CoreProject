@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.auth.exceptions.twofactor;
 
-import be.steby.CoreProject.bll.domains.auth.exceptions.AuthenticationException;
+import be.steby.CoreProject.bll.domains.auth.exceptions.AuthDomainException;
 
 /**
  * Exception thrown when attempting to perform operations on SMS 2FA
@@ -12,7 +12,7 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.AuthenticationException;
  * @author Steby Team
  * @since 2.0.0
  */
-public class SmsTwoFactorNotEnabledException extends AuthenticationException {
+public class SmsTwoFactorNotEnabledException extends TwoFactorDomainException {
     
     public SmsTwoFactorNotEnabledException(String message) {
         super(message, 404);

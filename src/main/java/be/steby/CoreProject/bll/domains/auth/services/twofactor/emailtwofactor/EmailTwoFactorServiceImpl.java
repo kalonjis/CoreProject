@@ -7,13 +7,13 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.EmailTwoFactor
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.InvalidVerificationCodeException;
 import be.steby.CoreProject.bll.domains.auth.models.EmailTwoFactorActivationBllRequest;
 import be.steby.CoreProject.bll.domains.auth.models.TwoFactorActivationResult;
+import be.steby.CoreProject.bll.domains.auth.services.twofactor.jwt.TwoFactorJwtService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.TwoFactorAuthRepository;
 import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
-import be.steby.CoreProject.il.Jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -66,7 +66,7 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
     private final EmailTwoFactorVerificationAttemptService emailTwoFactorVerificationAttemptService;
     private final SecureRandom secureRandom = new SecureRandom();
     private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
+    private final TwoFactorJwtService twoFactorJwtService;
     private final ApplicationEventPublisher eventPublisher;
 
     // ==================== PUBLIC API METHODS ====================
@@ -111,7 +111,7 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
 
         // 🔒 SECURITY: Hash the verification code before storing in JWT
         String hashedCode = passwordEncoder.encode(setupVerificationCode);
-        String activationToken = jwtUtil.generate2FAActivationToken(user, hashedCode);
+        String activationToken = twoFactorJwtService.generateActivationToken(user, hashedCode);
 
         // Publish event to send verification email (plain code for email)
         TwoFactorInitiateActivationEvent event = new TwoFactorInitiateActivationEvent(
@@ -129,7 +129,7 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
         log.info("Starting email 2FA verification and activation process");
 
         // Validate activation token and extract claims
-        Claims claims = jwtUtil.validate2FAActivationToken(request.activationToken());
+        Claims claims = twoFactorJwtService.validateActivationToken(request.activationToken());
         String userPublicId = claims.get("publicId", String.class);
         String hashedExpectedCode = claims.get("verificationCode", String.class);
 

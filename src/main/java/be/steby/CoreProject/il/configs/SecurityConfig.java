@@ -1,9 +1,9 @@
 package be.steby.CoreProject.il.configs;
 
+import be.steby.CoreProject.bll.domains.auth.services.jwt.AuthJwtService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceAuthenticationService;
 import be.steby.CoreProject.bll.domains.auth.services.AuthService;
 import be.steby.CoreProject.il.filters.JwtFilter;
-import be.steby.CoreProject.il.Jwt.JwtUtil;
 import be.steby.CoreProject.il.filters.MustChangePasswordFilter;
 import be.steby.CoreProject.il.security.OAuth2AuthenticationSuccessHandler;
 import jakarta.servlet.http.HttpServletResponse;
@@ -86,8 +86,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtFilter jwtFilter(AuthService authService, JwtUtil jwtUtil, DeviceAuthenticationService deviceAuthenticationService) {
-        return new JwtFilter(authService, jwtUtil, deviceAuthenticationService);
+    public JwtFilter jwtFilter(AuthService authService, AuthJwtService authJwtService, DeviceAuthenticationService deviceAuthenticationService) {
+        return new JwtFilter(authService, authJwtService, deviceAuthenticationService);
     }
 
     @Bean

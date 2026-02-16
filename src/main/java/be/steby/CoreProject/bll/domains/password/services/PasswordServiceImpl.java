@@ -10,7 +10,8 @@ import be.steby.CoreProject.bll.domains.password.events.email.PasswordResetCodeE
 import be.steby.CoreProject.bll.domains.password.events.sms.PasswordResetSmsRequestedEvent;
 import be.steby.CoreProject.bll.domains.password.exceptions.*;
 import be.steby.CoreProject.bll.domains.password.models.*;
-import be.steby.CoreProject.bll.domains.password.services.tokens.sms.SmsTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.password.services.jwt.PasswordResetJwtService;
+import be.steby.CoreProject.bll.domains.password.services.tokens.verification_code.VerificationCodeTokenService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.email.PasswordResetTokenServiceImpl;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
@@ -18,10 +19,9 @@ import be.steby.CoreProject.bll.exceptions.TokenValidityException;
 import be.steby.CoreProject.bll.exceptions.UserAuthenticationStateException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
-import be.steby.CoreProject.dl.entities.tokens.SmsToken;
+import be.steby.CoreProject.dl.entities.tokens.VerificationCodeToken;
 import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import be.steby.CoreProject.dl.enums.PasswordResetType;
-import be.steby.CoreProject.il.Jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -60,8 +60,8 @@ public class PasswordServiceImpl implements PasswordService {
     private final DeviceService deviceService;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final ApplicationEventPublisher eventPublisher;
-    private final JwtUtil jwtUtil;
-    private final SmsTokenServiceImpl smsTokenService;
+    private final PasswordResetJwtService passwordResetJwtService;
+    private final VerificationCodeTokenService verificationCodeTokenService;
 
     @Value("${url.front_server}")
     private String FRONT_URL;
@@ -119,7 +119,7 @@ public class PasswordServiceImpl implements PasswordService {
 
         try {
             // Validate JWT reference token and extract claims
-            Claims claims = jwtUtil.validatePasswordResetSmsReferenceToken(request.jwtToken());
+            Claims claims = passwordResetJwtService.validateCodeReferenceToken(request.jwtToken());
 
             // Extract token reference from JWT
             String tokenReference = claims.get("tokenRef", String.class);
@@ -127,17 +127,17 @@ public class PasswordServiceImpl implements PasswordService {
             log.debug("Code verification request with token ref: {}", tokenReference);
 
             // Find token by reference and get associated user
-            Optional<SmsToken> tokenOpt = smsTokenService.findValidTokenByReference(tokenReference);
+            Optional<VerificationCodeToken> tokenOpt = verificationCodeTokenService.findValidTokenByReference(tokenReference);
             if (tokenOpt.isEmpty()) {
                 log.warn("No valid token found for reference: {}", tokenReference);
                 return CodeVerificationResult.failure();
             }
 
-            SmsToken smsToken = tokenOpt.get();
-            User user = smsToken.getUser();
+            VerificationCodeToken verificationCodeToken = tokenOpt.get();
+            User user = verificationCodeToken.getUser();
 
             // Validate the provided code against stored hash
-            boolean isCodeValid = smsTokenService.validateVerificationCode(
+            boolean isCodeValid = verificationCodeTokenService.validateVerificationCode(
                     user,
                     request.verificationCode()
             );
@@ -148,7 +148,7 @@ public class PasswordServiceImpl implements PasswordService {
             }
 
             // Generate permission token for password reset access
-            String permissionToken = jwtUtil.generatePasswordResetPermissionToken(user.getEmail());
+            String permissionToken = passwordResetJwtService.generatePermissionToken(user.getEmail());
 
             log.info("Password reset code verified successfully for user: {}", user.getUsername());
             return CodeVerificationResult.success(permissionToken);
@@ -202,7 +202,7 @@ public class PasswordServiceImpl implements PasswordService {
         checkIsAnonymous();
 
         // Validate permission token and extract claims
-        Claims claims = jwtUtil.validatePasswordResetPermissionToken(request.permissionToken());
+        Claims claims = passwordResetJwtService.validatePermissionToken(request.permissionToken());
         String email = claims.get("email", String.class);
 
         log.debug("Password reset with permission for email: {}", email);
@@ -293,8 +293,8 @@ public class PasswordServiceImpl implements PasswordService {
 
 
     // =========================================================================
-// DEFINE PASSWORD (OAUTH USERS)
-// =========================================================================
+    // DEFINE PASSWORD (OAUTH USERS)
+    // =========================================================================
 
     @Override
     @Transactional
@@ -366,12 +366,12 @@ public class PasswordServiceImpl implements PasswordService {
 
         try {
             // Create DB token with verification code
-            SmsTokenServiceImpl.SmsCodeGenerationResult result =
-                    smsTokenService.createSmsPasswordResetToken(user);
+            VerificationCodeTokenService.CodeGenerationResult result =
+                    verificationCodeTokenService.createSmsPasswordResetToken(user);
 
             // Create JWT reference token for cookie
             String tokenReference = result.token().getToken();
-            String jwtReferenceToken = jwtUtil.generatePasswordResetSmsReferenceToken(tokenReference);
+            String jwtReferenceToken = passwordResetJwtService.generateCodeReferenceToken(tokenReference);
 
             // Publish email event with the generated code
             eventPublisher.publishEvent(
@@ -412,12 +412,12 @@ public class PasswordServiceImpl implements PasswordService {
             }
 
             // Create DB token with verification code
-            SmsTokenServiceImpl.SmsCodeGenerationResult result =
-                    smsTokenService.createSmsPasswordResetToken(user);
+            VerificationCodeTokenService.CodeGenerationResult result =
+                    verificationCodeTokenService.createSmsPasswordResetToken(user);
 
             // Create JWT reference token for cookie
             String tokenReference = result.token().getToken();
-            String jwtReferenceToken = jwtUtil.generatePasswordResetSmsReferenceToken(tokenReference);
+            String jwtReferenceToken = passwordResetJwtService.generateCodeReferenceToken(tokenReference);
 
             // Publish SMS event with the generated code
             eventPublisher.publishEvent(

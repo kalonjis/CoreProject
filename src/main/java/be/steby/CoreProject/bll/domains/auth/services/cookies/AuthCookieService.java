@@ -21,29 +21,43 @@ public class AuthCookieService {
 
     private final BaseCookieService baseCookieService;
 
-    // Configuration from application properties
-    @Value("${security.jwt.access-token.name}")
+    // =========================================================================
+    // Auth Domain Configuration
+    // =========================================================================
+
+    @Value("${domains.auth.jwt.access-token-cookie-name}")
     private String accessTokenCookieName;
 
-    @Value("${security.jwt.refresh-token.name}")
+    @Value("${domains.auth.jwt.refresh-token-cookie-name}")
     private String refreshTokenCookieName;
 
-    @Value("${security.jwt.access-token.expiration}")
+    @Value("${domains.auth.jwt.access-token-expiration}")
     private Long accessTokenDurationMs;
 
-    @Value("${security.jwt.refresh-token.expiration}")
+    @Value("${domains.auth.refresh-token-expiration}")
     private Long refreshTokenDurationMs;
 
-    @Value("${security.jwt.2fa-token.name}")
+    // =========================================================================
+    // TwoFactor Domain Configuration
+    // =========================================================================
+
+    @Value("${domains.twofactor.jwt.expiration}")
+    private Long twoFactorTokenDurationMs;
+
+    @Value("${domains.twofactor.jwt.token-cookie-name}")
     private String twoFactorTokenCookieName;
 
-    @Value("${security.jwt.2fa-token.expiration}")
-    private Long twoFactorTokenDurationMs;
+    @Value("${domains.twofactor.jwt.session-cookie-name}")
+    private String twoFactorSessionCookieName;
 
     private static final String TWO_FACTOR_ACTIVATION_COOKIE_NAME = "2fa_activation_token";
 
     private static final String COOKIE_PATH = "/";
-    private static final boolean SECURE = true; // Always use HTTPS in production
+    private static final boolean SECURE = true;
+
+    // =========================================================================
+    // Authentication Cookies
+    // =========================================================================
 
     /**
      * Sets both access and refresh token cookies in a single operation.
@@ -103,7 +117,7 @@ public class AuthCookieService {
     }
 
     /**
-     * Clears both authentication cookies.
+     * Clears all authentication cookies.
      * Used during logout or when authentication needs to be reset.
      *
      * @param response HTTP response
@@ -117,7 +131,6 @@ public class AuthCookieService {
 
     /**
      * Clears only the access token cookie.
-     * Useful for invalidating access without affecting refresh token.
      *
      * @param response HTTP response
      */
@@ -128,7 +141,6 @@ public class AuthCookieService {
 
     /**
      * Clears only the refresh token cookie.
-     * Useful for invalidating refresh without affecting active access token.
      *
      * @param response HTTP response
      */
@@ -158,71 +170,18 @@ public class AuthCookieService {
         }
 
         log.debug("Refresh token cookie parsed successfully");
-        return parts; // [userId, deviceId, tokenValue]
+        return parts;
     }
 
-    /**
-     * Sets the two-factor authentication activation token cookie during setup flow.
-     *
-     * This cookie is used during the 2FA activation process to maintain state
-     * between initiation and verification steps. It contains a JWT token with:
-     * - User identification
-     * - Verification code for validation
-     * - Activation purpose for security
-     *
-     * The cookie is configured with:
-     * - HttpOnly flag for security (prevents JavaScript access)
-     * - Secure flag in production environments
-     * - Strict SameSite policy to prevent CSRF
-     * - Scoped path to 2FA endpoints only
-     * - Expiration matching the JWT token duration
-     *
-     * @param response the HTTP response to set the cookie on
-     * @param activationToken the JWT activation token containing verification code
-     */
-    public void set2FAActivationToken(HttpServletResponse response, String activationToken) {
-        int maxAgeSeconds = (int) (twoFactorTokenDurationMs / 1000);
-
-        baseCookieService.setHttpOnlyCookie(
-                response,
-                TWO_FACTOR_ACTIVATION_COOKIE_NAME,
-                activationToken,
-                maxAgeSeconds,
-                COOKIE_PATH, // "/api/auth/2fa"
-                SECURE
-        );
-
-        log.debug("2FA activation token cookie set with expiration: {} seconds", maxAgeSeconds);
-    }
-    
-
-    /**
-     * Clears the two-factor authentication activation token cookie.
-     *
-     * This method removes the activation token cookie after:
-     * - Successful verification and activation completion
-     * - Token expiration or validation failure
-     * - User cancellation of the activation process
-     * - Security policy requirement to clear expired sessions
-     *
-     * The cookie is immediately invalidated by setting its max age to 0
-     * and overriding its value with an empty string.
-     *
-     * @param response the HTTP response to clear the cookie from
-     */
-    public void clear2FAActivationToken(HttpServletResponse response) {
-        baseCookieService.deleteHttpOnlyCookie(response, TWO_FACTOR_ACTIVATION_COOKIE_NAME);
-        log.debug("2FA activation token cookie cleared");
-    }
-
-
+    // =========================================================================
+    // Two-Factor Authentication Cookies
+    // =========================================================================
 
     /**
      * Sets the 2FA token cookie during authentication flow.
-     * HttpOnly and Secure for protection, shorter expiration time.
      *
      * @param response HTTP response
-     * @param twoFactorToken JWT 2FA token value
+     * @param twoFactorToken JWT 2FA token
      */
     public void set2FAToken(HttpServletResponse response, String twoFactorToken) {
         int maxAgeSeconds = (int) (twoFactorTokenDurationMs / 1000);
@@ -241,7 +200,6 @@ public class AuthCookieService {
 
     /**
      * Clears the 2FA token cookie.
-     * Used after successful 2FA verification or on timeout/failure.
      *
      * @param response HTTP response
      */
@@ -250,22 +208,18 @@ public class AuthCookieService {
         log.debug("2FA token cookie cleared");
     }
 
-
     /**
-     * Set 2FA session token cookie for method selection phase.
+     * Sets the 2FA session token cookie (method selection phase).
      *
-     * This lightweight token is used before the user chooses a specific 2FA method.
-     * Contains only user identification without verification code data.
-     *
-     * @param response HTTP response to set the cookie on
-     * @param sessionToken the lightweight JWT token for method selection
+     * @param response HTTP response
+     * @param sessionToken JWT session token
      */
     public void set2FASessionToken(HttpServletResponse response, String sessionToken) {
         int maxAgeSeconds = (int) (twoFactorTokenDurationMs / 1000);
 
         baseCookieService.setHttpOnlyCookie(
                 response,
-                "2fa_session_token",
+                twoFactorSessionCookieName,
                 sessionToken,
                 maxAgeSeconds,
                 COOKIE_PATH,
@@ -276,21 +230,43 @@ public class AuthCookieService {
     }
 
     /**
-     * Clear 2FA session token cookie.
+     * Clears the 2FA session token cookie.
      *
-     * Used to remove the lightweight session token when:
-     * - User chooses a 2FA method (replaced by full 2FA token)
-     * - Session expires or is cancelled
-     * - Authentication flow is completed or aborted
-     *
-     * @param response HTTP response to clear the cookie on
+     * @param response HTTP response
      */
     public void clear2FASessionToken(HttpServletResponse response) {
-        baseCookieService.deleteHttpOnlyCookie(response, "2fa_session_token");
+        baseCookieService.deleteHttpOnlyCookie(response, twoFactorSessionCookieName);
         log.debug("2FA session token cookie cleared");
     }
 
+    /**
+     * Sets the 2FA activation token cookie (TOTP setup flow).
+     *
+     * @param response HTTP response
+     * @param activationToken JWT activation token
+     */
+    public void set2FAActivationToken(HttpServletResponse response, String activationToken) {
+        int maxAgeSeconds = (int) (twoFactorTokenDurationMs / 1000);
 
+        baseCookieService.setHttpOnlyCookie(
+                response,
+                TWO_FACTOR_ACTIVATION_COOKIE_NAME,
+                activationToken,
+                maxAgeSeconds,
+                COOKIE_PATH,
+                SECURE
+        );
 
+        log.debug("2FA activation token cookie set with expiration: {} seconds", maxAgeSeconds);
+    }
 
+    /**
+     * Clears the 2FA activation token cookie.
+     *
+     * @param response HTTP response
+     */
+    public void clear2FAActivationToken(HttpServletResponse response) {
+        baseCookieService.deleteHttpOnlyCookie(response, TWO_FACTOR_ACTIVATION_COOKIE_NAME);
+        log.debug("2FA activation token cookie cleared");
+    }
 }

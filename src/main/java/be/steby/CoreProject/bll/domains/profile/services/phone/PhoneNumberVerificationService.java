@@ -10,7 +10,6 @@ import be.steby.CoreProject.bll.domains.profile.models.phone.PhoneVerificationRe
 import be.steby.CoreProject.bll.domains.profile.models.phone.PhoneVerificationTokenResult;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.il.Jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +39,7 @@ import java.security.SecureRandom;
 public class PhoneNumberVerificationService {
 
     private final PhoneNumberFormatValidationService phoneNumberFormatValidationService;
-    private final JwtUtil jwtUtil;
+    private final PhoneJwtService phoneJwtService;
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom secureRandom = new SecureRandom();
     private final UserService userService;
@@ -69,7 +68,7 @@ public class PhoneNumberVerificationService {
         String verificationCode = generateVerificationCode();
         String hashedCode = passwordEncoder.encode(verificationCode);
 
-        String verificationToken  = jwtUtil.generatePhoneVerificationToken(
+        String verificationToken  = phoneJwtService.generateVerificationToken(
                 user, formattedPhoneNumber,hashedCode
         );
 
@@ -97,7 +96,7 @@ public class PhoneNumberVerificationService {
         log.debug("Verifying SMS verification code");
 
         // 1. Validate and extract claims from token using specialized method
-        Claims claims = jwtUtil.validatePhoneVerificationToken(token);
+        Claims claims = phoneJwtService.validateVerificationToken(token);
 
         // 2. Extract verification data (already validated by jwtUtil method)
         String userPublicId = claims.get("userPublicId", String.class);

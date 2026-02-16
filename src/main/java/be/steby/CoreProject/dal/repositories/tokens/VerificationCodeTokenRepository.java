@@ -1,7 +1,7 @@
 package be.steby.CoreProject.dal.repositories.tokens;
 
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.entities.tokens.SmsToken;
+import be.steby.CoreProject.dl.entities.tokens.VerificationCodeToken;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -32,9 +32,9 @@ import java.util.Optional;
  * </ul>
  * 
  * @see BaseTokenRepository
- * @see SmsToken
+ * @see VerificationCodeToken
  */
-public interface SmsTokenRepository extends BaseTokenRepository<SmsToken> {
+public interface VerificationCodeTokenRepository extends BaseTokenRepository<VerificationCodeToken> {
 
     // ========== CORE TOKEN LOOKUP METHODS ==========
 
@@ -47,7 +47,7 @@ public interface SmsTokenRepository extends BaseTokenRepository<SmsToken> {
      * @param token the unique token identifier (UUID)
      * @return Optional containing the token if found and not revoked
      */
-    Optional<SmsToken> findByTokenAndRevokedFalse(String token);
+    Optional<VerificationCodeToken> findByTokenAndRevokedFalse(String token);
 
     /**
      * Finds the active SMS password reset token for a specific user.
@@ -58,7 +58,7 @@ public interface SmsTokenRepository extends BaseTokenRepository<SmsToken> {
      * @param user the user whose active token to find
      * @return Optional containing the active token if found
      */
-    Optional<SmsToken> findByUserAndRevokedFalse(User user);
+    Optional<VerificationCodeToken> findByUserAndRevokedFalse(User user);
 
     /**
      * Finds a valid (non-revoked, non-expired) SMS token by token identifier.
@@ -70,8 +70,8 @@ public interface SmsTokenRepository extends BaseTokenRepository<SmsToken> {
      * @param now current timestamp for expiry validation
      * @return Optional containing the token if valid
      */
-    @Query("SELECT t FROM SmsToken t WHERE t.token = :token AND t.revoked = false AND t.expiryDate > :now")
-    Optional<SmsToken> findValidByToken(@Param("token") String token, @Param("now") Instant now);
+    @Query("SELECT t FROM VerificationCodeToken t WHERE t.token = :token AND t.revoked = false AND t.expiryDate > :now")
+    Optional<VerificationCodeToken> findValidByToken(@Param("token") String token, @Param("now") Instant now);
 
     // ========== RATE LIMITING METHODS ==========
 
@@ -89,7 +89,7 @@ public interface SmsTokenRepository extends BaseTokenRepository<SmsToken> {
      * @param since the start of the time window to check
      * @return number of SMS tokens created since the given time
      */
-    @Query("SELECT COUNT(t) FROM SmsToken t WHERE t.user = :user AND t.createdAt >= :since")
+    @Query("SELECT COUNT(t) FROM VerificationCodeToken t WHERE t.user = :user AND t.createdAt >= :since")
     long countByUserAndCreatedAtAfter(@Param("user") User user, @Param("since") Instant since);
 
     /**
@@ -106,7 +106,7 @@ public interface SmsTokenRepository extends BaseTokenRepository<SmsToken> {
      * @param since the start of the time window to check  
      * @return number of revoked tokens (indicating failed attempts) since the given time
      */
-    @Query("SELECT COUNT(t) FROM SmsToken t WHERE t.user = :user AND t.revoked = true AND t.updatedAt >= :since")
+    @Query("SELECT COUNT(t) FROM VerificationCodeToken t WHERE t.user = :user AND t.revoked = true AND t.updatedAt >= :since")
     long countFailedAttemptsByUserSince(@Param("user") User user, @Param("since") Instant since);
 
     // ========== TOKEN MANAGEMENT METHODS ==========
@@ -120,7 +120,7 @@ public interface SmsTokenRepository extends BaseTokenRepository<SmsToken> {
      * @param user the user whose SMS tokens should be revoked
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("UPDATE SmsToken t SET t.revoked = true WHERE t.user = :user")
+    @Query("UPDATE VerificationCodeToken t SET t.revoked = true WHERE t.user = :user")
     void revokeAllUserSmsTokens(@Param("user") User user);
 
     /**
@@ -136,7 +136,7 @@ public interface SmsTokenRepository extends BaseTokenRepository<SmsToken> {
      * @param now current timestamp for expiry comparison
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("DELETE FROM SmsToken t WHERE t.expiryDate < :now OR t.revoked = true")
+    @Query("DELETE FROM VerificationCodeToken t WHERE t.expiryDate < :now OR t.revoked = true")
     void deleteExpiredAndRevokedTokens(@Param("now") Instant now);
 
     // ========== ANALYTICS AND MONITORING METHODS ==========
@@ -150,7 +150,7 @@ public interface SmsTokenRepository extends BaseTokenRepository<SmsToken> {
      * @param now current timestamp for expiry validation
      * @return number of currently active SMS tokens system-wide
      */
-    @Query("SELECT COUNT(t) FROM SmsToken t WHERE t.revoked = false AND t.expiryDate > :now")
+    @Query("SELECT COUNT(t) FROM VerificationCodeToken t WHERE t.revoked = false AND t.expiryDate > :now")
     long countActiveTokens(@Param("now") Instant now);
 
     /**
@@ -164,6 +164,6 @@ public interface SmsTokenRepository extends BaseTokenRepository<SmsToken> {
      * @param endTime end of the period to analyze
      * @return number of SMS tokens created in the specified period
      */
-    @Query("SELECT COUNT(t) FROM SmsToken t WHERE t.createdAt BETWEEN :startTime AND :endTime")
+    @Query("SELECT COUNT(t) FROM VerificationCodeToken t WHERE t.createdAt BETWEEN :startTime AND :endTime")
     long countTokensCreatedBetween(@Param("startTime") Instant startTime, @Param("endTime") Instant endTime);
 }

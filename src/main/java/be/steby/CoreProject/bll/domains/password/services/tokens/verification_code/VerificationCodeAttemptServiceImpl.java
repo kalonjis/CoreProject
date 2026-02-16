@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.password.services.tokens.sms;
+package be.steby.CoreProject.bll.domains.password.services.tokens.verification_code;
 
 import be.steby.CoreProject.bll.common.services.tokens.BaseAttemptTrackerServiceImpl;
 import be.steby.CoreProject.dal.repositories.UserAttemptRepository;
@@ -37,7 +37,7 @@ import org.springframework.stereotype.Service;
  * </ul>
  * 
  * <h4>Usage Pattern:</h4>
- * <p>Typically used by {@link SmsTokenServiceImpl} to enforce rate limits:</p>
+ * <p>Typically used by {@link VerificationCodeTokenService} to enforce rate limits:</p>
  * <pre>
  * // Before creating SMS token
  * if (attemptService.hasExceededAttempts(user)) {
@@ -51,10 +51,10 @@ import org.springframework.stereotype.Service;
  * 
  * @see BaseAttemptTrackerServiceImpl
  * @see AttemptType#SMS_PASSWORD_RESET
- * @see SmsTokenServiceImpl
+ * @see VerificationCodeTokenService
  */
 @Service
-public class SmsAttemptServiceImpl extends BaseAttemptTrackerServiceImpl {
+public class VerificationCodeAttemptServiceImpl extends BaseAttemptTrackerServiceImpl {
 
     /**
      * Constructs a new SMS password reset attempt tracker service.
@@ -75,7 +75,7 @@ public class SmsAttemptServiceImpl extends BaseAttemptTrackerServiceImpl {
      * @param maxAttempts Maximum number of attempts before lockout (from properties)
      * @param lockoutMinutes Duration of lockout period in minutes (from properties)
      */
-    public SmsAttemptServiceImpl(
+    public VerificationCodeAttemptServiceImpl(
             UserAttemptRepository userAttemptRepository,
             @Value("${security.sms-password-reset.max-attempts:3}") int maxAttempts,
             @Value("${security.sms-password-reset.lockout-minutes:15}") int lockoutMinutes) {

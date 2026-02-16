@@ -8,13 +8,13 @@ import be.steby.CoreProject.bll.domains.auth.models.TotpActivationInitiateResult
 import be.steby.CoreProject.bll.domains.auth.models.TotpTwoFactorActivationBllRequest;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.config.TOTPConfiguration;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.config.TOTPSecretEncryptionService;
+import be.steby.CoreProject.bll.domains.auth.services.twofactor.jwt.TwoFactorJwtService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.TwoFactorAuthRepository;
 import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
-import be.steby.CoreProject.il.Jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -67,7 +67,7 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
     private final PasswordEncoder passwordEncoder;
     private final TOTPConfiguration totpConfig;
     private final TOTPSecretEncryptionService encryptionService;
-    private final JwtUtil jwtUtil;
+    private final TwoFactorJwtService twoFactorJwtService;
     private final ApplicationEventPublisher eventPublisher;
     private final TotpTwoFactorActivationAttemptService totpActivationAttemptService;
     private final TotpTwoFactorVerificationAttemptService totpVerificationAttemptService;
@@ -161,7 +161,7 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
 
         // Store secret in JWT activation token (encrypted for security)
         String encryptedSecret = encryptionService.encrypt(secretKey);
-        String activationToken = jwtUtil.generate2FAActivationToken(user, encryptedSecret);
+        String activationToken = twoFactorJwtService.generateActivationToken(user, encryptedSecret);
 
         log.info("TOTP 2FA activation initiated for user: {} (secret stored in token)", user.getUsername());
 
@@ -174,7 +174,7 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
         log.info("Starting TOTP 2FA verification and activation process");
 
         // Validate activation token and extract claims
-        Claims claims = jwtUtil.validate2FAActivationToken(request.activationToken());
+        Claims claims = twoFactorJwtService.validateActivationToken(request.activationToken());
         String userPublicId = claims.get("publicId", String.class);
         String encryptedSecret = claims.get("verificationCode", String.class); // We reuse this claim for the secret
 

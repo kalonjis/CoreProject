@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.auth.exceptions.twofactor;
 
-import be.steby.CoreProject.bll.domains.auth.exceptions.AuthenticationException;
+import be.steby.CoreProject.bll.domains.auth.exceptions.AuthDomainException;
 
 /**
  * Exception thrown when attempting to enable backup codes 2FA for a user
@@ -12,7 +12,7 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.AuthenticationException;
  * @author Steby Team
  * @since 2.0.0
  */
-public class BackupCodesTwoFactorAlreadyEnabledException extends AuthenticationException {
+public class BackupCodesTwoFactorAlreadyEnabledException extends TwoFactorDomainException {
 
     public BackupCodesTwoFactorAlreadyEnabledException(String message) {
         super(message, 409);
