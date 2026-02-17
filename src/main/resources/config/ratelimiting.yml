@@ -1,0 +1,44 @@
+# ===================================================================
+# RATE LIMITING CONFIGURATION
+# ===================================================================
+# Global API rate limiting to prevent abuse and ensure fair usage.
+# Uses token bucket algorithm with configurable capacity and refill rate.
+# ===================================================================
+
+rate-limit:
+  # Enable/disable rate limiting globally
+  # Set to false to bypass rate limiting entirely (useful for testing)
+  enabled: true
+
+  # Rate limiter implementation provider
+  # Options:
+  #   - memory: In-memory implementation using Bucket4j (default, single-instance)
+  #   - redis: Redis-backed implementation (for distributed/multi-instance deployments)
+  provider: memory
+
+  # Number of requests allowed per minute (refill rate)
+  # This determines the steady-state rate: 60 = 1 request/second
+  # Tokens are refilled continuously at this rate
+  requests-per-minute: 60
+
+  # Maximum number of tokens that can accumulate (burst capacity)
+  # Allows clients to make bursts of requests if they have tokens saved up
+  # Example: With 100 capacity and 60/min refill:
+  #   - Client can make 100 requests immediately if bucket is full
+  #   - Then limited to 1 request/second (60/min) until tokens accumulate again
+  # Should be >= requests-per-minute
+  burst-capacity: 100
+
+  # List of path patterns to exclude from rate limiting
+  # Uses Ant-style pattern matching:
+  #   - * matches any characters within a path segment
+  #   - ** matches any number of path segments
+  # Common exclusions:
+  #   - Health check endpoints (for monitoring)
+  #   - API documentation (for developers)
+  #   - Static resources (if served by this application)
+  exclude-paths:
+    - /actuator/**        # Spring Boot Actuator endpoints
+    - /swagger-ui/**      # Swagger API documentation UI
+    - /v3/api-docs/**     # OpenAPI specification
+    - /api/public/**      # Public API endpoints (if any)
