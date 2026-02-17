@@ -52,6 +52,7 @@ public final class CalendarRoutes {
     public static final String[] AUTHENTICATED = {
             "/api/calendar/events",           // POST: Create, GET: List
             "/api/calendar/events/range",     // GET: Date range query
+            "/api/calendar/events/status/*",     // GET
             "/api/calendar/events/upcoming",  // GET: Upcoming events
             "/api/calendar/events/*",         // GET, PUT, DELETE: Single event
             "/api/calendar/events/*/cancel",  // POST: Cancel event
@@ -87,6 +88,7 @@ public final class CalendarRoutes {
     public static final String[] CSRF_IGNORE = {
             "/api/calendar/events",           // POST, GET
             "/api/calendar/events/range",     // GET
+            "/api/calendar/events/status/*",     // GET
             "/api/calendar/events/upcoming",  // GET
             "/api/calendar/events/*",         // PUT, DELETE, GET
             "/api/calendar/events/*/cancel",  // POST

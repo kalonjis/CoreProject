@@ -110,6 +110,18 @@ public class NotificationPreferenceService {
         return notificationConfig.getDefaultChannels(type).contains(channel);
     }
 
+
+    /**
+     * Gets all preferences for a user and channel.
+     *
+     * @param user    the user
+     * @param channel the channel
+     * @return list of preferences for the channel
+     */
+    public List<NotificationPreference> getPreferencesByChannel(User user, NotificationChannel channel) {
+        return preferenceRepository.findByUserAndChannel(user, channel);
+    }
+
     // =========================================================================
     // Quiet Hours
     // =========================================================================

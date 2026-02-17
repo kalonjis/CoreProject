@@ -2,8 +2,11 @@ package be.steby.CoreProject.bll.domains.calendar.services;
 
 import be.steby.CoreProject.bll.domains.calendar.models.CalendarEventCreateRequest;
 import be.steby.CoreProject.bll.domains.calendar.models.CalendarEventUpdateRequest;
+import be.steby.CoreProject.bll.domains.calendar.exceptions.CalendarEventNotFoundException;
 import be.steby.CoreProject.dl.entities.CalendarEvent;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dal.CalendarEventRepository ;
+import be.steby.CoreProject.dl.enums.EventStatus;
 
 import java.time.Instant;
 import java.util.List;
@@ -77,7 +80,7 @@ import java.util.List;
  * @see CalendarEvent
  * @see CalendarEventCreateRequest
  * @see CalendarEventUpdateRequest
- * @see be.steby.CoreProject.dal.repositories.CalendarEventRepository
+ * @see CalendarEventRepository
  * @author Steby Corp
  * @version 1.0
  * @since 1.0
@@ -306,6 +309,51 @@ public interface CalendarEventService {
      * @see be.steby.CoreProject.dl.enums.EventStatus#CANCELLED
      */
     List<CalendarEvent> getUpcomingEvents(String ownerPublicId);
+
+    /**
+     * Retrieves all events for a user filtered by status.
+     *
+     * <p>Returns events matching the specified status:</p>
+     * <ul>
+     *   <li>TENTATIVE: Events pending confirmation</li>
+     *   <li>CONFIRMED: Finalized events</li>
+     *   <li>CANCELLED: Soft-deleted events (for history/audit)</li>
+     * </ul>
+     *
+     * <p>Events are sorted by start date ascending.</p>
+     *
+     * <p><b>Use Cases:</b></p>
+     * <ul>
+     *   <li>Filter calendar view by status</li>
+     *   <li>Show only confirmed events</li>
+     *   <li>List tentative events needing confirmation</li>
+     *   <li>Display cancelled events history</li>
+     * </ul>
+     *
+     * <p><b>Transaction:</b> Runs in a read-only transaction</p>
+     *
+     * <p><b>Example:</b></p>
+     * <pre>{@code
+     * // Get only confirmed events
+     * List<CalendarEvent> confirmed = service.getUserEventsByStatus(
+     *     user.getPublicId(),
+     *     EventStatus.CONFIRMED
+     * );
+     *
+     * // Get tentative events for review
+     * List<CalendarEvent> tentative = service.getUserEventsByStatus(
+     *     user.getPublicId(),
+     *     EventStatus.TENTATIVE
+     * );
+     * }</pre>
+     *
+     * @param ownerPublicId The public ID of the user whose events to retrieve
+     * @param status The event status to filter by
+     * @return List of CalendarEvent entities matching the status, sorted by start date
+     * @throws IllegalArgumentException if ownerPublicId is null/empty or status is null
+     * @see EventStatus
+     */
+    List<CalendarEvent> getUserEventsByStatus(String ownerPublicId, EventStatus status);
 
     // =========================================================================
     // Update Operations

@@ -261,6 +261,16 @@ public interface NotificationService {
      */
     int deleteBySource(String sourceDomain, String sourceReferenceId);
 
+    /**
+     * Deletes multiple notifications permanently.
+     *
+     * @param publicIds the notification public UUIDs
+     * @param user      the notification recipient
+     * @return number of notifications deleted
+     */
+    int deleteMultiple(List<String> publicIds, User user);
+
+
     // =========================================================================
     // Scheduled Notifications
     // =========================================================================

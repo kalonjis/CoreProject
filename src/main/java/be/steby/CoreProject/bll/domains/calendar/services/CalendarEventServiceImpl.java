@@ -151,6 +151,22 @@ public class CalendarEventServiceImpl implements CalendarEventService {
         return eventRepository.findUpcomingEvents(ownerPublicId, Instant.now());
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<CalendarEvent> getUserEventsByStatus(String ownerPublicId, EventStatus status) {
+        if (ownerPublicId == null || ownerPublicId.isBlank()) {
+            throw new IllegalArgumentException("Owner public ID cannot be null or empty");
+        }
+        if (status == null) {
+            throw new IllegalArgumentException("Status cannot be null");
+        }
+
+        log.debug("Retrieving events for user {} with status {}", ownerPublicId, status);
+        return eventRepository.findByOwnerAndStatus(ownerPublicId, status);
+    }
+
     // =========================================================================
     // Update Operations
     // =========================================================================

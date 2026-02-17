@@ -5,12 +5,14 @@ import be.steby.CoreProject.dl.entities.Notification;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.il.sse.SseConfig;
 import be.steby.CoreProject.il.sse.SseEmitterManager;
+import be.steby.CoreProject.pl.domains.notification.models.requests.BulkNotificationIdsRequest;
 import be.steby.CoreProject.pl.domains.notification.models.responses.NotificationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -257,6 +259,41 @@ public class NotificationController {
     public ResponseEntity<Map<String, Integer>> markAllAsRead(@AuthenticationPrincipal User user) {
         int count = notificationService.markAllAsRead(user);
         return ResponseEntity.ok(Map.of("updated", count));
+    }
+
+
+    /**
+     * Marks multiple notifications as read.
+     *
+     * @param user    the authenticated user
+     * @param request the list of notification IDs
+     * @return count of updated notifications
+     */
+    @PostMapping("/read")
+    @Operation(summary = "Mark multiple as read", description = "Marks multiple notifications as read")
+    public ResponseEntity<Map<String, Integer>> markMultipleAsRead(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody BulkNotificationIdsRequest request) {
+
+        int count = notificationService.markAsRead(request.publicIds(), user);
+        return ResponseEntity.ok(Map.of("updated", count));
+    }
+
+    /**
+     * Deletes multiple notifications permanently.
+     *
+     * @param user    the authenticated user
+     * @param request the list of notification IDs
+     * @return count of deleted notifications
+     */
+    @PostMapping("/delete")
+    @Operation(summary = "Delete multiple notifications", description = "Permanently deletes multiple notifications")
+    public ResponseEntity<Map<String, Integer>> deleteMultiple(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody BulkNotificationIdsRequest request) {
+
+        int count = notificationService.deleteMultiple(request.publicIds(), user);
+        return ResponseEntity.ok(Map.of("deleted", count));
     }
 
     /**
