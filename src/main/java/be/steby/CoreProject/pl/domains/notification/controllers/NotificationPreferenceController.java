@@ -116,6 +116,24 @@ public class NotificationPreferenceController {
         return ResponseEntity.ok(new NotificationPreferenceMatrixResponse(matrix, quietHours));
     }
 
+
+    /**
+     * Gets preferences for a specific channel.
+     *
+     * @param user    the authenticated user
+     * @param channel the channel to query
+     * @return list of preferences for the channel
+     */
+    @GetMapping("/channel/{channel}")
+    @Operation(summary = "Get preferences by channel", description = "Returns all preferences for a specific channel")
+    public ResponseEntity<List<NotificationPreferenceResponse>> getPreferencesByChannel(
+            @AuthenticationPrincipal User user,
+            @PathVariable NotificationChannel channel) {
+
+        List<NotificationPreference> preferences = preferenceService.getPreferencesByChannel(user, channel);
+        return ResponseEntity.ok(NotificationPreferenceResponse.from(preferences));
+    }
+
     // =========================================================================
     // Update Preferences
     // =========================================================================
@@ -243,6 +261,26 @@ public class NotificationPreferenceController {
                 )));
     }
 
+
+    /**
+     * Clears quiet hours for a channel.
+     *
+     * @param user    the authenticated user
+     * @param channel the channel to clear quiet hours for
+     * @return success message
+     */
+    @DeleteMapping("/quiet-hours/{channel}")
+    @Operation(summary = "Clear quiet hours", description = "Disables quiet hours for a channel")
+    public ResponseEntity<Map<String, String>> clearQuietHours(
+            @AuthenticationPrincipal User user,
+            @PathVariable NotificationChannel channel) {
+
+        preferenceService.clearQuietHours(user, channel);
+        log.info("Quiet hours cleared for user {}, channel {}", user.getPublicId(), channel);
+
+        return ResponseEntity.ok(Map.of("message", "Quiet hours disabled for " + channel));
+    }
+
     // =========================================================================
     // Mute/Unmute
     // =========================================================================
@@ -299,5 +337,48 @@ public class NotificationPreferenceController {
         preferenceService.resetToDefaults(user);
         log.info("Preferences reset to defaults for user {}", user.getPublicId());
         return ResponseEntity.ok(Map.of("message", "Preferences reset to defaults"));
+    }
+
+
+    // =========================================================================
+    // Type-Based Enable/Disable All
+    // =========================================================================
+
+    /**
+     * Enables all channels for a notification type.
+     *
+     * @param user the authenticated user
+     * @param type the notification type
+     * @return success message
+     */
+    @PostMapping("/type/{type}/enable-all")
+    @Operation(summary = "Enable all channels for type", description = "Enables all channels for a notification type")
+    public ResponseEntity<Map<String, String>> enableAllChannelsForType(
+            @AuthenticationPrincipal User user,
+            @PathVariable NotificationType type) {
+
+        preferenceService.enableAllChannels(user, type);
+        log.info("All channels enabled for user {}, type {}", user.getPublicId(), type);
+
+        return ResponseEntity.ok(Map.of("message", type + " notifications enabled on all channels"));
+    }
+
+    /**
+     * Disables all channels for a notification type (mute).
+     *
+     * @param user the authenticated user
+     * @param type the notification type
+     * @return success message
+     */
+    @PostMapping("/type/{type}/disable-all")
+    @Operation(summary = "Disable all channels for type", description = "Disables all channels for a notification type (mute)")
+    public ResponseEntity<Map<String, String>> disableAllChannelsForType(
+            @AuthenticationPrincipal User user,
+            @PathVariable NotificationType type) {
+
+        preferenceService.disableAllChannels(user, type);
+        log.info("All channels disabled for user {}, type {}", user.getPublicId(), type);
+
+        return ResponseEntity.ok(Map.of("message", type + " notifications muted"));
     }
 }

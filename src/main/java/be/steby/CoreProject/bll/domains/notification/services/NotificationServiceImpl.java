@@ -331,6 +331,26 @@ public class NotificationServiceImpl implements NotificationService {
         return count;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public int deleteMultiple(List<String> publicIds, User user) {
+        int count = 0;
+        for (String publicId : publicIds) {
+            try {
+                delete(publicId, user);
+                count++;
+            } catch (NotificationNotFoundException e) {
+                log.warn("Notification not found when deleting: {}", publicId);
+            }
+        }
+        log.debug("Deleted {} notifications for user: {}", count, user.getPublicId());
+        return count;
+    }
+
+
     // =========================================================================
     // Scheduled Notifications
     // =========================================================================

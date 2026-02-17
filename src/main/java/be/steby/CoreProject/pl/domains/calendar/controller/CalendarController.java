@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.domains.calendar.services.IcsExportService;
 import be.steby.CoreProject.bll.domains.calendar.exceptions.CalendarEventNotFoundException;
 import be.steby.CoreProject.dl.entities.CalendarEvent;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.EventStatus;
 import be.steby.CoreProject.pl.domains.calendar.models.requests.CreateEventRequest;
 import be.steby.CoreProject.pl.domains.calendar.models.requests.UpdateEventRequest;
 import be.steby.CoreProject.pl.domains.calendar.models.responses.CalendarEventResponse;
@@ -163,6 +164,32 @@ public class CalendarController {
             events.stream().map(CalendarEventResponse::fromEntity).toList()
         );
     }
+
+    /**
+     * Retrieves events filtered by status for the authenticated user.
+     *
+     * <p><b>GET</b> {@code /api/calendar/events/status/{status}}</p>
+     *
+     * <p>Valid status values: TENTATIVE, CONFIRMED, CANCELLED</p>
+     *
+     * @param status Event status to filter by
+     * @param user Authenticated user
+     * @return 200 OK with list of event DTOs matching the status
+     * @throws IllegalArgumentException if status is invalid (400)
+     */
+    @GetMapping("/events/status/{status}")
+    public ResponseEntity<List<CalendarEventResponse>> getUserEventsByStatus(
+            @PathVariable EventStatus status,
+            @AuthenticationPrincipal User user) {
+
+        log.debug("Retrieving events with status {} for user: {}", status, user.getUsername());
+        List<CalendarEvent> events = eventService.getUserEventsByStatus(user.getPublicId(), status);
+
+        return ResponseEntity.ok(
+                events.stream().map(CalendarEventResponse::fromEntity).toList()
+        );
+    }
+
 
     /**
      * Updates an existing event.
