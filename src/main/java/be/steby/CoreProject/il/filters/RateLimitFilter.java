@@ -55,7 +55,6 @@ import static be.steby.CoreProject.il.routes.SecurityRoutesAggregator.PUBLIC_ROU
  * <h4>Exclusions:</h4>
  * <p>The following requests bypass rate limiting:</p>
  * <ul>
- *   <li><b>Public routes:</b> All routes in {@link SecurityRoutesAggregator#PUBLIC_ROUTES}</li>
  *   <li><b>Excluded paths:</b> Paths configured in {@code rate-limit.exclude-paths}</li>
  * </ul>
  *
@@ -126,19 +125,20 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String key = resolveRateLimitKey(request);
         RateLimitResult result = rateLimiter.tryConsume(key);
 
+        addRateLimitHeaders(response, result);
+
         if (result.isAllowed()) {
-            addRateLimitHeaders(response, result);
-            log.trace("Rate limit check passed for key: {} (remaining: {})", 
+            log.trace("Rate limit check passed for key: {} (remaining: {})",
                     key, result.tokensRemaining());
             filterChain.doFilter(request, response);
         } else {
-            log.warn("Rate limit exceeded for key: {} (retry after: {}s)", 
+            log.warn("Rate limit exceeded for key: {} (retry after: {}s)",
                     key, result.retryAfterSeconds());
-            
+
             RateLimitExceededException exception = new RateLimitExceededException(
                     "Too many requests. Please try again later."
             );
-            
+
             exceptionResolver.resolveException(request, response, null, exception);
         }
     }
@@ -148,7 +148,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
      *
      * <p>Skips rate limiting for:</p>
      * <ul>
-     *   <li>Public routes (no authentication required)</li>
      *   <li>Explicitly excluded paths from configuration</li>
      * </ul>
      *
@@ -156,31 +155,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
      * @return true if rate limiting should be skipped
      */
     private boolean shouldSkipRateLimiting(String requestURI) {
-        return isPublicRoute(requestURI) || isExcludedPath(requestURI);
-    }
-
-    /**
-     * Checks if the request URI matches any public route.
-     *
-     * <p>Public routes don't require authentication, so rate limiting by user
-     * is not applicable. These routes may still be rate limited by IP if needed.</p>
-     *
-     * @param requestURI the request URI
-     * @return true if the URI is a public route
-     */
-    private boolean isPublicRoute(String requestURI) {
-        return Arrays.stream(PUBLIC_ROUTES)
-                .anyMatch(publicRoute -> {
-                    if (publicRoute.endsWith("/**")) {
-                        String prefix = publicRoute.substring(0, publicRoute.length() - 3);
-                        return requestURI.startsWith(prefix);
-                    }
-                    if (publicRoute.endsWith("/*")) {
-                        String prefix = publicRoute.substring(0, publicRoute.length() - 2);
-                        return requestURI.startsWith(prefix);
-                    }
-                    return requestURI.equals(publicRoute);
-                });
+        return isExcludedPath(requestURI);
     }
 
     /**
