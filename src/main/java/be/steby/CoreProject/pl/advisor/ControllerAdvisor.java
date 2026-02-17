@@ -8,6 +8,7 @@ import be.steby.CoreProject.bll.exceptions.TokenExpiredException;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.BaseToken;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -95,18 +96,44 @@ public class ControllerAdvisor {
     }
 
 
+    // Remplace ton handler existant dans ControllerAdvisor.java
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, String>> handleHttpMessageNotReadable(HttpMessageNotReadableException error) {
+    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException error) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        // Vérifier si c'est une erreur XSS
+        Throwable cause = error.getCause();
+        if (cause instanceof JsonMappingException jsonEx) {
+            Throwable rootCause = jsonEx.getCause();
+
+            if (rootCause instanceof IllegalArgumentException
+                    && rootCause.getMessage() != null
+                    && (rootCause.getMessage().contains("HTML")
+                    || rootCause.getMessage().contains("Invalid content"))) {
+
+                log.warn("XSS attempt blocked: {}", rootCause.getMessage());
+
+                response.put("error", "INVALID_INPUT");
+                response.put("message", rootCause.getMessage());
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .header("Content-Type", "application/json")
+                        .body(response);
+            }
+        }
+
+        // Erreur JSON générique (pas XSS)
         log.error("Invalid request format: {}", error.getMessage());
 
-        Map<String, String> response = new HashMap<>();
-        response.put("error", "Invalid request format. Please check your JSON data.");
+        response.put("error", "INVALID_FORMAT");
+        response.put("message", "Invalid request format. Please check your JSON data.");
 
-        return ResponseEntity.status(400) // Bad Request
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .header("Content-Type", "application/json")
                 .body(response);
     }
-
 
     /**
      * Handles TwoFactorCodeDeliveryException when 2FA code delivery fails.

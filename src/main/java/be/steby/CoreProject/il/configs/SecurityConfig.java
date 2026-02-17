@@ -24,6 +24,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -106,6 +108,49 @@ public class SecurityConfig {
                 // ========== CORS Configuration ==========
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
+
+                // ========== Security Headers Configuration ==========
+                .headers(headers -> headers
+                        // Prevents browser from guessing Content-Type (prevents MIME sniffing attacks)
+                        .contentTypeOptions(contentTypeOptions -> {})
+
+                        // Prevents display in iframe (clickjacking protection)
+                        .frameOptions(frameOptions -> frameOptions.deny())
+
+                        // Enables browser XSS protection (legacy browsers)
+                        .xssProtection(xss -> xss.headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
+
+                        // Forces HTTPS for 1 year (HSTS)
+                        // Uncomment in production with valid SSL certificate
+                        // .httpStrictTransportSecurity(hsts -> hsts
+                        //     .includeSubDomains(true)
+                        //     .maxAgeInSeconds(31536000)
+                        // )
+
+                        // Content Security Policy - adjust according to your needs
+                        .contentSecurityPolicy(csp -> csp
+                                .policyDirectives(
+                                        "default-src 'self'; " +
+                                                "script-src 'self'; " +
+                                                "style-src 'self' 'unsafe-inline'; " +
+                                                "img-src 'self' data: https:; " +
+                                                "font-src 'self' https://fonts.gstatic.com; " +
+                                                "connect-src 'self' " + BACK_URL + "; " +
+                                                "frame-ancestors 'none'; " +
+                                                "form-action 'self';"
+                                )
+                        )
+
+                        // Controls what the browser sends as Referer
+                        .referrerPolicy(referrer -> referrer
+                                .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+                        )
+
+                        // Blocks sensitive features (camera, microphone, etc.)
+                        .permissionsPolicyHeader(permissions -> permissions
+                                .policy("geolocation=(self), camera=(self), microphone=(self)")
+                        )
+                )
                 // ========== Authorization Configuration ==========
                 .authorizeHttpRequests(auth -> auth
                         // 1. Public routes - no authentication required
