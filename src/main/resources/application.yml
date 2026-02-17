@@ -5,6 +5,7 @@ spring:
   config:
     import:
       - classpath:config/database.yml
+      - classpath:config/ratelimiting.yml
       - classpath:config/mail.yml
       - classpath:config/phone.yml
       - classpath:config/cache-device.yml

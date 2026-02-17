@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.domains.device.services.DeviceAuthenticationServ
 import be.steby.CoreProject.bll.domains.auth.services.AuthService;
 import be.steby.CoreProject.il.filters.JwtFilter;
 import be.steby.CoreProject.il.filters.MustChangePasswordFilter;
+import be.steby.CoreProject.il.filters.RateLimitFilter;
 import be.steby.CoreProject.il.security.OAuth2AuthenticationSuccessHandler;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -91,7 +92,10 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtFilter jwtFilter, MustChangePasswordFilter mustChangePasswordFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   JwtFilter jwtFilter,
+                                                   MustChangePasswordFilter mustChangePasswordFilter,
+                                                   RateLimitFilter rateLimitFilter) throws Exception {
         http
                 // ========== CSRF Configuration ==========
                 .csrf(csrf -> csrf
@@ -161,9 +165,10 @@ public class SecurityConfig {
                         })
                 )
 
-                // ========== JWT Filters ==========
+                // ========== Filters ==========
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(mustChangePasswordFilter, JwtFilter.class);
+                .addFilterAfter(mustChangePasswordFilter, JwtFilter.class)
+                .addFilterAfter(rateLimitFilter, MustChangePasswordFilter.class);
 
         log.info("Security configuration loaded successfully");
         log.info("✅ Using SecurityRoutesAggregator for all route configurations");

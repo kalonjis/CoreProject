@@ -3,6 +3,7 @@ package be.steby.CoreProject.pl.advisor;
 import be.steby.CoreProject.bll.domains.auth.exceptions.PasswordChangeRequiredException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorCodeDeliveryException;
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
+import be.steby.CoreProject.bll.exceptions.RateLimitExceededException;
 import be.steby.CoreProject.bll.exceptions.TokenExpiredException;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.BaseToken;
@@ -136,6 +137,55 @@ public class ControllerAdvisor {
 
         return ResponseEntity
                 .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header("Content-Type", "application/json")
+                .body(response);
+    }
+
+
+    /**
+     * Handles rate limit exceeded exceptions when users make too many requests.
+     *
+     * <p>Returns HTTP 429 (Too Many Requests) with:</p>
+     * <ul>
+     *   <li>Error code indicating rate limit exceeded</li>
+     *   <li>User-friendly message</li>
+     *   <li>Retry-After header (seconds to wait)</li>
+     *   <li>Timestamp of when the error occurred</li>
+     * </ul>
+     *
+     * <h4>Example Response:</h4>
+     * <pre>{@code
+     * HTTP/1.1 429 Too Many Requests
+     * Retry-After: 45
+     * Content-Type: application/json
+     *
+     * {
+     *   "error": "RATE_LIMIT_EXCEEDED",
+     *   "message": "Too many requests. Please try again later.",
+     *   "timestamp": "2025-02-17T14:30:00"
+     * }
+     * }</pre>
+     *
+     * @param ex the RateLimitExceededException that was thrown
+     * @param request the HTTP request that triggered the rate limit
+     * @return ResponseEntity with 429 status and error details
+     */
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleRateLimitExceeded(
+            RateLimitExceededException ex,
+            HttpServletRequest request) {
+
+        log.warn("Rate limit exceeded for request: {} from IP: {}",
+                request.getRequestURI(),
+                request.getRemoteAddr());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("error", "RATE_LIMIT_EXCEEDED");
+        response.put("message", ex.getMessage());
+        response.put("timestamp", LocalDateTime.now());
+
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
                 .header("Content-Type", "application/json")
                 .body(response);
     }
