@@ -1,9 +1,17 @@
 package be.steby.CoreProject.pl.domains.monitoring.controllers;
 
+import be.steby.CoreProject.bll.domains.monitoring.models.SmtpHealthResult;
+import be.steby.CoreProject.bll.domains.monitoring.models.TwilioHealthResult;
 import be.steby.CoreProject.bll.domains.monitoring.services.MonitoringService;
+import be.steby.CoreProject.bll.domains.monitoring.services.SmtpHealthService;
+import be.steby.CoreProject.bll.domains.monitoring.services.TwilioHealthService;
 import be.steby.CoreProject.pl.domains.monitoring.models.mappers.MonitoringMapper;
 import be.steby.CoreProject.pl.domains.monitoring.models.responses.CircuitBreakerStatusResponse;
 import be.steby.CoreProject.pl.domains.monitoring.models.responses.DashboardMetricsResponse;
+import be.steby.CoreProject.pl.domains.monitoring.models.responses.SmtpHealthResponse;
+import be.steby.CoreProject.pl.domains.monitoring.models.responses.TwilioHealthResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.actuate.health.HealthComponent;
@@ -36,7 +44,9 @@ import java.util.List;
 public class MonitoringController {
 
     private final MonitoringService monitoringService;
+    private final SmtpHealthService smtpHealthService;
     private final MonitoringMapper monitoringMapper;
+    private final TwilioHealthService twilioHealthService;
 
     // =========================================================================
     // HEALTH ENDPOINTS
@@ -65,6 +75,73 @@ public class MonitoringController {
         log.debug("Requesting health for component: {}", component);
         return ResponseEntity.ok(monitoringService.getComponentHealth(component));
     }
+
+
+    /**
+     * Tests SMTP server connectivity.
+     *
+     * <p>Performs a connection test to the configured SMTP server by executing
+     * EHLO/AUTH handshake without sending an actual email.</p>
+     *
+     * <h4>Response:</h4>
+     * <ul>
+     *   <li>reachable: true if SMTP server is accessible</li>
+     *   <li>responseTimeMs: connection test duration in milliseconds</li>
+     *   <li>errorMessage: error details if test failed, null otherwise</li>
+     * </ul>
+     *
+     * @return SmtpHealthResponse with connection test results
+     */
+    @GetMapping("/smtp/test")
+    @Operation(
+            summary = "Test SMTP connectivity",
+            description = "Tests connection to SMTP server without sending an email"
+    )
+    @ApiResponse(responseCode = "200", description = "Test completed (check reachable field for result)")
+    public ResponseEntity<SmtpHealthResponse> testSmtpConnection() {
+        SmtpHealthResult result = smtpHealthService.testConnection();
+
+        return ResponseEntity.ok(new SmtpHealthResponse(
+                result.reachable(),
+                result.responseTimeMs(),
+                result.errorMessage()
+        ));
+    }
+
+
+    /**
+     * Tests Twilio API connectivity.
+     *
+     * <p>Fetches account information from Twilio to validate connectivity
+     * and credentials without sending an actual SMS.</p>
+     *
+     * <h4>Response:</h4>
+     * <ul>
+     *   <li>reachable: true if Twilio API is accessible</li>
+     *   <li>responseTimeMs: connection test duration in milliseconds</li>
+     *   <li>accountStatus: Twilio account status (active, suspended, closed)</li>
+     *   <li>errorMessage: error details if test failed, null otherwise</li>
+     * </ul>
+     *
+     * @return TwilioHealthResponse with connection test results
+     */
+    @GetMapping("/twilio/test")
+    @Operation(
+            summary = "Test Twilio connectivity",
+            description = "Tests connection to Twilio API without sending an SMS"
+    )
+    @ApiResponse(responseCode = "200", description = "Test completed (check reachable field for result)")
+    public ResponseEntity<TwilioHealthResponse> testTwilioConnection() {
+        TwilioHealthResult result = twilioHealthService.testConnection();
+
+        return ResponseEntity.ok(new TwilioHealthResponse(
+                result.reachable(),
+                result.responseTimeMs(),
+                result.accountStatus(),
+                result.errorMessage()
+        ));
+    }
+
 
     // =========================================================================
     // METRICS ENDPOINTS
