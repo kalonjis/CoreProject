@@ -9,6 +9,8 @@ public enum AuthAction implements ActionLogType {
     LOGOUT("User logout"),
     ACCOUNT_LOCKED("Account locked due to security"),
     SESSION_EXPIRED("User session expired"),
+    TWO_FACTOR_ENABLED("Two-factor authentication method enabled"),
+    TWO_FACTOR_DISABLED("Two-factor authentication method disabled"),
     TWO_FACTOR_SUCCESS("Two-factor authentication success"),
     TWO_FACTOR_FAILED("Two-factor authentication failed"),
     FORCE_LOGOUT("Forced logout by administrator"),

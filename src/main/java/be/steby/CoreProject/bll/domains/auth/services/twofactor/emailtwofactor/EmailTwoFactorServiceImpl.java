@@ -1,22 +1,27 @@
 package be.steby.CoreProject.bll.domains.auth.services.twofactor.emailtwofactor;
 
+import be.steby.CoreProject.bll.domains.auth.events.TwoFactorActivationInitiatedEvent;
+import be.steby.CoreProject.bll.domains.auth.events.TwoFactorDisabledEvent;
 import be.steby.CoreProject.bll.domains.auth.events.TwoFactorEnabledEvent;
-import be.steby.CoreProject.bll.domains.auth.events.TwoFactorInitiateActivationEvent;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.EmailTwoFactorAlreadyEnabledException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.EmailTwoFactorNotEnabledException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.InvalidVerificationCodeException;
 import be.steby.CoreProject.bll.domains.auth.models.EmailTwoFactorActivationBllRequest;
 import be.steby.CoreProject.bll.domains.auth.models.TwoFactorActivationResult;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.jwt.TwoFactorJwtService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.TwoFactorAuthRepository;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
 import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -68,6 +73,10 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
     private final PasswordEncoder passwordEncoder;
     private final TwoFactorJwtService twoFactorJwtService;
     private final ApplicationEventPublisher eventPublisher;
+    private final DeviceService deviceService;
+
+    @Autowired
+    private HttpServletRequest httpServletRequest;
 
     // ==================== PUBLIC API METHODS ====================
 
@@ -114,11 +123,9 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
         String activationToken = twoFactorJwtService.generateActivationToken(user, hashedCode);
 
         // Publish event to send verification email (plain code for email)
-        TwoFactorInitiateActivationEvent event = new TwoFactorInitiateActivationEvent(
-                user,
-                setupVerificationCode  // Plain code sent via email
-        );
-        eventPublisher.publishEvent(event);
+        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        eventPublisher.publishEvent(new TwoFactorActivationInitiatedEvent(
+                user, device, TwoFactorType.EMAIL, setupVerificationCode));
 
         log.info("Email 2FA activation initiated for user: {} (code hashed in token)", user.getUsername());
         return new TwoFactorActivationResult(TwoFactorType.EMAIL, activationToken);
@@ -156,14 +163,6 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
 
         // Code verification successful - activate email 2FA
         createAndSaveEmailTwoFactorEntity(user);
-
-        // Publish confirmation event and reset rate limiting
-        TwoFactorEnabledEvent event = new TwoFactorEnabledEvent(user, TwoFactorType.EMAIL);
-        eventPublisher.publishEvent(event);
-        emailTwoFactorActivationAttemptService.resetAttempts(user);
-        emailTwoFactorVerificationAttemptService.resetAttempts(user);
-
-        log.info("Email 2FA successfully activated for user: {}", user.getUsername());
     }
 
     @Override
@@ -179,8 +178,10 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
         emailTwoFactor.setDisabledAt(Instant.now());
 
         twoFactorAuthRepository.save(emailTwoFactor);
-        log.info("Email 2FA disabled successfully for user: {} (2FA ID: {})",
-                user.getUsername(), emailTwoFactor.getId());
+
+        // Publish activity log event
+        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        eventPublisher.publishEvent(new TwoFactorDisabledEvent(user, device, TwoFactorType.EMAIL));
     }
 
     @Override
@@ -326,8 +327,16 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
                 .build();
 
         TwoFactorAuth saved = twoFactorAuthRepository.save(emailTwoFactor);
-        log.debug("Email 2FA entity saved successfully for user: {} (2FA ID: {})",
-                user.getUsername(), saved.getId());
+
+        // Publish confirmation event and reset rate limiting
+        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, device, TwoFactorType.EMAIL));
+
+        emailTwoFactorActivationAttemptService.resetAttempts(user);
+        emailTwoFactorVerificationAttemptService.resetAttempts(user);
+
+        log.info("Email 2FA successfully activated for user: {}", user.getUsername());
+
         return saved;
     }
 
@@ -347,6 +356,13 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
         emailTwoFactor.setFailedAttempts(0);
 
         TwoFactorAuth saved = twoFactorAuthRepository.save(emailTwoFactor);
+        // Publish confirmation event and reset rate limiting
+        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, device, TwoFactorType.EMAIL));
+        emailTwoFactorActivationAttemptService.resetAttempts(user);
+        emailTwoFactorVerificationAttemptService.resetAttempts(user);
+
+        log.info("Email 2FA successfully activated for user: {}", user.getUsername());
         log.debug("Email 2FA reactivated successfully for user: {} (2FA ID: {})",
                 user.getUsername(), saved.getId());
     }
@@ -358,15 +374,6 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
         log.debug("Creating new email 2FA configuration for user: {}", user.getUsername());
         createAndSaveEmailTwoFactorEntity(user);
     }
-
-    /**
-     * Validates verification code using secure comparison methods for plain text codes.
-     * Performs comprehensive validation including null checks, format validation,
-     * and constant-time comparison to prevent timing attacks.
-     *
-     * Note: This method is used for direct plain-text code comparison.
-     * For hashed code verification, use {@link #verifyCodeAgainstHash(User, String, String)}.
-     */
 
 
     /**

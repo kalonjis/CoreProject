@@ -1,0 +1,113 @@
+<mjml>
+  <mj-head>
+    <mj-title>Activation 2FA</mj-title>
+    <mj-preview>Votre code de vérification pour l'activation 2FA</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" color="#555555" line-height="1.6" />
+      <mj-button background-color="#007bff" border-radius="6px" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#007bff" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="bold">
+          🔐 Activation 2FA
+        </mj-text>
+        <mj-text align="center" color="#e0e0e0" font-size="14px">
+          Sécurisez votre compte avec l'authentification à deux facteurs
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Main Content -->
+    <mj-section background-color="#ffffff" padding="40px 30px">
+      <mj-column>
+
+        <!-- Greeting -->
+        <mj-text font-size="18px" color="#333333">
+          Bonjour <span th:text="${userName}">Utilisateur</span>,
+        </mj-text>
+
+        <mj-text>
+          Vous avez demandé l'activation de l'authentification à deux facteurs
+          par email pour votre compte. Pour finaliser la configuration, veuillez
+          utiliser le code de vérification ci-dessous.
+        </mj-text>
+
+      </mj-column>
+    </mj-section>
+
+    <!-- Verification Code Box -->
+    <mj-section background-color="#ffffff" padding="0 30px">
+      <mj-column background-color="#f8f9fa" border-radius="8px" padding="25px">
+        <mj-text align="center" font-size="12px" color="#6c757d"
+                 text-transform="uppercase" letter-spacing="1px">
+          Code de vérification
+        </mj-text>
+        <mj-text align="center" font-size="36px" font-weight="bold"
+                 color="#007bff" letter-spacing="6px" font-family="Courier New, monospace">
+          <span th:text="${verificationCode}">123456</span>
+        </mj-text>
+        <mj-text align="center" font-size="14px" color="#6c757d" font-style="italic">
+          Entrez ce code dans l'application pour activer la 2FA
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Expiration Warning -->
+    <mj-section background-color="#ffffff" padding="20px 30px">
+      <mj-column background-color="#fee" border-radius="6px" padding="15px">
+        <mj-text align="center" color="#d63384" font-weight="600">
+          ⏰ Ce code expire le <span th:text="${expirationTime}">11/12/2024 à 15:30</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Instructions -->
+    <mj-section background-color="#ffffff" padding="20px 30px">
+      <mj-column>
+        <mj-text font-size="18px" color="#333333" font-weight="bold">
+          Étapes pour finaliser l'activation :
+        </mj-text>
+        <mj-text>
+          <strong>1.</strong> Retournez dans l'application où vous avez initié l'activation<br/><br/>
+          <strong>2.</strong> Entrez le code de vérification à 6 chiffres ci-dessus<br/><br/>
+          <strong>3.</strong> Confirmez l'activation de l'authentification à deux facteurs<br/><br/>
+          <strong>4.</strong> Votre compte sera alors sécurisé avec la 2FA par email
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Security Notice -->
+    <mj-section background-color="#ffffff" padding="0 30px 40px">
+      <mj-column background-color="#fff3cd" border-radius="6px" padding="20px">
+        <mj-text color="#856404" font-weight="600" font-size="16px">
+          🛡️ Important - Sécurité
+        </mj-text>
+        <mj-text color="#856404" font-size="14px">
+          Si vous n'avez pas demandé l'activation de l'authentification à deux facteurs,
+          ignorez cet email et contactez notre support. Ne partagez jamais ce code avec
+          qui que ce soit.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#6c757d" font-size="14px">
+          Besoin d'aide ?
+          <a href="mailto:support@yourcompany.com" style="color: #007bff;">Contactez le support</a>
+        </mj-text>
+        <mj-text align="center" color="#6c757d" font-size="12px">
+          Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

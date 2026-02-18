@@ -1,10 +1,17 @@
 package be.steby.CoreProject.bll.domains.auth.services.twofactor.backupcodes;
 
+import be.steby.CoreProject.bll.domains.auth.events.TwoFactorDisabledEvent;
+import be.steby.CoreProject.bll.domains.auth.events.TwoFactorEnabledEvent;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.BackupCodesTwoFactorAlreadyEnabledException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.BackupCodesTwoFactorNotEnabledException;
 import be.steby.CoreProject.bll.domains.auth.models.BackupCodesSetupResult;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.config.BackupCodesConfiguration;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
+import be.steby.CoreProject.dl.entities.Device;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import be.steby.CoreProject.dal.repositories.TwoFactorAuthRepository;
 import be.steby.CoreProject.dl.entities.TwoFactorAuth;
@@ -40,6 +47,11 @@ public class BackupCodesTwoFactorServiceImpl implements BackupCodesTwoFactorServ
     private final TwoFactorAuthRepository twoFactorAuthRepository;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+    private final DeviceService deviceService;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    private HttpServletRequest httpServletRequest;
 
     @Override
     @Transactional
@@ -101,10 +113,13 @@ public class BackupCodesTwoFactorServiceImpl implements BackupCodesTwoFactorServ
         }
 
         // Set as primary and save
-        backupCodesAuth.setIsPrimary(true);
+        backupCodesAuth.setIsPrimary(false);
         twoFactorAuthRepository.save(backupCodesAuth);
-
         log.info("Backup codes 2FA enabled successfully for user: {}", user.getUsername());
+
+        // Publish activity log event
+        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, device, TwoFactorType.BACKUP_CODES));
 
         return new BackupCodesSetupResult(backupCodes);
     }
@@ -128,8 +143,11 @@ public class BackupCodesTwoFactorServiceImpl implements BackupCodesTwoFactorServ
         backupCodesAuth.setDisabledAt(Instant.now());
 
         twoFactorAuthRepository.save(backupCodesAuth);
-
         log.info("Backup codes 2FA disabled successfully for user: {}", user.getUsername());
+
+        // Publish activity log event
+        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        eventPublisher.publishEvent(new TwoFactorDisabledEvent(user, device, TwoFactorType.BACKUP_CODES));
     }
 
     @Override

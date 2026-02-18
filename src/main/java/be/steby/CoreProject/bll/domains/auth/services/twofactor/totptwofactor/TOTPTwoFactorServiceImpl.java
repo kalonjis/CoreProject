@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.auth.services.twofactor.totptwofactor;
 
+import be.steby.CoreProject.bll.domains.auth.events.TwoFactorDisabledEvent;
 import be.steby.CoreProject.bll.domains.auth.events.TwoFactorEnabledEvent;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.InvalidVerificationCodeException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TOTPTwoFactorAlreadyEnabledException;
@@ -9,15 +10,19 @@ import be.steby.CoreProject.bll.domains.auth.models.TotpTwoFactorActivationBllRe
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.config.TOTPConfiguration;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.config.TOTPSecretEncryptionService;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.jwt.TwoFactorJwtService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.TwoFactorAuthRepository;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
 import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -72,6 +77,10 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
     private final TotpTwoFactorActivationAttemptService totpActivationAttemptService;
     private final TotpTwoFactorVerificationAttemptService totpVerificationAttemptService;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final DeviceService deviceService;
+
+    @Autowired
+    private HttpServletRequest httpServletRequest;
 
 
     // Base32 alphabet for secret encoding (RFC 4648)
@@ -206,8 +215,8 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
         createAndSaveTotpTwoFactorEntity(user, secretKey);
 
         // Publish confirmation event and reset rate limiting
-        TwoFactorEnabledEvent event = new TwoFactorEnabledEvent(user, TwoFactorType.TOTP);
-        eventPublisher.publishEvent(event);
+        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, device, TwoFactorType.TOTP));
         totpActivationAttemptService.resetAttempts(user);
         totpVerificationAttemptService.resetAttempts(user);
 
@@ -233,8 +242,11 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
         totpAuth.setDisabledAt(Instant.now());
 
         twoFactorAuthRepository.save(totpAuth);
-
         log.info("TOTP 2FA disabled successfully for user: {}", user.getUsername());
+
+        // Publish activity log event
+        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        eventPublisher.publishEvent(new TwoFactorDisabledEvent(user, device, TwoFactorType.TOTP));
     }
 
     @Override

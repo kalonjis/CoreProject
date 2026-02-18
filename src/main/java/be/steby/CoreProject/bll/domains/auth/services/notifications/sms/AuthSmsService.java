@@ -51,4 +51,15 @@ public interface AuthSmsService {
      * @throws SmsSendingException if SMS delivery fails
      */
     void sendTwoFactorActivationCode(User user, String verificationCode, String phoneNumber);
+
+
+    /**
+     * Sends a security confirmation SMS when SMS 2FA is successfully enabled.
+     *
+     * <p>Acts as a security alert: if the user did not initiate the change,
+     * they are immediately notified and can take action.</p>
+     *
+     * @param user the user who enabled SMS 2FA; never {@code null}
+     */
+    void sendTwoFactorEnabledConfirmation(User user);
 }

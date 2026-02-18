@@ -790,7 +790,7 @@ public class AuthServiceImpl implements AuthService {
     private void handleAuthenticationFailure(User user, Device device,
                                              CoreProjectException e) {
 
-        // LOGIN_BLOCKED
+        // LOGIN_BLOCKED — brute force threshold already reached
         if (e instanceof AccountTemporarilyLockedException) {
             eventPublisher.publishEvent(new LoginBlockedEvent(user, device, e.getMessage()));
             return;
@@ -802,13 +802,29 @@ public class AuthServiceImpl implements AuthService {
 
         loginAttemptService.recordFailedAttempt(user.getUsername(), device.getLastIpAddress());
 
-        // ACCOUNT_LOCKED
-        if (user != null && loginAttemptService.isBlocked(user.getUsername(), device.getLastIpAddress())) {
+        // ACCOUNT_DISABLED — publish a LOGIN_FAILED event so the activity log is written,
+        // but do NOT record a brute-force attempt (the password was never evaluated).
+        if (e instanceof AccountDisabledException) {
+            log.warn("Login denied — account disabled: {} from IP: {}",
+                    user.getUsername(), device.getLastIpAddress());
+            eventPublisher.publishEvent(new UserLoginFailedEvent(user, device, e.getMessage()));
+            return;
+        }
+
+        // All other failures (wrong password, device blacklisted, …):
+        // record the failed attempt for brute-force protection.
+        loginAttemptService.recordFailedAttempt(user.getUsername(), device.getLastIpAddress());
+
+        // Publish generic failed-login event for activity logging
+        eventPublisher.publishEvent(new UserLoginFailedEvent(user, device, e.getMessage()));
+
+        // If the attempt just tipped the account into a locked state, also publish AccountLockedEvent
+        if (loginAttemptService.isBlocked(user.getUsername(), device.getLastIpAddress())) {
             Instant unlockTime = loginAttemptService.getUnlockTime(user.getUsername(), device.getLastIpAddress());
             eventPublisher.publishEvent(new AccountLockedEvent(user, device, unlockTime));
         }
 
-        log.warn("Login failed for user: {} from IP: {} - Reason: {}",
+        log.warn("Login failed for user: {} from IP: {} — Reason: {}",
                 user.getUsername(), device.getLastIpAddress(), e.getMessage());
     }
 }
