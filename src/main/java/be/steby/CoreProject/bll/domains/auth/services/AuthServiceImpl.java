@@ -4,9 +4,8 @@ import be.steby.CoreProject.bll.common.exceptions.mail.MailDeliveryException;
 import be.steby.CoreProject.bll.common.exceptions.phone.SmsSendingException;
 import be.steby.CoreProject.bll.common.utils.IpLocationUtils;
 import be.steby.CoreProject.bll.domains.account.exceptions.AccountActivationException;
+import be.steby.CoreProject.bll.domains.auth.events.*;
 import be.steby.CoreProject.bll.domains.auth.exceptions.*;
-import be.steby.CoreProject.bll.domains.auth.events.UserLoggedInEvent;
-import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorCodeDeliveryException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorNotEnabledException;
 import be.steby.CoreProject.bll.domains.auth.models.*;
@@ -69,13 +68,16 @@ public class AuthServiceImpl implements AuthService {
     private String FRONT_URL;
 
     @Override
-    public LoginTokens login(String username, String password, HttpServletRequest request) {
-        String clientIpAddress = IpLocationUtils.extractClientIp(request);
+    public LoginTokens login(String username, String password, HttpServletRequest httpRequest) {
+        String clientIpAddress = IpLocationUtils.extractClientIp(httpRequest);
+
+        User user = null;
+        Device device = null;
 
         try {
             // 1. Load user and detect device
-            User user = loadUser(username);
-            Device device = deviceService.detectAndRegisterDevice(request, user);
+            user = loadUser(username);
+            device = deviceService.detectAndRegisterDevice(httpRequest, user);
 
             // 2. Validate all login preconditions
             validateLoginPreconditions(username, clientIpAddress, user, device, password);
@@ -102,7 +104,7 @@ public class AuthServiceImpl implements AuthService {
             throw e;
 
         } catch (CoreProjectException e) {
-            handleAuthenticationFailure(username, clientIpAddress, e);
+            handleAuthenticationFailure(user, device, e);
             throw e;
         }
     }
@@ -113,10 +115,13 @@ public class AuthServiceImpl implements AuthService {
 
         String clientIpAddress = IpLocationUtils.extractClientIp(httpRequest);
 
+        User user = null;
+        Device device = null;
+
         try {
             // 1. Load user and detect device
-            User user = loadUser(username);
-            Device device = deviceService.detectAndRegisterDevice(httpRequest, user);
+            user = loadUser(username);
+            device = deviceService.detectAndRegisterDevice(httpRequest, user);
 
             // 2. Validate all login preconditions
             validateLoginPreconditions(username, clientIpAddress, user, device, password);
@@ -158,7 +163,7 @@ public class AuthServiceImpl implements AuthService {
             handleNonExistentUser(username, clientIpAddress);
             throw e;
         } catch (CoreProjectException e) {
-            handleAuthenticationFailure(username, clientIpAddress, e);
+            handleAuthenticationFailure(user, device, e);
             throw e;
         }
     }
@@ -261,7 +266,10 @@ public class AuthServiceImpl implements AuthService {
             log.debug("Using numeric verification code for verification for user: {}", user.getUsername());
         }
 
-        // 4. Verify the provided code using TwoFactorFactory
+        // 4. Load device and complete login
+        Device device = deviceService.detectAndRegisterDevice(httpRequest, user);
+
+        // 5. Verify the provided code using TwoFactorFactory
         boolean isValidCode = twoFactorFactory.verifyTwoFactorCode(
                 user,
                 codeToVerify,
@@ -270,13 +278,15 @@ public class AuthServiceImpl implements AuthService {
         );
 
         if (!isValidCode) {
+            eventPublisher.publishEvent(new TwoFactorFailedEvent(
+                user, device, twoFactorClaims.twoFactorType(), "Invalid verification code")
+            );
             log.warn("Invalid 2FA verification code provided for user: {} (type: {})",
                     user.getUsername(), twoFactorClaims.twoFactorType());
             throw new InvalidTwoFactorCodeException("Invalid verification code");
         }
 
         // 5. Load device and complete login
-        Device device = deviceService.detectAndRegisterDevice(httpRequest, user);
 
         // 6. Update 2FA success tracking - handled by factory's verifyCodeAgainstHash method
         log.debug("2FA success tracking updated via factory for user: {}", user.getUsername());
@@ -777,14 +787,28 @@ public class AuthServiceImpl implements AuthService {
      * Records failed attempt unless account is already locked.
      * Publishes failure event for security monitoring.
      */
-    private void handleAuthenticationFailure(String username, String clientIpAddress,
+    private void handleAuthenticationFailure(User user, Device device,
                                              CoreProjectException e) {
-        // Don't record attempt if account is already locked (avoid double-counting)
-        if (!(e instanceof AccountTemporarilyLockedException)) {
-            loginAttemptService.recordFailedAttempt(username, clientIpAddress);
+
+        // LOGIN_BLOCKED
+        if (e instanceof AccountTemporarilyLockedException) {
+            eventPublisher.publishEvent(new LoginBlockedEvent(user, device, e.getMessage()));
+            return;
+        }
+        if (user == null || device == null) {
+            log.warn("handleAuthenticationFailure called with null user or device - Reason: {}", e.getMessage());
+            return;
+        }
+
+        loginAttemptService.recordFailedAttempt(user.getUsername(), device.getLastIpAddress());
+
+        // ACCOUNT_LOCKED
+        if (user != null && loginAttemptService.isBlocked(user.getUsername(), device.getLastIpAddress())) {
+            Instant unlockTime = loginAttemptService.getUnlockTime(user.getUsername(), device.getLastIpAddress());
+            eventPublisher.publishEvent(new AccountLockedEvent(user, device, unlockTime));
         }
 
         log.warn("Login failed for user: {} from IP: {} - Reason: {}",
-                username, clientIpAddress, e.getMessage());
+                user.getUsername(), device.getLastIpAddress(), e.getMessage());
     }
 }
