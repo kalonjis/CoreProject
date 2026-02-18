@@ -2,6 +2,7 @@ package be.steby.CoreProject.bll.domains.auth.listeners;
 
 import be.steby.CoreProject.bll.common.services.tokens.GlobalTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.account.events.UserDeactivatedEvent;
+import be.steby.CoreProject.bll.domains.auth.events.ForceLogoutEvent;
 import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.dl.entities.User;
@@ -60,7 +61,7 @@ public class AuthDeactivationListener {
 
             // Publish UserLogoutEvent to trigger cache clearing
             // device=null because we're forcing logout from all devices
-            eventPublisher.publishEvent(new UserLogoutEvent(user, null));
+            eventPublisher.publishEvent(new ForceLogoutEvent(user, "Account deactivated"));
 
             log.info("Automatic logout completed for deactivated user: {} ({} tokens revoked)",
                     user.getUsername(), revokedCount);

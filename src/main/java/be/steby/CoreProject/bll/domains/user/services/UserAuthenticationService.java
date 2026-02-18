@@ -120,8 +120,13 @@ public class UserAuthenticationService {
         // 1. ✅ Tentative cache
         Optional<CachedUserInfo> cached = userCacheService.get(username);
         if (cached.isPresent()) {
-            log.debug("User {} loaded from cache for Spring Security authentication", username);
-            return cached.get().user();
+            User cachedUser = cached.get().user();
+            // Check enabled even from cache — account may have been deactivated
+            if (!cachedUser.isEnabled()) {
+                userCacheService.remove(username); // evict stale entry
+                throw new UserAuthenticationStateException("User account is inactive", 401);
+            }
+            return cachedUser;
         }
 
         // 2. ✅ Cache MISS → DB via repository (pas via UserService pour éviter circularité)
@@ -138,6 +143,9 @@ public class UserAuthenticationService {
         User user = userOptional.get();
 
         // 3. ✅ Mise en cache immédiate
+        if (!user.isEnabled()) {  // ← ajout
+            throw new UserAuthenticationStateException("User account is inactive", 401);
+        }
         userCacheService.put(user);
         log.debug("User {} cached after Spring Security authentication load", username);
 
@@ -175,14 +183,14 @@ public class UserAuthenticationService {
 
         User user = userOptional.get();
 
+        // Cache update
+        userCacheService.put(user);
+        log.debug("User {} cached successfully", userId);
+
         // Security validation
         if (!user.isEnabled()) {
             throw new UserAuthenticationStateException("User account is inactive: " + userId, 401);
         }
-
-        // Cache update
-        userCacheService.put(user);
-        log.debug("User {} cached successfully", userId);
 
         return user;
     }
