@@ -312,7 +312,8 @@ public class AuthController {
                 httpRequest
         );
 
-        // PL: Clear 2FA token and set final auth cookies
+        // PL: Clear 2FA tokens and set final auth cookies
+        authCookieService.clear2FASessionToken(httpResponse);
         authCookieService.clear2FAToken(httpResponse);
         authCookieService.setAuthenticationCookies(httpResponse, tokens);
 

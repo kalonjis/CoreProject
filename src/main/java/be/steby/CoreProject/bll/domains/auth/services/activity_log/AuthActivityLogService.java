@@ -83,6 +83,35 @@ public class AuthActivityLogService extends ActivityLogService {
     // =========================================================================
 
     /**
+     * Persists a {@link AuthAction#TWO_FACTOR_ENABLED} entry when the user
+     * successfully activates a 2FA method on their account.
+     *
+     * <p>The 2FA type is embedded in the failure-reason field (repurposed here
+     * as an "action detail") so it remains visible in audit queries without
+     * requiring a schema change.</p>
+     *
+     * @param event contains the user, device and the 2FA type that was enabled
+     */
+    public void logTwoFactorEnabled(TwoFactorEnabledEvent event) {
+        String detail = String.format("[%s] enabled", event.twoFactorType().name());
+        logUserActivity(event.user(), event.device(), AuthAction.TWO_FACTOR_ENABLED, true, detail);
+        log.debug("TWO_FACTOR_ENABLED logged — user: {}, method: {}",
+                event.user().getUsername(), event.twoFactorType());
+    }
+
+    /**
+     * Persists a {@link AuthAction#TWO_FACTOR_DISABLED} entry when the user
+     * deactivates a 2FA method on their account.
+     *
+     * @param event contains the user, device and the 2FA type that was disabled
+     */
+    public void logTwoFactorDisabled(TwoFactorDisabledEvent event) {
+        String detail = String.format("[%s] disabled", event.twoFactorType().name());
+        logUserActivity(event.user(), event.device(), AuthAction.TWO_FACTOR_DISABLED, true, detail);
+        log.debug("TWO_FACTOR_DISABLED logged — user: {}, method: {}",
+                event.user().getUsername(), event.twoFactorType());
+    }
+    /**
      * Persists a {@link AuthAction#TWO_FACTOR_FAILED} entry when the user
      * provides an incorrect or expired 2FA code during login.
      *

@@ -89,6 +89,41 @@ public class AuthActivityListener {
     // =========================================================================
 
     /**
+     * Logs the activation of a 2FA method by the user.
+     *
+     * @param event published by the 2FA settings service after the method
+     *              is fully verified and persisted
+     */
+    @EventListener
+    @Async("activityLogExecutor")
+    public void handleTwoFactorEnabled(TwoFactorEnabledEvent event) {
+        try {
+            log.debug("Processing 2FA enabled event for user: {} (method: {})",
+                    event.user().getUsername(), event.twoFactorType());
+            authActivityLogService.logTwoFactorEnabled(event);
+        } catch (Exception e) {
+            log.error("Failed to log 2FA enabled for user: {}", event.user().getUsername(), e);
+        }
+    }
+
+    /**
+     * Logs the deactivation of a 2FA method by the user.
+     *
+     * @param event published by the 2FA settings service after the method
+     *              is disabled and removed from the user's active methods
+     */
+    @EventListener
+    @Async("activityLogExecutor")
+    public void handleTwoFactorDisabled(TwoFactorDisabledEvent event) {
+        try {
+            log.debug("Processing 2FA disabled event for user: {} (method: {})",
+                    event.user().getUsername(), event.twoFactorType());
+            authActivityLogService.logTwoFactorDisabled(event);
+        } catch (Exception e) {
+            log.error("Failed to log 2FA disabled for user: {}", event.user().getUsername(), e);
+        }
+    }
+    /**
      * Logs a failed 2FA verification attempt.
      *
      * <p>Repeated failures on the same account may indicate an attacker who

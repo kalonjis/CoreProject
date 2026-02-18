@@ -1,7 +1,8 @@
 package be.steby.CoreProject.bll.domains.auth.services.twofactor.smstwofactor;
 
+import be.steby.CoreProject.bll.domains.auth.events.TwoFactorActivationInitiatedEvent;
+import be.steby.CoreProject.bll.domains.auth.events.TwoFactorDisabledEvent;
 import be.steby.CoreProject.bll.domains.auth.events.TwoFactorEnabledEvent;
-import be.steby.CoreProject.bll.domains.auth.events.TwoFactorSmsActivationEvent;
 import be.steby.CoreProject.bll.domains.auth.exceptions.phone.InvalidPhoneNumberException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.InvalidVerificationCodeException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.SmsTwoFactorAlreadyEnabledException;
@@ -9,15 +10,19 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.SmsTwoFactorNo
 import be.steby.CoreProject.bll.domains.auth.models.SmsTwoFactorActivationBllRequest;
 import be.steby.CoreProject.bll.domains.auth.models.TwoFactorActivationResult;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.jwt.TwoFactorJwtService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.TwoFactorAuthRepository;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
 import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -49,6 +54,10 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
     private final SmsTwoFactorActivationAttemptService smsTwoFactorActivationAttemptService;
     private final SmsTwoFactorVerificationAttemptService smsTwoFactorVerificationAttemptService;
     private final TwoFactorJwtService twoFactorJwtService;
+    private final DeviceService deviceService;
+
+    @Autowired
+    private HttpServletRequest httpServletRequest;
     
     @Override
     @Transactional
@@ -86,13 +95,11 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
         
         // 5. Save to database
         TwoFactorAuth saved = twoFactorAuthRepository.save(smsTwoFactor);
-        log.info("SMS 2FA enabled successfully for user: {} (id: {})", 
-                 user.getUsername(), saved.getId());
-        
-        // 6. Publish event for SMS notification (async)
-        eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, TwoFactorType.SMS));
-        
-        log.debug("SMS 2FA setup completed for user: {}", user.getUsername());
+        log.info("SMS 2FA enabled successfully for user: {} (id: {})", user.getUsername(), saved.getId());
+
+        // 6. Publish activity log event
+        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, device, TwoFactorType.SMS));
     }
     
     @Override
@@ -116,8 +123,11 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
         
         // 3. Save changes
         twoFactorAuthRepository.save(smsTwoFactor);
-        
         log.info("SMS 2FA disabled successfully for user: {}", user.getUsername());
+
+        // Publish activity log event
+        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        eventPublisher.publishEvent(new TwoFactorDisabledEvent(user, device, TwoFactorType.SMS));
     }
     
     @Override
@@ -183,12 +193,10 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
         String activationToken = twoFactorJwtService.generateActivationToken(user, hashedCode);
 
         // 6. Publish event to send SMS (plain code for SMS message)
-        TwoFactorSmsActivationEvent event = new TwoFactorSmsActivationEvent(
-                user,
-                verificationCode,  // Plain code sent via SMS
-                user.getPhoneNumber()
+        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        eventPublisher.publishEvent(new TwoFactorActivationInitiatedEvent(
+                user, device, TwoFactorType.SMS, verificationCode)
         );
-        eventPublisher.publishEvent(event);
 
         log.info("SMS 2FA activation initiated for user: {} (code hashed in token)", user.getUsername());
         return new TwoFactorActivationResult(TwoFactorType.SMS, activationToken);
@@ -269,8 +277,9 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
             createNewSmsTwoFactor(user);
         }
 
-        // Publish enabled event
-        eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, TwoFactorType.SMS));
+        // Publish activity log event
+        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, device, TwoFactorType.SMS));
     }
 
     /**

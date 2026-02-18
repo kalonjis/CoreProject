@@ -1,12 +1,14 @@
 package be.steby.CoreProject.bll.domains.auth.listeners;
 
+import be.steby.CoreProject.bll.domains.auth.events.TwoFactorActivationInitiatedEvent;
 import be.steby.CoreProject.bll.domains.auth.events.TwoFactorEnabledEvent;
-import be.steby.CoreProject.bll.domains.auth.events.TwoFactorInitiateActivationEvent;
-import be.steby.CoreProject.bll.domains.auth.events.TwoFactorSmsActivationEvent;
 import be.steby.CoreProject.bll.domains.auth.services.notifications.email.AuthMailerService;
 import be.steby.CoreProject.bll.domains.auth.services.notifications.sms.AuthSmsService;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.annotation.Async;
@@ -52,25 +54,25 @@ public class TwoFactorNotificationListener {
      *
      * @param event the two-factor activation initiation event
      */
+
+    /**
+     * Routes a 2FA setup initiation to the correct delivery channel (email or SMS).
+     */
     @EventListener
-    @Async("emailExecutor")
-    public void handleTwoFactorActivationInitiated(TwoFactorInitiateActivationEvent event) {
-        log.debug("Handling 2FA activation initiation for user: {}", event.user().getEmail());
-
+    public void handleTwoFactorActivationInitiated(TwoFactorActivationInitiatedEvent event) {
+        log.debug("Handling 2FA activation initiation for user: {}, type: {}",
+                event.user().getUsername(), event.type());
         try {
-            // Send activation verification code via email
-            authMailerService.sendTwoFactorActivationCode(
-                    event.user(),
-                    event.verificationCode()
-            );
-
-            log.info("2FA activation verification email sent successfully to user: {}",
-                    event.user().getEmail());
-
+            switch (event.type()) {
+                case EMAIL -> authMailerService.sendTwoFactorActivationCode(
+                        event.user(), event.verificationCode());
+                case SMS   -> authSmsService.sendTwoFactorActivationCode(
+                        event.user(), event.verificationCode(), event.user().getPhoneNumber());
+                default    -> log.warn("No activation code delivery configured for type: {}", event.type());
+            }
         } catch (Exception e) {
-            // Log error but don't fail the activation initiation
-            log.error("Failed to send 2FA activation verification email to user: {} - Error: {}",
-                    event.user().getUsername(), e.getMessage(), e);
+            log.error("Failed to deliver 2FA activation code for user: {}, type: {}",
+                    event.user().getUsername(), event.type(), e);
         }
     }
 
@@ -84,70 +86,28 @@ public class TwoFactorNotificationListener {
     @Async("emailExecutor")
     public void handleTwoFactorEnabled(TwoFactorEnabledEvent event) {
         log.debug("Handling TwoFactorEnabledEvent for user: {} with type: {}",
-                event.user().getEmail(), event.type());
+                event.user().getEmail(), event.twoFactorType());
 
         try {
-            switch (event.type()) {
+            switch (event.twoFactorType()) {
                 case EMAIL, TOTP, BACKUP_CODES -> {
                     // Email notification for these types
-                    authMailerService.sendTwoFactorEnabledConfirmation(event.user(), event.type());
+                    authMailerService.sendTwoFactorEnabledConfirmation(event.user(), event.twoFactorType());
                     log.info("2FA enabled confirmation email sent to user: {}", event.user().getEmail());
                 }
-                default -> {
-                    log.warn("Unknown 2FA type for enabled confirmation: {}", event.type());
-                }
+                case SMS -> authSmsService
+                        .sendTwoFactorEnabledConfirmation(event.user());
+
+                default -> log.warn("Unknown 2FA type for enabled confirmation: {}", event.twoFactorType());
             }
 
         } catch (Exception e) {
             // Log error but don't fail the 2FA enable operation
             log.error("Failed to send 2FA enabled confirmation to user: {} for type: {} - Error: {}",
-                    event.user().getUsername(), event.type(), e.getMessage(), e);
+                    event.user().getUsername(), event.twoFactorType(), e.getMessage(), e);
         }
     }
 
-    /**
-     * Handles TwoFactorSmsActivationEvent by sending verification code via SMS.
-     *
-     * This method processes TwoFactorSmsActivationEvent by sending the
-     * verification code via SMS to the user's phone number. This is specifically
-     * for the activation/setup phase of SMS 2FA.
-     *
-     * The SMS message contains the 6-digit verification code that the user
-     * must enter to complete the SMS 2FA activation process.
-     *
-     * Runs asynchronously to avoid blocking the main activation flow.
-     * SMS delivery failures are logged but do not affect the activation process.
-     *
-     * @param event the SMS two-factor activation event containing user, code, and phone number
-     */
-    @EventListener
-    @Async("smsExecutor")
-    public void handleTwoFactorSmsActivationInitiated(TwoFactorSmsActivationEvent event) {
-        log.debug("Handling SMS 2FA activation for user: {} to phone: {}",
-                event.user().getUsername(),
-                maskPhoneNumber(event.phoneNumber()));
-
-        try {
-            // Send activation verification code via SMS
-            authSmsService.sendTwoFactorActivationCode(
-                    event.user(),
-                    event.verificationCode(),
-                    event.phoneNumber()
-            );
-
-            log.info("SMS 2FA activation code sent successfully to user: {} (phone: {})",
-                    event.user().getUsername(),
-                    maskPhoneNumber(event.phoneNumber()));
-
-        } catch (Exception e) {
-            // Log error but don't fail the activation initiation
-            // The user can request a resend if SMS delivery fails
-            log.error("Failed to send SMS 2FA activation code to user: {} (phone: {}) - Error: {}",
-                    event.user().getUsername(),
-                    maskPhoneNumber(event.phoneNumber()),
-                    e.getMessage(), e);
-        }
-    }
 
     /**
      * Masks a phone number for logging purposes.

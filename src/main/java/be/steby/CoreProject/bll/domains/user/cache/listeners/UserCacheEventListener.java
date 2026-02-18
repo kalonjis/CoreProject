@@ -1,5 +1,7 @@
 package be.steby.CoreProject.bll.domains.user.cache.listeners;
 
+import be.steby.CoreProject.bll.domains.auth.events.ForceLogoutEvent;
+import be.steby.CoreProject.bll.domains.auth.events.UserLogoutEvent;
 import be.steby.CoreProject.bll.domains.user.cache.UserCacheService;
 import be.steby.CoreProject.bll.domains.user.events.UserPersistedEvent;
 import lombok.RequiredArgsConstructor;
@@ -30,14 +32,50 @@ public class UserCacheEventListener {
      * Follows the same pattern as DevicePersistedEvent.
      */
     @EventListener
-    @Order(1) // High priority for cache consistency
+    @Order(1)
     public void handleUserPersisted(UserPersistedEvent event) {
-        // ✅ Direct cache update with fresh user data (no DB call needed!)
         userCacheService.put(event.user());
-
         log.debug("User cache updated due to persistence - userId: {}, username: {}",
                 event.user().getId(), event.user().getUsername());
     }
+
+    // =========================================================================
+    // Logout
+    // =========================================================================
+
+    /**
+     * Clears user cache on voluntary logout.
+     * The user's token is already revoked at this point; removing the cache
+     * entry is a clean-up measure to avoid keeping stale data in memory.
+     *
+     * @param event published by AuthServiceImpl.logout()
+     */
+    @EventListener
+    @Order(1)
+    public void handleUserLogout(UserLogoutEvent event) {
+        String username = event.user().getUsername();
+        boolean removed = userCacheService.remove(username);
+        log.debug("User cache cleared on logout - username: {}, removed: {}", username, removed);
+    }
+
+    /**
+     * Clears user cache on forced logout (account deactivation, admin action, security breach).
+     * Complements token revocation done by the publisher of this event.
+     *
+     * @param event published by AuthDeactivationListener or admin force-logout flow
+     */
+    @EventListener
+    @Order(1)
+    public void handleForceLogout(ForceLogoutEvent event) {
+        String username = event.user().getUsername();
+        boolean removed = userCacheService.remove(username);
+        log.info("User cache cleared on force logout - username: {}, reason: {}, removed: {}",
+                username, event.reason(), removed);
+    }
+
+    // =========================================================================
+    // Admin / Manual operations
+    // =========================================================================
 
     /**
      * Manual cache invalidation trigger for admin operations.
@@ -61,7 +99,6 @@ public class UserCacheEventListener {
     public void handleSecurityIncidentCacheClear(String incidentId, String reason) {
         Map<String, Object> statsBefore = userCacheService.getStats();
 
-        // Force maintenance which will clean expired and potentially evict
         userCacheService.performMaintenance();
 
         Map<String, Object> statsAfter = userCacheService.getStats();

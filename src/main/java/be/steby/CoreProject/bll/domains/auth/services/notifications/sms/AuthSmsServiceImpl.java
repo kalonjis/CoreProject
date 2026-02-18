@@ -116,6 +116,23 @@ public class AuthSmsServiceImpl extends BaseSmsService implements AuthSmsService
         log.info("SMS 2FA activation code sent successfully to user: {}", user.getUsername());
     }
 
+
+    @Override
+    @Async("smsExecutor")
+    public void sendTwoFactorEnabledConfirmation(User user) {
+        log.info("Sending SMS 2FA enabled confirmation to user: {}", user.getUsername());
+        try {
+            validatePhoneNumber(user);
+            String message = "Your SMS two-factor authentication has been successfully enabled. "
+                    + "If you did not make this change, please contact support immediately.";
+            sendSms(message, user.getPhoneNumber());
+            log.info("SMS 2FA enabled confirmation sent to user: {}", user.getUsername());
+        } catch (Exception e) {
+            log.error("Failed to send SMS 2FA enabled confirmation for user: {}",
+                    user.getUsername(), e);
+        }
+    }
+
     /**
      * Formats the activation verification message for SMS.
      *

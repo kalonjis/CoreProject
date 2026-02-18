@@ -124,15 +124,16 @@ public class UserAuthenticationService {
             // Check enabled even from cache — account may have been deactivated
             if (!cachedUser.isEnabled()) {
                 userCacheService.remove(username); // evict stale entry
-                throw new UserAuthenticationStateException("User account is inactive", 401);
+                // Do NOT throw here: let Spring Security's UserDetailsChecker raise DisabledException,
+                // or let AuthServiceImpl.validateAccountStatus raise AccountDisabledException (403).
+                // Throwing 401 here swallows the proper status code and bypasses activity logging.
             }
             return cachedUser;
         }
 
-        // 2. ✅ Cache MISS → DB via repository (pas via UserService pour éviter circularité)
+        // 2. ✅ Cache MISS → DB via repository (not via UserService to avoid circular trouble)
         log.debug("Cache miss for user {} during Spring Security authentication - loading from database", username);
 
-            // Search by email OR username
         Optional<User> userOptional = userRepository.findByEmailOrUsername(username);
 
         if (userOptional.isEmpty()) {
@@ -142,12 +143,14 @@ public class UserAuthenticationService {
 
         User user = userOptional.get();
 
-        // 3. ✅ Mise en cache immédiate
-        if (!user.isEnabled()) {  // ← ajout
-            throw new UserAuthenticationStateException("User account is inactive", 401);
+        // 3. Cache only enabled users — disabled users must NOT be cached
+        // (they will be rejected by validateAccountStatus or Spring Security's UserDetailsChecker)
+        if (user.isEnabled()) {
+            userCacheService.put(user);
+            log.debug("User {} cached after Spring Security authentication load", username);
+        }else {
+            log.debug("User {} is disabled — skipping cache, delegating rejection to caller", username);
         }
-        userCacheService.put(user);
-        log.debug("User {} cached after Spring Security authentication load", username);
 
         return user;
     }
