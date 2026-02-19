@@ -34,14 +34,15 @@
     <!-- Message Box -->
     <mj-section background-color="#ffffff" padding="0 30px">
       <mj-column background-color="#f8f9fa" border-radius="6px" padding="20px" border-left="4px solid #e67e22">
-        <mj-text font-size="14px" color="#555555" font-style="italic" th:text="${message}">
-          Nous sommes désolés de vous voir partir. Votre compte a été désactivé et vos données sont en sécurité.
+        <mj-text font-size="14px" color="#555555" font-style="italic">
+          <span th:text="${message}">Nous sommes désolés de vous voir partir. Votre compte a été désactivé et vos données sont en sécurité.</span>
         </mj-text>
       </mj-column>
     </mj-section>
 
     <!-- GDPR Notice -->
-    <mj-section background-color="#ffffff" padding="20px 30px" th:if="${deactivationReason?.name() == 'GDPR_REQUEST'}">
+    <mj-raw><th:block th:if="${deactivationReason != null and deactivationReason.name() == 'GDPR_REQUEST'}"></mj-raw>
+    <mj-section background-color="#ffffff" padding="20px 30px">
       <mj-column background-color="#fdf2e9" border-radius="6px" padding="20px" border-left="4px solid #e67e22">
         <mj-text color="#d35400" font-weight="bold" font-size="16px">
           🔒 Confirmation RGPD
@@ -51,9 +52,11 @@
         </mj-text>
       </mj-column>
     </mj-section>
+    <mj-raw></th:block></mj-raw>
 
     <!-- Admin Decision Notice -->
-    <mj-section background-color="#ffffff" padding="20px 30px" th:if="${deactivationReason?.name() == 'ADMIN_DECISION'}">
+    <mj-raw><th:block th:if="${deactivationReason != null and deactivationReason.name() == 'ADMIN_DECISION'}"></mj-raw>
+    <mj-section background-color="#ffffff" padding="20px 30px">
       <mj-column background-color="#fadbd8" border-radius="6px" padding="20px" border-left="4px solid #e74c3c">
         <mj-text color="#c0392b" font-weight="bold" font-size="16px">
           ⚖️ Action administrative
@@ -63,9 +66,11 @@
         </mj-text>
       </mj-column>
     </mj-section>
+    <mj-raw></th:block></mj-raw>
 
     <!-- Reactivation Info -->
-    <mj-section background-color="#ffffff" padding="20px 30px 40px" th:if="${canReactivate == true}">
+    <mj-raw><th:block th:if="${canReactivate == true}"></mj-raw>
+    <mj-section background-color="#ffffff" padding="20px 30px 40px">
       <mj-column background-color="#e8f5e8" border-radius="6px" padding="20px">
         <mj-text color="#27ae60" font-weight="bold" font-size="16px">
           Envie de revenir ?
@@ -75,6 +80,7 @@
         </mj-text>
       </mj-column>
     </mj-section>
+    <mj-raw></th:block></mj-raw>
 
     <!-- Footer -->
     <mj-section background-color="#f8f9fa" padding="30px">

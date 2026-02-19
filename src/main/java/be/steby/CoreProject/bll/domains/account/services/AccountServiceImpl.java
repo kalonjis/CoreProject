@@ -215,9 +215,6 @@ public class AccountServiceImpl implements AccountService {
         return user;
     }
 
-    /**
-     * ✅ FIXED - Method signature matches interface: requestActivation
-     */
     @Override
     public void resendActivation(String token, HttpServletRequest request) {
 
@@ -230,7 +227,9 @@ public class AccountServiceImpl implements AccountService {
 
         AccountConfirmationToken accountConfirmationToken = accountConfirmationTokenService.createAccountConfirmationToken(user);
 
-        RequestAccountActivationEvent event = new RequestAccountActivationEvent(user, accountConfirmationToken.getToken());
+        RequestAccountActivationEvent event = new RequestAccountActivationEvent(user,
+                accountConfirmationToken.getPublicId()
+        );
         eventPublisher.publishEvent(event);
     }
 
@@ -249,7 +248,7 @@ public class AccountServiceImpl implements AccountService {
                 user, deactivationRequest.deactivationReason(), deactivationRequest.reasonDetails());
 
         RequestAccountDeactivationEvent event = new RequestAccountDeactivationEvent(
-                user, accountDeactivationToken.getToken(),
+                user, accountDeactivationToken.getPublicId(),
                 deactivationRequest.deactivationReason(),
                 deactivationRequest.reasonDetails()
         );
@@ -269,7 +268,10 @@ public class AccountServiceImpl implements AccountService {
             throw new AccountAlreadyDeactivatedException("The user with email address " + user.getEmail() + " is already deactivated!");
         }
 
-        userService.deactivateUser(user.getId(), accountDeactivationToken.getDeactivationReason(), accountDeactivationToken.getReasonDetails());
+        userService.deactivateUser(user.getId(),
+                accountDeactivationToken.getDeactivationReason(),
+                accountDeactivationToken.getReasonDetails()
+        );
 
         accountDeactivationTokenService.revokeAllUserTokens(user);
 
