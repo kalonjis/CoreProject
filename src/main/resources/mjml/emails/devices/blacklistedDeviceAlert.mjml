@@ -1,0 +1,87 @@
+<mjml>
+  <mj-head>
+    <mj-title>Alerte sécurité : Appareil bloqué</mj-title>
+    <mj-preview>Tentative de connexion depuis un appareil bloqué</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" color="#555555" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#c62828" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="bold">
+          🚨 Alerte sécurité
+        </mj-text>
+        <mj-text align="center" color="#ffcccc" font-size="14px">
+          Tentative de connexion depuis un appareil bloqué
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Main Content -->
+    <mj-section background-color="#ffffff" padding="40px 30px">
+      <mj-column>
+        <mj-text font-size="18px" color="#333333">
+          Bonjour <span th:text="${username}">Utilisateur</span>,
+        </mj-text>
+        <mj-text>
+          Nous avons détecté une tentative de connexion à votre compte depuis un appareil
+          qui a été précédemment bloqué.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Device Info -->
+    <mj-section background-color="#ffffff" padding="0 30px">
+      <mj-column background-color="#ffebee" border-radius="8px" padding="20px" border-left="4px solid #c62828">
+        <mj-text font-size="14px" color="#333333">
+          <strong>📱 Appareil :</strong> <span th:text="${deviceType}">Chrome sur Windows</span><br/>
+          <strong>📍 Localisation :</strong> <span th:text="${location}">Paris, France</span><br/>
+          <strong>🕐 Heure :</strong> <span th:text="${timestamp}">01/01/2025 10:30</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Action -->
+    <mj-section background-color="#ffffff" padding="30px">
+      <mj-column>
+        <mj-text>
+          Si c'était vous et vous souhaitez débloquer cet appareil, cliquez ci-dessous :
+        </mj-text>
+        <mj-text align="center" padding="20px">
+          <a th:href="${whitelistDeviceUrl}"
+             style="background-color:#2ecc71; color:#ffffff; padding:14px 28px;
+                    text-decoration:none; border-radius:6px; font-weight:bold;
+                    display:inline-block;">
+            ✅ Oui, débloquer cet appareil
+          </a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Info -->
+    <mj-section background-color="#ffffff" padding="0 30px 40px">
+      <mj-column background-color="#e8f5e9" border-radius="6px" padding="20px">
+        <mj-text color="#2e7d32" font-size="14px">
+          ℹ️ Si vous n'avez pas tenté cette connexion, aucune action n'est requise.
+          Votre compte reste protégé.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#6c757d" font-size="14px">
+          Cordialement,<br/>
+          <strong>L'équipe Sécurité</strong>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

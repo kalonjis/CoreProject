@@ -1,0 +1,74 @@
+<mjml>
+  <mj-head>
+    <mj-title>Nous avons reçu votre demande</mj-title>
+    <mj-preview>Merci de nous avoir contactés</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" color="#555555" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#007bff" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="bold">
+          📬 Demande reçue
+        </mj-text>
+        <mj-text align="center" color="#e0e0e0" font-size="14px">
+          Merci de nous avoir contactés !
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Main Content -->
+    <mj-section background-color="#ffffff" padding="40px 30px">
+      <mj-column>
+
+        <mj-text font-size="18px" color="#333333">
+          Bonjour <span th:text="${name}">Utilisateur</span>,
+        </mj-text>
+
+        <mj-text>
+          Nous avons bien reçu votre demande et nous vous répondrons dans les plus brefs délais.
+        </mj-text>
+
+      </mj-column>
+    </mj-section>
+
+    <!-- Inquiry Details -->
+    <mj-section background-color="#ffffff" padding="0 30px">
+      <mj-column background-color="#f8f9fa" border-radius="8px" padding="25px">
+        <mj-text font-size="16px" color="#333333" font-weight="bold">
+          📋 Détails de votre demande :
+        </mj-text>
+        <mj-text font-size="14px" color="#555555">
+          <strong>Référence :</strong> <span th:text="${referenceId}">REF-123456</span><br/>
+          <strong>Sujet :</strong> <span th:text="${subject}">Sujet de la demande</span><br/>
+          <strong>Catégorie :</strong> <span th:text="${leadType}">Support</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Info -->
+    <mj-section background-color="#ffffff" padding="20px 30px 40px">
+      <mj-column background-color="#d1ecf1" border-radius="6px" padding="20px">
+        <mj-text color="#0c5460" font-size="14px">
+          💡 Conservez votre numéro de référence pour toute correspondance future.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#6c757d" font-size="14px">
+          Cordialement,<br/>
+          <strong>L'équipe Support</strong>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

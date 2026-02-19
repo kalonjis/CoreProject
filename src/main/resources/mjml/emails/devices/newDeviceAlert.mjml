@@ -1,0 +1,102 @@
+<mjml>
+  <mj-head>
+    <mj-title>Alerte sécurité : Nouvelle connexion</mj-title>
+    <mj-preview>Connexion détectée depuis un nouvel appareil</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" color="#555555" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#e74c3c" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="bold">
+          🚨 Alerte sécurité
+        </mj-text>
+        <mj-text align="center" color="#ffcccc" font-size="14px">
+          Nouvelle connexion détectée
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Main Content -->
+    <mj-section background-color="#ffffff" padding="40px 30px">
+      <mj-column>
+        <mj-text font-size="18px" color="#333333">
+          Bonjour <span th:text="${username}">Utilisateur</span>,
+        </mj-text>
+        <mj-text>
+          Nous avons détecté une connexion à votre compte depuis un nouvel appareil.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Device Info -->
+    <mj-section background-color="#ffffff" padding="0 30px">
+      <mj-column background-color="#f8f9fa" border-radius="8px" padding="20px">
+        <mj-text font-size="14px" color="#333333">
+          <strong>📱 Appareil :</strong> <span th:text="${deviceType}">Chrome sur Windows</span><br/>
+          <strong>📍 Localisation :</strong> <span th:text="${location}">Paris, France</span><br/>
+          <strong>🕐 Heure :</strong> <span th:text="${timestamp}">01/01/2025 10:30</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Actions -->
+    <mj-section background-color="#ffffff" padding="30px">
+      <mj-column>
+        <mj-text align="center">
+          Si c'était vous, confirmez votre connexion :
+        </mj-text>
+        <mj-text align="center" padding="20px">
+          <a th:href="${confirmDeviceUrl}"
+             style="background-color:#2ecc71; color:#ffffff; padding:14px 28px;
+                    text-decoration:none; border-radius:6px; font-weight:bold;
+                    display:inline-block;">
+            ✅ Oui, c'était moi
+          </a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="0 30px 30px">
+      <mj-column>
+        <mj-text align="center">
+          Si ce n'était pas vous, sécurisez votre compte immédiatement :
+        </mj-text>
+        <mj-text align="center" padding="20px">
+          <a th:href="${revokeDeviceUrl}"
+             style="background-color:#e74c3c; color:#ffffff; padding:14px 28px;
+                    text-decoration:none; border-radius:6px; font-weight:bold;
+                    display:inline-block;">
+            ❌ Non, sécuriser mon compte
+          </a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Security Tips -->
+    <mj-section background-color="#ffffff" padding="0 30px 40px">
+      <mj-column background-color="#fff3cd" border-radius="6px" padding="20px">
+        <mj-text color="#856404" font-size="14px">
+          🔐 <strong>Conseil :</strong> Si vous ne reconnaissez pas cette connexion,
+          nous vous recommandons de changer votre mot de passe et de vérifier l'activité de votre compte.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#6c757d" font-size="14px">
+          Cordialement,<br/>
+          <strong>L'équipe Sécurité</strong>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

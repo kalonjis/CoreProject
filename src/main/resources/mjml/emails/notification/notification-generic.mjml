@@ -1,0 +1,68 @@
+<mjml>
+  <mj-head>
+    <mj-title th:text="${title}">Notification</mj-title>
+    <mj-preview th:text="${previewText}">Vous avez une notification</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" color="#555555" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#667eea" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="bold">
+          🔔 <span th:text="${title}">Notification</span>
+        </mj-text>
+        <mj-text align="center" color="#d0d0ff" font-size="14px" th:if="${subtitle}">
+          <span th:text="${subtitle}">Sous-titre</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Main Content -->
+    <mj-section background-color="#ffffff" padding="40px 30px">
+      <mj-column>
+
+        <mj-text font-size="18px" color="#333333">
+          Bonjour <span th:text="${userName}">Utilisateur</span>,
+        </mj-text>
+
+        <mj-text th:utext="${messageContent}">
+          Vous avez reçu une nouvelle notification.
+        </mj-text>
+
+      </mj-column>
+    </mj-section>
+
+    <!-- Action Button (optional) -->
+    <mj-section background-color="#ffffff" padding="0 30px 40px" th:if="${actionUrl}">
+      <mj-column>
+        <mj-text align="center" padding="20px">
+          <a th:href="${actionUrl}" th:text="${actionText}"
+             style="background-color:#667eea; color:#ffffff; padding:14px 28px;
+                    text-decoration:none; border-radius:6px; font-weight:bold;
+                    display:inline-block;">
+            Voir les détails
+          </a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#6c757d" font-size="14px">
+          Besoin d'aide ?
+          <a href="mailto:support@yourcompany.com" style="color:#007bff;">Contactez le support</a>
+        </mj-text>
+        <mj-text align="center" color="#6c757d" font-size="12px">
+          Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

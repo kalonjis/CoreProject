@@ -1,0 +1,124 @@
+<mjml>
+  <mj-head>
+    <mj-title>Bienvenue - Votre compte a été créé</mj-title>
+    <mj-preview>Votre compte a été créé par un administrateur</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" color="#555555" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#4CAF50" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="bold">
+          🎉 Bienvenue !
+        </mj-text>
+        <mj-text align="center" color="#e0e0e0" font-size="14px">
+          Votre compte a été créé avec succès
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Main Content -->
+    <mj-section background-color="#ffffff" padding="40px 30px">
+      <mj-column>
+        <mj-text font-size="18px" color="#333333">
+          Bonjour <span th:text="${firstname}">Utilisateur</span>,
+        </mj-text>
+        <mj-text>
+          Un administrateur a créé un compte pour vous sur notre plateforme.
+          Nous sommes ravis de vous accueillir !
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Account Details -->
+    <mj-section background-color="#ffffff" padding="0 30px">
+      <mj-column background-color="#f8f9fa" border-radius="8px" padding="25px" border-left="4px solid #4CAF50">
+        <mj-text font-size="18px" color="#333333" font-weight="bold">
+          📋 Détails de votre compte
+        </mj-text>
+        <mj-text font-size="14px" color="#555555">
+          <strong>Email :</strong> <span th:text="${email}">user@example.com</span><br/>
+          <strong>Nom d'utilisateur :</strong> <span th:text="${username}">username</span><br/>
+          <strong>Nom complet :</strong> <span th:text="${firstname + ' ' + lastname}">Prénom Nom</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Temporary Password -->
+    <mj-section background-color="#ffffff" padding="20px 30px">
+      <mj-column>
+        <mj-text font-size="18px" color="#333333" font-weight="bold">
+          🔑 Votre mot de passe temporaire
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="0 30px">
+      <mj-column background-color="#fff3cd" border="2px solid #ffc107" border-radius="8px" padding="25px">
+        <mj-text align="center" font-size="12px" color="#856404" text-transform="uppercase">
+          Mot de passe temporaire
+        </mj-text>
+        <mj-text align="center" font-size="28px" font-weight="bold" color="#333333"
+                 font-family="Courier New, monospace" letter-spacing="3px">
+          <span th:text="${temporaryPassword}">Abc123xyz</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Warning -->
+    <mj-section background-color="#ffffff" padding="20px 30px">
+      <mj-column background-color="#f8d7da" border-radius="6px" padding="20px" border-left="4px solid #dc3545">
+        <mj-text color="#721c24" font-weight="600">
+          ⚠️ Important
+        </mj-text>
+        <mj-text color="#721c24" font-size="14px">
+          Vous devrez obligatoirement changer ce mot de passe lors de votre première connexion.
+          Cette mesure garantit que vous seul avez accès à votre compte.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Steps -->
+    <mj-section background-color="#ffffff" padding="20px 30px">
+      <mj-column background-color="#e7f3ff" border-radius="6px" padding="20px" border-left="4px solid #2196F3">
+        <mj-text color="#1976D2" font-weight="bold" font-size="16px">
+          📝 Prochaines étapes
+        </mj-text>
+        <mj-text color="#333333" font-size="14px">
+          <strong>1.</strong> Accédez à la page de connexion<br/><br/>
+          <strong>2.</strong> Connectez-vous avec votre email et le mot de passe temporaire<br/><br/>
+          <strong>3.</strong> Créez un nouveau mot de passe sécurisé
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- CTA Button -->
+    <mj-section background-color="#ffffff" padding="20px 30px 40px">
+      <mj-column>
+        <mj-text align="center" padding="20px">
+          <a th:href="${appUrl}"
+             style="background-color:#4CAF50; color:#ffffff; padding:16px 32px;
+                    text-decoration:none; border-radius:6px; font-weight:bold;
+                    display:inline-block; font-size:18px;">
+            Se connecter maintenant
+          </a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#6c757d" font-size="12px">
+          Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

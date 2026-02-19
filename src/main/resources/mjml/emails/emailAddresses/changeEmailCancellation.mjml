@@ -1,0 +1,78 @@
+<mjml>
+  <mj-head>
+    <mj-title>Changement d'email annulé</mj-title>
+    <mj-preview>Votre demande de changement d'email a été annulée</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" color="#555555" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#6c757d" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="bold">
+          ❌ Changement annulé
+        </mj-text>
+        <mj-text align="center" color="#e0e0e0" font-size="14px">
+          Votre demande de changement d'email a été annulée
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Main Content -->
+    <mj-section background-color="#ffffff" padding="40px 30px">
+      <mj-column>
+
+        <mj-text font-size="18px" color="#333333">
+          Bonjour <span th:text="${username}">Utilisateur</span>,
+        </mj-text>
+
+        <mj-text>
+          Nous vous informons que la demande récente de changement d'adresse email
+          a été <strong>annulée avec succès</strong>.
+        </mj-text>
+
+      </mj-column>
+    </mj-section>
+
+    <!-- Info Box -->
+    <mj-section background-color="#ffffff" padding="0 30px">
+      <mj-column background-color="#d1ecf1" border-radius="8px" padding="25px">
+        <mj-text align="center" font-size="16px" color="#0c5460" font-weight="bold">
+          ℹ️ Aucune modification effectuée
+        </mj-text>
+        <mj-text align="center" font-size="14px" color="#0c5460">
+          Votre adresse email actuelle reste inchangée.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Security Notice -->
+    <mj-section background-color="#ffffff" padding="20px 30px 40px">
+      <mj-column background-color="#fff3cd" border-radius="6px" padding="20px">
+        <mj-text color="#856404" font-weight="600" font-size="16px">
+          🛡️ Vous n'êtes pas à l'origine de cette annulation ?
+        </mj-text>
+        <mj-text color="#856404" font-size="14px">
+          Si vous pensez que cette action a été faite par erreur ou sans votre consentement,
+          veuillez contacter notre équipe support immédiatement.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#6c757d" font-size="14px">
+          Merci de contribuer à la sécurité de votre compte.<br/><br/>
+          Cordialement,<br/>
+          <strong>L'équipe Sécurité MyFavApp</strong>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

@@ -1,0 +1,64 @@
+<mjml>
+  <mj-head>
+    <mj-title>Confirmez votre compte</mj-title>
+    <mj-preview>Confirmez votre compte MyFavApp</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" color="#555555" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#3498db" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="bold">
+          ✅ Confirmez votre compte !
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Main Content -->
+    <mj-section background-color="#ffffff" padding="40px 30px">
+      <mj-column>
+        <mj-text font-size="18px" color="#333333">
+          Bonjour <span th:text="${userName}">Utilisateur</span>,
+        </mj-text>
+        <mj-text>
+          Merci d'avoir rejoint l'équipe MyFavApp !<br/>
+          Pour commencer à utiliser votre compte, veuillez confirmer votre adresse email.
+        </mj-text>
+        <mj-text align="center" padding="30px">
+          <a th:href="${url}"
+             style="background-color:#3498db; color:#ffffff; padding:16px 32px;
+                    text-decoration:none; border-radius:6px; font-weight:bold;
+                    display:inline-block; font-size:18px;">
+            ✅ Confirmer mon compte
+          </a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Info -->
+    <mj-section background-color="#ffffff" padding="0 30px 40px">
+      <mj-column background-color="#fff3cd" border-radius="6px" padding="20px">
+        <mj-text color="#856404" font-size="14px">
+          Si vous n'avez pas créé ce compte, ignorez simplement cet email.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#6c757d" font-size="14px">
+          Bienvenue ! Si vous avez des questions, n'hésitez pas à contacter notre support.<br/><br/>
+          Cordialement,<br/>
+          <strong>L'équipe MyFavApp</strong>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

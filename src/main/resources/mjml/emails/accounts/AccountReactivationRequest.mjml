@@ -1,0 +1,117 @@
+<mjml>
+  <mj-head>
+    <mj-title>Confirm Your Account Reactivation – MyFavApp</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="15px" color="#333333" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#3498db" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="22px" font-weight="bold">
+          MyFavApp – Confirm Your Reactivation
+        </mj-text>
+        <mj-text align="center" color="#d6eaf8" font-size="14px">
+          One click to get back in
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Greeting -->
+    <mj-section background-color="#ffffff" padding="30px 40px 10px">
+      <mj-column>
+        <mj-text>
+          Hello <strong th:text="${username}">User</strong>,
+        </mj-text>
+        <mj-text>
+          We received a request to reactivate your <strong>MyFavApp</strong> account.
+          Click the button below to confirm and restore full access to your account.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Context info -->
+    <mj-section background-color="#eaf4fb" padding="5px 40px">
+      <mj-column background-color="#eaf4fb" border-radius="6px" padding="15px" border-left="4px solid #3498db">
+        <mj-text color="#2471a3" font-size="14px">
+          🕐 Account deactivated: <strong th:text="${deactivatedDuration}">recently</strong><br/>
+          <span th:if="${originalDeactivationReason != null}">
+            📝 Original reason: <strong th:text="${originalDeactivationReason}">Personal choice</strong>
+          </span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- CTA Button -->
+    <mj-section background-color="#ffffff" padding="20px 40px 10px">
+      <mj-column>
+        <mj-button background-color="#27ae60"
+                   color="#ffffff"
+                   font-size="16px"
+                   font-weight="bold"
+                   border-radius="6px"
+                   padding="14px 32px"
+                   href="#"
+                   th:href="${url}">
+          ✅ Confirm My Reactivation
+        </mj-button>
+      </mj-column>
+    </mj-section>
+
+    <!-- What happens next -->
+    <mj-section background-color="#ffffff" padding="0 40px 10px">
+      <mj-column>
+        <mj-text font-weight="bold" font-size="15px" color="#495057">
+          What happens after confirmation?
+        </mj-text>
+        <mj-text color="#495057" font-size="14px">
+          🔹 Your account will be instantly restored<br/>
+          🔹 All your previous data and settings will be intact<br/>
+          🔹 You can log in immediately with your existing credentials
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Security notice -->
+    <mj-section background-color="#fdf2e9" padding="5px 40px">
+      <mj-column background-color="#fdf2e9" border-radius="6px" padding="15px" border-left="4px solid #e67e22">
+        <mj-text color="#d35400" font-size="14px">
+          🔒 <strong>Didn't request this?</strong><br/>
+          Simply ignore this email — your account will remain safely deactivated.
+          This link expires automatically for security reasons.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Closing -->
+    <mj-section background-color="#ffffff" padding="20px 40px 30px">
+      <mj-column>
+        <mj-text color="#777777" font-size="14px">
+          If you need help, contact us at
+          <a href="mailto:support@myfavapp.com" style="color:#3498db;">support@myfavapp.com</a>
+        </mj-text>
+        <mj-text color="#777777" font-size="14px">
+          We'd love to have you back! 🎉<br/>
+          <strong>The MyFavApp Team</strong>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="20px 40px">
+      <mj-column>
+        <mj-text align="center" color="#999999" font-size="12px">
+          This reactivation request was initiated on
+          <span th:text="${#dates.format(#dates.createNow(), 'MMMM dd, yyyy')}">January 01, 2025</span>.<br/>
+          This is an automated security email. Please do not reply.<br/>
+          © <span th:text="${#dates.year(#dates.createNow())}">2025</span> MyFavApp. All rights reserved.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

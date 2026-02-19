@@ -1,0 +1,85 @@
+<mjml>
+  <mj-head>
+    <mj-title>Confirmez votre nouvel email</mj-title>
+    <mj-preview>Confirmez votre nouvelle adresse email</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" color="#555555" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#3498db" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="bold">
+          📩 Confirmez votre nouvel email
+        </mj-text>
+        <mj-text align="center" color="#e0e0e0" font-size="14px">
+          Une dernière étape pour finaliser le changement
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Main Content -->
+    <mj-section background-color="#ffffff" padding="40px 30px">
+      <mj-column>
+
+        <mj-text font-size="18px" color="#333333">
+          Bonjour <span th:text="${username}">Utilisateur</span>,
+        </mj-text>
+
+        <mj-text>
+          Vous êtes presque arrivé au bout ! Pour finaliser le changement d'adresse email
+          et commencer à utiliser votre nouvelle adresse, cliquez sur le bouton ci-dessous :
+        </mj-text>
+
+        <mj-text align="center" padding="20px">
+          <a th:href="${newEmailConfirmationUrl}"
+             style="background-color:#27ae60; color:#ffffff; padding:14px 28px;
+                    text-decoration:none; border-radius:6px; font-weight:bold;
+                    display:inline-block;">
+            Confirmer mon nouvel email
+          </a>
+        </mj-text>
+
+      </mj-column>
+    </mj-section>
+
+    <!-- Warning -->
+    <mj-section background-color="#ffffff" padding="0 30px">
+      <mj-column background-color="#fff3cd" border-radius="6px" padding="20px">
+        <mj-text color="#856404" font-size="14px">
+          <strong>⏰ Ce lien expire dans 24 heures</strong> pour des raisons de sécurité.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Security Notice -->
+    <mj-section background-color="#ffffff" padding="20px 30px 40px">
+      <mj-column background-color="#f8d7da" border-radius="6px" padding="20px">
+        <mj-text color="#721c24" font-weight="600" font-size="16px">
+          ⚠️ Vous n'avez pas demandé ce changement ?
+        </mj-text>
+        <mj-text color="#721c24" font-size="14px">
+          Ignorez simplement cet email. Votre adresse actuelle restera inchangée.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#6c757d" font-size="14px">
+          Cordialement,<br/>
+          <strong>L'équipe Sécurité MyFavApp</strong>
+        </mj-text>
+        <mj-text align="center" color="#6c757d" font-size="12px">
+          Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

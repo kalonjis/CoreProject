@@ -1,0 +1,77 @@
+<mjml>
+  <mj-head>
+    <mj-title>Email modifié avec succès</mj-title>
+    <mj-preview>Votre adresse email a été changée</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" color="#555555" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#28a745" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="bold">
+          ✅ Email modifié
+        </mj-text>
+        <mj-text align="center" color="#e0e0e0" font-size="14px">
+          Votre adresse email a été changée avec succès
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Main Content -->
+    <mj-section background-color="#ffffff" padding="40px 30px">
+      <mj-column>
+
+        <mj-text font-size="18px" color="#333333">
+          Bonjour <span th:text="${username}">Utilisateur</span>,
+        </mj-text>
+
+        <mj-text>
+          Nous vous confirmons que votre adresse email a été modifiée avec succès.
+        </mj-text>
+
+      </mj-column>
+    </mj-section>
+
+    <!-- Email Change Details -->
+    <mj-section background-color="#ffffff" padding="0 30px">
+      <mj-column background-color="#f8f9fa" border-radius="8px" padding="25px">
+        <mj-text font-size="14px" color="#333333">
+          <strong>🔹 Nouvel email :</strong> <span th:text="${newEmail}">nouveau@email.com</span>
+        </mj-text>
+        <mj-text font-size="14px" color="#6c757d">
+          <strong>🔸 Ancien email :</strong> <span th:text="${oldEmail}">ancien@email.com</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Security Warning -->
+    <mj-section background-color="#ffffff" padding="20px 30px 40px">
+      <mj-column background-color="#f8d7da" border-radius="6px" padding="20px">
+        <mj-text color="#721c24" font-weight="600" font-size="16px">
+          ❗ Vous n'avez pas demandé ce changement ?
+        </mj-text>
+        <mj-text color="#721c24" font-size="14px">
+          Si vous n'êtes pas à l'origine de cette modification, veuillez <strong>immédiatement</strong>
+          mettre à jour vos paramètres de sécurité et contacter notre équipe support.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#6c757d" font-size="14px">
+          Merci de garder votre compte sécurisé ! 🔐<br/><br/>
+          Cordialement,<br/>
+          <strong>L'équipe Sécurité MyFavApp</strong>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

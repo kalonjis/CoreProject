@@ -1,0 +1,44 @@
+# Auth
+mjml src/main/resources/mjml/emails/auth/two-factor-activation-code.mjml -o src/main/resources/templates/emails/auth/two-factor-activation-code.html
+mjml src/main/resources/mjml/emails/auth/two-factor-verification-code.mjml -o src/main/resources/templates/emails/auth/two-factor-verification-code.html
+mjml src/main/resources/mjml/emails/auth/twoFactorEnabled.mjml -o src/main/resources/templates/emails/auth/twoFactorEnabled.html
+
+# Accounts
+mjml src/main/resources/mjml/emails/accounts/signupConfirmation.mjml -o src/main/resources/templates/emails/accounts/signupConfirmation.html
+mjml src/main/resources/mjml/emails/accounts/accountConfirmation.mjml -o src/main/resources/templates/emails/accounts/accountConfirmation.html
+mjml src/main/resources/mjml/emails/accounts/newAccountConfirmationRequest.mjml -o src/main/resources/templates/emails/accounts/newAccountConfirmationRequest.html
+mjml src/main/resources/mjml/emails/accounts/GreetingComfirmedUser.mjml -o src/main/resources/templates/emails/accounts/GreetingComfirmedUser.html
+mjml src/main/resources/mjml/emails/accounts/adminCreatedUser.mjml -o src/main/resources/templates/emails/accounts/adminCreatedUser.html
+mjml src/main/resources/mjml/emails/accounts/AccountReactivationRequest.mjml -o src/main/resources/templates/emails/accounts/AccountReactivationRequest.html
+mjml src/main/resources/mjml/emails/accounts/AccountReactivationConfirmation.mjml -o src/main/resources/templates/emails/accounts/AccountReactivationConfirmation.html
+mjml src/main/resources/mjml/emails/accounts/accountDeactivationConfirmation.mjml -o src/main/resources/templates/emails/accounts/accountDeactivationConfirmation.html
+
+# Admin
+mjml src/main/resources/mjml/emails/admin/temporaryPassword.mjml -o src/main/resources/templates/emails/admin/temporaryPassword.html
+mjml src/main/resources/mjml/emails/admin/temporaryPasswordAlternative.mjml -o src/main/resources/templates/emails/admin/temporaryPasswordAlternative.html
+mjml src/main/resources/mjml/emails/admin/passwordResetLink.mjml -o src/main/resources/templates/emails/admin/passwordResetLink.html
+
+# Devices
+mjml src/main/resources/mjml/emails/devices/newDeviceAlert.mjml -o src/main/resources/templates/emails/devices/newDeviceAlert.html
+mjml src/main/resources/mjml/emails/devices/blacklistedDeviceAlert.mjml -o src/main/resources/templates/emails/devices/blacklistedDeviceAlert.html
+
+# Email Addresses
+mjml src/main/resources/mjml/emails/emailAddresses/changeEmailRequest.mjml -o src/main/resources/templates/emails/emailAddresses/changeEmailRequest.html
+mjml src/main/resources/mjml/emails/emailAddresses/changeEmailVerification.mjml -o src/main/resources/templates/emails/emailAddresses/changeEmailVerification.html
+mjml src/main/resources/mjml/emails/emailAddresses/changeEmailConfirmation.mjml -o src/main/resources/templates/emails/emailAddresses/changeEmailConfirmation.html
+mjml src/main/resources/mjml/emails/emailAddresses/changeEmailCancellation.mjml -o src/main/resources/templates/emails/emailAddresses/changeEmailCancellation.html
+
+# Lead
+mjml src/main/resources/mjml/emails/lead/LeadAcknowledgment.mjml -o src/main/resources/templates/emails/lead/LeadAcknowledgment.html
+mjml src/main/resources/mjml/emails/lead/LeadNotification.mjml -o src/main/resources/templates/emails/lead/LeadNotification.html
+
+# Notification
+mjml src/main/resources/mjml/emails/notification/notification-generic.mjml -o src/main/resources/templates/emails/notification/notification-generic.html
+mjml src/main/resources/mjml/emails/notification/notification-reminder.mjml -o src/main/resources/templates/emails/notification/notification-reminder.html
+mjml src/main/resources/mjml/emails/notification/notification-security.mjml -o src/main/resources/templates/emails/notification/notification-security.html
+
+# Passwords
+mjml src/main/resources/mjml/emails/passwords/NewPasswordRequest.mjml -o src/main/resources/templates/emails/passwords/NewPasswordRequest.html
+mjml src/main/resources/mjml/emails/passwords/PasswordResetRefresh.mjml -o src/main/resources/templates/emails/passwords/PasswordResetRefresh.html
+mjml src/main/resources/mjml/emails/passwords/passwordChangeConfirmation.mjml -o src/main/resources/templates/emails/passwords/passwordChangeConfirmation.html
+mjml src/main/resources/mjml/emails/passwords/password-reset-code.mjml -o src/main/resources/templates/emails/passwords/password-reset-code.html

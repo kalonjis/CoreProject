@@ -1,0 +1,84 @@
+<mjml>
+  <mj-head>
+    <mj-title>Nouveau Lead</mj-title>
+    <mj-preview>Un nouveau lead vient d'être reçu</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" color="#555555" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#e74c3c" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="bold">
+          🔔 Nouveau Lead
+        </mj-text>
+        <mj-text align="center" color="#e0e0e0" font-size="14px">
+          Une nouvelle demande vient d'être soumise
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Lead Details Table -->
+    <mj-section background-color="#ffffff" padding="40px 30px">
+      <mj-column>
+
+        <mj-table>
+          <tr style="background-color:#f5f5f5;">
+            <td style="padding:10px;border:1px solid #ddd;font-weight:bold;">Référence</td>
+            <td style="padding:10px;border:1px solid #ddd;" th:text="${referenceId}">REF-123456</td>
+          </tr>
+          <tr>
+            <td style="padding:10px;border:1px solid #ddd;font-weight:bold;background-color:#f5f5f5;">Type</td>
+            <td style="padding:10px;border:1px solid #ddd;" th:text="${leadType}">Support</td>
+          </tr>
+          <tr style="background-color:#f5f5f5;">
+            <td style="padding:10px;border:1px solid #ddd;font-weight:bold;">De</td>
+            <td style="padding:10px;border:1px solid #ddd;">
+              <span th:text="${visitorName}">Nom</span> &lt;<span th:text="${visitorEmail}">email@test.com</span>&gt;
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:10px;border:1px solid #ddd;font-weight:bold;background-color:#f5f5f5;">Sujet</td>
+            <td style="padding:10px;border:1px solid #ddd;" th:text="${subject}">Sujet</td>
+          </tr>
+          <tr style="background-color:#f5f5f5;">
+            <td style="padding:10px;border:1px solid #ddd;font-weight:bold;">Soumis le</td>
+            <td style="padding:10px;border:1px solid #ddd;" th:text="${submittedAt}">01/01/2025 10:00</td>
+          </tr>
+        </mj-table>
+
+      </mj-column>
+    </mj-section>
+
+    <!-- Message -->
+    <mj-section background-color="#ffffff" padding="0 30px">
+      <mj-column>
+        <mj-text font-size="18px" color="#333333" font-weight="bold">
+          📝 Message
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="0 30px 30px">
+      <mj-column background-color="#f9f9f9" border-radius="8px" padding="20px" border="1px solid #ddd">
+        <mj-text font-size="14px" color="#333333">
+          <span th:text="${message}">Contenu du message...</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="20px 30px">
+      <mj-column>
+        <mj-text align="center" color="#888888" font-size="12px">
+          Adresse IP : <span th:text="${ipAddress}">192.168.1.1</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

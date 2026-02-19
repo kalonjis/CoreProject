@@ -1,0 +1,93 @@
+<mjml>
+  <mj-head>
+    <mj-title>2FA Activée</mj-title>
+    <mj-preview>L'authentification à deux facteurs est maintenant active</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" color="#555555" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#28a745" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="bold">
+          ✅ 2FA Activée
+        </mj-text>
+        <mj-text align="center" color="#e0e0e0" font-size="14px">
+          Votre compte est maintenant mieux protégé
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Main Content -->
+    <mj-section background-color="#ffffff" padding="40px 30px">
+      <mj-column>
+
+        <mj-text font-size="18px" color="#333333">
+          Bonjour <span th:text="${userName}">Utilisateur</span>,
+        </mj-text>
+
+        <mj-text>
+          Bonne nouvelle ! L'authentification à deux facteurs a été activée avec succès sur votre compte.
+        </mj-text>
+
+      </mj-column>
+    </mj-section>
+
+    <!-- Success Box -->
+    <mj-section background-color="#ffffff" padding="0 30px">
+      <mj-column background-color="#d4edda" border-radius="8px" padding="25px">
+        <mj-text align="center" font-size="16px" color="#155724" font-weight="bold">
+          🔐 Méthode activée : <span th:text="${twoFactorType}">Email</span>
+        </mj-text>
+        <mj-text align="center" font-size="14px" color="#155724">
+          À chaque connexion, vous devrez confirmer votre identité avec cette méthode.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- What's next -->
+    <mj-section background-color="#ffffff" padding="30px">
+      <mj-column>
+        <mj-text font-size="18px" color="#333333" font-weight="bold">
+          Que se passe-t-il maintenant ?
+        </mj-text>
+        <mj-text>
+          <strong>1.</strong> Lors de vos prochaines connexions, un code vous sera envoyé<br/><br/>
+          <strong>2.</strong> Entrez ce code pour accéder à votre compte<br/><br/>
+          <strong>3.</strong> Gardez votre méthode de vérification accessible
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Security Notice -->
+    <mj-section background-color="#ffffff" padding="0 30px 40px">
+      <mj-column background-color="#fff3cd" border-radius="6px" padding="20px">
+        <mj-text color="#856404" font-weight="600" font-size="16px">
+          🛡️ Conseil de sécurité
+        </mj-text>
+        <mj-text color="#856404" font-size="14px">
+          Si vous n'êtes pas à l'origine de cette activation, veuillez immédiatement
+          changer votre mot de passe et contacter notre support.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#6c757d" font-size="14px">
+          Besoin d'aide ?
+          <a href="mailto:support@yourcompany.com" style="color:#007bff;">Contactez le support</a>
+        </mj-text>
+        <mj-text align="center" color="#6c757d" font-size="12px">
+          Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

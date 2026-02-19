@@ -1,0 +1,66 @@
+<mjml>
+  <mj-head>
+    <mj-title>Confirmez votre compte</mj-title>
+    <mj-preview>Confirmez votre inscription sur MyFavApp</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" color="#555555" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#3498DB" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="bold">
+          ✉️ Confirmez votre compte
+        </mj-text>
+        <mj-text align="center" color="#e0e0e0" font-size="14px">
+          Une dernière étape pour activer votre compte
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Main Content -->
+    <mj-section background-color="#ffffff" padding="40px 30px">
+      <mj-column>
+        <mj-text font-size="18px" color="#333333">
+          Bonjour <span th:text="${username}">Utilisateur</span>,
+        </mj-text>
+        <mj-text>
+          Merci de vous être inscrit sur <strong>MyFavApp</strong> !<br/>
+          Pour activer votre compte et finaliser votre inscription, cliquez sur le bouton ci-dessous :
+        </mj-text>
+        <mj-text align="center" padding="20px">
+          <a th:href="${url}"
+             style="background-color:#3498DB; color:#ffffff; padding:14px 28px;
+                    text-decoration:none; border-radius:6px; font-weight:bold;
+                    display:inline-block;">
+            Confirmer mon compte
+          </a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Info -->
+    <mj-section background-color="#ffffff" padding="0 30px 40px">
+      <mj-column background-color="#fff3cd" border-radius="6px" padding="20px">
+        <mj-text color="#856404" font-size="14px">
+          Si vous n'avez pas demandé cette inscription, ignorez simplement cet email.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#6c757d" font-size="14px">
+          Cordialement,<br/>
+          <strong>L'équipe MyFavApp</strong>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>
