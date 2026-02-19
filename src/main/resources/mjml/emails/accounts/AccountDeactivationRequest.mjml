@@ -4,69 +4,83 @@
     <mj-preview>Confirmez la désactivation de votre compte MyFavApp</mj-preview>
     <mj-attributes>
       <mj-all font-family="Arial, sans-serif" />
-      <mj-text font-size="16px" color="#555555" line-height="1.6" />
+      <mj-text font-size="15px" color="#555555" line-height="1.6" />
+      <mj-section padding="0" />
     </mj-attributes>
   </mj-head>
 
-  <mj-body background-color="#f4f4f4">
+  <mj-body background-color="#f0f2f5">
+
+    <!-- Top accent bar -->
+    <mj-section background-color="#c0392b" padding="6px 0" />
 
     <!-- Header -->
-    <mj-section background-color="#c0392b" padding="30px">
+    <mj-section background-color="#c0392b" padding="35px 40px 30px">
       <mj-column>
-        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="bold">
+        <mj-text align="center" color="#ffffff" font-size="26px" font-weight="bold" padding-bottom="8px">
           ⚠️ Confirmer la désactivation
+        </mj-text>
+        <mj-text align="center" color="#f5b7b1" font-size="14px" padding-top="0">
+          MyFavApp – Sécurité du compte
         </mj-text>
       </mj-column>
     </mj-section>
 
-    <!-- Main Content -->
-    <mj-section background-color="#ffffff" padding="40px 30px">
+    <!-- Greeting + request message -->
+    <mj-section background-color="#ffffff" padding="35px 40px 20px">
       <mj-column>
-        <mj-text font-size="18px" color="#333333">
+        <mj-text font-size="17px" color="#2c3e50" font-weight="bold" padding-bottom="4px">
           Bonjour <span th:text="${userName}">Utilisateur</span>,
         </mj-text>
-        <mj-text th:text="${requestMessage}">
+        <mj-text padding-top="8px" th:text="${requestMessage}">
           Nous avons reçu une demande de désactivation de votre compte MyFavApp.
         </mj-text>
       </mj-column>
     </mj-section>
 
-    <!-- Reason Details (if provided) -->
-    <mj-section background-color="#ffffff" padding="0 30px" th:if="${reasonDetails != null}">
-      <mj-column background-color="#f8f9fa" border-radius="6px" padding="20px" border-left="4px solid #3498db">
-        <mj-text font-size="14px" color="#555555">
+    <!-- Reason Details (optional) -->
+    <mj-raw><th:block th:if="${reasonDetails != null}"></mj-raw>
+    <mj-section background-color="#ffffff" padding="0 40px 20px">
+      <mj-column border-left="4px solid #3498db" background-color="#eaf4fb" border-radius="4px" padding="16px 20px">
+        <mj-text font-size="14px" color="#2471a3">
           <strong>Détails supplémentaires :</strong> "<span th:text="${reasonDetails}"></span>"
         </mj-text>
       </mj-column>
     </mj-section>
+    <mj-raw></th:block></mj-raw>
 
     <!-- GDPR Notice -->
-    <mj-section background-color="#ffffff" padding="20px 30px" th:if="${deactivationReason?.name() == 'GDPR_REQUEST'}">
-      <mj-column background-color="#fdf2e9" border-radius="6px" padding="20px" border-left="4px solid #e67e22">
-        <mj-text color="#d35400" font-size="14px">
-          <strong>⚠️ Important :</strong> Cette action supprimera définitivement vos données personnelles conformément au RGPD. Cette opération est irréversible.
+    <mj-raw><th:block th:if="${deactivationReason != null and deactivationReason.name() == 'GDPR_REQUEST'}"></mj-raw>
+    <mj-section background-color="#ffffff" padding="0 40px 20px">
+      <mj-column border-left="4px solid #e67e22" background-color="#fdf2e9" border-radius="4px" padding="16px 20px">
+        <mj-text font-size="14px" color="#d35400">
+          🔒 <strong>Données RGPD :</strong> Cette action supprimera définitivement vos données personnelles. Cette opération est <strong>irréversible</strong>.
         </mj-text>
       </mj-column>
     </mj-section>
+    <mj-raw></th:block></mj-raw>
 
     <!-- Admin Decision Notice -->
-    <mj-section background-color="#ffffff" padding="20px 30px" th:if="${deactivationReason?.name() == 'ADMIN_DECISION'}">
-      <mj-column background-color="#fadbd8" border-radius="6px" padding="20px" border-left="4px solid #e74c3c">
-        <mj-text color="#c0392b" font-size="14px">
-          <strong>Action administrative :</strong> Cette désactivation a été initiée par notre équipe administrative. Si vous avez des questions, contactez notre support.
+    <mj-raw><th:block th:if="${deactivationReason != null and deactivationReason.name() == 'ADMIN_DECISION'}"></mj-raw>
+    <mj-section background-color="#ffffff" padding="0 40px 20px">
+      <mj-column border-left="4px solid #e74c3c" background-color="#fadbd8" border-radius="4px" padding="16px 20px">
+        <mj-text font-size="14px" color="#c0392b">
+          ⚖️ <strong>Action administrative :</strong> Cette désactivation a été initiée par notre équipe. Contactez le support si vous avez des questions.
         </mj-text>
       </mj-column>
     </mj-section>
+    <mj-raw></th:block></mj-raw>
 
-    <!-- Confirmation Button (not for admin decisions) -->
-    <mj-section background-color="#ffffff" padding="20px 30px" th:if="${deactivationReason?.name() != 'ADMIN_DECISION'}">
+    <!-- CTA Button (not for admin decisions) -->
+    <mj-raw><th:block th:if="${deactivationReason == null or deactivationReason.name() != 'ADMIN_DECISION'}"></mj-raw>
+    <mj-section background-color="#ffffff" padding="10px 40px 20px">
       <mj-column>
-        <mj-text>
-          Pour procéder à la désactivation, veuillez confirmer votre demande :
+        <mj-text font-size="14px" color="#555555">
+          Pour procéder, veuillez confirmer votre demande :
         </mj-text>
         <mj-text align="center" padding="20px">
           <a th:href="${url}"
-             style="background-color:#e74c3c; color:#ffffff; padding:14px 28px;
+             style="background-color:#e74c3c; color:#ffffff; padding:14px 32px;
                     text-decoration:none; border-radius:6px; font-weight:bold;
                     display:inline-block;">
             Confirmer la désactivation
@@ -74,33 +88,44 @@
         </mj-text>
       </mj-column>
     </mj-section>
+    <mj-raw></th:block></mj-raw>
 
-    <!-- Warning -->
-    <mj-section background-color="#ffffff" padding="0 30px">
-      <mj-column background-color="#fff3cd" border-radius="6px" padding="20px" border-left="4px solid #ffc107">
-        <mj-text color="#856404" font-size="14px">
-          <strong>⚠️ Important :</strong> Si vous n'avez pas demandé cette action, ignorez cet email et votre compte restera actif.
+    <!-- Divider -->
+    <mj-section background-color="#ffffff" padding="10px 40px 0">
+      <mj-column>
+        <mj-divider border-color="#ecf0f1" border-width="1px" />
+      </mj-column>
+    </mj-section>
+
+    <!-- Warning: didn't request -->
+    <mj-section background-color="#ffffff" padding="20px 40px">
+      <mj-column border-left="4px solid #ffc107" background-color="#fff9e6" border-radius="4px" padding="16px 20px">
+        <mj-text font-size="14px" color="#856404">
+          ⚠️ <strong>Vous n'avez pas fait cette demande ?</strong> Ignorez simplement cet email — votre compte restera actif.
         </mj-text>
       </mj-column>
     </mj-section>
 
     <!-- Reactivation Info -->
-    <mj-section background-color="#ffffff" padding="20px 30px 40px" th:if="${canReactivate == true}">
-      <mj-column background-color="#d4edda" border-radius="6px" padding="20px" border-left="4px solid #28a745">
-        <mj-text color="#155724" font-size="14px">
-          <strong>Bon à savoir :</strong> Vous pourrez réactiver votre compte à tout moment en vous reconnectant simplement.
+    <mj-raw><th:block th:if="${canReactivate == true}"></mj-raw>
+    <mj-section background-color="#ffffff" padding="0 40px 35px">
+      <mj-column border-left="4px solid #27ae60" background-color="#eafaf1" border-radius="4px" padding="16px 20px">
+        <mj-text font-size="14px" color="#1e8449">
+          ✅ <strong>Bon à savoir :</strong> Vous pourrez réactiver votre compte à tout moment en vous reconnectant simplement.
         </mj-text>
       </mj-column>
     </mj-section>
+    <mj-raw></th:block></mj-raw>
 
     <!-- Footer -->
-    <mj-section background-color="#f8f9fa" padding="30px">
+    <mj-section background-color="#2c3e50" padding="30px 40px">
       <mj-column>
-        <mj-text align="center" color="#6c757d" font-size="14px">
-          Besoin d'aide ? Contactez-nous à <a href="mailto:support@myfavapp.com" style="color:#3498db;">support@myfavapp.com</a>
+        <mj-text align="center" color="#bdc3c7" font-size="14px" padding-bottom="6px">
+          Besoin d'aide ? <a href="mailto:support@myfavapp.com" style="color:#3498db; text-decoration:none;">support@myfavapp.com</a>
         </mj-text>
-        <mj-text align="center" color="#999999" font-size="12px">
-          Ce lien de confirmation expirera dans 24 heures.
+        <mj-text align="center" color="#7f8c8d" font-size="12px">
+          Ce lien de confirmation expirera dans <strong style="color:#bdc3c7;">24 heures</strong>.<br/>
+          © <span th:text="${#dates.year(#dates.createNow())}">2025</span> MyFavApp. Tous droits réservés.
         </mj-text>
       </mj-column>
     </mj-section>

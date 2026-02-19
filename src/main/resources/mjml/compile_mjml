@@ -11,6 +11,7 @@ mjml src/main/resources/mjml/emails/accounts/GreetingComfirmedUser.mjml -o src/m
 mjml src/main/resources/mjml/emails/accounts/adminCreatedUser.mjml -o src/main/resources/templates/emails/accounts/adminCreatedUser.html
 mjml src/main/resources/mjml/emails/accounts/AccountReactivationRequest.mjml -o src/main/resources/templates/emails/accounts/AccountReactivationRequest.html
 mjml src/main/resources/mjml/emails/accounts/AccountReactivationConfirmation.mjml -o src/main/resources/templates/emails/accounts/AccountReactivationConfirmation.html
+mjml src/main/resources/mjml/emails/accounts/accountDeactivationRequest.mjml -o src/main/resources/templates/emails/accounts/accountDeactivationRequest.html
 mjml src/main/resources/mjml/emails/accounts/accountDeactivationConfirmation.mjml -o src/main/resources/templates/emails/accounts/accountDeactivationConfirmation.html
 
 # Admin

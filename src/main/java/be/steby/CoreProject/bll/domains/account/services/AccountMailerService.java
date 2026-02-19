@@ -87,7 +87,7 @@ public class AccountMailerService extends BaseMailerService {
     public void sendNewAccountConfirmation(String token, User user) {
         log.info("Sending new account confirmation request to: {}", user.getEmail());
 
-        String confirmationUrl = buildUrl("/auth/account-confirmation", "token", token);
+        String confirmationUrl = buildUrl("/account/confirmation", "token", token);
 
         Context context = createBaseContext(user);
         context.setVariable("url", confirmationUrl);
@@ -125,7 +125,7 @@ public class AccountMailerService extends BaseMailerService {
                                                String reasonDetails) {
         log.info("Sending account deactivation request email to: {}", user.getEmail());
 
-        String confirmationUrl = buildUrl("/auth/account-deactivation", "token", token);
+        String confirmationUrl = buildUrl("/account/deactivation", "token", token);
 
         String requestMessage = deactivationMessageService.getDeactivationRequestMessage(
                 deactivationReason, reasonDetails);
@@ -167,7 +167,7 @@ public class AccountMailerService extends BaseMailerService {
                 deactivationReason.allowsReactivation();
 
         String reactivationUrl = canReactivate ?
-                buildUrl("/auth/account-reactivation") : null;
+                buildUrl("/account/reactivation") : null;
 
         Context context = createBaseContext(user);
         context.setVariable("deactivationReason", deactivationReason);
@@ -192,7 +192,7 @@ public class AccountMailerService extends BaseMailerService {
     public void sendAccountReactivationRequest(String token, User user) {
         log.info("Sending account reactivation request email to: {}", user.getEmail());
 
-        String confirmationUrl = buildUrl("/auth/account-reactivation", "token", token);
+        String confirmationUrl = buildUrl("/account/reactivation", "token", token);
 
         Context context = createBaseContext(user);
         context.setVariable("url", confirmationUrl);
