@@ -14,6 +14,8 @@ public interface AccountService {
 
     void resendActivation(String token);
 
+    void resendActivationByIdentifier(String identifier);
+
     void requestDeactivation(User user, DeactivationRequest deactivationRequest);
 
     User deactivateAccount(String token);

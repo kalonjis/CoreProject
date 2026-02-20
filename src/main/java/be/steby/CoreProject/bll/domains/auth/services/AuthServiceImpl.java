@@ -10,6 +10,7 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorCodeD
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorNotEnabledException;
 import be.steby.CoreProject.bll.domains.auth.models.*;
 import be.steby.CoreProject.bll.domains.auth.services.jwt.AuthJwtService;
+import be.steby.CoreProject.bll.domains.auth.services.login_attempt.LoginAttemptServiceImpl;
 import be.steby.CoreProject.bll.domains.auth.services.notifications.email.AuthMailerService;
 import be.steby.CoreProject.bll.domains.auth.services.notifications.sms.AuthSmsService;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.TwoFactorFactory;
@@ -23,6 +24,7 @@ import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.exceptions.CoreProjectException;
 import be.steby.CoreProject.bll.exceptions.DoesntExistException;
 import be.steby.CoreProject.bll.domains.user.exceptions.UsernameNotFoundAuthenticationException;
+import be.steby.CoreProject.bll.exceptions.RateLimitExceededException;
 import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.Device;
@@ -115,6 +117,12 @@ public class AuthServiceImpl implements AuthService {
 
         String clientIpAddress = IpLocationUtils.extractClientIp(httpRequest);
 
+        if (loginAttemptService.isIpBlocked(clientIpAddress)) {
+            Instant now = Instant.now();
+            throw new RateLimitExceededException("Too many attempts. Please try again later");
+        }
+
+
         User user = null;
         Device device = null;
 
@@ -161,7 +169,8 @@ public class AuthServiceImpl implements AuthService {
 
         } catch (DoesntExistException e) {
             handleNonExistentUser(username, clientIpAddress);
-            throw e;
+            throw new InvalidCredentialsException("Invalid username or password.");
+
         } catch (CoreProjectException e) {
             handleAuthenticationFailure(user, device, e);
             throw e;
@@ -598,13 +607,23 @@ public class AuthServiceImpl implements AuthService {
      * Checks if login attempts are blocked due to brute force protection.
      */
     private void validateBruteForceProtection(String username, String clientIpAddress) {
-        if (loginAttemptService.isBlocked(username, clientIpAddress)) {
-            Instant unlockTime = loginAttemptService.getUnlockTime(username, clientIpAddress);
-            String message = buildLockoutMessage(unlockTime);
+        LoginAttemptServiceImpl.BlockReason reason =
+                loginAttemptService.getBlockReason(username, clientIpAddress);
 
-            log.warn("Login blocked - brute force protection - Username: {}, IP: {}",
-                    username, clientIpAddress);
-            throw new AccountTemporarilyLockedException(message);
+        if (reason == LoginAttemptServiceImpl.BlockReason.NOT_BLOCKED) return;
+
+        Instant unlockTime = loginAttemptService.getUnlockTime(username, clientIpAddress);
+        String message = buildLockoutMessage(unlockTime);
+
+        switch (reason) {
+            case ACCOUNT_LOCKED ->
+                    throw new AccountTemporarilyLockedException(message, 423);
+
+            case IP_BLOCKED ->
+                    throw new RateLimitExceededException(message, 429);
+
+            case COMBINED_BLOCKED ->
+                    throw new InvalidCredentialsException("Invalid username or password.");
         }
     }
 
@@ -800,16 +819,13 @@ public class AuthServiceImpl implements AuthService {
             return;
         }
 
-        loginAttemptService.recordFailedAttempt(user.getUsername(), device.getLastIpAddress());
-
-        // ACCOUNT_DISABLED — publish a LOGIN_FAILED event so the activity log is written,
-        // but do NOT record a brute-force attempt (the password was never evaluated).
-        if (e instanceof AccountDisabledException) {
-            log.warn("Login denied — account disabled: {} from IP: {}",
-                    user.getUsername(), device.getLastIpAddress());
+        if (e instanceof AccountDisabledException || e instanceof AccountActivationException) {
             eventPublisher.publishEvent(new UserLoginFailedEvent(user, device, e.getMessage()));
             return;
         }
+
+        loginAttemptService.recordFailedAttempt(user.getUsername(), device.getLastIpAddress());
+
 
         // All other failures (wrong password, device blacklisted, …):
         // record the failed attempt for brute-force protection.

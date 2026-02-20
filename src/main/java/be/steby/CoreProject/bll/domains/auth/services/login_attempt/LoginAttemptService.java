@@ -18,6 +18,8 @@ public interface LoginAttemptService {
      */
     boolean isBlocked(String username, String ipAddress);
 
+    boolean isIpBlocked(String ipAddress);
+
     /**
      * Records a failed login attempt for the given username and IP address.
      * This updates attempt counters and may trigger blocking if limits are exceeded.
@@ -45,6 +47,9 @@ public interface LoginAttemptService {
      * @return the unlock time, or null if not blocked
      */
     Instant getUnlockTime(String username, String ipAddress);
+
+    LoginAttemptServiceImpl.BlockReason getBlockReason(String username, String ipAddress);
+
 
     /**
      * Gets the number of failed attempts for a specific username.

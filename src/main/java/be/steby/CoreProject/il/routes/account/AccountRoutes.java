@@ -11,6 +11,7 @@ public final class AccountRoutes {
             "/api/account/signup",
             "/api/account/activate/**",
             "/api/account/resend-activation/**",
+            "/api/account/resend-activation-by-identifier",
             "/api/account/request-reactivation",
             "/api/account/confirm-reactivation/**"
     };
@@ -34,6 +35,7 @@ public final class AccountRoutes {
             "/api/account/signup",
             "/api/account/activate/**",
             "/api/account/resend-activation/**",
+            "/api/account/resend-activation-by-identifier",
             "/api/account/request-reactivation",
             "/api/account/confirm-reactivation/**",
 

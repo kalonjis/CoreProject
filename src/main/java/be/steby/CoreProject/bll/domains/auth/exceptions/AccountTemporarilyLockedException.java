@@ -10,4 +10,8 @@ public class AccountTemporarilyLockedException extends AuthDomainException {
     public AccountTemporarilyLockedException(String message) {
         super(message, 423);
     }
+
+    public AccountTemporarilyLockedException(String message, int statusCode) {
+        super(message, statusCode);
+    }
 }

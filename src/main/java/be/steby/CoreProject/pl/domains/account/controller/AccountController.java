@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.domains.auth.services.cookies.AuthCookieService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.pl.domains.account.models.requests.DeactivateAccountRequest;
 import be.steby.CoreProject.pl.domains.account.models.requests.ReactivateAccountRequest;
+import be.steby.CoreProject.pl.domains.account.models.requests.ResendActivationByIdentifierRequest;
 import be.steby.CoreProject.pl.domains.account.models.requests.SignupRequest;
 import be.steby.CoreProject.pl.domains.account.models.responses.AccountOperationResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -90,6 +91,23 @@ public class AccountController {
         accountService.resendActivation(token);
 
         log.info("New activation token request processed");
+        return ResponseEntity.ok(AccountOperationResponse.activationRequested());
+    }
+
+
+    /**
+     * Resends the activation email for a user who never activated their account.
+     * Identified by email or username (no token required).
+     * Fails silently to prevent user enumeration.
+     *
+     * POST /api/account/resend-activation-by-identifier
+     */
+    @PostMapping("/resend-activation-by-identifier")
+    @PreAuthorize("isAnonymous()")
+    public ResponseEntity<AccountOperationResponse> resendActivationByIdentifier(
+            @Valid @RequestBody ResendActivationByIdentifierRequest request) {
+        log.info("Resend activation requested by identifier");
+        accountService.resendActivationByIdentifier(request.identifier());
         return ResponseEntity.ok(AccountOperationResponse.activationRequested());
     }
 

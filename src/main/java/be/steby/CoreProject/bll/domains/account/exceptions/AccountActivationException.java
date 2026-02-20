@@ -6,7 +6,7 @@ package be.steby.CoreProject.bll.domains.account.exceptions;
 public class AccountActivationException extends AccountDomainException {
 
     public AccountActivationException(String message) {
-        super(message); // 400 par défaut
+        super(message, 403);
     }
 
     public AccountActivationException(String message, int status) {

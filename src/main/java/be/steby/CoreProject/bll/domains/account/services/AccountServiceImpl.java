@@ -193,6 +193,27 @@ public class AccountServiceImpl implements AccountService {
         eventPublisher.publishEvent(new RequestAccountActivationEvent(user, newToken.getPublicId(), device));
     }
 
+
+    @Override
+    public void resendActivationByIdentifier(String identifier) {
+
+        User user = userService.getUserByUsernameOrByEmail(identifier);
+
+        if (user.isEnabled() || user.isEverActivated()) {
+            log.debug("Resend activation ignored — account already active or was activated: {}", identifier);
+            return; // Fail silently — pas d'info exploitable
+        }
+
+        AccountConfirmationToken newToken = accountConfirmationTokenService.createAccountConfirmationToken(user);
+
+        Device device = deviceService.detectAndRegisterDevice(httpServletRequest, user);
+
+        eventPublisher.publishEvent(new RequestAccountActivationEvent(user, newToken.getPublicId(), device));
+
+    }
+
+
+
     // =========================================================================
     // DEACTIVATION
     // =========================================================================
@@ -244,7 +265,7 @@ public class AccountServiceImpl implements AccountService {
         accountDeactivationTokenService.revokeAllUserTokens(user);
         accountDeactivationAttemptService.clearAttempts(user);
 
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectAndRegisterDevice(httpServletRequest, user);
 
         eventPublisher.publishEvent(new AccountDeactivationConfirmedEvent(
                 user,
@@ -277,7 +298,7 @@ public class AccountServiceImpl implements AccountService {
         AccountReactivationToken reactivationToken =
                 accountReactivationTokenService.createAccountReactivationToken(user);
 
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectAndRegisterDevice(httpServletRequest, user);
 
         eventPublisher.publishEvent(new RequestAccountReactivationEvent(
                 user, reactivationToken.getPublicId(), device));
@@ -303,7 +324,7 @@ public class AccountServiceImpl implements AccountService {
         accountDeactivationAttemptService.clearAttempts(user);
         logReactivationAttempt(user, false);
 
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectAndRegisterDevice(httpServletRequest, user);
 
         eventPublisher.publishEvent(new AccountReactivationConfirmedEvent(user, device));
 
