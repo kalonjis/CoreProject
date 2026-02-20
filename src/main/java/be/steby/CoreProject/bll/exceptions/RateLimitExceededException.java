@@ -1,5 +1,7 @@
 package be.steby.CoreProject.bll.exceptions;
 
+import java.time.Instant;
+
 /**
  * Exception thrown when a user or IP address exceeds the configured rate limit.
  *
@@ -22,6 +24,8 @@ package be.steby.CoreProject.bll.exceptions;
  */
 public class RateLimitExceededException extends CoreProjectException {
 
+    private final Instant unlockTime;
+
     /**
      * Creates a new rate limit exceeded exception with a message.
      * Default status is 429 (Too Many Requests).
@@ -30,6 +34,14 @@ public class RateLimitExceededException extends CoreProjectException {
      */
     public RateLimitExceededException(String message) {
         super(message, 429);
+        this.unlockTime = null;
+
+    }
+
+
+    public RateLimitExceededException(String message, Instant unlockTime) {
+        super(message, 429);
+        this.unlockTime = unlockTime;
     }
 
     /**
@@ -38,8 +50,9 @@ public class RateLimitExceededException extends CoreProjectException {
      * @param message the error message
      * @param status  the HTTP status code
      */
-    public RateLimitExceededException(String message, int status) {
+    public RateLimitExceededException(String message, Instant unlockTime, int status) {
         super(message, status);
+        this.unlockTime = unlockTime;
     }
 
     /**
@@ -49,8 +62,9 @@ public class RateLimitExceededException extends CoreProjectException {
      * @param message the error message
      * @param cause   the underlying cause
      */
-    public RateLimitExceededException(String message, Throwable cause) {
+    public RateLimitExceededException(String message, Instant unlockTime, Throwable cause) {
         super(message, 429, cause);
+        this.unlockTime = unlockTime;
     }
 
     /**
@@ -60,7 +74,11 @@ public class RateLimitExceededException extends CoreProjectException {
      * @param status  the HTTP status code
      * @param cause   the underlying cause
      */
-    public RateLimitExceededException(String message, int status, Throwable cause) {
+    public RateLimitExceededException(String message, Instant unlockTime, int status, Throwable cause) {
         super(message, status, cause);
+        this.unlockTime = unlockTime;
     }
+
+
+    public Instant getUnlockTime() { return unlockTime; }
 }

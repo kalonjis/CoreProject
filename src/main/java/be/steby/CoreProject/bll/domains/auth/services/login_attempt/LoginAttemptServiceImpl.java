@@ -2,6 +2,7 @@ package be.steby.CoreProject.bll.domains.auth.services.login_attempt;
 
 import be.steby.CoreProject.bll.domains.auth.events.IpBlockedLoginAttemptEvent;
 import be.steby.CoreProject.dl.entities.LoginAttempt;
+import be.steby.CoreProject.dl.enums.AttemptType;
 import be.steby.CoreProject.dl.repositories.LoginAttemptRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -121,6 +122,14 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
         clearAttemptsByType(username, ipAddress, COMBINED_TYPE);
 
         log.debug("Cleared failed attempts for username: {} from IP: {}", username, ipAddress);
+    }
+
+    // LoginAttemptServiceImpl — implémenter
+    @Override
+    public Instant getUnlockTimeForIp(String ipAddress) {
+        return loginAttemptRepository.findByIpAddressAndAttemptType(ipAddress, IP_TYPE)
+                .map(LoginAttempt::getBlockedUntil)
+                .orElse(null);
     }
 
     @Override

@@ -48,6 +48,8 @@ public interface LoginAttemptService {
      */
     Instant getUnlockTime(String username, String ipAddress);
 
+    Instant getUnlockTimeForIp(String ipAddress);
+
     LoginAttemptServiceImpl.BlockReason getBlockReason(String username, String ipAddress);
 
 
