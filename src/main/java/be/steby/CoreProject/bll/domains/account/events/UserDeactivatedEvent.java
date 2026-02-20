@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.account.events;
 
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 
 /**
@@ -7,6 +8,7 @@ import be.steby.CoreProject.dl.entities.User;
  * Triggers automatic logout to ensure security.
  */
 public record UserDeactivatedEvent(
-        User user
+        User user,
+        Device device
 ) {
 }

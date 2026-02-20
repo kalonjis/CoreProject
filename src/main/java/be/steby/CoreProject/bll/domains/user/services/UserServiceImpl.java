@@ -210,7 +210,7 @@ public class UserServiceImpl implements UserService {
         saveUser(user);
         log.info("User {} self-deactivated with reason: {}", user.getUsername(), reason);
 
-        eventPublisher.publishEvent(new UserDeactivatedEvent(user));
+        //eventPublisher.publishEvent(new UserDeactivatedEvent(user));
     }
 
 

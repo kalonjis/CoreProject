@@ -8,17 +8,17 @@ import jakarta.servlet.http.HttpServletRequest;
 
 public interface AccountService {
 
-    User signup(SelfSignupRequest request, HttpServletRequest httpRequest);
+    User signup(SelfSignupRequest request);
 
-    User confirmNewUserAccount(String token, HttpServletRequest request);
+    User confirmNewUserAccount(String token);
 
-    void resendActivation(String token, HttpServletRequest request);
+    void resendActivation(String token);
 
-    void requestDeactivation(User user, DeactivationRequest deactivationRequest, HttpServletRequest request);
+    void requestDeactivation(User user, DeactivationRequest deactivationRequest);
 
-    User deactivateAccount(String token, HttpServletRequest httpRequest);
+    User deactivateAccount(String token);
 
-    User reactivateAccount(String token, HttpServletRequest httpRequest);
+    User reactivateAccount(String token);
 
-    void requestReactivation(ReactivationRequest reactivationRequest, HttpServletRequest httpRequest);
+    void requestReactivation(ReactivationRequest reactivationRequest);
 }
