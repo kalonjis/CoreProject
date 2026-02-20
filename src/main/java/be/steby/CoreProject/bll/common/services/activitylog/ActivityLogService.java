@@ -54,7 +54,8 @@ public abstract class ActivityLogService {
             ActivityLog activityLog = actionLogType.createActivityLog(user, successful)
                     .toBuilder()
                     .device(device)
-                    .failureReason(failureReason)
+                    .failureReason(successful ? null : failureReason)
+                    .actionDetails(successful ? failureReason : null)   // ← ajouter ça
                     .build();
 
             activityLogRepository.save(activityLog);

@@ -51,6 +51,12 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
     private static final String IP_TYPE = "ip";
     private static final String COMBINED_TYPE = "combined";
 
+    public enum BlockReason {
+        ACCOUNT_LOCKED,
+        IP_BLOCKED,
+        COMBINED_BLOCKED,
+        NOT_BLOCKED }
+
     @Override
     @Transactional(readOnly = true)
     public boolean isBlocked(String username, String ipAddress) {
@@ -75,6 +81,11 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
         }
 
         return false;
+    }
+
+    @Override
+    public boolean isIpBlocked(String ipAddress) {
+        return isBlockedByType(null, ipAddress, IP_TYPE, Instant.now());
     }
 
     @Override
@@ -137,6 +148,15 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
         }
 
         return latestUnlockTime;
+    }
+
+    @Override
+    public BlockReason getBlockReason(String username, String ipAddress) {
+        Instant now = Instant.now();
+        if (isBlockedByType(username, null, USERNAME_TYPE, now))  return BlockReason.ACCOUNT_LOCKED;
+        if (isBlockedByType(null, ipAddress, IP_TYPE, now))       return BlockReason.IP_BLOCKED;
+        if (isBlockedByType(username, ipAddress, COMBINED_TYPE, now)) return BlockReason.COMBINED_BLOCKED;
+        return BlockReason.NOT_BLOCKED;
     }
 
     @Override

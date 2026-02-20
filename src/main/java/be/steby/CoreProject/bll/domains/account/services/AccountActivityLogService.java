@@ -57,7 +57,7 @@ public class AccountActivityLogService extends ActivityLogService {
      * @param event contains the activated user; device is null (token-based flow)
      */
     public void logActivated(AccountConfirmationEvent event) {
-        logUserActivity(event.user(), null, AccountAction.ACCOUNT_ACTIVATED, true);
+        logUserActivity(event.user(), event.device(), AccountAction.ACCOUNT_ACTIVATED, true);
         log.debug("ACCOUNT_ACTIVATED logged — user: {}", event.user().getUsername());
     }
 
@@ -68,7 +68,7 @@ public class AccountActivityLogService extends ActivityLogService {
      * @param event contains the user whose activation email was resent
      */
     public void logActivationResent(RequestAccountActivationEvent event) {
-        logUserActivity(event.user(), null, AccountAction.ACCOUNT_ACTIVATION_RESENT, true);
+        logUserActivity(event.user(), event.device(), AccountAction.ACCOUNT_ACTIVATION_RESENT, true);
         log.debug("ACCOUNT_ACTIVATION_RESENT logged — user: {}", event.user().getUsername());
     }
 
@@ -88,7 +88,7 @@ public class AccountActivityLogService extends ActivityLogService {
                 event.deactivationReason() != null ? event.deactivationReason().getDisplayName() : null,
                 event.reasonDetails()
         );
-        logUserActivity(event.user(), null, AccountAction.ACCOUNT_DEACTIVATION_REQUESTED, true, detail);
+        logUserActivity(event.user(), event.device(), AccountAction.ACCOUNT_DEACTIVATION_REQUESTED, true, detail);
         log.debug("ACCOUNT_DEACTIVATION_REQUESTED logged — user: {}, reason: {}",
                 event.user().getUsername(), event.deactivationReason());
     }
@@ -104,7 +104,7 @@ public class AccountActivityLogService extends ActivityLogService {
                 event.deactivationReason() != null ? event.deactivationReason().getDisplayName() : null,
                 event.reasonDetails()
         );
-        logUserActivity(event.user(), null, AccountAction.ACCOUNT_DEACTIVATED, true, detail);
+        logUserActivity(event.user(), event.device(), AccountAction.ACCOUNT_DEACTIVATED, true, detail);
         log.debug("ACCOUNT_DEACTIVATED logged — user: {}, reason: {}",
                 event.user().getUsername(), event.deactivationReason());
     }
@@ -121,7 +121,7 @@ public class AccountActivityLogService extends ActivityLogService {
      * @param event contains the user requesting reactivation
      */
     public void logReactivationRequested(RequestAccountReactivationEvent event) {
-        logUserActivity(event.user(), null, AccountAction.ACCOUNT_REACTIVATION_REQUESTED, true);
+        logUserActivity(event.user(), event.device(), AccountAction.ACCOUNT_REACTIVATION_REQUESTED, true);
         log.debug("ACCOUNT_REACTIVATION_REQUESTED logged — user: {}", event.user().getUsername());
     }
 
@@ -132,7 +132,7 @@ public class AccountActivityLogService extends ActivityLogService {
      * @param event contains the reactivated user
      */
     public void logReactivated(AccountReactivationConfirmedEvent event) {
-        logUserActivity(event.user(), null, AccountAction.ACCOUNT_REACTIVATED, true);
+        logUserActivity(event.user(), event.device(), AccountAction.ACCOUNT_REACTIVATED, true);
         log.debug("ACCOUNT_REACTIVATED logged — user: {}", event.user().getUsername());
     }
 
