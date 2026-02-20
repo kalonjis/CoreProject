@@ -230,7 +230,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(FRONT_URL, BACK_URL));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-XSRF-TOKEN"));
-        configuration.setExposedHeaders(List.of("X-Correlation-ID"));
+        configuration.setExposedHeaders(List.of("X-Correlation-ID", "Retry-After"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -21,7 +21,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -211,10 +213,16 @@ public class ControllerAdvisor {
         response.put("message", ex.getMessage());
         response.put("timestamp", LocalDateTime.now());
 
-        return ResponseEntity
-                .status(HttpStatus.TOO_MANY_REQUESTS)
-                .header("Content-Type", "application/json")
-                .body(response);
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS);
+
+        if (ex.getUnlockTime() != null) {
+            long secondsRemaining = Math.max(0,
+                    ChronoUnit.SECONDS.between(Instant.now(), ex.getUnlockTime()));
+            builder.header("Retry-After", String.valueOf(secondsRemaining));
+            response.put("retryAfter", secondsRemaining);
+        }
+
+        return builder.body(response);
     }
 }
 
