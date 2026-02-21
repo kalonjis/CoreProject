@@ -118,7 +118,7 @@ public class BackupCodesTwoFactorServiceImpl implements BackupCodesTwoFactorServ
         log.info("Backup codes 2FA enabled successfully for user: {}", user.getUsername());
 
         // Publish activity log event
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, device, TwoFactorType.BACKUP_CODES));
 
         return new BackupCodesSetupResult(backupCodes);
@@ -146,7 +146,7 @@ public class BackupCodesTwoFactorServiceImpl implements BackupCodesTwoFactorServ
         log.info("Backup codes 2FA disabled successfully for user: {}", user.getUsername());
 
         // Publish activity log event
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(new TwoFactorDisabledEvent(user, device, TwoFactorType.BACKUP_CODES));
     }
 

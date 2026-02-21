@@ -274,7 +274,7 @@ public class PasswordServiceImpl implements PasswordService {
 
         savePassword(request.newPassword(), authenticatedUser);
 
-        Long currentDeviceId = deviceService.detectCurrentDevice(httpRequest).getId();
+        Long currentDeviceId = deviceService.detectCurrentDevice().getId();
 
         if (currentDeviceId != null) {
             int revokedTokens = refreshTokenService.revokeAllUserTokensExceptDevice(authenticatedUser, currentDeviceId);

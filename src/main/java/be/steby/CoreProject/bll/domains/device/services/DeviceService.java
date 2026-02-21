@@ -3,7 +3,8 @@ package be.steby.CoreProject.bll.domains.device.services;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
-import jakarta.servlet.http.HttpServletRequest;
+import be.steby.CoreProject.bll.exceptions.OwnershipException;
+import be.steby.CoreProject.bll.domains.device.exceptions.DeviceNotFoundException;
 
 import java.util.List;
 
@@ -32,15 +33,14 @@ public interface DeviceService {
 
     /**
      * Detects and registers a device based on the HTTP request.
-     * @param request The HTTP request containing device information
      * @param user The user for whom the device is being detected
      * @return The detected/registered device
      */
-    Device detectAndRegisterDevice(HttpServletRequest request, User user);
+    Device detectAndRegisterDevice(User user);
 
-    Device detectCurrentDevice(HttpServletRequest request);
+    Device detectCurrentDevice();
 
-    void updateTrustLevel(String publicId, DeviceTrustLevel level, HttpServletRequest request);
+    void updateTrustLevel(String publicId, DeviceTrustLevel level);
 
     void saveDevice(Device device);
 
@@ -50,11 +50,11 @@ public interface DeviceService {
 
     Long getTotalDevices();
 
-    void requestConfirmationLink(HttpServletRequest request);
+    void requestConfirmationLink();
 
-    void disconnectDevice(String publicId, HttpServletRequest request);
+    void disconnectDevice(String publicId);
 
-    int disconnectAllOtherDevices(HttpServletRequest request);
+    int disconnectAllOtherDevices();
 
     int disconnectAllDevicesExceptCurrent(User user, Long currentDeviceId);
 

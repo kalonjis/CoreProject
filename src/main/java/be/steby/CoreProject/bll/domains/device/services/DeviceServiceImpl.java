@@ -2,9 +2,7 @@ package be.steby.CoreProject.bll.domains.device.services;
 
 import be.steby.CoreProject.bll.common.utils.IpLocationUtils;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
-import be.steby.CoreProject.bll.domains.device.events.DevicePersistedEvent;
-import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
-import be.steby.CoreProject.bll.domains.device.events.DeviceTrustLevelChangedEvent;
+import be.steby.CoreProject.bll.domains.device.events.*;
 import be.steby.CoreProject.bll.domains.device.exceptions.DeviceNotFoundException;
 import be.steby.CoreProject.bll.domains.device.exceptions.InvalidDeviceArgumentException;
 import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
@@ -26,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nl.basjes.parse.useragent.UserAgent;
 import nl.basjes.parse.useragent.UserAgentAnalyzer;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +33,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+
 
 /**
  * Service implementation for device management operations.
@@ -59,6 +59,9 @@ public class DeviceServiceImpl implements DeviceService {
     private final UserService userService;
     private final ApplicationEventPublisher eventPublisher;
     private final DeviceFingerprintService deviceFingerprintService;
+
+    @Autowired
+    private HttpServletRequest httpServletRequest;
 
     @Override
     public Device getDeviceById(Long id) {
@@ -121,10 +124,10 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     @Transactional
-    public Device detectAndRegisterDevice(HttpServletRequest request, User user) {
-        String userAgentString = request.getHeader("User-Agent");
-        String ipAddress = IpLocationUtils.extractClientIp(request);
-        String fingerprint = deviceFingerprintService.generateFingerprint(request, user.getId());
+    public Device detectAndRegisterDevice(User user) {
+        String userAgentString = httpServletRequest.getHeader("User-Agent");
+        String ipAddress = IpLocationUtils.extractClientIp(httpServletRequest);
+        String fingerprint = deviceFingerprintService.generateFingerprint(httpServletRequest, user.getId());
         UserAgent agent = userAgentAnalyzer.parse(userAgentString);
 
         Device device = deviceRepository.findByFingerprint(fingerprint)
@@ -133,7 +136,7 @@ public class DeviceServiceImpl implements DeviceService {
                     return updated;
                 })
                 .orElseGet(() -> {
-                    Device created = createNewDevice(user, agent, request, fingerprint, ipAddress);
+                    Device created = createNewDevice(user, agent, fingerprint, ipAddress);
                     return created;
                 });
 
@@ -141,8 +144,8 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public Device detectCurrentDevice(HttpServletRequest request) {
-        Device device = DeviceContextProvider.getAuthenticatedDevice(request);
+    public Device detectCurrentDevice() {
+        Device device = DeviceContextProvider.getAuthenticatedDevice(httpServletRequest);
 
         if (device != null) {
             log.debug("Current device {} retrieved from cache", device.getId());
@@ -152,34 +155,36 @@ public class DeviceServiceImpl implements DeviceService {
         // ⚠️ Fallback: Si pas en cache (cas rare), détecter normalement
         log.warn("Device not found in cache, falling back to detectAndRegisterDevice");
         User authenticatedUser = userService.getAuthenticatedUser();
-        return detectAndRegisterDevice(request, authenticatedUser);
+        return detectAndRegisterDevice(authenticatedUser);
     }
 
 
     @Override
     @Transactional
-    public void updateTrustLevel(String publicId, DeviceTrustLevel level, HttpServletRequest request) {
-        Device device = getMyDeviceByPublicId(publicId);
-        DeviceTrustLevel oldLevel = device.getDeviceTrustLevel();
+    public void updateTrustLevel(String publicId, DeviceTrustLevel level) {
+        Device targetDevice = getMyDeviceByPublicId(publicId);
+        DeviceTrustLevel oldLevel = targetDevice.getDeviceTrustLevel();
 
         if (oldLevel == level) {
             throw new AttributeUnchangedException("Device trust level is already set to " + level.name());
         }
 
-        device.setDeviceTrustLevel(level);
+        targetDevice.setDeviceTrustLevel(level);
         // Use service method to ensure cache consistency
-        saveDevice(device);
+        saveDevice(targetDevice);
+
+        Device actorDevice = detectCurrentDevice();
 
         eventPublisher.publishEvent(new DeviceTrustLevelChangedEvent(
-                device.getId(),
                 level,
                 oldLevel.name(),
                 userService.getAuthenticatedUser(),
-                device
+                actorDevice,
+                targetDevice
         ));
 
         log.info("Device trust level changed from {} to {} for device {}",
-                oldLevel, level, device.getId());
+                oldLevel, level, targetDevice.getId());
     }
 
     @Override
@@ -194,51 +199,58 @@ public class DeviceServiceImpl implements DeviceService {
     public Device confirmDevice(String token) {
         DeviceConfirmationToken confirmationToken = deviceConfirmationTokenService.getSecureValidToken(token, TokenType.DEVICE_CONFIRMATION);
 
-        Device device = getDeviceById(confirmationToken.getDeviceId());
-        device.setConfirmed(true);
-        if(device.isBlacklisted()){
-            device.setBlacklisted(false);
+        Device targetDevice = getDeviceById(confirmationToken.getDeviceId());
+        targetDevice.setConfirmed(true);
+        if(targetDevice.isBlacklisted()){
+            targetDevice.setBlacklisted(false);
         }
-        device.setDeviceTrustLevel(DeviceTrustLevel.TRUSTED);
+        targetDevice.setDeviceTrustLevel(DeviceTrustLevel.TRUSTED);
 
         // Use service method to ensure cache consistency
-        saveDevice(device);
+        saveDevice(targetDevice);
 
         deviceConfirmationTokenService.revokeToken(confirmationToken);
 
-        log.info("Device {} confirmed and trust level updated to TRUSTED", device.getId());
-        return device;
+        User user = confirmationToken.getUser();
+        Device actorDevice = detectAndRegisterDevice(user);
+
+        eventPublisher.publishEvent(new DeviceConfirmedEvent(user,actorDevice, targetDevice));
+
+        log.info("Device {} confirmed and trust level updated to TRUSTED", targetDevice.getId());
+        return targetDevice;
     }
 
     @Override
     @Transactional
     public void rejectDevice(String token) {
-        Device device = getDeviceByToken(token);
-        device.setDeviceTrustLevel(DeviceTrustLevel.UNTRUSTED);
-        device.setConfirmed(false);
-        device.setBlacklisted(true);
-        device.setBlacklistedTime(Instant.now());
+        Device targetDevice = getDeviceByToken(token);
+        targetDevice.setDeviceTrustLevel(DeviceTrustLevel.UNTRUSTED);
+        targetDevice.setConfirmed(false);
+        targetDevice.setBlacklisted(true);
+        targetDevice.setBlacklistedTime(Instant.now());
 
-        User user = device.getUser();
-        refreshTokenService.revokeDeviceTokens(user, device);
+        User user = targetDevice.getUser();
+        refreshTokenService.revokeDeviceTokens(user, targetDevice);
 
         // Use service method to ensure cache consistency
-        saveDevice(device);
+        saveDevice(targetDevice);
 
-        log.info("Device {} rejected and blacklisted for user {}", device.getId(), user.getUsername());
+        Device actorDevice = detectAndRegisterDevice(user);
+
+        eventPublisher.publishEvent(new DeviceRejectedEvent(user,actorDevice, targetDevice));
+
+        log.info("Device {} rejected and blacklisted for user {}", targetDevice.getId(), user.getUsername());
     }
 
     @Override
-    public void requestConfirmationLink(HttpServletRequest request) {
+    public void requestConfirmationLink() {
         User user = userService.getAuthenticatedUser();
-        Device currentDevice = detectCurrentDevice(request);
+        Device currentDevice = detectAndRegisterDevice(user);
 
-        eventPublisher.publishEvent(new DeviceSecurityEvent(
+        eventPublisher.publishEvent(new DeviceConfirmationLinkRequestedEvent(
                 user,
-                currentDevice,
-                DeviceSecurityEvent.DeviceSecurityType.CONFIRMATION_LINK_REQUESTED
-        ));
-
+                currentDevice)
+        );
 
         log.info("Confirmation link requested for device {} of user {}",
                 currentDevice.getId(), user.getUsername());
@@ -246,8 +258,8 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     @Transactional
-    public void disconnectDevice(String publicId, HttpServletRequest request) {
-        Device currentDevice = detectCurrentDevice(request);
+    public void disconnectDevice(String publicId) {
+        Device currentDevice = detectCurrentDevice();
         User currentUser = currentDevice.getUser();
         Device deviceToDisconnect = getMyDeviceByPublicId(publicId);
 
@@ -271,8 +283,8 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     @Transactional
-    public int disconnectAllOtherDevices(HttpServletRequest request) {
-        Device currentDevice = detectCurrentDevice(request);
+    public int disconnectAllOtherDevices() {
+        Device currentDevice = detectCurrentDevice();
         User currentUser = userService.getAuthenticatedUser();
 
         int disconnectedDevices = disconnectAllDevicesExceptCurrent(currentUser, currentDevice.getId());
@@ -359,13 +371,11 @@ public class DeviceServiceImpl implements DeviceService {
      *
      * @param user The user to associate with the device
      * @param agent Parsed user agent information
-     * @param request The HTTP request
      * @param fingerprint The device fingerprint
      * @param ipAddress The client IP address
      * @return The newly created device
      */
-    private Device createNewDevice(User user, UserAgent agent, HttpServletRequest request,
-                                   String fingerprint, String ipAddress) {
+    private Device createNewDevice(User user, UserAgent agent, String fingerprint, String ipAddress) {
         boolean isFirstDevice = isFirstDevice(user);
         boolean shouldAutoConfirm = isFirstDevice && isRecentActivation(user);
 
@@ -378,11 +388,11 @@ public class DeviceServiceImpl implements DeviceService {
                 .location(IpLocationUtils.resolveLocationFromIp(ipAddress))
 
                 .deviceTrustLevel(DeviceTrustLevel.UNTRUSTED)
-                .confirmed(shouldAutoConfirm) // ← Auto-confirmer si premier device récent
+                .confirmed(shouldAutoConfirm)
                 .blacklisted(false)
                 .build();
 
-        UserAgentUtils.populateDeviceInfo(device, agent, request);
+        UserAgentUtils.populateDeviceInfo(device, agent, httpServletRequest);
 
         if (isFirstDevice) {
             device.setFirstDeviceUsed(true);

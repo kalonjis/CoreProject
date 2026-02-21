@@ -91,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             user = loadUser(username);
-            device = deviceService.detectAndRegisterDevice(httpRequest, user);
+            device = deviceService.detectAndRegisterDevice(user);
 
             validateLoginPreconditions(username, clientIpAddress, user, device, password);
 
@@ -140,7 +140,7 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             user = loadUser(username);
-            device = deviceService.detectAndRegisterDevice(httpRequest, user);
+            device = deviceService.detectAndRegisterDevice(user);
 
             validateLoginPreconditions(username, clientIpAddress, user, device, password);
 
@@ -241,7 +241,7 @@ public class AuthServiceImpl implements AuthService {
         TwoFactorTokenClaims twoFactorClaims = extractTwoFactorClaims(claims);
 
         User user = userService.getUserByPublicId(twoFactorClaims.publicId());
-        Device device = deviceService.detectAndRegisterDevice(httpRequest, user);
+        Device device = deviceService.detectAndRegisterDevice(user);
 
         String codeToVerify;
         if (twoFactorClaims.twoFactorType() == TwoFactorType.BACKUP_CODES) {
@@ -334,7 +334,7 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             user = getAuthenticatedUser();
-            device = deviceService.detectCurrentDevice(request);
+            device = deviceService.detectCurrentDevice();
 
             if (refreshTokenCookie != null) {
                 revokeRefreshToken(refreshTokenCookie);

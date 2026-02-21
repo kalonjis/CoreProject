@@ -69,6 +69,51 @@ public abstract class ActivityLogService {
         }
     }
 
+
+    /**
+     * Generic method to log user activity asynchronously with failure reason and target device.
+     *
+     * <p>Use this overload when the action involves two distinct devices — for example,
+     * a user disconnecting a remote device or changing another device's trust level.
+     * {@code device} is the actor (session origin); {@code targetDevice} is the device
+     * affected by the action.</p>
+     *
+     * @param user          the user performing the action; null falls back to {@link #logSecurityEvent}
+     * @param device        the device from which the action was initiated; null for token-based flows
+     * @param actionLogType the type of action
+     * @param successful    whether the action was successful
+     * @param failureReason human-readable reason when {@code successful} is false; null otherwise
+     * @param targetDevice  the device targeted by the action; null when not applicable
+     */
+    @Async("activityLogExecutor")
+    @Transactional
+    public void logUserActivity(User user, Device device, ActionLogType actionLogType,
+                                boolean successful, String failureReason, Device targetDevice) {
+        try {
+            if (user == null) {
+                logSecurityEvent(device, actionLogType, successful, failureReason);
+                return;
+            }
+
+            ActivityLog activityLog = actionLogType.createActivityLog(user, successful)
+                    .toBuilder()
+                    .device(device)
+                    .targetDevice(targetDevice)
+                    .failureReason(successful ? null : failureReason)
+                    .actionDetails(successful ? failureReason : null)
+                    .build();
+
+            activityLogRepository.save(activityLog);
+
+            log.debug("Activity logged: user={}, action={}, successful={}",
+                    user.getUsername(), actionLogType.getName(), successful);
+        } catch (Exception e) {
+            log.error("Failed to log activity for user: {}, action: {}",
+                    user.getUsername(), actionLogType.getName(), e);
+        }
+    }
+
+
     /**
      * Log security events without a specific user (e.g., blocked IPs)
      * This method bypasses the user requirement for security monitoring events

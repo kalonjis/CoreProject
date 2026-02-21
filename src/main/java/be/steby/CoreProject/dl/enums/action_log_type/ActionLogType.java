@@ -16,7 +16,7 @@ import be.steby.CoreProject.dl.entities.User;
  * <p>Future domains to add: {@code PasswordAction}, {@code DeviceAction}, {@code EmailAction}.
  */
 public sealed interface ActionLogType
-        permits AuthAction, SecurityAction, AccountAction {
+        permits AuthAction, SecurityAction, AccountAction, DeviceAction  {
 
     /**
      * Enum constant name used for database storage — e.g. "LOGIN", "ACCOUNT_DEACTIVATED".
