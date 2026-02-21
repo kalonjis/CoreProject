@@ -29,6 +29,7 @@ import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.RefreshToken;
+import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -484,12 +485,29 @@ public class AuthServiceImpl implements AuthService {
     private void validateAccountStatus(User user) {
         if (!user.isEnabled()) {
             if (!user.isEverActivated()) {
-                // FIX #6 — this message is now safe: we're past password validation
-                throw new AccountActivationException(
-                        "ACCOUNT_NOT_ACTIVATED"
-                );
+                throw new AccountActivationException("ACCOUNT_NOT_ACTIVATED");
             }
-            throw new AccountDisabledException("Your account has been disabled.");
+
+            // Self-deactivated → peut se réactiver
+            if (user.isSelfDeactivated()) {
+                DeactivationReason reason = user.getDeactivationReason();
+                if (reason != null && reason.allowsReactivation()) {
+                    throw new AccountDisabledException("ACCOUNT_SELF_DEACTIVATED");
+                } else {
+                    throw new AccountDisabledException("ACCOUNT_PERMANENTLY_DELETED"); // GDPR
+                }
+            }
+
+            // Admin deactivated
+            if (user.isAdminDeactivated()) {
+                if (user.getAdminDeactivationReason().allowsReactivation()) {
+                    throw new AccountDisabledException("ACCOUNT_ADMIN_DEACTIVATED_REACTIVABLE");
+                } else {
+                    throw new AccountDisabledException("ACCOUNT_ADMIN_DEACTIVATED_PERMANENT");
+                }
+            }
+
+            throw new AccountDisabledException("ACCOUNT_DISABLED");
         }
     }
 

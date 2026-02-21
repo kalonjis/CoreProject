@@ -181,10 +181,10 @@ public class AccountController {
     public ResponseEntity<AccountOperationResponse> confirmReactivation(@RequestParam String token) {
         log.info("Processing account reactivation confirmation");
 
-        accountService.reactivateAccount(token);
+        String username = accountService.reactivateAccount(token).getUsername();
 
 
         log.info("Account reactivation confirmed and processed");
-        return ResponseEntity.ok(AccountOperationResponse.accountReactivated());
+        return ResponseEntity.ok(AccountOperationResponse.accountReactivated(username));
     }
 }
