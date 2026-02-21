@@ -98,7 +98,7 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
         log.info("SMS 2FA enabled successfully for user: {} (id: {})", user.getUsername(), saved.getId());
 
         // 6. Publish activity log event
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, device, TwoFactorType.SMS));
     }
     
@@ -126,7 +126,7 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
         log.info("SMS 2FA disabled successfully for user: {}", user.getUsername());
 
         // Publish activity log event
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(new TwoFactorDisabledEvent(user, device, TwoFactorType.SMS));
     }
     
@@ -193,7 +193,7 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
         String activationToken = twoFactorJwtService.generateActivationToken(user, hashedCode);
 
         // 6. Publish event to send SMS (plain code for SMS message)
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(new TwoFactorActivationInitiatedEvent(
                 user, device, TwoFactorType.SMS, verificationCode)
         );
@@ -278,7 +278,7 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
         }
 
         // Publish activity log event
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, device, TwoFactorType.SMS));
     }
 

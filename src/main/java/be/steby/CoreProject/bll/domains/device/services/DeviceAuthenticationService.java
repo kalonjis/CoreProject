@@ -115,9 +115,9 @@ public class DeviceAuthenticationService {
     @EventListener
     public void handleDeviceSecurityChange(DeviceTrustLevelChangedEvent event) {
         // ✅ DDD: Cache invalidation delegated
-        boolean removed = deviceCacheService.remove(event.deviceId());
+        boolean removed = deviceCacheService.remove(event.targetDevice().getId());
         if (removed) {
-            log.info("Device cache invalidated due to trust level change: {}", event.deviceId());
+            log.info("Device cache invalidated due to trust level change: {}", event.targetDevice().getId());
         }
     }
 

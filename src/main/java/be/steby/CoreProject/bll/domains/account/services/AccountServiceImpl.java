@@ -14,9 +14,7 @@ import be.steby.CoreProject.bll.domains.account.services.tokens.confirmation.Acc
 import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationAttemptServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.reactivation.AccountReactivationTokenServiceImpl;
-import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
-import be.steby.CoreProject.bll.domains.device.utils.DeviceContextProvider;
 import be.steby.CoreProject.bll.domains.emailaddress.models.EmailValidationResult;
 import be.steby.CoreProject.bll.domains.password.models.PasswordValidationResult;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
@@ -30,10 +28,8 @@ import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
 import be.steby.CoreProject.dl.enums.UserRole;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -65,9 +61,6 @@ public class AccountServiceImpl implements AccountService {
     private final UserService userService;
     private final DeviceService deviceService;
     private final ApplicationEventPublisher eventPublisher;
-
-    @Autowired
-    private HttpServletRequest httpServletRequest;
 
     // =========================================================================
     // SIGNUP
@@ -143,7 +136,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     private void publishSignupEvent(User user, AccountConfirmationToken token) {
-        Device device = deviceService.detectAndRegisterDevice(httpServletRequest, user);
+        Device device = deviceService.detectAndRegisterDevice(user);
         eventPublisher.publishEvent(new SelfSignupCompletedEvent(user, token.getPublicId(), device));
         log.info("SelfSignupCompletedEvent published for user: {}", user.getUsername());
     }
@@ -168,7 +161,7 @@ public class AccountServiceImpl implements AccountService {
         accountConfirmationTokenService.revokeAllUserTokens(user);
         accountConfirmationAttemptService.clearAttempts(user);
 
-        Device device = deviceService.detectAndRegisterDevice(httpServletRequest, user);
+        Device device = deviceService.detectAndRegisterDevice(user);
 
         eventPublisher.publishEvent(new AccountConfirmationEvent(user, device));
 
@@ -188,7 +181,7 @@ public class AccountServiceImpl implements AccountService {
         AccountConfirmationToken newToken =
                 accountConfirmationTokenService.createAccountConfirmationToken(user);
 
-        Device device = deviceService.detectAndRegisterDevice(httpServletRequest, user);
+        Device device = deviceService.detectAndRegisterDevice(user);
 
         eventPublisher.publishEvent(new RequestAccountActivationEvent(user, newToken.getPublicId(), device));
     }
@@ -206,7 +199,7 @@ public class AccountServiceImpl implements AccountService {
 
         AccountConfirmationToken newToken = accountConfirmationTokenService.createAccountConfirmationToken(user);
 
-        Device device = deviceService.detectAndRegisterDevice(httpServletRequest, user);
+        Device device = deviceService.detectAndRegisterDevice(user);
 
         eventPublisher.publishEvent(new RequestAccountActivationEvent(user, newToken.getPublicId(), device));
 
@@ -238,7 +231,7 @@ public class AccountServiceImpl implements AccountService {
                         deactivationRequest.deactivationReason(),
                         deactivationRequest.reasonDetails());
 
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectCurrentDevice();
 
         eventPublisher.publishEvent(new RequestAccountDeactivationEvent(
                 user,
@@ -265,7 +258,7 @@ public class AccountServiceImpl implements AccountService {
         accountDeactivationTokenService.revokeAllUserTokens(user);
         accountDeactivationAttemptService.clearAttempts(user);
 
-        Device device = deviceService.detectAndRegisterDevice(httpServletRequest, user);
+        Device device = deviceService.detectAndRegisterDevice(user);
 
         eventPublisher.publishEvent(new AccountDeactivationConfirmedEvent(
                 user,
@@ -298,7 +291,7 @@ public class AccountServiceImpl implements AccountService {
         AccountReactivationToken reactivationToken =
                 accountReactivationTokenService.createAccountReactivationToken(user);
 
-        Device device = deviceService.detectAndRegisterDevice(httpServletRequest, user);
+        Device device = deviceService.detectAndRegisterDevice(user);
 
         eventPublisher.publishEvent(new RequestAccountReactivationEvent(
                 user, reactivationToken.getPublicId(), device));
@@ -324,7 +317,7 @@ public class AccountServiceImpl implements AccountService {
         accountDeactivationAttemptService.clearAttempts(user);
         logReactivationAttempt(user, false);
 
-        Device device = deviceService.detectAndRegisterDevice(httpServletRequest, user);
+        Device device = deviceService.detectAndRegisterDevice(user);
 
         eventPublisher.publishEvent(new AccountReactivationConfirmedEvent(user, device));
 

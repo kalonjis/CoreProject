@@ -215,7 +215,7 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
         createAndSaveTotpTwoFactorEntity(user, secretKey);
 
         // Publish confirmation event and reset rate limiting
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, device, TwoFactorType.TOTP));
         totpActivationAttemptService.resetAttempts(user);
         totpVerificationAttemptService.resetAttempts(user);
@@ -245,7 +245,7 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
         log.info("TOTP 2FA disabled successfully for user: {}", user.getUsername());
 
         // Publish activity log event
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(new TwoFactorDisabledEvent(user, device, TwoFactorType.TOTP));
     }
 

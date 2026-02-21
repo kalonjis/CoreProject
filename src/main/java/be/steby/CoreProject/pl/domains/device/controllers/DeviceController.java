@@ -6,7 +6,6 @@ import be.steby.CoreProject.pl.domains.device.models.requests.DeviceTrustLevelRe
 import be.steby.CoreProject.pl.domains.device.models.responses.DeviceOperationResponse;
 import be.steby.CoreProject.pl.domains.device.models.responses.DeviceInfoResponse;
 import be.steby.CoreProject.pl.domains.device.models.responses.DeviceSessionResponse;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,16 +41,15 @@ public class DeviceController {
 
     /**
      * Get current device information based on request headers/fingerprint.
-     * 
-     * @param request HTTP request for device detection
+     *
      * @return Current device information
      */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/current")
-    public ResponseEntity<DeviceInfoResponse> getCurrentDevice(HttpServletRequest request) {
+    public ResponseEntity<DeviceInfoResponse> getCurrentDevice() {
         log.info("Get current device information request");
         
-        Device device = deviceService.detectCurrentDevice(request);
+        Device device = deviceService.detectCurrentDevice();
         
         log.info("Current device retrieved - deviceId: {}", device.getId());
         return ResponseEntity.ok(DeviceInfoResponse.fromEntity(device));
@@ -61,15 +59,14 @@ public class DeviceController {
     /**
      * Get current device information based on request headers/fingerprint.
      *
-     * @param request HTTP request for device detection
      * @return Current device information
      */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/session")
-    public ResponseEntity<DeviceSessionResponse> getDeviceSessionInfo(HttpServletRequest request) {
+    public ResponseEntity<DeviceSessionResponse> getDeviceSessionInfo() {
         log.info("Get current device information request");
 
-        Device device = deviceService.detectCurrentDevice(request);
+        Device device = deviceService.detectCurrentDevice();
 
         log.info("Current device retrieved - deviceId: {}", device.getId());
         return ResponseEntity.ok(DeviceSessionResponse.fromEntity(device));
@@ -149,17 +146,15 @@ public class DeviceController {
 
     /**
      * Request new confirmation link for current device.
-     * 
-     * @param request HTTP request for device detection
+     *
      * @return Operation result
      */
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/request-confirmation")
-    public ResponseEntity<DeviceOperationResponse> requestConfirmationLink(
-            HttpServletRequest request) {
+    public ResponseEntity<DeviceOperationResponse> requestConfirmationLink() {
         log.info("Device confirmation link request");
         
-        deviceService.requestConfirmationLink(request);
+        deviceService.requestConfirmationLink();
         
         log.info("Confirmation link sent successfully");
         return ResponseEntity.ok(DeviceOperationResponse.confirmationLinkSent());
@@ -172,22 +167,20 @@ public class DeviceController {
     /**
      * Update device trust level (user can only modify their own devices).
      * 
-     * @param deviceId Device ID to update
+     * @param publicId Device publicId to update
      * @param request Trust level update request
-     * @param httpRequest HTTP request for context
      * @return No content response
      */
     @PreAuthorize("isAuthenticated()")
     @PatchMapping("/trust-level/{publicId}")
     public ResponseEntity<DeviceOperationResponse> updateDeviceTrustLevel(
             @PathVariable String publicId,
-            @Valid @RequestBody DeviceTrustLevelRequest request,
-            HttpServletRequest httpRequest) {
+            @Valid @RequestBody DeviceTrustLevelRequest request) {
         
         log.info("Update device trust level - publicId: {}, newLevel: {}",
                 publicId, request.deviceTrustLevel());
         
-        deviceService.updateTrustLevel(publicId, request.deviceTrustLevel(), httpRequest);
+        deviceService.updateTrustLevel(publicId, request.deviceTrustLevel());
         
         log.info("Device trust level updated successfully - publicId: {}", publicId);
         return ResponseEntity.ok(DeviceOperationResponse.trustLevelUpdated());
@@ -197,18 +190,16 @@ public class DeviceController {
      * Disconnect specific device (revoke all sessions).
      * 
      * @param publicId DevicepublicID to disconnect
-     * @param request HTTP request for context
      * @return Operation result
      */
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/disconnect/{publicId}")
     public ResponseEntity<DeviceOperationResponse> disconnectDevice(
-            @PathVariable String publicId,
-            HttpServletRequest request) {
+            @PathVariable String publicId) {
         
         log.info("Disconnect device request - publicId: {}", publicId);
         
-        deviceService.disconnectDevice(publicId, request);
+        deviceService.disconnectDevice(publicId);
         
         log.info("Device disconnected successfully - deviceId: {}", publicId);
         return ResponseEntity.ok(DeviceOperationResponse.deviceDisconnected());
@@ -216,18 +207,16 @@ public class DeviceController {
 
     /**
      * Disconnect all other devices except current one.
-     * 
-     * @param request HTTP request for current device detection
+     *
      * @return Operation result
      */
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/disconnect-all-others")
-    public ResponseEntity<DeviceOperationResponse> disconnectAllOtherDevices(
-            HttpServletRequest request) {
+    public ResponseEntity<DeviceOperationResponse> disconnectAllOtherDevices() {
         
         log.info("Disconnect all other devices request");
         
-        int disconnectedCount = deviceService.disconnectAllOtherDevices(request);
+        int disconnectedCount = deviceService.disconnectAllOtherDevices();
         
         log.info("Disconnected {} other devices successfully", disconnectedCount);
         return ResponseEntity.ok(DeviceOperationResponse.allOtherDevicesDisconnected(disconnectedCount));

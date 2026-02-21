@@ -123,7 +123,7 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
         String activationToken = twoFactorJwtService.generateActivationToken(user, hashedCode);
 
         // Publish event to send verification email (plain code for email)
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(new TwoFactorActivationInitiatedEvent(
                 user, device, TwoFactorType.EMAIL, setupVerificationCode));
 
@@ -180,7 +180,7 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
         twoFactorAuthRepository.save(emailTwoFactor);
 
         // Publish activity log event
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(new TwoFactorDisabledEvent(user, device, TwoFactorType.EMAIL));
     }
 
@@ -329,7 +329,7 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
         TwoFactorAuth saved = twoFactorAuthRepository.save(emailTwoFactor);
 
         // Publish confirmation event and reset rate limiting
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, device, TwoFactorType.EMAIL));
 
         emailTwoFactorActivationAttemptService.resetAttempts(user);
@@ -357,7 +357,7 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
 
         TwoFactorAuth saved = twoFactorAuthRepository.save(emailTwoFactor);
         // Publish confirmation event and reset rate limiting
-        Device device = deviceService.detectCurrentDevice(httpServletRequest);
+        Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, device, TwoFactorType.EMAIL));
         emailTwoFactorActivationAttemptService.resetAttempts(user);
         emailTwoFactorVerificationAttemptService.resetAttempts(user);

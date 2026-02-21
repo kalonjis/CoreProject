@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.device.listeners;
 
+import be.steby.CoreProject.bll.domains.device.events.DeviceConfirmationLinkRequestedEvent;
 import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.device.services.DeviceMailerService;
 import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
@@ -41,7 +42,6 @@ public class DeviceNotificationListener {
             case BLACKLISTED_DEVICE_ATTEMPT -> handleBlacklistedDevice(event);
             case NEW_DEVICE_DETECTED -> handleNewDevice(event);
             case SUSPICIOUS_LOGIN -> handleSuspiciousLogin(event);
-            case CONFIRMATION_LINK_REQUESTED -> handleConfirmationLinkRequest(event);
         }
     }
 
@@ -111,30 +111,6 @@ public class DeviceNotificationListener {
         }
     }
 
-
-    /**
-     * Handles manual confirmation link requests.
-     * Unlike UNCONFIRMED_DEVICE, this always sends the email without timing checks.
-     */
-    private void handleConfirmationLinkRequest(DeviceSecurityEvent event) {
-        try {
-            // Crée un nouveau token (ancien révoqué automatiquement dans le service)
-            DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
-                    event.user(), event.device().getId());
-
-            // Envoie l'email (même template que new device alert)
-            mailerService.sendNewDeviceAlert(
-                    event.user(), event.device(), token.getPublicId());
-
-            log.info("Confirmation link resent for device: {} of user: {}",
-                    event.device().getId(), event.user().getUsername());
-
-        } catch (MaxAttemptsReachedException e) {
-            log.warn("Confirmation link request skipped - max attempts reached for user {} device {}",
-                    event.user().getUsername(), event.device().getId());
-        }
-    }
-
     /**
      * Handles notifications for suspicious login activities.
      */
@@ -173,5 +149,33 @@ public class DeviceNotificationListener {
         // Send notification for all other cases
         log.info("Notification required - unconfirmed device login");
         return true;
+    }
+
+
+    /**
+     * Sends a new confirmation link when the user manually requests one.
+     *
+     * <p>Creates a fresh confirmation token (the previous one is automatically
+     * revoked by the token service) and sends the confirmation email.
+     * Silently skips if the user has exceeded the maximum number of attempts.</p>
+     *
+     * @param event contains the user and the device awaiting confirmation; both never null
+     */
+    @EventListener
+    @Async("emailExecutor")
+    public void handleConfirmationLinkRequested(DeviceConfirmationLinkRequestedEvent event) {
+        try {
+            DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
+                    event.user(), event.device().getId());
+
+            mailerService.sendNewDeviceAlert(event.user(), event.device(), token.getPublicId());
+
+            log.info("Confirmation link resent for device: {} of user: {}",
+                    event.device().getId(), event.user().getUsername());
+
+        } catch (MaxAttemptsReachedException e) {
+            log.warn("Confirmation link request skipped - max attempts reached for user {} device {}",
+                    event.user().getUsername(), event.device().getId());
+        }
     }
 }

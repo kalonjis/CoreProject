@@ -59,7 +59,7 @@ public class OAuthServiceImpl implements OAuthService {
             );
 
             // 3. Detect or register device
-            Device device = deviceService.detectAndRegisterDevice(request, user);
+            Device device = deviceService.detectAndRegisterDevice(user);
 
             validateDeviceSecurity(user, device);
 
