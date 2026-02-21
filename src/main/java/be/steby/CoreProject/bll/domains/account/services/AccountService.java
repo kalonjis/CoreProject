@@ -20,7 +20,7 @@ public interface AccountService {
 
     User deactivateAccount(String token);
 
-    User reactivateAccount(String token);
-
     void requestReactivation(ReactivationRequest reactivationRequest);
+
+    User reactivateAccount(String token);
 }
