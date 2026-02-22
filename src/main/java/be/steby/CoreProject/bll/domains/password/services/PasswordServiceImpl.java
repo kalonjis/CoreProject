@@ -3,9 +3,7 @@ package be.steby.CoreProject.bll.domains.password.services;
 import be.steby.CoreProject.bll.common.services.validation.password.PasswordPolicyService;
 import be.steby.CoreProject.bll.domains.auth.services.RefreshTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
-import be.steby.CoreProject.bll.domains.password.events.PasswordChangedEvent;
-import be.steby.CoreProject.bll.domains.password.events.RequestPasswordResetEvent;
-import be.steby.CoreProject.bll.domains.password.events.RequestPasswordTokenEvent;
+import be.steby.CoreProject.bll.domains.password.events.*;
 import be.steby.CoreProject.bll.domains.password.events.email.PasswordResetCodeEmailRequestedEvent;
 import be.steby.CoreProject.bll.domains.password.events.sms.PasswordResetSmsRequestedEvent;
 import be.steby.CoreProject.bll.domains.password.exceptions.*;
@@ -17,13 +15,13 @@ import be.steby.CoreProject.bll.domains.password.services.tokens.email.PasswordR
 import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.bll.exceptions.TokenValidityException;
 import be.steby.CoreProject.bll.exceptions.UserAuthenticationStateException;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
 import be.steby.CoreProject.dl.entities.tokens.VerificationCodeToken;
 import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import be.steby.CoreProject.dl.enums.PasswordResetType;
 import io.jsonwebtoken.Claims;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -71,7 +69,7 @@ public class PasswordServiceImpl implements PasswordService {
     // =========================================================================
 
     @Override
-    public CodePasswordResetResult requestPasswordReset(ForgotPasswordBLLRequest request, HttpServletRequest httpRequest) {
+    public CodePasswordResetResult requestPasswordReset(ForgotPasswordBLLRequest request) {
         log.debug("Processing password reset request for email: {} via {}",
                 request.email(), request.resetType());
 
@@ -166,15 +164,30 @@ public class PasswordServiceImpl implements PasswordService {
     // RESET PASSWORD - COMPLETE RESET
     // =========================================================================
 
+
     @Transactional
     @Override
-    public void resetPassword(PasswordResetRequest request, String token, HttpServletRequest httpRequest) {
+    public void resetPassword(PasswordResetRequest request, String token) {
         checkIsAnonymous();
 
-        PasswordResetToken passwordResetToken = passwordResetTokenService.getSecureValidToken(token, TokenType.PASSWORD_RESET);
-        passwordResetTokenService.verifyTokenValidity(passwordResetToken);
+        PasswordResetToken passwordResetToken;
+        User user;
 
-        User user = passwordResetToken.getUser();
+        try {
+            passwordResetToken = passwordResetTokenService.getSecureValidToken(token, TokenType.PASSWORD_RESET);
+            passwordResetTokenService.verifyTokenValidity(passwordResetToken);
+            user = passwordResetToken.getUser();
+        } catch (Exception e) {
+            // ← AJOUTER: publier PasswordResetFailedEvent (user/device inconnus)
+            eventPublisher.publishEvent(new PasswordResetFailedEvent(
+                    null,
+                    null,
+                    e.getMessage()
+            ));
+            throw e;
+        }
+
+        Device device = deviceService.detectAndRegisterDevice(user);
 
         PasswordValidationResult result = passwordPolicyService.validatePassword(request.password());
         if (!result.isValid()) {
@@ -182,11 +195,21 @@ public class PasswordServiceImpl implements PasswordService {
                     + String.join(", ", result.errors()));
         }
 
-        savePassword(request.password(), user);
+        // Save password directly (don't use savePassword() to avoid PasswordChangedEvent)
+        user.setPassword(passwordEncoder.encode(request.password()));
+        user.setPasswordChangedAt(Instant.now());
+        if (user.isMustChangePassword()) {
+            user.setMustChangePassword(false);
+        }
+        userService.saveUser(user);
 
-        // Security: Logout from ALL devices
+        // ← MODIFIER: publier PasswordResetCompletedEvent (pas PasswordChangedEvent)
+        eventPublisher.publishEvent(new PasswordResetCompletedEvent(user, device));
+
+        // SECURITY: Logout from ALL devices
         log.info("Password reset for user {} - logging out ALL devices", user.getUsername());
         passwordResetTokenService.revokeToken(passwordResetToken);
+
         refreshTokenService.revokeAllUserTokens(user);
         deviceService.disconnectAllDevicesForUser(user);
     }
@@ -218,7 +241,8 @@ public class PasswordServiceImpl implements PasswordService {
         }
 
         // Save the new password
-        savePassword(request.newPassword(), user);
+        Device device = deviceService.detectAndRegisterDevice(user);
+        savePassword(request.newPassword(), user, device);
 
         // Security: Logout from ALL devices
         log.info("Password reset with permission for user {} - logging out ALL devices", user.getUsername());
@@ -233,20 +257,23 @@ public class PasswordServiceImpl implements PasswordService {
     // =========================================================================
 
     @Override
-    public void requestPasswordToken(String token, HttpServletRequest httpRequest) {
+    public void requestPasswordToken(String token) {
         checkIsAnonymous();
 
         PasswordResetToken passwordResetToken = passwordResetTokenService.getSecureToken(token);
         if (passwordResetToken.isValid()) {
-            String url = FRONT_URL + "/password/reset?token=" + token;
+            String url = FRONT_URL + "/api/password/reset-password?token=" + token;
             throw new TokenValidityException("This token is still valid. Please follow this link: " + url);
         }
 
         User user = passwordResetToken.getUser();
         PasswordResetToken newToken = passwordResetTokenService.createPasswordResetToken(user);
 
+        // ← AJOUTER: détecter le device
+        Device device = deviceService.detectAndRegisterDevice(user);
+
         eventPublisher.publishEvent(
-                new RequestPasswordTokenEvent(user, newToken.getPublicId())
+                new RequestPasswordTokenEvent(user, newToken.getPublicId(), device)
         );
 
         passwordResetTokenService.revokeToken(passwordResetToken);
@@ -257,13 +284,23 @@ public class PasswordServiceImpl implements PasswordService {
     // =========================================================================
 
     @Override
-    public void changePassword(PasswordChangeRequest request, HttpServletRequest httpRequest) {
+    public void changePassword(PasswordChangeRequest request) {
         User authenticatedUser = userService.getAuthenticatedUser();
+        Device currentDevice = deviceService.detectCurrentDevice();
 
         if (!authenticatedUser.hasPassword()) {
             throw new NoPasswordDefinedException(
                     "You don't have a password yet. Use the 'Define password' feature instead."
             );
+        }
+
+        if (!passwordEncoder.matches(request.currentPassword(), authenticatedUser.getPassword())) {
+            eventPublisher.publishEvent(new PasswordChangeFailedEvent(
+                    authenticatedUser,
+                    currentDevice,
+                    "Incorrect current password"
+            ));
+            throw new InvalidPasswordException("The current password is not correct", 400);
         }
 
         PasswordValidationResult result = passwordPolicyService.validatePassword(request.newPassword());
@@ -272,9 +309,9 @@ public class PasswordServiceImpl implements PasswordService {
                     + String.join(", ", result.errors()));
         }
 
-        savePassword(request.newPassword(), authenticatedUser);
+        savePassword(request.newPassword(), authenticatedUser, currentDevice); // ← passer device
 
-        Long currentDeviceId = deviceService.detectCurrentDevice().getId();
+        Long currentDeviceId = currentDevice != null ? currentDevice.getId() : null;
 
         if (currentDeviceId != null) {
             int revokedTokens = refreshTokenService.revokeAllUserTokensExceptDevice(authenticatedUser, currentDeviceId);
@@ -296,37 +333,32 @@ public class PasswordServiceImpl implements PasswordService {
     // DEFINE PASSWORD (OAUTH USERS)
     // =========================================================================
 
+
     @Override
     @Transactional
-    public void definePassword(String newPassword, HttpServletRequest httpRequest) {
+    public void definePassword(String newPassword) {
         User authenticatedUser = userService.getAuthenticatedUser();
+        Device currentDevice = deviceService.detectCurrentDevice(); // ← AJOUTER
 
-        // Security: only for users without a defined password
         if (authenticatedUser.hasPassword()) {
             throw new PasswordAlreadyDefinedException(
                     "You already have a password defined. Use the change password feature instead."
             );
         }
 
-        // Validate password meets policy requirements
         PasswordValidationResult result = passwordPolicyService.validatePassword(newPassword);
         if (!result.isValid()) {
             throw new InvalidPasswordException("Password doesn't meet security requirements: "
                     + String.join(", ", result.errors()));
         }
 
-        // Set the password
         authenticatedUser.setPassword(passwordEncoder.encode(newPassword));
         authenticatedUser.setPasswordChangedAt(Instant.now());
         userService.saveUser(authenticatedUser);
 
-        // Publish event for audit/notifications
-        eventPublisher.publishEvent(new PasswordChangedEvent(authenticatedUser));
+        eventPublisher.publishEvent(new PasswordChangedEvent(authenticatedUser, currentDevice)); // ← ajouter device
 
         log.info("Password defined for OAuth user: {}", authenticatedUser.getUsername());
-
-        // Note: No device logout - this is a first-time password definition,
-        // not a security-sensitive password change
     }
 
     // =========================================================================
@@ -345,8 +377,11 @@ public class PasswordServiceImpl implements PasswordService {
 
         PasswordResetToken passwordResetToken = passwordResetTokenService.createPasswordResetToken(user);
 
+        // ← AJOUTER: détecter le device
+        Device device = deviceService.detectAndRegisterDevice(user);
+
         eventPublisher.publishEvent(
-                new RequestPasswordResetEvent(user, passwordResetToken.getPublicId())
+                new RequestPasswordResetEvent(user, passwordResetToken.getPublicId(), device)
         );
 
         log.debug("Email link password reset initiated for user: {}", user.getUsername());
@@ -511,7 +546,7 @@ public class PasswordServiceImpl implements PasswordService {
     /**
      * Saves the new password for a user.
      */
-    private void savePassword(String password, User user) {
+    private void savePassword(String password, User user, Device device) {
         user.setPassword(passwordEncoder.encode(password));
         user.setPasswordChangedAt(Instant.now());
         if (user.isMustChangePassword()) {
@@ -519,7 +554,7 @@ public class PasswordServiceImpl implements PasswordService {
         }
         userService.saveUser(user);
 
-        eventPublisher.publishEvent(new PasswordChangedEvent(user));
+        eventPublisher.publishEvent(new PasswordChangedEvent(user, device));
     }
 
     /**

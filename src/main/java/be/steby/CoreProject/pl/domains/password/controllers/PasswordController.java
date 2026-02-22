@@ -6,7 +6,6 @@ import be.steby.CoreProject.bll.domains.password.services.PasswordService;
 import be.steby.CoreProject.bll.domains.password.services.cookies.PasswordCookieService;
 import be.steby.CoreProject.pl.domains.password.models.requests.*;
 import be.steby.CoreProject.pl.domains.password.models.responses.PasswordOperationResponse;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -70,14 +69,12 @@ public class PasswordController {
      * <p><strong>Endpoint:</strong> POST /api/password/forgot
      *
      * @param request Contains the user's email address and reset type
-     * @param httpRequest HTTP request for logging/auditing purposes
      * @param httpResponse HTTP response for setting cookies (code-based flows)
      * @return Generic success message adapted to the reset type
      */
     @PostMapping("/forgot")
     public ResponseEntity<PasswordOperationResponse> forgotPassword(
             @Valid @RequestBody ForgotPasswordRequest request,
-            HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
 
         log.info("Password reset requested for email: {} via {}",
@@ -85,9 +82,7 @@ public class PasswordController {
 
         // Service handles all business logic and returns result
         CodePasswordResetResult result = passwordService.requestPasswordReset(
-                request.toBllModel(),
-                httpRequest
-        );
+                request.toBllModel());
 
         // Set verification cookie for code-based flows
         if (request.resetType().requiresCodeVerification() && result.success()) {
@@ -181,18 +176,16 @@ public class PasswordController {
      *
      * @param token Password reset token from the email link
      * @param request Contains the new password
-     * @param httpRequest HTTP request for logging/auditing purposes
      * @return Success message if password was reset
      */
     @PutMapping("/reset")
     public ResponseEntity<PasswordOperationResponse> resetPassword(
             @RequestParam String token,
-            @Valid @RequestBody ResetPasswordRequest request,
-            HttpServletRequest httpRequest) {
+            @Valid @RequestBody ResetPasswordRequest request) {
 
         log.info("Password reset attempted with token");
 
-        passwordService.resetPassword(request.toBllModel(), token, httpRequest);
+        passwordService.resetPassword(request.toBllModel(), token);
 
         return ResponseEntity.ok(PasswordOperationResponse.passwordReset());
     }
@@ -247,17 +240,15 @@ public class PasswordController {
      * <p><strong>Endpoint:</strong> GET /api/password/reset/resend?token=xxx
      *
      * @param token The expired token
-     * @param httpRequest HTTP request for logging/auditing purposes
      * @return Generic success message
      */
     @GetMapping("/reset/resend")
     public ResponseEntity<PasswordOperationResponse> resendResetToken(
-            @RequestParam String token,
-            HttpServletRequest httpRequest) {
+            @RequestParam String token) {
 
         log.info("New password reset token requested");
 
-        passwordService.requestPasswordToken(token, httpRequest);
+        passwordService.requestPasswordToken(token);
 
         return ResponseEntity.ok(PasswordOperationResponse.newTokenSent());
     }
@@ -278,17 +269,15 @@ public class PasswordController {
      * <p><strong>Endpoint:</strong> PUT /api/password/change
      *
      * @param request Contains current password and new password
-     * @param httpRequest HTTP request for logging/auditing purposes
      * @return Success message if password was changed
      */
     @PutMapping("/change")
     public ResponseEntity<PasswordOperationResponse> changePassword(
-            @Valid @RequestBody ChangePasswordRequest request,
-            HttpServletRequest httpRequest) {
+            @Valid @RequestBody ChangePasswordRequest request) {
 
         log.info("Password change requested by authenticated user");
 
-        passwordService.changePassword(request.toBllModel(), httpRequest);
+        passwordService.changePassword(request.toBllModel());
 
         return ResponseEntity.ok(PasswordOperationResponse.passwordChanged());
     }
@@ -310,17 +299,15 @@ public class PasswordController {
      * <p><strong>Endpoint:</strong> PUT /api/password/define
      *
      * @param request Contains new password and confirmation
-     * @param httpRequest HTTP request for auditing
      * @return Success message if password was defined
      */
     @PutMapping("/define")
     public ResponseEntity<PasswordOperationResponse> definePassword(
-            @Valid @RequestBody DefinePasswordRequest request,
-            HttpServletRequest httpRequest) {
+            @Valid @RequestBody DefinePasswordRequest request) {
 
         log.info("Password definition requested by OAuth user");
 
-        passwordService.definePassword(request.password(), httpRequest);
+        passwordService.definePassword(request.password());
 
         return ResponseEntity.ok(PasswordOperationResponse.passwordDefined());
     }
