@@ -6,7 +6,6 @@ import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordExcep
 import be.steby.CoreProject.bll.domains.password.exceptions.PasswordDomainException;
 import be.steby.CoreProject.bll.domains.password.models.*;
 import be.steby.CoreProject.dl.enums.PasswordResetType;
-import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Service interface for password management operations.
@@ -55,11 +54,10 @@ public interface PasswordService {
      * result contains a JWT token that should be stored in a verification cookie by the controller.
      *
      * @param request contains email and reset type
-     * @param httpRequest HTTP request for auditing purposes
      * @return result containing JWT token for code-based flows, or failure indicator
      * @throws PasswordDomainException if request data fails business validation
      */
-    CodePasswordResetResult requestPasswordReset(ForgotPasswordBLLRequest request, HttpServletRequest httpRequest);
+    CodePasswordResetResult requestPasswordReset(ForgotPasswordBLLRequest request);
 
     // =========================================================================
     // CODE VERIFICATION (EMAIL_CODE and SMS_CODE flows)
@@ -96,10 +94,9 @@ public interface PasswordService {
      *
      * @param request contains the new password (already validated at PL level)
      * @param token the password reset token from email link
-     * @param httpRequest HTTP request for auditing purposes
      * @throws PasswordDomainException if token is invalid, expired, or password fails validation
      */
-    void resetPassword(PasswordResetRequest request, String token, HttpServletRequest httpRequest);
+    void resetPassword(PasswordResetRequest request, String token);
 
     /**
      * Completes password reset using a permission token from code verification.
@@ -129,10 +126,9 @@ public interface PasswordService {
      * <p><strong>Security:</strong> Uses generic responses to prevent token validation attacks.
      *
      * @param token the expired token
-     * @param httpRequest HTTP request for auditing purposes
      * @throws PasswordDomainException if token validation fails
      */
-    void requestPasswordToken(String token, HttpServletRequest httpRequest);
+    void requestPasswordToken(String token);
 
     // =========================================================================
     // CHANGE PASSWORD (AUTHENTICATED)
@@ -147,10 +143,9 @@ public interface PasswordService {
      * <p>All active sessions except the current one are invalidated for security.
      *
      * @param request contains current password and new password
-     * @param httpRequest HTTP request for auditing and device detection
      * @throws PasswordDomainException if current password is incorrect or new password fails validation
      */
-    void changePassword(PasswordChangeRequest request, HttpServletRequest httpRequest);
+    void changePassword(PasswordChangeRequest request);
 
     // =========================================================================
     // DEFINE PASSWORD (OAUTH USERS)
@@ -165,9 +160,8 @@ public interface PasswordService {
      * <p>Only allowed if user has no password defined (user.hasPassword() == false).
      *
      * @param newPassword the password to define (already validated at PL level)
-     * @param httpRequest HTTP request for auditing purposes
      * @throws PasswordAlreadyDefinedException if user already has a password
      * @throws InvalidPasswordException if password fails policy validation
      */
-    void definePassword(String newPassword, HttpServletRequest httpRequest);
+    void definePassword(String newPassword);
 }

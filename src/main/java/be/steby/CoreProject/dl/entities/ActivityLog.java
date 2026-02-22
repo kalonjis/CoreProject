@@ -69,6 +69,12 @@ public class ActivityLog extends BaseEntity<Long> {
     @Column(name = "action_details", length = 500)
     private String actionDetails;
 
+    @Column(name = "ip_address", length = 45)
+    private String ipAddress;
+
+    @Column(name = "location", length = 255)
+    private String location;
+
     /** Returns a builder with {@code timestamp} pre-set to now. */
     public static ActivityLogBuilder builderWithTimestamp() {
         return ActivityLog.builder().timestamp(Instant.now());
