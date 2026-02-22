@@ -285,13 +285,23 @@ public class DeviceServiceImpl implements DeviceService {
     @Transactional
     public int disconnectAllOtherDevices() {
         Device currentDevice = detectCurrentDevice();
-        User currentUser = userService.getAuthenticatedUser();
+        User currentUser = currentDevice.getUser();
 
-        int disconnectedDevices = disconnectAllDevicesExceptCurrent(currentUser, currentDevice.getId());
+        List<Device> devicesToDisconnect = getUserDevices(currentUser).stream()
+                .filter(d -> !d.getId().equals(currentDevice.getId()))
+                .filter(d -> !d.isLoggedOut())
+                .toList();
 
-        log.info("{} devices successfully disconnected for user {}", disconnectedDevices, currentUser.getUsername());
+        for (Device device : devicesToDisconnect) {
+            refreshTokenService.revokeDeviceTokens(currentUser, device);
+            device.setLoggedOut(true);
+            device.setLogoutTime(Instant.now());
+            saveDevice(device);
+        }
 
-        return  disconnectedDevices;
+        log.info("{} devices successfully disconnected for user {}", devicesToDisconnect.size(), currentUser.getUsername());
+
+        return devicesToDisconnect.size();
     }
 
 
@@ -303,19 +313,19 @@ public class DeviceServiceImpl implements DeviceService {
      * @param currentDeviceId Id The device to keep connected
      * @return Number of devices disconnected
      */
-    @Override
-    @Transactional
-    public int disconnectAllDevicesExceptCurrent(User user, Long currentDeviceId) {
-        log.info("Disconnecting all devices for user {} except device {}",
-                user.getUsername(), currentDeviceId);
-
-        int disconnectedCount = deviceRepository.disconnectAllDevicesExceptCurrent(user, currentDeviceId);
-
-        log.info("Disconnected {} devices for user {} (kept device {})",
-                disconnectedCount, user.getUsername(), currentDeviceId);
-
-        return disconnectedCount;
-    }
+//    @Override
+//    @Transactional
+//    public int disconnectAllDevicesExceptCurrent(User user, Long currentDeviceId) {
+//        log.info("Disconnecting all devices for user {} except device {}",
+//                user.getUsername(), currentDeviceId);
+//
+//        int disconnectedCount = deviceRepository.disconnectAllDevicesExceptCurrent(user, currentDeviceId);
+//
+//        log.info("Disconnected {} devices for user {} (kept device {})",
+//                disconnectedCount, user.getUsername(), currentDeviceId);
+//
+//        return disconnectedCount;
+//    }
 
 
     @Override

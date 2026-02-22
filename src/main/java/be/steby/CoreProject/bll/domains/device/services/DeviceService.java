@@ -56,7 +56,7 @@ public interface DeviceService {
 
     int disconnectAllOtherDevices();
 
-    int disconnectAllDevicesExceptCurrent(User user, Long currentDeviceId);
+    //int disconnectAllDevicesExceptCurrent(User user, Long currentDeviceId);
 
     int disconnectAllDevicesForUser(User user);
 }

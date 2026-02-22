@@ -13,12 +13,13 @@ import be.steby.CoreProject.dl.entities.User;
  *   <li>{@link AccountAction}  — account lifecycle (signup, activation, deactivation, reactivation)</li>
  *   <li>{@link DeviceAction}   — device management (confirmation, trust level, disconnection)</li>
  *   <li>{@link PasswordAction} — password changes and resets</li>
+ *   <li>{@link AdminAction}    — admin operations (user management, roles, security, audit)</li>
  * </ul>
  *
- * <p>Future domains to add: {@code EmailAction}, {@code AdminAction}.
+ * <p>Future domains to add: {@code EmailAction}.
  */
 public sealed interface ActionLogType
-        permits AuthAction, SecurityAction, AccountAction, DeviceAction, PasswordAction {
+        permits AuthAction, SecurityAction, AccountAction, DeviceAction, PasswordAction, AdminAction {
 
     /**
      * Enum constant name used for database storage — e.g. "LOGIN", "PASSWORD_CHANGED".
@@ -32,7 +33,7 @@ public sealed interface ActionLogType
 
     /**
      * Domain category stored in {@code action_category} column
-     * — e.g. "AUTH", "SECURITY", "PASSWORD".
+     * — e.g. "AUTH", "SECURITY", "PASSWORD", "ADMIN_USER".
      */
     String getCategory();
 

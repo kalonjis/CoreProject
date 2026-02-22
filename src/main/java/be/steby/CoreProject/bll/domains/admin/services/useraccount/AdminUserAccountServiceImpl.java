@@ -3,6 +3,7 @@ package be.steby.CoreProject.bll.domains.admin.services.useraccount;
 import be.steby.CoreProject.bll.common.services.reactivation.ReactivationPolicyService;
 import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserActivatedEvent;
 import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserDeactivatedEvent;
+import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserDeletedEvent;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
 import be.steby.CoreProject.bll.domains.admin.models.account.AdminDeactivationRequest;
 import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationRequest;
@@ -254,19 +255,26 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
 //    }
 
     // ===============================
-    // USER DELETION
-    // ===============================
+// USER DELETION - Updated methods
+// ===============================
 
     @Override
     @Transactional
     public void deleteUser(Long userId) {
         log.debug("Admin delete request - targetId: {}", userId);
 
-        // Get admin for logging (permission check done in UserService)
+        // Get actors
         User admin = userService.getAuthenticatedUser();
+        User target = userService.getUserById(userId);
+
+        // Capture user info BEFORE deletion for the event
+        AdminUserDeletedEvent event = AdminUserDeletedEvent.hardDelete(target, admin);
 
         // Delegate to user service (includes permission checks)
         userService.deleteUser(userId);
+
+        // Publish event AFTER successful deletion
+        eventPublisher.publishEvent(event);
 
         log.info("User successfully deleted by admin - ID: {}, deleted by: {}",
                 userId, admin.getUsername());
@@ -277,15 +285,22 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
     public void gdprUserDelete(User user) {
         log.debug("Admin GDPR delete request - user: {}", user.getUsername());
 
-        // Get admin for logging (permission check done in UserService)
+        // Get admin for logging
         User admin = userService.getAuthenticatedUser();
+
+        // Capture user info BEFORE anonymization for the event
+        AdminUserDeletedEvent event = AdminUserDeletedEvent.gdprDelete(user, admin);
 
         // Delegate to user service (includes permission checks and anonymization)
         userService.gdprUserDelete(user);
 
+        // Publish event AFTER successful deletion
+        eventPublisher.publishEvent(event);
+
         log.info("User successfully GDPR deleted by admin - username: {}, deleted by: {}",
                 user.getUsername(), admin.getUsername());
     }
+
 
     // ===============================
     // PASSWORD MANAGEMENT
