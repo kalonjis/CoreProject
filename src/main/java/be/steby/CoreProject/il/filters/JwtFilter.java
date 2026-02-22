@@ -124,6 +124,9 @@ public class JwtFilter extends OncePerRequestFilter {
         }
         return null;
     }
+// =========================================================================
+    // SECURITY VIOLATION HANDLERS
+    // =========================================================================
 
     private void handleSecurityViolation(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -132,14 +135,39 @@ public class JwtFilter extends OncePerRequestFilter {
     }
 
     private void handleBlacklistedDeviceRequest(HttpServletResponse response) throws IOException {
+        clearAuthCookies(response);
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("application/json");
         response.getWriter().write("{\"error\": \"Device is blacklisted\", \"code\": \"DEVICE_BLACKLISTED\"}");
     }
 
     private void handleLoggedOutDeviceRequest(HttpServletResponse response, Device device) throws IOException {
+        clearAuthCookies(response);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.getWriter().write("{\"error\": \"Session expired\", \"code\": \"SESSION_EXPIRED\"}");
+    }
+
+    // =========================================================================
+    // COOKIE UTILITIES
+    // =========================================================================
+
+    /**
+     * Clears authentication cookies from the client's browser.
+     * Called when a device is blacklisted or disconnected remotely,
+     * so the browser doesn't keep sending stale/revoked tokens.
+     */
+    private void clearAuthCookies(HttpServletResponse response) {
+        response.addCookie(buildExpiredCookie(authJwtService.getAccessTokenCookieName()));
+        response.addCookie(buildExpiredCookie(authJwtService.getRefreshTokenCookieName()));
+    }
+
+    private Cookie buildExpiredCookie(String name) {
+        Cookie cookie = new Cookie(name, "");
+        cookie.setMaxAge(0);          // suppression immédiate par le navigateur
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);       // à retirer si tu es en HTTP en dev
+        cookie.setPath("/");
+        return cookie;
     }
 }

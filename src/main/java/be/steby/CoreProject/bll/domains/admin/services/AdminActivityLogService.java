@@ -1,595 +1,330 @@
-//package be.steby.CoreProject.bll.domains.admin.services;
-//
-//import be.steby.CoreProject.bll.domains.admin.events.AdminActionEvent;
-//import be.steby.CoreProject.dl.entities.ActivityLog;
-//import be.steby.CoreProject.dl.entities.User;
-//import be.steby.CoreProject.dl.enums.oldActionLogType;
-//import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
-//import be.steby.CoreProject.dl.enums.UserRole;
-//import com.fasterxml.jackson.core.JsonProcessingException;
-//import lombok.extern.slf4j.Slf4j;
-//import org.springframework.data.domain.Page;
-//import org.springframework.data.domain.PageRequest;
-//import org.springframework.data.domain.Pageable;
-//import org.springframework.stereotype.Service;
-//import org.springframework.transaction.annotation.Transactional;
-//
-//import java.time.Instant;
-//import java.util.HashMap;
-//import java.util.List;
-//import java.util.Map;
-//import java.util.Set;
-//
-///**
-// * Service de journalisation spécifique aux opérations d'administration.
-// * Cette classe s'occupe de l'enregistrement et l'analyse des activités
-// * d'administration avec une meilleure granularité et des métadonnées spécialisées.
-// */
-//@Service
-//@Slf4j
-//public class AdminActivityLogService extends AbstractActivityLogService {
-//
-//    /**
-//     * Constructeur pour l'initialisation des dépendances.
-//     *
-//     * @param activityLogRepository Repository pour la persistance des logs d'activité
-//     */
-//    public AdminActivityLogService(ActivityLogRepository activityLogRepository) {
-//        super(activityLogRepository);
-//    }
-//
-//    /**
-//     * Retourne le nom du domaine pour ce service.
-//     *
-//     * @return Le nom du domaine "ADMIN"
-//     */
-//    @Override
-//    protected String getDomainName() {
-//        return "ADMIN";
-//    }
-//
-//    @Override
-//    protected int getBaseRiskForActionType(oldActionLogType actionType) {
-//        return 0;
-//    }
-//
-//    // ================== MÉTHODES SPÉCIALISÉES D'ENREGISTREMENT ==================
-//
-//    /**
-//     * Enregistre une action de création d'utilisateur par un administrateur.
-//     */
-//    @Transactional
-//    public void logUserCreation(User adminUser, User createdUser, Set<UserRole> assignedRoles,
-//                                boolean autoActivated, RequestContext requestContext) {
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("createdUserId", createdUser.getId());
-//            metadata.put("createdUsername", createdUser.getUsername());
-//            metadata.put("createdUserEmail", createdUser.getEmail());
-//            metadata.put("assignedRoles", assignedRoles);
-//            metadata.put("autoActivated", autoActivated);
-//            metadata.put("hasAdminRoles", assignedRoles.stream().anyMatch(this::isAdministrativeRole));
-//
-//            logUserAction(
-//                    adminUser,
-//                    null, // device
-//                    oldActionLogType.ADMIN_USER_CREATED, // ← Enum directement !
-//                    true, // successful
-//                    String.format("Création de l'utilisateur '%s' avec les rôles: %s",
-//                            createdUser.getUsername(), assignedRoles),
-//                    objectMapper.writeValueAsString(metadata),
-//                    requestContext
-//            );
-//        } catch (JsonProcessingException e) {
-//            log.error("Erreur lors de la sérialisation des métadonnées de création d'utilisateur", e);
-//        }
-//    }
-//
-//    /**
-//     * Enregistre une action d'attribution de rôle.
-//     */
-//    @Transactional
-//    public void logRoleGrant(User adminUser, User targetUser, UserRole grantedRole,
-//                             Set<UserRole> previousRoles, Set<UserRole> currentRoles,
-//                             String reason, RequestContext requestContext) {
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("targetUserId", targetUser.getId());
-//            metadata.put("targetUsername", targetUser.getUsername());
-//            metadata.put("grantedRole", grantedRole);
-//            metadata.put("previousRoles", previousRoles);
-//            metadata.put("currentRoles", currentRoles);
-//            metadata.put("reason", reason);
-//            metadata.put("isAdministrativeRole", isAdministrativeRole(grantedRole));
-//            metadata.put("isSuperAdminRole", grantedRole == UserRole.SUPER_ADMIN);
-//
-//            logUserAction(
-//                    adminUser,
-//                    null, // device
-//                    oldActionLogType.ROLE_GRANTED,
-//                    true, // successful
-//                    String.format("Attribution du rôle '%s' à l'utilisateur '%s'",
-//                            grantedRole, targetUser.getUsername()),
-//                    objectMapper.writeValueAsString(metadata),
-//                    requestContext
-//            );
-//        } catch (JsonProcessingException e) {
-//            log.error("Erreur lors de la sérialisation des métadonnées d'attribution de rôle", e);
-//        }
-//    }
-//
-//    /**
-//     * Enregistre une action de révocation de rôle.
-//     */
-//    @Transactional
-//    public void logRoleRevoke(User adminUser, User targetUser, UserRole revokedRole,
-//                              Set<UserRole> previousRoles, Set<UserRole> currentRoles,
-//                              String reason, RequestContext requestContext) {
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("targetUserId", targetUser.getId());
-//            metadata.put("targetUsername", targetUser.getUsername());
-//            metadata.put("revokedRole", revokedRole);
-//            metadata.put("previousRoles", previousRoles);
-//            metadata.put("currentRoles", currentRoles);
-//            metadata.put("reason", reason);
-//            metadata.put("isAdministrativeRole", isAdministrativeRole(revokedRole));
-//            metadata.put("isSuperAdminRole", revokedRole == UserRole.SUPER_ADMIN);
-//            metadata.put("losesAllAdminRoles", !currentRoles.stream().anyMatch(this::isAdministrativeRole));
-//
-//            logUserAction(
-//                    adminUser,
-//                    null, // device
-//                    oldActionLogType.ROLE_REVOKED,
-//                    true, // successful
-//                    String.format("Révocation du rôle '%s' de l'utilisateur '%s'",
-//                            revokedRole, targetUser.getUsername()),
-//                    objectMapper.writeValueAsString(metadata),
-//                    requestContext
-//            );
-//        } catch (JsonProcessingException e) {
-//            log.error("Erreur lors de la sérialisation des métadonnées de révocation de rôle", e);
-//        }
-//    }
-//
-//    /**
-//     * Enregistre une action d'activation d'utilisateur par un admin.
-//     */
-//    @Transactional
-//    public void logUserActivation(User adminUser, User targetUser, boolean wasPreviouslyDeactivated,
-//                                  RequestContext requestContext) {
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("targetUserId", targetUser.getId());
-//            metadata.put("targetUsername", targetUser.getUsername());
-//            metadata.put("wasPreviouslyDeactivated", wasPreviouslyDeactivated);
-//            metadata.put("isAdministrativeUser", isAdministrativeUser(targetUser));
-//            metadata.put("activationType", wasPreviouslyDeactivated ? "REACTIVATION" : "ACTIVATION");
-//
-//            logUserAction(
-//                    adminUser,
-//                    null, // device
-//                    oldActionLogType.ACCOUNT_ACTIVATED,
-//                    true, // successful
-//                    String.format("Activation de l'utilisateur '%s'", targetUser.getUsername()),
-//                    objectMapper.writeValueAsString(metadata),
-//                    requestContext
-//            );
-//        } catch (JsonProcessingException e) {
-//            log.error("Erreur lors de la sérialisation des métadonnées d'activation d'utilisateur", e);
-//        }
-//    }
-//
-//    /**
-//     * Enregistre une action de désactivation d'utilisateur par un admin.
-//     */
-//    @Transactional
-//    public void logUserDeactivation(User adminUser, User targetUser, AdminDeactivationCategory category,
-//                                    String comment, boolean invalidateActiveSessions,
-//                                    RequestContext requestContext) {
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("targetUserId", targetUser.getId());
-//            metadata.put("targetUsername", targetUser.getUsername());
-//            metadata.put("deactivationCategory", category);
-//            metadata.put("comment", comment);
-//            metadata.put("invalidateActiveSessions", invalidateActiveSessions);
-//            metadata.put("isAdministrativeUser", isAdministrativeUser(targetUser));
-//            metadata.put("severityLevel", category.getSeverityLevel());
-//            metadata.put("allowsReactivation", category.allowsReactivation());
-//
-//            logUserAction(
-//                    adminUser,
-//                    null, // device
-//                    oldActionLogType.ACCOUNT_DEACTIVATED,
-//                    true, // successful
-//                    String.format("Désactivation de l'utilisateur '%s' (Catégorie: %s)",
-//                            targetUser.getUsername(), category.getDisplayName()),
-//                    objectMapper.writeValueAsString(metadata),
-//                    requestContext
-//            );
-//        } catch (JsonProcessingException e) {
-//            log.error("Erreur lors de la sérialisation des métadonnées de désactivation d'utilisateur", e);
-//        }
-//    }
-//
-//    /**
-//     * Enregistre une action de reset de mot de passe déclenché par un admin.
-//     */
-//    @Transactional
-//    public void logPasswordResetTriggered(User adminUser, User targetUser, String reason,
-//                                          boolean forceChangeOnNextLogin, boolean invalidateActiveSessions,
-//                                          RequestContext requestContext) {
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("targetUserId", targetUser.getId());
-//            metadata.put("targetUsername", targetUser.getUsername());
-//            metadata.put("reason", reason);
-//            metadata.put("forceChangeOnNextLogin", forceChangeOnNextLogin);
-//            metadata.put("invalidateActiveSessions", invalidateActiveSessions);
-//            metadata.put("isAdministrativeUser", isAdministrativeUser(targetUser));
-//            metadata.put("isSecurityRelated", isSecurityRelatedReason(reason));
-//
-//            logUserAction(
-//                    adminUser,
-//                    null, // device
-//                    oldActionLogType.ADMIN_PASSWORD_RESET,
-//                    true, // successful
-//                    String.format("Reset de mot de passe déclenché pour l'utilisateur '%s'",
-//                            targetUser.getUsername()),
-//                    objectMapper.writeValueAsString(metadata),
-//                    requestContext
-//            );
-//        } catch (JsonProcessingException e) {
-//            log.error("Erreur lors de la sérialisation des métadonnées de reset de mot de passe", e);
-//        }
-//    }
-//
-//    /**
-//     * Enregistre une recherche d'utilisateurs par un admin.
-//     */
-//    @Transactional
-//    public void logUserSearch(User adminUser, String query, long totalResults, long searchDurationMs,
-//                              RequestContext requestContext) {
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("searchQuery", query);
-//            metadata.put("totalResults", totalResults);
-//            metadata.put("searchDurationMs", searchDurationMs);
-//            metadata.put("isSlowSearch", searchDurationMs > 5000);
-//
-//            logUserAction(
-//                    adminUser,
-//                    null, // device
-//                    oldActionLogType.ADMIN_USER_SEARCH,
-//                    true, // successful
-//                    String.format("Recherche d'utilisateurs: '%s' (%d résultats)", query, totalResults),
-//                    objectMapper.writeValueAsString(metadata),
-//                    requestContext
-//            );
-//        } catch (JsonProcessingException e) {
-//            log.error("Erreur lors de la sérialisation des métadonnées de recherche d'utilisateurs", e);
-//        }
-//    }
-//
-//    /**
-//     * Enregistre une suppression d'utilisateur par un admin.
-//     */
-//    @Transactional
-//    public void logUserDeletion(User adminUser, User targetUser, String reason,
-//                                boolean isGdprDeletion, RequestContext requestContext) {
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("targetUserId", targetUser.getId());
-//            metadata.put("targetUsername", targetUser.getUsername());
-//            metadata.put("targetEmail", targetUser.getEmail());
-//            metadata.put("reason", reason);
-//            metadata.put("isGdprDeletion", isGdprDeletion);
-//            metadata.put("isAdministrativeUser", isAdministrativeUser(targetUser));
-//            metadata.put("userRoles", targetUser.getUserRoles());
-//
-//            logUserAction(
-//                    adminUser,
-//                    null, // device
-//                    oldActionLogType.ADMIN_USER_DELETION,
-//                    true, // successful
-//                    String.format("Suppression de l'utilisateur '%s'%s",
-//                            targetUser.getUsername(),
-//                            isGdprDeletion ? " (GDPR)" : ""),
-//                    objectMapper.writeValueAsString(metadata),
-//                    requestContext
-//            );
-//        } catch (JsonProcessingException e) {
-//            log.error("Erreur lors de la sérialisation des métadonnées de suppression d'utilisateur", e);
-//        }
-//    }
-//
-//    /**
-//     * Enregistre un accès aux logs d'audit par un admin.
-//     */
-//    @Transactional
-//    public void logAuditAccess(User adminUser, String accessType, String targetUserId,
-//                               String timeRange, RequestContext requestContext) {
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("accessType", accessType);
-//            metadata.put("targetUserId", targetUserId);
-//            metadata.put("timeRange", timeRange);
-//            metadata.put("accessTimestamp", Instant.now());
-//
-//            logUserAction(
-//                    adminUser,
-//                    null, // device
-//                    oldActionLogType.ADMIN_AUDIT_ACCESS,
-//                    true, // successful
-//                    String.format("Accès aux logs d'audit (%s)%s",
-//                            accessType,
-//                            targetUserId != null ? " pour utilisateur ID " + targetUserId : ""),
-//                    objectMapper.writeValueAsString(metadata),
-//                    requestContext
-//            );
-//        } catch (JsonProcessingException e) {
-//            log.error("Erreur lors de la sérialisation des métadonnées d'accès aux logs d'audit", e);
-//        }
-//    }
-//
-//    /**
-//     * Enregistre un export de données par un admin.
-//     */
-//    @Transactional
-//    public void logDataExport(User adminUser, String exportType, String criteria,
-//                              long recordCount, RequestContext requestContext) {
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("exportType", exportType);
-//            metadata.put("criteria", criteria);
-//            metadata.put("recordCount", recordCount);
-//            metadata.put("exportTimestamp", Instant.now());
-//
-//            logUserAction(
-//                    adminUser,
-//                    null, // device
-//                    oldActionLogType.ADMIN_DATA_EXPORT,
-//                    true, // successful
-//                    String.format("Export de données (%s): %d enregistrements", exportType, recordCount),
-//                    objectMapper.writeValueAsString(metadata),
-//                    requestContext
-//            );
-//        } catch (JsonProcessingException e) {
-//            log.error("Erreur lors de la sérialisation des métadonnées d'export de données", e);
-//        }
-//    }
-//
-//    /**
-//     * Enregistre une action administrative générique.
-//     */
-//    @Transactional
-//    public void logAdminAction(AdminActionEvent event) {
-//        try {
-//            Map<String, Object> metadata = new HashMap<>();
-//            metadata.put("actionType", event.actionType());
-//            metadata.put("result", event.result());
-//            metadata.put("resultMessage", event.resultMessage());
-//            metadata.put("targetUserId", event.getTargetUserId());
-//            metadata.put("targetUsername", event.getTargetUsername());
-//            metadata.put("isSuccess", event.isSuccess());
-//            metadata.put("isSecurityAction", event.isSecurityAction());
-//            metadata.putAll(event.actionDetails());
-//
-//            oldActionLogType logType = mapActionTypeToLogType(event.actionType());
-//
-//            logUserAction(
-//                    event.adminUser(),
-//                    null, // device
-//                    logType,
-//                    event.isSuccess(), // successful
-//                    event.actionDescription(),
-//                    objectMapper.writeValueAsString(metadata),
-//                    event.requestContext()
-//            );
-//        } catch (JsonProcessingException e) {
-//            log.error("Erreur lors de la sérialisation des métadonnées d'action administrative", e);
-//        }
-//    }
-//
-//    // ================== MÉTHODES DE RECHERCHE SPÉCIALISÉES ==================
-//
-//    // ================== MÉTHODES DE RECHERCHE TYPE SAFE ==================
-//
-//    /**
-//     * Recherche les actions d'administration par type d'action (TYPE SAFE).
-//     */
-//    public Page<ActivityLog> getAdminActionsByType(List<oldActionLogType> actionTypes, Pageable pageable) {
-//        return activityLogRepository.findByActionTypeInOrderByTimestampDesc(actionTypes, pageable);
-//    }
-//
-//    /**
-//     * Recherche les actions d'administration effectuées par un administrateur spécifique (TYPE SAFE).
-//     */
-//    public Page<ActivityLog> getAdminActionsByUser(User adminUser, Instant from, Instant to, Pageable pageable) {
-//        List<oldActionLogType> adminActionTypes = getAdminActionTypes();
-//        return activityLogRepository.findByUserAndActionTypeInAndTimestampBetween(
-//                adminUser, adminActionTypes, from, to, pageable);
-//    }
-//
-//    /**
-//     * Recherche les actions sensibles (sécurité, rôles administratifs, etc.) - TYPE SAFE.
-//     */
-//    public Page<ActivityLog> getSensitiveAdminActions(Instant from, Instant to, Pageable pageable) {
-//        List<oldActionLogType> sensitiveActions = getSensitiveActionTypes();
-//        return activityLogRepository.findByActionTypeInAndTimestampBetweenOrderByTimestampDesc(
-//                sensitiveActions, from, to, pageable);
-//    }
-//
-//    /**
-//     * Recherche les échecs d'actions administratives (TYPE SAFE).
-//     */
-//    public Page<ActivityLog> getFailedAdminActions(Instant from, Instant to, Pageable pageable) {
-//        List<oldActionLogType> adminActions = getAdminActionTypes();
-//
-//        return activityLogRepository.searchLogsWithEnums(
-//                null, // userId
-//                null, // ipAddress
-//                adminActions,
-//                false, // successful = false pour les échecs
-//                from,
-//                to,
-//                pageable
-//        );
-//    }
-//
-//    /**
-//     * Recherche les actions d'administration par utilisateur et types spécifiques (TYPE SAFE).
-//     */
-//    public Page<ActivityLog> getAdminActionsByUserAndTypes(User adminUser, List<oldActionLogType> actionTypes,
-//                                                           Instant from, Instant to, Pageable pageable) {
-//        return activityLogRepository.findByUserAndActionTypeInAndTimestampBetween(
-//                adminUser, actionTypes, from, to, pageable);
-//    }
-//
-//    /**
-//     * Obtient les statistiques d'actions d'administration pour une période (TYPE SAFE).
-//     */
-//    public Map<oldActionLogType, Long> getAdminActionStatistics(Instant from, Instant to) {
-//        Map<oldActionLogType, Long> stats = new HashMap<>();
-//
-//        List<oldActionLogType> adminActions = getAdminActionTypes();
-//
-//        for (oldActionLogType actionType : adminActions) {
-//            long count = activityLogRepository.countByActionTypeAndSuccessfulAndTimestampBetween(
-//                    actionType, true, from, to);
-//            stats.put(actionType, count); // ← Clé en ActionLogType, pas en String !
-//        }
-//
-//        return stats;
-//    }
-//
-//    /**
-//     * Recherche flexible par critères multiples (TYPE SAFE).
-//     */
-//    public Page<ActivityLog> searchAdminLogs(Long userId, String ipAddress, List<oldActionLogType> actionTypes,
-//                                             Boolean successful, Instant from, Instant to, Pageable pageable) {
-//        return activityLogRepository.searchLogsWithEnums(
-//                userId, ipAddress, actionTypes, successful, from, to, pageable);
-//    }
-//
-//    /**
-//     * Obtient les dernières actions d'un type spécifique par un admin (TYPE SAFE).
-//     */
-//    public List<ActivityLog> getRecentAdminActionsByType(User adminUser, oldActionLogType actionType, int limit) {
-//        Pageable pageable = PageRequest.of(0, limit);
-//        return activityLogRepository.findByUserAndActionTypeOrderByTimestampDesc(adminUser, actionType, pageable)
-//                .getContent();
-//    }
-//
-//    /**
-//     * Obtient les statistiques globales par catégorie d'actions (TYPE SAFE).
-//     */
-//    public Map<String, Long> getActionCategoryStatistics(Instant from, Instant to) {
-//        List<Object[]> results = activityLogRepository.getActionTypeStatistics(from, to);
-//
-//        Map<String, Long> categoryStats = new HashMap<>();
-//
-//        for (Object[] result : results) {
-//            oldActionLogType actionType = (oldActionLogType) result[0];
-//            Long count = (Long) result[1];
-//
-//            String category = actionType.getCategory();
-//            categoryStats.merge(category, count, Long::sum);
-//        }
-//
-//        return categoryStats;
-//    }
-//
-//    /**
-//     * Recherche les actions par catégorie (TYPE SAFE).
-//     */
-//    public Page<ActivityLog> getActionsByCategory(String category, Instant from, Instant to, Pageable pageable) {
-//        return activityLogRepository.findByActionCategoryAndTimestampBetween(category, from, to, pageable);
-//    }
-//
-//    // ================== MÉTHODES UTILITAIRES PRIVÉES ==================
-//
-//    /**
-//     * Définit tous les types d'actions considérés comme "administratives".
-//     */
-//    private List<oldActionLogType> getAdminActionTypes() {
-//        return List.of(
-//                oldActionLogType.ADMIN_USER_CREATED,
-//                oldActionLogType.ADMIN_USER_DELETION,
-//                oldActionLogType.ADMIN_USER_SEARCH,
-//                oldActionLogType.ADMIN_PASSWORD_RESET,
-//                oldActionLogType.ADMIN_FORCE_LOGOUT,
-//                oldActionLogType.ADMIN_DATA_EXPORT,
-//                oldActionLogType.ADMIN_AUDIT_ACCESS,
-//                oldActionLogType.ROLE_GRANTED,
-//                oldActionLogType.ROLE_REVOKED,
-//                oldActionLogType.ACCOUNT_ACTIVATED,
-//                oldActionLogType.ACCOUNT_DEACTIVATED
-//        );
-//    }
-//
-//    /**
-//     * Définit tous les types d'actions considérés comme "sensibles".
-//     */
-//    private List<oldActionLogType> getSensitiveActionTypes() {
-//        return List.of(
-//                oldActionLogType.ROLE_GRANTED,
-//                oldActionLogType.ROLE_REVOKED,
-//                oldActionLogType.ACCOUNT_DEACTIVATED,
-//                oldActionLogType.ADMIN_PASSWORD_RESET,
-//                oldActionLogType.ADMIN_USER_CREATED,
-//                oldActionLogType.ADMIN_USER_DELETION,
-//                oldActionLogType.ADMIN_USER_SEARCH,
-//                oldActionLogType.ADMIN_AUDIT_ACCESS,
-//                oldActionLogType.SECURITY_SUSPICIOUS_ACTIVITY
-//        );
-//    }
-//
-//    // ================== MÉTHODES UTILITAIRES PRIVÉES ==================
-//
-//    /**
-//     * Vérifie si un rôle est administratif.
-//     */
-//    private boolean isAdministrativeRole(UserRole role) {
-//        return role == UserRole.ADMIN || role == UserRole.SUPER_ADMIN || role == UserRole.MODERATOR;
-//    }
-//
-//    /**
-//     * Vérifie si un utilisateur a des rôles administratifs.
-//     */
-//    private boolean isAdministrativeUser(User user) {
-//        return user.getUserRoles().stream().anyMatch(this::isAdministrativeRole);
-//    }
-//
-//    /**
-//     * Vérifie si une raison est liée à la sécurité.
-//     */
-//    private boolean isSecurityRelatedReason(String reason) {
-//        if (reason == null) return false;
-//        String lowerReason = reason.toLowerCase();
-//        return lowerReason.contains("sécurité") || lowerReason.contains("security") ||
-//                lowerReason.contains("compromis") || lowerReason.contains("breach");
-//    }
-//
-//    /**
-//     * Mappe un type d'action admin vers un type de log d'activité.
-//     */
-//    private oldActionLogType mapActionTypeToLogType(AdminActionEvent.AdminActionType actionType) {
-//        return switch (actionType) {
-//            case USER_CREATION -> oldActionLogType.ADMIN_USER_CREATED;
-//            case USER_DELETION -> oldActionLogType.ADMIN_USER_DELETION;
-//            case USER_ACTIVATION -> oldActionLogType.ACCOUNT_ACTIVATED;
-//            case USER_DEACTIVATION -> oldActionLogType.ACCOUNT_DEACTIVATED;
-//            case ROLE_GRANT -> oldActionLogType.ROLE_GRANTED;
-//            case ROLE_REVOKE -> oldActionLogType.ROLE_REVOKED;
-//            case PASSWORD_RESET -> oldActionLogType.ADMIN_PASSWORD_RESET;
-//            case USER_SEARCH -> oldActionLogType.ADMIN_USER_SEARCH;
-//            case DATA_EXPORT -> oldActionLogType.ADMIN_DATA_EXPORT;
-//            case SYSTEM_CONFIGURATION -> oldActionLogType.SYSTEM_CONFIG_CHANGED;
-//            case SECURITY_ACTION -> oldActionLogType.SECURITY_SUSPICIOUS_ACTIVITY;
-//            case AUDIT_ACCESS -> oldActionLogType.ADMIN_AUDIT_ACCESS;
-//            default -> oldActionLogType.API_ACCESS;
-//        };
-//    }
-//}
+// ============================================================================
+// FILE 4: AdminActivityLogService.java
+// Location: src/main/java/be/steby/CoreProject/bll/domains/admin/services/AdminActivityLogService.java
+// ============================================================================
+
+package be.steby.CoreProject.bll.domains.admin.services;
+
+import be.steby.CoreProject.bll.common.services.activitylog.ActivityLogService;
+import be.steby.CoreProject.bll.domains.admin.events.AdminActionEvent;
+import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserActivatedEvent;
+import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserCreatedEvent;
+import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserDeactivatedEvent;
+import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserDeletedEvent;
+import be.steby.CoreProject.bll.domains.admin.listeners.AdminActivityLogListener;
+import be.steby.CoreProject.bll.domains.admin.models.role.AdminRoleGrantedEvent;
+import be.steby.CoreProject.bll.domains.admin.models.role.AdminRoleRevokedEvent;
+import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
+import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.action_log_type.AdminAction;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+/**
+ * Admin domain activity log service.
+ *
+ * <p>Translates admin domain events into {@link be.steby.CoreProject.dl.entities.ActivityLog}
+ * persistence calls via the generic {@link ActivityLogService} base.
+ * Each method maps to an {@link AdminAction} constant.</p>
+ *
+ * <p>Admin actions always involve an admin user performing an action, often
+ * targeting another user. The target user information is stored in
+ * {@code actionDetails} since {@code ActivityLog} doesn't have a dedicated
+ * {@code targetUser} field.</p>
+ *
+ * <p>Called exclusively from {@link AdminActivityLogListener}, which already
+ * runs on the {@code activityLogExecutor} thread pool.</p>
+ */
+@Service
+@Slf4j
+public class AdminActivityLogService extends ActivityLogService {
+
+    public AdminActivityLogService(ActivityLogRepository activityLogRepository) {
+        super(activityLogRepository);
+    }
+
+    @Override
+    protected String getDomainName() {
+        return "ADMIN";
+    }
+
+    // =========================================================================
+    // User Management
+    // =========================================================================
+
+    /**
+     * Persists an {@link AdminAction#ADMIN_USER_CREATED} entry when an admin
+     * creates a new user account.
+     *
+     * @param event contains the admin, created user and temporary password
+     */
+    public void logUserCreated(AdminUserCreatedEvent event) {
+        String details = String.format("target: %s (email: %s)",
+                event.getCreatedUsername(), event.getCreatedUserEmail());
+        logUserActivity(event.adminUser(), null, AdminAction.ADMIN_USER_CREATED, true, details);
+
+        log.debug("ADMIN_USER_CREATED logged — admin: {}, created: {}",
+                event.getAdminUsername(), event.getCreatedUsername());
+    }
+
+    /**
+     * Persists an {@link AdminAction#ADMIN_USER_ACTIVATED} entry when an admin
+     * manually activates a user account.
+     *
+     * @param event contains the admin and target user
+     */
+    public void logUserActivated(AdminUserActivatedEvent event) {
+        AdminAction action = event.isReactivation()
+                ? AdminAction.ADMIN_USER_REACTIVATED
+                : AdminAction.ADMIN_USER_ACTIVATED;
+
+        String details = buildTargetUserDetails(event.targetUser());
+        logUserActivity(event.adminUser(), null, action, true, details);
+
+        log.debug("{} logged — admin: {}, target: {}",
+                action.getName(), event.getAdminUsername(), event.targetUser().getUsername());
+    }
+
+    /**
+     * Persists an {@link AdminAction#ADMIN_USER_DEACTIVATED} entry when an admin
+     * deactivates a user account.
+     *
+     * @param event contains the admin, target user, category and comment
+     */
+    public void logUserDeactivated(AdminUserDeactivatedEvent event) {
+        String details = buildDeactivationDetails(event);
+        logUserActivity(event.adminUser(), null, AdminAction.ADMIN_USER_DEACTIVATED, true, details);
+
+        log.debug("ADMIN_USER_DEACTIVATED logged — admin: {}, target: {}, category: {}",
+                event.getAdminUsername(), event.getTargetUsername(), event.category());
+    }
+
+    /**
+     * Persists an {@link AdminAction#ADMIN_USER_DELETED} entry when an admin
+     * deletes a user account.
+     *
+     * @param event contains the admin and deleted user info
+     */
+    public void logUserDeleted(AdminUserDeletedEvent event) {
+        String deleteType = event.gdprDeletion() ? "GDPR" : "hard";
+        String details = String.format("deleted: %s (id: %d, email: %s) | type: %s",
+                event.deletedUsername(), event.deletedUserId(), event.deletedEmail(), deleteType);
+        logUserActivity(event.adminUser(), null, AdminAction.ADMIN_USER_DELETED, true, details);
+
+        log.debug("ADMIN_USER_DELETED logged — admin: {}, deleted: {}, type: {}",
+                event.getAdminUsername(), event.deletedUsername(), deleteType);
+    }
+
+    // =========================================================================
+    // Role Management
+    // =========================================================================
+
+    /**
+     * Persists an {@link AdminAction#ADMIN_ROLE_GRANTED} entry.
+     *
+     * @param event contains admin, target user and granted role
+     */
+    public void logRoleGranted(AdminRoleGrantedEvent event) {
+        String details = String.format("target: %s | role: %s granted",
+                event.targetUser().getUsername(), event.grantedRole().name());
+        logUserActivity(event.adminUser(), null, AdminAction.ADMIN_ROLE_GRANTED, true, details);
+
+        log.debug("ADMIN_ROLE_GRANTED logged — admin: {}, target: {}, role: {}",
+                event.adminUser().getUsername(), event.targetUser().getUsername(), event.grantedRole());
+    }
+
+    /**
+     * Persists an {@link AdminAction#ADMIN_ROLE_REVOKED} entry.
+     *
+     * @param event contains admin, target user and revoked role
+     */
+    public void logRoleRevoked(AdminRoleRevokedEvent event) {
+        String details = String.format("target: %s | role: %s revoked",
+                event.targetUser().getUsername(), event.revokedRole().name());
+        logUserActivity(event.adminUser(), null, AdminAction.ADMIN_ROLE_REVOKED, true, details);
+
+        log.debug("ADMIN_ROLE_REVOKED logged — admin: {}, target: {}, role: {}",
+                event.adminUser().getUsername(), event.targetUser().getUsername(), event.revokedRole());
+    }
+
+    // =========================================================================
+    // Security Actions
+    // =========================================================================
+
+    /**
+     * Persists an {@link AdminAction#ADMIN_FORCE_LOGOUT} entry when an admin
+     * terminates user session(s).
+     *
+     * @param adminUser  the admin performing the action
+     * @param targetUser the user being logged out
+     * @param allSessions whether all sessions were terminated
+     */
+    public void logForceLogout(User adminUser, User targetUser, boolean allSessions) {
+        String scope = allSessions ? "all sessions" : "single session";
+        String details = String.format("target: %s | scope: %s", targetUser.getUsername(), scope);
+        logUserActivity(adminUser, null, AdminAction.ADMIN_FORCE_LOGOUT, true, details);
+
+        log.debug("ADMIN_FORCE_LOGOUT logged — admin: {}, target: {}, scope: {}",
+                adminUser.getUsername(), targetUser.getUsername(), scope);
+    }
+
+    /**
+     * Persists an {@link AdminAction#ADMIN_ACCOUNT_UNLOCKED} entry.
+     *
+     * @param adminUser  the admin performing the action
+     * @param targetUser the user whose account was unlocked
+     */
+    public void logAccountUnlocked(User adminUser, User targetUser) {
+        String details = buildTargetUserDetails(targetUser);
+        logUserActivity(adminUser, null, AdminAction.ADMIN_ACCOUNT_UNLOCKED, true, details);
+
+        log.debug("ADMIN_ACCOUNT_UNLOCKED logged — admin: {}, target: {}",
+                adminUser.getUsername(), targetUser.getUsername());
+    }
+
+    // =========================================================================
+    // Audit & Data
+    // =========================================================================
+
+    /**
+     * Persists an {@link AdminAction#ADMIN_AUDIT_ACCESSED} entry when an admin
+     * accesses audit logs.
+     *
+     * @param adminUser the admin accessing the logs
+     * @param scope     description of what was accessed (e.g. "user:123 logs")
+     */
+    public void logAuditAccessed(User adminUser, String scope) {
+        String details = scope != null ? "scope: " + scope : null;
+        logUserActivity(adminUser, null, AdminAction.ADMIN_AUDIT_ACCESSED, true, details);
+
+        log.debug("ADMIN_AUDIT_ACCESSED logged — admin: {}, scope: {}",
+                adminUser.getUsername(), scope);
+    }
+
+    /**
+     * Persists an {@link AdminAction#ADMIN_DATA_EXPORTED} entry.
+     *
+     * @param adminUser  the admin performing the export
+     * @param targetUser the user whose data was exported (nullable for bulk exports)
+     * @param exportType type of export (e.g. "GDPR", "audit", "full")
+     */
+    public void logDataExported(User adminUser, User targetUser, String exportType) {
+        String details = targetUser != null
+                ? String.format("target: %s | type: %s", targetUser.getUsername(), exportType)
+                : String.format("type: %s", exportType);
+        logUserActivity(adminUser, null, AdminAction.ADMIN_DATA_EXPORTED, true, details);
+
+        log.debug("ADMIN_DATA_EXPORTED logged — admin: {}, target: {}, type: {}",
+                adminUser.getUsername(),
+                targetUser != null ? targetUser.getUsername() : "bulk",
+                exportType);
+    }
+
+    /**
+     * Persists an {@link AdminAction#ADMIN_USER_SEARCHED} entry.
+     *
+     * @param adminUser the admin performing the search
+     * @param query     the search query or criteria
+     */
+    public void logUserSearched(User adminUser, String query) {
+        String details = "query: " + (query != null ? query : "all");
+        logUserActivity(adminUser, null, AdminAction.ADMIN_USER_SEARCHED, true, details);
+
+        log.debug("ADMIN_USER_SEARCHED logged — admin: {}", adminUser.getUsername());
+    }
+
+    // =========================================================================
+    // System Configuration
+    // =========================================================================
+
+    /**
+     * Persists an {@link AdminAction#ADMIN_CONFIG_CHANGED} entry.
+     *
+     * @param adminUser  the admin changing configuration
+     * @param configKey  the configuration key changed
+     * @param oldValue   the previous value (nullable)
+     * @param newValue   the new value
+     */
+    public void logConfigChanged(User adminUser, String configKey, String oldValue, String newValue) {
+        String details = String.format("key: %s | %s → %s",
+                configKey,
+                oldValue != null ? oldValue : "null",
+                newValue);
+        logUserActivity(adminUser, null, AdminAction.ADMIN_CONFIG_CHANGED, true, details);
+
+        log.debug("ADMIN_CONFIG_CHANGED logged — admin: {}, key: {}",
+                adminUser.getUsername(), configKey);
+    }
+
+    // =========================================================================
+    // Generic Admin Action
+    // =========================================================================
+
+    /**
+     * Persists a generic admin action from {@link AdminActionEvent}.
+     * Used as fallback for actions not covered by specific methods.
+     *
+     * @param event the generic admin action event
+     */
+    public void logGenericAdminAction(AdminActionEvent event) {
+        AdminAction action = mapEventTypeToAction(event.actionType());
+        String details = buildGenericDetails(event);
+
+        logUserActivity(event.adminUser(), null, action,
+                event.isSuccess(), event.isFailure() ? event.resultMessage() : details);
+
+        log.debug("{} logged — admin: {}, target: {}, success: {}",
+                action.getName(),
+                event.getAdminUsername(),
+                event.getTargetUsername(),
+                event.isSuccess());
+    }
+
+    // =========================================================================
+    // Private helpers
+    // =========================================================================
+
+    private String buildTargetUserDetails(User target) {
+        return String.format("target: %s (id: %d)", target.getUsername(), target.getId());
+    }
+
+    private String buildDeactivationDetails(AdminUserDeactivatedEvent event) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("target: ").append(event.getTargetUsername());
+        sb.append(" | category: ").append(event.category().name());
+        if (event.hasComment()) {
+            sb.append(" | comment: ").append(event.comment());
+        }
+        return sb.toString();
+    }
+
+    private String buildGenericDetails(AdminActionEvent event) {
+        StringBuilder sb = new StringBuilder();
+        if (event.hasTargetUser()) {
+            sb.append("target: ").append(event.getTargetUsername());
+        }
+        if (event.actionDescription() != null && !event.actionDescription().isBlank()) {
+            if (!sb.isEmpty()) sb.append(" | ");
+            sb.append("action: ").append(event.actionDescription());
+        }
+        return sb.isEmpty() ? null : sb.toString();
+    }
+
+    private AdminAction mapEventTypeToAction(AdminActionEvent.AdminActionType eventType) {
+        return switch (eventType) {
+            case USER_CREATION -> AdminAction.ADMIN_USER_CREATED;
+            case USER_DELETION -> AdminAction.ADMIN_USER_DELETED;
+            case USER_ACTIVATION -> AdminAction.ADMIN_USER_ACTIVATED;
+            case USER_DEACTIVATION -> AdminAction.ADMIN_USER_DEACTIVATED;
+            case ROLE_GRANT -> AdminAction.ADMIN_ROLE_GRANTED;
+            case ROLE_REVOKE -> AdminAction.ADMIN_ROLE_REVOKED;
+            case PASSWORD_RESET -> AdminAction.ADMIN_PASSWORD_RESET;
+            case USER_SEARCH -> AdminAction.ADMIN_USER_SEARCHED;
+            case DATA_EXPORT -> AdminAction.ADMIN_DATA_EXPORTED;
+            case SYSTEM_CONFIGURATION -> AdminAction.ADMIN_CONFIG_CHANGED;
+            case SECURITY_ACTION -> AdminAction.ADMIN_FORCE_LOGOUT;
+            case AUDIT_ACCESS -> AdminAction.ADMIN_AUDIT_ACCESSED;
+            case OTHER -> AdminAction.ADMIN_CONFIG_CHANGED; // fallback
+        };
+    }
+}

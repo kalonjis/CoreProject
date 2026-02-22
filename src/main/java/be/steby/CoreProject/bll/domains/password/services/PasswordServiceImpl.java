@@ -315,7 +315,7 @@ public class PasswordServiceImpl implements PasswordService {
 
         if (currentDeviceId != null) {
             int revokedTokens = refreshTokenService.revokeAllUserTokensExceptDevice(authenticatedUser, currentDeviceId);
-            int disconnectedDevices = deviceService.disconnectAllDevicesExceptCurrent(authenticatedUser, currentDeviceId);
+            int disconnectedDevices = deviceService.disconnectAllOtherDevices();
 
             log.info("Password changed for user {} - revoked {} tokens and disconnected {} devices (kept device {})",
                     authenticatedUser.getUsername(), revokedTokens, disconnectedDevices, currentDeviceId);
