@@ -59,6 +59,7 @@ public class DeviceServiceImpl implements DeviceService {
     private final UserService userService;
     private final ApplicationEventPublisher eventPublisher;
     private final DeviceFingerprintService deviceFingerprintService;
+    private final DeviceAuthenticationService deviceAuthenticationService;
 
     @Autowired
     private HttpServletRequest httpServletRequest;
@@ -125,22 +126,18 @@ public class DeviceServiceImpl implements DeviceService {
     @Override
     @Transactional
     public Device detectAndRegisterDevice(User user) {
-        String userAgentString = httpServletRequest.getHeader("User-Agent");
-        String ipAddress = IpLocationUtils.extractClientIp(httpServletRequest);
-        String fingerprint = deviceFingerprintService.generateFingerprint(httpServletRequest, user.getId());
-        UserAgent agent = userAgentAnalyzer.parse(userAgentString);
+        String rawUserAgent  = httpServletRequest.getHeader("User-Agent");
+        String acceptLanguage = httpServletRequest.getHeader("Accept-Language");
+        String ipAddress     = IpLocationUtils.extractClientIp(httpServletRequest);
 
-        Device device = deviceRepository.findByFingerprint(fingerprint)
-                .map(existingDevice -> {
-                    Device updated = updateExistingDevice(user, existingDevice, ipAddress);
-                    return updated;
-                })
-                .orElseGet(() -> {
-                    Device created = createNewDevice(user, agent, fingerprint, ipAddress);
-                    return created;
-                });
+        // Parse une seule fois, utilisé par les deux
+        UserAgent agent      = userAgentAnalyzer.parse(rawUserAgent);
+        String fingerprint   = deviceFingerprintService.generateFingerprint(
+                agent, rawUserAgent, acceptLanguage, user.getId());
 
-        return device;
+        return deviceRepository.findByFingerprint(fingerprint)
+                .map(existing -> updateExistingDevice(user, existing, ipAddress))
+                .orElseGet(() -> createNewDevice(user, agent, fingerprint, ipAddress));
     }
 
     @Override
@@ -229,17 +226,20 @@ public class DeviceServiceImpl implements DeviceService {
         targetDevice.setBlacklisted(true);
         targetDevice.setBlacklistedTime(Instant.now());
 
+        // ← AJOUTER : forcer le logout pour bloquer l'access token aussi
+        targetDevice.setLoggedOut(true);
+        targetDevice.setLogoutTime(Instant.now());
+
         User user = targetDevice.getUser();
         refreshTokenService.revokeDeviceTokens(user, targetDevice);
 
-        // Use service method to ensure cache consistency
-        saveDevice(targetDevice);
+        saveDevice(targetDevice); // publie DevicePersistedEvent → cache OK
+
+        // ← AJOUTER : invalidation explicite du cache, pas de side-effect implicite
+        deviceAuthenticationService.invalidateDeviceCache(targetDevice.getId());
 
         Device actorDevice = detectAndRegisterDevice(user);
-
-        eventPublisher.publishEvent(new DeviceRejectedEvent(user,actorDevice, targetDevice));
-
-        log.info("Device {} rejected and blacklisted for user {}", targetDevice.getId(), user.getUsername());
+        eventPublisher.publishEvent(new DeviceRejectedEvent(user, actorDevice, targetDevice));
     }
 
     @Override
