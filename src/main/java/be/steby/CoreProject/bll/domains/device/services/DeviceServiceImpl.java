@@ -9,10 +9,9 @@ import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.Devi
 import be.steby.CoreProject.bll.domains.device.utils.DeviceContextProvider;
 import be.steby.CoreProject.bll.domains.device.utils.UserAgentUtils;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
-import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
-import be.steby.CoreProject.bll.exceptions.CurrentDeviceDisconnectionException;
-import be.steby.CoreProject.bll.exceptions.DoesntExistException;
-import be.steby.CoreProject.bll.exceptions.OwnershipException;
+import be.steby.CoreProject.bll.common.exceptions.AttributeUnchangedException;
+import be.steby.CoreProject.bll.common.exceptions.CurrentDeviceDisconnectionException;
+import be.steby.CoreProject.bll.common.exceptions.OwnershipException;
 import be.steby.CoreProject.dal.repositories.DeviceRepository;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
@@ -299,7 +298,7 @@ public class DeviceServiceImpl implements DeviceService {
             saveDevice(device);
         }
 
-        log.info("{} devices successfully disconnected for user {}", devicesToDisconnect.size(), currentUser.getUsername());
+        log.info("{} devices successfully disconnected for user {}", devicesToDisconnect.size(),currentDevice.getUser().getId());
 
         return devicesToDisconnect.size();
     }

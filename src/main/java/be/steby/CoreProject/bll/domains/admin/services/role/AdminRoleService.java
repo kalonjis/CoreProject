@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.admin.services.role;
 
+import be.steby.CoreProject.bll.common.exceptions.AttributeUnchangedException;
 import be.steby.CoreProject.dl.enums.UserRole;
 
 /**
@@ -30,7 +31,7 @@ public interface AdminRoleService {
      * @param role Role to grant
      * @throws be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException if user doesn't exist
      * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException if actor lacks permission
-     * @throws be.steby.CoreProject.bll.exceptions.AttributeUnchangedException if user already has the role
+     * @throws AttributeUnchangedException if user already has the role
      */
     void grantRole(Long userId, UserRole role);
 
@@ -47,7 +48,7 @@ public interface AdminRoleService {
      * @param role Role to revoke
      * @throws be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException if user doesn't exist
      * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException if actor lacks permission
-     * @throws be.steby.CoreProject.bll.exceptions.AttributeUnchangedException if user doesn't have the role
+     * @throws AttributeUnchangedException if user doesn't have the role
      */
     void revokeRole(Long userId, UserRole role);
 }

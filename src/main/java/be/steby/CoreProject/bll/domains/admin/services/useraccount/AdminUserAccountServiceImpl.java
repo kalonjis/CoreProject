@@ -13,7 +13,7 @@ import be.steby.CoreProject.bll.domains.admin.services.permissions.AdminPermissi
 import be.steby.CoreProject.bll.domains.admin.services.validation.AdminActionPolicyService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.email.PasswordResetTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
-import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
+import be.steby.CoreProject.bll.common.exceptions.AttributeUnchangedException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
 import be.steby.CoreProject.dl.enums.ReactivationPolicy;

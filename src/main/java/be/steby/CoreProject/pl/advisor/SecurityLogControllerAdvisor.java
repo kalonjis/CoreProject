@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.advisor;
 
-import be.steby.CoreProject.bll.exceptions.SecurityLogException;
+import be.steby.CoreProject.bll.common.exceptions.SecurityLogException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;

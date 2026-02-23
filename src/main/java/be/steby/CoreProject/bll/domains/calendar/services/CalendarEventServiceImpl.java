@@ -6,7 +6,7 @@ import be.steby.CoreProject.bll.domains.calendar.events.CalendarEventCreatedEven
 import be.steby.CoreProject.bll.domains.calendar.exceptions.CalendarEventNotFoundException;
 import be.steby.CoreProject.bll.domains.calendar.models.CalendarEventCreateRequest;
 import be.steby.CoreProject.bll.domains.calendar.models.CalendarEventUpdateRequest;
-import be.steby.CoreProject.bll.exceptions.OwnershipException;
+import be.steby.CoreProject.bll.common.exceptions.OwnershipException;
 import be.steby.CoreProject.dal.CalendarEventRepository;
 import be.steby.CoreProject.dl.entities.Address;
 import be.steby.CoreProject.dl.entities.CalendarEvent;

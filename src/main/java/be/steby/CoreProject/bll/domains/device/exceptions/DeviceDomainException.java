@@ -1,7 +1,6 @@
 package be.steby.CoreProject.bll.domains.device.exceptions;
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
-import org.springframework.http.HttpStatus;
+import be.steby.CoreProject.bll.common.exceptions.CoreProjectException;
 
 /**
  * Base exception for all device domain exceptions.

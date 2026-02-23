@@ -1,16 +1,13 @@
 package be.steby.CoreProject.bll.domains.user.services;
 
-import be.steby.CoreProject.bll.common.exceptions.UserPermissionException;
-import be.steby.CoreProject.bll.common.exceptions.UserPermissionExceptionFactory;
+import be.steby.CoreProject.bll.common.exceptions.*;
 import be.steby.CoreProject.bll.common.models.reactivation.ReactivationEligibility;
 import be.steby.CoreProject.bll.common.services.reactivation.ReactivationPolicyService;
-import be.steby.CoreProject.bll.domains.account.events.UserDeactivatedEvent;
 import be.steby.CoreProject.bll.domains.admin.services.permissions.AdminPermissionValidator;
 import be.steby.CoreProject.bll.domains.emailaddress.exceptions.EmailAlreadyUsedException;
 import be.steby.CoreProject.bll.domains.user.events.UserPersistedEvent;
 import be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException;
-import be.steby.CoreProject.bll.exceptions.*;
-import be.steby.CoreProject.bll.specifications.UserSpecification;
+import be.steby.CoreProject.dal.specifications.UserSpecification;
 import be.steby.CoreProject.dal.repositories.UserRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.ReactivationPolicy;
@@ -28,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Updated UserService implementation with intelligent caching integration.

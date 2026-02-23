@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.user.exceptions;
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
+import be.steby.CoreProject.bll.common.exceptions.CoreProjectException;
 
 /**
  * Exception thrown when a username is not found during authentication.

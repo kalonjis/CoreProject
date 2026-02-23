@@ -1,7 +1,5 @@
 package be.steby.CoreProject.bll.common.exceptions;
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
-
 /**
  * Exception thrown when invalid arguments are provided to service operations.
  * 

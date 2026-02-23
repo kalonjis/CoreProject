@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.account.exceptions.deactivation;
 
-import be.steby.CoreProject.bll.exceptions.TokenExpiredException;
+import be.steby.CoreProject.bll.common.exceptions.TokenExpiredException;
 
 public class DeactivationTokenExpiredException extends TokenExpiredException {
 

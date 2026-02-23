@@ -3,7 +3,7 @@ package be.steby.CoreProject.bll.domains.address.services;
 import be.steby.CoreProject.bll.domains.address.events.AddressGeocodingRequestedEvent;
 import be.steby.CoreProject.bll.domains.address.exceptions.AddressNotFoundException;
 
-import be.steby.CoreProject.bll.domains.address.specifications.AddressSpecification;
+import be.steby.CoreProject.dal.specifications.AddressSpecification;
 import be.steby.CoreProject.dal.repositories.AddressRepository;
 import be.steby.CoreProject.dl.entities.Address;
 import lombok.RequiredArgsConstructor;

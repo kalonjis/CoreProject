@@ -1,7 +1,5 @@
 package be.steby.CoreProject.bll.common.exceptions;
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
-
 /**
  * Exception lancée lors d'échec de validation des données utilisateur
  */

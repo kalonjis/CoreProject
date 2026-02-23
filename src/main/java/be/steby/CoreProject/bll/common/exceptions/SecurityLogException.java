@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.exceptions;
+package be.steby.CoreProject.bll.common.exceptions;
 
 /**
  * Exception dédiée aux erreurs liées à la journalisation de sécurité.

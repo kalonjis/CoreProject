@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.account.exceptions.deactivation;
 
-import be.steby.CoreProject.bll.exceptions.TokenValidityException;
+import be.steby.CoreProject.bll.common.exceptions.TokenValidityException;
 
 public class DeactivationTokenInvalidException extends TokenValidityException {
 

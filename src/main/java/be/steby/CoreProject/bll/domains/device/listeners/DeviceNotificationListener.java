@@ -4,7 +4,7 @@ import be.steby.CoreProject.bll.domains.device.events.DeviceConfirmationLinkRequ
 import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.device.services.DeviceMailerService;
 import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
-import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
+import be.steby.CoreProject.bll.common.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.DeviceConfirmationToken;

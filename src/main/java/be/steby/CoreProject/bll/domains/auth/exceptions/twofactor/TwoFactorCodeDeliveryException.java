@@ -1,6 +1,5 @@
 package be.steby.CoreProject.bll.domains.auth.exceptions.twofactor;
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
 
 import java.util.List;

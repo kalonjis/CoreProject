@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.exceptions;
+package be.steby.CoreProject.bll.common.exceptions;
 
 
 public class OwnershipException extends CoreProjectException {

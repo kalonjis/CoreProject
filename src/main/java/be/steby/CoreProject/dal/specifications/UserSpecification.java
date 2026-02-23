@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.specifications;
+package be.steby.CoreProject.dal.specifications;
 
 import be.steby.CoreProject.dl.entities.User;
 import jakarta.persistence.criteria.Predicate;

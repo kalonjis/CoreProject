@@ -11,7 +11,7 @@ import be.steby.CoreProject.bll.domains.auth.models.TwoFactorActivationResult;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.jwt.TwoFactorJwtService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
-import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
+import be.steby.CoreProject.bll.common.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.TwoFactorAuthRepository;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.TwoFactorAuth;

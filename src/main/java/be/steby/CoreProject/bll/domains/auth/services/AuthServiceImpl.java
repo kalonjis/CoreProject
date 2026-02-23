@@ -22,9 +22,9 @@ import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.Devi
 import be.steby.CoreProject.bll.domains.user.exceptions.UsernameNotFoundAuthenticationException;
 import be.steby.CoreProject.bll.domains.user.services.UserAuthenticationService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
-import be.steby.CoreProject.bll.exceptions.DoesntExistException;
-import be.steby.CoreProject.bll.exceptions.RateLimitExceededException;
+import be.steby.CoreProject.bll.common.exceptions.CoreProjectException;
+import be.steby.CoreProject.bll.common.exceptions.DoesntExistException;
+import be.steby.CoreProject.bll.common.exceptions.RateLimitExceededException;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;

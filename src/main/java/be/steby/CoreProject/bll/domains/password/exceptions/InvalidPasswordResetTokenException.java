@@ -1,7 +1,5 @@
 package be.steby.CoreProject.bll.domains.password.exceptions;
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
-
 /**
  * Exception thrown when password reset token validation fails.
  *

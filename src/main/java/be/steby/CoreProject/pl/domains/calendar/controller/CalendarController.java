@@ -1,5 +1,6 @@
 package be.steby.CoreProject.pl.domains.calendar.controller;
 
+import be.steby.CoreProject.bll.common.exceptions.OwnershipException;
 import be.steby.CoreProject.bll.domains.calendar.services.CalendarEventService;
 import be.steby.CoreProject.bll.domains.calendar.services.IcsExportService;
 import be.steby.CoreProject.bll.domains.calendar.exceptions.CalendarEventNotFoundException;
@@ -202,7 +203,7 @@ public class CalendarController {
      * @param request Update details (validated, optional fields)
      * @param user Authenticated user
      * @return 200 OK with updated event DTO
-     * @throws be.steby.CoreProject.bll.exceptions.OwnershipException if user doesn't own event (403)
+     * @throws OwnershipException if user doesn't own event (403)
      */
     @PutMapping("/events/{publicId}")
     public ResponseEntity<CalendarEventResponse> updateEvent(
@@ -226,7 +227,7 @@ public class CalendarController {
      * @param publicId Event public ID
      * @param user Authenticated user
      * @return 200 OK with cancelled event DTO
-     * @throws be.steby.CoreProject.bll.exceptions.OwnershipException if user doesn't own event (403)
+     * @throws OwnershipException if user doesn't own event (403)
      */
     @PostMapping("/events/{publicId}/cancel")
     public ResponseEntity<CalendarEventResponse> cancelEvent(
@@ -250,7 +251,7 @@ public class CalendarController {
      * @param publicId Event public ID
      * @param user Authenticated user
      * @return 204 No Content
-     * @throws be.steby.CoreProject.bll.exceptions.OwnershipException if user doesn't own event (403)
+     * @throws OwnershipException if user doesn't own event (403)
      */
     @DeleteMapping("/events/{publicId}")
     public ResponseEntity<Void> deleteEvent(

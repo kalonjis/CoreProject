@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.auth.exceptions;
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
+import be.steby.CoreProject.bll.common.exceptions.CoreProjectException;
 
 /**
  * Base exception for all authentication domain-related exceptions.
