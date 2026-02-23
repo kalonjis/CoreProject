@@ -3,7 +3,7 @@ package be.steby.CoreProject.bll.domains.user.services;
 import be.steby.CoreProject.bll.domains.user.cache.UserCacheService;
 import be.steby.CoreProject.bll.domains.user.cache.models.CachedUserInfo;
 import be.steby.CoreProject.bll.domains.user.exceptions.UsernameNotFoundAuthenticationException;
-import be.steby.CoreProject.bll.exceptions.UserAuthenticationStateException;
+import be.steby.CoreProject.bll.common.exceptions.UserAuthenticationStateException;
 import be.steby.CoreProject.dal.repositories.UserRepository;
 import be.steby.CoreProject.dl.entities.User;
 import lombok.RequiredArgsConstructor;

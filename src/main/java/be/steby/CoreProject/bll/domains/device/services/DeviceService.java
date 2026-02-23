@@ -3,7 +3,7 @@ package be.steby.CoreProject.bll.domains.device.services;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
-import be.steby.CoreProject.bll.exceptions.OwnershipException;
+import be.steby.CoreProject.bll.common.exceptions.OwnershipException;
 import be.steby.CoreProject.bll.domains.device.exceptions.DeviceNotFoundException;
 
 import java.util.List;

@@ -1,6 +1,5 @@
-package be.steby.CoreProject.bll.exceptions;
+package be.steby.CoreProject.bll.common.exceptions;
 
-import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
 import lombok.Getter;
 
 /**

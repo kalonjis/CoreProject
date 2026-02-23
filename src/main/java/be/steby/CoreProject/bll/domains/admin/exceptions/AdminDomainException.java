@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.admin.exceptions;
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
+import be.steby.CoreProject.bll.common.exceptions.CoreProjectException;
 
 /**
  * Exception de base pour toutes les exceptions liées au domaine d'administration.

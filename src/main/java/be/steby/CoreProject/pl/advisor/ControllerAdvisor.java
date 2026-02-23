@@ -2,12 +2,8 @@ package be.steby.CoreProject.pl.advisor;
 
 import be.steby.CoreProject.bll.domains.auth.exceptions.PasswordChangeRequiredException;
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorCodeDeliveryException;
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
-import be.steby.CoreProject.bll.exceptions.RateLimitExceededException;
-import be.steby.CoreProject.bll.exceptions.TokenExpiredException;
-import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
-import be.steby.CoreProject.dl.entities.tokens.BaseToken;
-import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
+import be.steby.CoreProject.bll.common.exceptions.CoreProjectException;
+import be.steby.CoreProject.bll.common.exceptions.RateLimitExceededException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;

@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.auth.exceptions.twofactor;
 
 import be.steby.CoreProject.bll.domains.auth.exceptions.AuthDomainException;
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
+import be.steby.CoreProject.bll.common.exceptions.CoreProjectException;
 
 /**
  * Base exception for all two-factor authentication domain-related exceptions.

@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.domains.address.specifications;
+package be.steby.CoreProject.dal.specifications;
 
 import be.steby.CoreProject.dl.entities.Address;
 import org.springframework.data.jpa.domain.Specification;

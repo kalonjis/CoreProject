@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.common.exceptions.phone;
 
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
+import be.steby.CoreProject.bll.common.exceptions.CoreProjectException;
 
 /**
  * Base exception for all phone operations.

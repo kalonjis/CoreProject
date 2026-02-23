@@ -2,7 +2,7 @@ package be.steby.CoreProject.bll.domains.account.services.tokens.confirmation;
 
 import be.steby.CoreProject.bll.common.services.tokens.BaseTokenServiceImpl;
 import be.steby.CoreProject.bll.common.services.tokens.SecureTokenService;
-import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
+import be.steby.CoreProject.bll.common.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dal.repositories.tokens.AccountConfirmationTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;

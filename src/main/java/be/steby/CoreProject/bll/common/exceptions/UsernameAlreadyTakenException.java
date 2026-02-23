@@ -1,4 +1,4 @@
-package be.steby.CoreProject.bll.exceptions;
+package be.steby.CoreProject.bll.common.exceptions;
 
 
 /**
@@ -6,7 +6,7 @@ package be.steby.CoreProject.bll.exceptions;
  * This exception extends {@code BiobanqueException}, allowing for consistent handling
  * of exceptions specific to the BioBanque application.
  */
-public class AlreadyExistException extends CoreProjectException {
+public class UsernameAlreadyTakenException extends CoreProjectException {
 
 
     /**
@@ -15,7 +15,7 @@ public class AlreadyExistException extends CoreProjectException {
      *
      * @param message the detail message to explaining the cause of exception.
      */
-    public AlreadyExistException(String message) {
+    public UsernameAlreadyTakenException(String message) {
         super(message,409);
     }
 }

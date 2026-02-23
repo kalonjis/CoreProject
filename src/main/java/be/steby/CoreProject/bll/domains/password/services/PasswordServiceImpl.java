@@ -12,9 +12,9 @@ import be.steby.CoreProject.bll.domains.password.services.jwt.PasswordResetJwtSe
 import be.steby.CoreProject.bll.domains.password.services.tokens.verification_code.VerificationCodeTokenService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.password.services.tokens.email.PasswordResetTokenServiceImpl;
-import be.steby.CoreProject.bll.exceptions.MaxAttemptsReachedException;
-import be.steby.CoreProject.bll.exceptions.TokenValidityException;
-import be.steby.CoreProject.bll.exceptions.UserAuthenticationStateException;
+import be.steby.CoreProject.bll.common.exceptions.MaxAttemptsReachedException;
+import be.steby.CoreProject.bll.common.exceptions.TokenValidityException;
+import be.steby.CoreProject.bll.common.exceptions.UserAuthenticationStateException;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;

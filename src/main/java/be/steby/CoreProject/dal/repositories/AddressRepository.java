@@ -28,12 +28,12 @@ import java.util.Optional;
  *
  * <h4>Specification Support:</h4>
  * <p>Extends {@link JpaSpecificationExecutor} to enable dynamic query building
- * using {@link be.steby.CoreProject.bll.specifications.AddressSpecification}.
+ * using {@link be.steby.CoreProject.dal.specifications.AddressSpecification}.
  * This is particularly useful for autocomplete/suggestion features.</p>
  *
  * @see Address
  * @see UserAddressRepository
- * @see be.steby.CoreProject.bll.specifications.AddressSpecification
+ * @see be.steby.CoreProject.dal.specifications.AddressSpecification
  */
 @Repository
 public interface AddressRepository extends JpaRepository<Address, Long>, JpaSpecificationExecutor<Address> {

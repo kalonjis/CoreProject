@@ -5,7 +5,7 @@ import be.steby.CoreProject.bll.domains.address.exceptions.AddressModificationNo
 import be.steby.CoreProject.bll.domains.address.exceptions.AddressNotFoundException;
 import be.steby.CoreProject.bll.domains.address.exceptions.AddressValidationException;
 import be.steby.CoreProject.bll.domains.address.services.AddressService;
-import be.steby.CoreProject.bll.specifications.UserAddressSpecification;
+import be.steby.CoreProject.dal.specifications.UserAddressSpecification;
 import be.steby.CoreProject.dal.repositories.AddressRepository;
 import be.steby.CoreProject.dal.repositories.UserAddressRepository;
 import be.steby.CoreProject.dl.entities.Address;

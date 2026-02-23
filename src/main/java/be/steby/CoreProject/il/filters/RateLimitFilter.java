@@ -1,6 +1,6 @@
 package be.steby.CoreProject.il.filters;
 
-import be.steby.CoreProject.bll.exceptions.RateLimitExceededException;
+import be.steby.CoreProject.bll.common.exceptions.RateLimitExceededException;
 import be.steby.CoreProject.il.ratelimit.RateLimiter;
 import be.steby.CoreProject.il.ratelimit.config.RateLimitProperties;
 import be.steby.CoreProject.il.ratelimit.models.RateLimitResult;
@@ -20,9 +20,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
-import java.util.Arrays;
-
-import static be.steby.CoreProject.il.routes.SecurityRoutesAggregator.PUBLIC_ROUTES;
 
 /**
  * HTTP filter that enforces global API rate limiting per user or IP address.

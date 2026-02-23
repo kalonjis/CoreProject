@@ -1,7 +1,5 @@
 package be.steby.CoreProject.bll.common.exceptions;
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
-
 /**
  * Exception de base pour toutes les exceptions liées aux permissions utilisateur.
  * Cette classe étend CoreProjectException pour s'intégrer avec le système global de gestion d'erreurs.

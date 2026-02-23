@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.calendar.services;
 
+import be.steby.CoreProject.bll.common.exceptions.OwnershipException;
 import be.steby.CoreProject.bll.domains.calendar.models.CalendarEventCreateRequest;
 import be.steby.CoreProject.bll.domains.calendar.models.CalendarEventUpdateRequest;
 import be.steby.CoreProject.bll.domains.calendar.exceptions.CalendarEventNotFoundException;
@@ -410,7 +411,7 @@ public interface CalendarEventService {
      * @param currentUser The user making the update (for ownership verification)
      * @return The updated CalendarEvent entity
      * @throws CalendarEventNotFoundException if event not found
-     * @throws be.steby.CoreProject.bll.exceptions.OwnershipException if user doesn't own the event
+     * @throws OwnershipException if user doesn't own the event
      * @throws IllegalArgumentException if validation fails
      * @see CalendarEventUpdateRequest
      * @see #verifyOwnership(CalendarEvent, User)
@@ -454,7 +455,7 @@ public interface CalendarEventService {
      * @param currentUser The user performing the cancellation
      * @return The cancelled CalendarEvent entity (with status = CANCELLED)
      * @throws CalendarEventNotFoundException if event not found
-     * @throws be.steby.CoreProject.bll.exceptions.OwnershipException if user doesn't own the event
+     * @throws OwnershipException if user doesn't own the event
      * @see be.steby.CoreProject.dl.enums.EventStatus#CANCELLED
      * @see #deleteEvent(String, User) for permanent deletion
      * @see be.steby.CoreProject.bll.domains.calendar.events.CalendarEventCancelledEvent
@@ -498,7 +499,7 @@ public interface CalendarEventService {
      * @param publicId The public ID of the event to delete
      * @param currentUser The user performing the deletion
      * @throws CalendarEventNotFoundException if event not found
-     * @throws be.steby.CoreProject.bll.exceptions.OwnershipException if user doesn't own the event
+     * @throws OwnershipException if user doesn't own the event
      * @see #cancelEvent(String, User) for soft delete (recommended)
      */
     void deleteEvent(String publicId, User currentUser);
@@ -537,7 +538,7 @@ public interface CalendarEventService {
      * 
      * @param event The event to check ownership for
      * @param user The user claiming ownership
-     * @throws be.steby.CoreProject.bll.exceptions.OwnershipException if user doesn't own the event
+     * @throws OwnershipException if user doesn't own the event
      * @throws NullPointerException if event or user is null
      */
     void verifyOwnership(CalendarEvent event, User user);

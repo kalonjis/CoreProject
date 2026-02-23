@@ -1,7 +1,7 @@
 package be.steby.CoreProject.bll.domains.emailaddress.exceptions;
 
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
+import be.steby.CoreProject.bll.common.exceptions.CoreProjectException;
 
 public class InvalidEmailException extends CoreProjectException {
     /**

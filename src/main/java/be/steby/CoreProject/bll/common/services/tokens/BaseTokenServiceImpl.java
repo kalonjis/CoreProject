@@ -1,9 +1,9 @@
 package be.steby.CoreProject.bll.common.services.tokens;
 
 import be.steby.CoreProject.bll.common.exceptions.TokenSecurityException;
-import be.steby.CoreProject.bll.exceptions.DoesntExistException;
-import be.steby.CoreProject.bll.exceptions.TokenExpiredException;
-import be.steby.CoreProject.bll.exceptions.TokenRevokedException;
+import be.steby.CoreProject.bll.common.exceptions.DoesntExistException;
+import be.steby.CoreProject.bll.common.exceptions.TokenExpiredException;
+import be.steby.CoreProject.bll.common.exceptions.TokenRevokedException;
 import be.steby.CoreProject.dal.repositories.tokens.BaseTokenRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.BaseToken;

@@ -1,8 +1,6 @@
 
 package be.steby.CoreProject.bll.common.exceptions;
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
-
 /**
  * Exception thrown when token security validation fails.
  *

@@ -5,7 +5,7 @@ import be.steby.CoreProject.bll.domains.emailaddress.events.*;
 import be.steby.CoreProject.bll.domains.emailaddress.exceptions.InvalidEmailException;
 import be.steby.CoreProject.bll.domains.emailaddress.models.EmailChangeRequest;
 import be.steby.CoreProject.bll.domains.emailaddress.models.EmailValidationResult;
-import be.steby.CoreProject.bll.exceptions.TokenConfirmationStatusException;
+import be.steby.CoreProject.bll.common.exceptions.TokenConfirmationStatusException;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.emailaddress.services.tokens.EmailConfirmationTokenServiceImpl;
 import be.steby.CoreProject.dl.entities.User;

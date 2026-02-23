@@ -1,6 +1,9 @@
 package be.steby.CoreProject.bll.common.services.activitylog;
 
+import be.steby.CoreProject.bll.common.models.activitylog.ActivityLogFilter;
+import be.steby.CoreProject.bll.common.models.activitylog.ActivityLogStatsResult;
 import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
+import be.steby.CoreProject.dal.specifications.ActivityLogSpecification;
 import be.steby.CoreProject.dl.entities.ActivityLog;
 import be.steby.CoreProject.dl.entities.User;
 import lombok.RequiredArgsConstructor;
@@ -12,16 +15,25 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Read-only service for querying activity logs.
  *
  * <p>Intentionally separate from {@link ActivityLogService} (write side) to
  * respect CQRS: writes are async / fire-and-forget; reads are synchronous,
- * transactional and called from controller layer.</p>
+ * transactional and called from the controller layer.</p>
  *
- * <p>All public methods are {@code readOnly = true} transactions — no
- * accidental writes possible here.</p>
+ * <p>All filtering is delegated to {@link ActivityLogSpecification} via
+ * {@link ActivityLogFilter} — a single {@code repository.findAll(spec, pageable)}
+ * call covers every combination. No combinatorial explosion of repository methods.</p>
+ *
+ * <p>User-facing ({@code /me/**}) methods apply a default date window when no
+ * range is supplied. Admin methods do not — admins may want full history.</p>
+ *
+ * <p>All public methods are {@code readOnly = true} — no accidental writes.</p>
  */
 @Service
 @RequiredArgsConstructor
@@ -29,34 +41,32 @@ import java.time.temporal.ChronoUnit;
 @Transactional(readOnly = true)
 public class ActivityLogQueryService {
 
-    /** Default look-back window when no explicit date range is supplied. */
+    /** Default look-back window for user-facing queries when no date range is supplied. */
     private static final int DEFAULT_DAYS = 30;
 
     private final ActivityLogRepository activityLogRepository;
 
     // =========================================================================
-    // User-facing queries (own logs only)
+    // User-facing queries — /me/**
     // =========================================================================
 
     /**
-     * Returns a paginated view of all activity logs for the given user,
-     * newest first.
+     * Returns all activity logs for the authenticated user, newest first.
+     * No category filter — covers every action category.
      *
-     * @param user     the authenticated user requesting their own history
-     * @param pageable page / sort parameters (default: 20 per page, desc)
+     * @param user     the authenticated user
+     * @param pageable page / sort parameters
      * @return page of logs
      */
     public Page<ActivityLog> getMyHistory(User user, Pageable pageable) {
         log.debug("Fetching full history for user: {}", user.getUsername());
-        return activityLogRepository.findByUserOrderByTimestampDesc(user, pageable);
+        return activityLogRepository.findAll(
+                ActivityLogSpecification.build(ActivityLogFilter.forUser(user)), pageable);
     }
 
     /**
-     * Returns a paginated view of auth-category logs for the given user,
-     * optionally filtered by a time window.
-     *
-     * <p>When {@code from} / {@code to} are null, defaults to the last
-     * {@value #DEFAULT_DAYS} days.</p>
+     * Returns AUTH-category logs for the authenticated user, optionally
+     * filtered by a time window. Defaults to last {@value #DEFAULT_DAYS} days.
      *
      * @param user     the authenticated user
      * @param from     start of the time window (inclusive), nullable
@@ -65,22 +75,19 @@ public class ActivityLogQueryService {
      * @return page of AUTH-category logs
      */
     public Page<ActivityLog> getMyAuthHistory(User user, Instant from, Instant to, Pageable pageable) {
-        Instant resolvedFrom = from != null ? from : Instant.now().minus(DEFAULT_DAYS, ChronoUnit.DAYS);
-        Instant resolvedTo   = to   != null ? to   : Instant.now();
+        Instant resolvedFrom = resolveFrom(from);
+        Instant resolvedTo   = resolveTo(to);
 
         log.debug("Fetching AUTH history for user: {} — {} → {}",
                 user.getUsername(), resolvedFrom, resolvedTo);
 
-        return activityLogRepository.findByUserAndActionCategoryAndTimestampBetween(
-                user, "AUTH", resolvedFrom, resolvedTo, pageable);
+        ActivityLogFilter filter = new ActivityLogFilter(user, "AUTH", resolvedFrom, resolvedTo, null);
+        return activityLogRepository.findAll(ActivityLogSpecification.build(filter), pageable);
     }
 
     /**
-     * Returns a paginated view of security-category logs for the given user,
-     * optionally filtered by a time window.
-     *
-     * <p>Covers {@code ACCOUNT_LOCKED}, {@code LOGIN_BLOCKED} and all
-     * {@code SecurityAction} entries linked to the user.</p>
+     * Returns SECURITY-category logs for the authenticated user, optionally
+     * filtered by a time window. Defaults to last {@value #DEFAULT_DAYS} days.
      *
      * @param user     the authenticated user
      * @param from     start of the time window (inclusive), nullable
@@ -89,54 +96,106 @@ public class ActivityLogQueryService {
      * @return page of SECURITY-category logs
      */
     public Page<ActivityLog> getMySecurityHistory(User user, Instant from, Instant to, Pageable pageable) {
-        Instant resolvedFrom = from != null ? from : Instant.now().minus(DEFAULT_DAYS, ChronoUnit.DAYS);
-        Instant resolvedTo   = to   != null ? to   : Instant.now();
+        Instant resolvedFrom = resolveFrom(from);
+        Instant resolvedTo   = resolveTo(to);
 
         log.debug("Fetching SECURITY history for user: {} — {} → {}",
                 user.getUsername(), resolvedFrom, resolvedTo);
 
-        return activityLogRepository.findByUserAndActionCategoryAndTimestampBetween(
-                user, "SECURITY", resolvedFrom, resolvedTo, pageable);
+        ActivityLogFilter filter = new ActivityLogFilter(user, "SECURITY", resolvedFrom, resolvedTo, null);
+        return activityLogRepository.findAll(ActivityLogSpecification.build(filter), pageable);
     }
 
     // =========================================================================
-    // Admin queries
+    // Admin queries — user-scoped
     // =========================================================================
 
     /**
-     * Returns a paginated view of all activity logs for any given user.
-     * Admin use only — no category filter.
-     *
-     * @param user     the target user
-     * @param pageable page / sort parameters
-     * @return page of logs
-     */
-    public Page<ActivityLog> getUserHistory(User user, Pageable pageable) {
-        log.debug("Admin: fetching full history for user: {}", user.getUsername());
-        return activityLogRepository.findByUserOrderByTimestampDesc(user, pageable);
-    }
-
-    /**
-     * Returns a paginated, category-filtered view of logs for any user.
+     * Returns logs for a specific user matching the given filter.
      * Admin use only.
      *
-     * @param user     the target user
-     * @param category action category string, e.g. {@code "AUTH"}, {@code "SECURITY"}
-     * @param from     start of the time window (inclusive), nullable
-     * @param to       end of the time window (inclusive), nullable
+     * <p>The {@code filter.user()} must be non-null — set by the controller
+     * after resolving the target user from the path variable. No default date
+     * window is applied; admin may query full history.</p>
+     *
+     * @param filter   BLL filter built from {@code ActivityLogFilterRequest.toActivityLogFilter()}
+     *                 with {@code user} populated by the controller
      * @param pageable page / sort parameters
-     * @return page of logs
+     * @return page of logs matching the filter
      */
-    public Page<ActivityLog> getUserHistoryByCategory(User user, String category,
-                                                       Instant from, Instant to,
-                                                       Pageable pageable) {
-        Instant resolvedFrom = from != null ? from : Instant.now().minus(DEFAULT_DAYS, ChronoUnit.DAYS);
-        Instant resolvedTo   = to   != null ? to   : Instant.now();
+    public Page<ActivityLog> getUserLogs(ActivityLogFilter filter, Pageable pageable) {
+        log.debug("Admin: fetching logs for user: {} — category={}, from={}, to={}, successful={}",
+                filter.user() != null ? filter.user().getUsername() : "null",
+                filter.category(), filter.from(), filter.to(), filter.successful());
 
-        log.debug("Admin: fetching {} history for user: {} — {} → {}",
-                category, user.getUsername(), resolvedFrom, resolvedTo);
+        return activityLogRepository.findAll(ActivityLogSpecification.build(filter), pageable);
+    }
 
-        return activityLogRepository.findByUserAndCategoryBetweenForAdmin(
-                user, category.toUpperCase(), resolvedFrom, resolvedTo, pageable);
+    // =========================================================================
+    // Admin queries — global (all users)
+    // =========================================================================
+
+    /**
+     * Returns logs across all users matching the given filter.
+     * Admin use only.
+     *
+     * <p>{@code filter.user()} is expected to be null here — the controller
+     * passes a filter built without a user constraint. No default date window
+     * applied; admin may query the full history.</p>
+     *
+     * @param filter   BLL filter; user must be null for global queries
+     * @param pageable page / sort parameters
+     * @return page of logs matching the filter
+     */
+    public Page<ActivityLog> getAllLogs(ActivityLogFilter filter, Pageable pageable) {
+        log.debug("Admin: fetching global logs — category={}, from={}, to={}, successful={}",
+                filter.category(), filter.from(), filter.to(), filter.successful());
+
+        return activityLogRepository.findAll(ActivityLogSpecification.build(filter), pageable);
+    }
+
+    // =========================================================================
+    // Admin queries — stats
+    // =========================================================================
+
+    /**
+     * Returns a summary of log counts grouped by action category, across all users.
+     *
+     * <p>When {@code from} / {@code to} are null, counts cover the entire history
+     * with no date restriction.</p>
+     *
+     * @param from lower timestamp bound, nullable
+     * @param to   upper timestamp bound, nullable
+     * @return {@link ActivityLogStatsResult} with per-category counts and grand total
+     */
+    public ActivityLogStatsResult getStats(Instant from, Instant to) {
+        log.debug("Admin: computing global stats — from={}, to={}", from, to);
+
+        List<Object[]> rows = (from != null || to != null)
+                ? activityLogRepository.countByActionCategoryBetween(
+                from != null ? from : Instant.EPOCH,
+                to   != null ? to   : Instant.now())
+                : activityLogRepository.countByActionCategory();
+
+        Map<String, Long> countsByCategory = rows.stream()
+                .collect(Collectors.toMap(
+                        row -> (String) row[0],
+                        row -> (Long)   row[1]));
+
+        long total = countsByCategory.values().stream().mapToLong(Long::longValue).sum();
+
+        return new ActivityLogStatsResult(countsByCategory, total);
+    }
+
+    // =========================================================================
+    // Private helpers
+    // =========================================================================
+
+    private Instant resolveFrom(Instant from) {
+        return from != null ? from : Instant.now().minus(DEFAULT_DAYS, ChronoUnit.DAYS);
+    }
+
+    private Instant resolveTo(Instant to) {
+        return to != null ? to : Instant.now();
     }
 }

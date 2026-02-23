@@ -1,5 +1,6 @@
 package be.steby.CoreProject.il.routes;
 
+import be.steby.CoreProject.il.routes.activitylog.ActivityLogRoutes;
 import be.steby.CoreProject.il.routes.calendar.CalendarRoutes;
 import be.steby.CoreProject.il.routes.lead.LeadRoutes;
 import be.steby.CoreProject.il.routes.notification.NotificationRoutes;
@@ -80,7 +81,9 @@ public final class SecurityRoutesAggregator {
             ProfileRoutes.AUTHENTICATED,
             SportRoutes.AUTHENTICATED,
             CalendarRoutes.AUTHENTICATED,
-            NotificationRoutes.AUTHENTICATED
+            NotificationRoutes.AUTHENTICATED,
+            ActivityLogRoutes.AUTHENTICATED
+
     );
 
     // ========== ADMIN ROUTES ==========
@@ -88,7 +91,9 @@ public final class SecurityRoutesAggregator {
     public static final String[] ADMIN_ROUTES = concatenate(
             AdminRoutes.ADMIN,
             ActuatorRoutes.ADMIN,
-            CalendarRoutes.ADMIN
+            CalendarRoutes.ADMIN,
+            ActivityLogRoutes.ADMIN
+
     );
 
     // ========== MONITORING ROUTES ==========

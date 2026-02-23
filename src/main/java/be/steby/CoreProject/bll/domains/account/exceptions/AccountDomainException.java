@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.account.exceptions;
 
-import be.steby.CoreProject.bll.exceptions.CoreProjectException;
+import be.steby.CoreProject.bll.common.exceptions.CoreProjectException;
 
 public abstract class AccountDomainException extends CoreProjectException {
 

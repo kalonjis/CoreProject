@@ -1,15 +1,15 @@
-package be.steby.CoreProject.bll.exceptions;
+package be.steby.CoreProject.bll.common.exceptions;
 
-public class TokenValidityException extends CoreProjectException {
+public class MaxAttemptsReachedException extends CoreProjectException {
     /**
      * Constructs a new {@code AuthenticationException} with the specified {@code detail message}.
-     * The {@code status code} is set to {@code 400 (Unauthorized)} by default.
+     * The {@code status code} is set to {@code 429 - Too Many Requests  } by default.
      *
      * @param message the detail message (which is saved for later retrieval
      *                by the {@link #getMessage()} method).
      */
-    public TokenValidityException(String message) {
-        super(message, 400);
+    public MaxAttemptsReachedException(String message) {
+        super(message, 429);
     }
 
     /**
@@ -20,7 +20,7 @@ public class TokenValidityException extends CoreProjectException {
      * @param status  the {@code HTTP status code} (which is saved for later retrieval
      *                by the {@link #getStatus()} method).
      */
-    public TokenValidityException(String message, int status) {
+    public MaxAttemptsReachedException(String message, int status) {
         super(message, status);
     }
 }

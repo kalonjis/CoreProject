@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.account.exceptions.deactivation;
 
-import be.steby.CoreProject.bll.exceptions.TokenRevokedException;
+import be.steby.CoreProject.bll.common.exceptions.TokenRevokedException;
 
 public class DeactivationTokenRevokedException extends TokenRevokedException {
 

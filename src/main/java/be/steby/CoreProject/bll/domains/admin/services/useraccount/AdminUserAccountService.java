@@ -5,7 +5,7 @@ import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationRe
 import be.steby.CoreProject.bll.common.exceptions.UserPermissionException;
 import be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
-import be.steby.CoreProject.bll.exceptions.AttributeUnchangedException;
+import be.steby.CoreProject.bll.common.exceptions.AttributeUnchangedException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import jakarta.servlet.http.HttpServletRequest;
@@ -57,7 +57,7 @@ public interface AdminUserAccountService {
      * @param request HTTP request for context capture
      * @throws be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException if user doesn't exist
      * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException if actor lacks permission
-     * @throws be.steby.CoreProject.bll.exceptions.AttributeUnchangedException if user is already active
+     * @throws AttributeUnchangedException if user is already active
      */
     void activateUser(Long userId, HttpServletRequest request);
 
