@@ -15,6 +15,8 @@ import org.thymeleaf.context.Context;
 @Slf4j
 public class GdprMailerService extends BaseMailerService {
 
+    @Value("${url.front_server}")
+    private String frontUrl;
 
     @Value("${app.gdpr.export.archive-ttl-hours:72}")
     private int gdprArchiveTtlHours;
@@ -28,7 +30,7 @@ public class GdprMailerService extends BaseMailerService {
 
 
     public void sendGdprExportConfirmation(String confirmToken, User user) {
-        String confirmUrl = "/api/privacy/export/confirm?token=" + confirmToken;
+        String confirmUrl = frontUrl + "/account/export/confirm?token=" + confirmToken;
 
         Context context = createBaseContext(user);
         context.setVariable("confirmUrl", confirmUrl);

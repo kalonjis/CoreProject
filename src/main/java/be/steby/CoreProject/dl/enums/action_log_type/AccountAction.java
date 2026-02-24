@@ -41,8 +41,24 @@ public enum AccountAction implements ActionLogType {
     // =========================================================================
 
     ACCOUNT_REACTIVATION_REQUESTED("Account reactivation requested — confirmation email sent"),
-    ACCOUNT_REACTIVATED("Account successfully reactivated");
+    ACCOUNT_REACTIVATED("Account successfully reactivated"),
 
+
+    // =========================================================================
+    // GDPR Deletion (irreversible)
+    // =========================================================================
+
+    /**
+     * Logged when the user submits a GDPR deletion request.
+     * Personal data is still intact at this point.
+     */
+    ACCOUNT_DELETION_REQUESTED("GDPR account deletion requested — confirmation email sent"),
+
+    /**
+     * Logged when the user confirms the deletion via email link.
+     * Personal data has been anonymized at this point.
+     */
+    ACCOUNT_DELETED("GDPR account deletion confirmed — personal data anonymized");
     // =========================================================================
 
     private final String description;

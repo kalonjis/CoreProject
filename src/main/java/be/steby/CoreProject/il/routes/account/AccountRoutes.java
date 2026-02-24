@@ -13,14 +13,16 @@ public final class AccountRoutes {
             "/api/account/resend-activation/**",
             "/api/account/resend-activation-by-identifier",
             "/api/account/request-reactivation",
-            "/api/account/confirm-reactivation/**"
+            "/api/account/confirm-reactivation/**",
+            "/api/account/confirm-deletion"
     };
 
     // ========== AUTHENTICATED ROUTES ==========
 
     public static final String[] AUTHENTICATED = {
             "/api/account/request-deactivation",
-            "/api/account/confirm-deactivation/**"
+            "/api/account/confirm-deactivation/**",
+            "/api/account/request-deletion"
     };
 
     // ========== CSRF CONFIGURATION ==========
@@ -41,7 +43,9 @@ public final class AccountRoutes {
 
             // ⚠️ DEV ONLY - Remove in production
             "/api/account/request-deactivation",
-            "/api/account/confirm-deactivation/**"
+            "/api/account/confirm-deactivation/**",
+            "/api/account/confirm-deletion",
+            "/api/account/request-deletion"
     };
 
     private AccountRoutes() {

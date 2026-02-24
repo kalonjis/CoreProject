@@ -66,10 +66,6 @@ public class DeactivationMessageService {
                             "We're always working to improve our platform. If you'd like to give us another try in the future, " +
                             "your account can be easily reactivated.";
 
-            case GDPR_REQUEST ->
-                    "Your GDPR deletion request has been processed. Your account and associated data have been permanently removed " +
-                            "in compliance with data protection regulations. This action cannot be reversed.";
-
             case OTHER ->
                     "Your account has been deactivated as requested. We understand that everyone's needs are different. " +
                             "If you decide to return, you can reactivate your account at any time.";
@@ -97,7 +93,6 @@ public class DeactivationMessageService {
             case SWITCHING_ACCOUNTS -> "You've requested to deactivate your account for account switching.";
             case WORK_REQUIREMENTS -> "You've requested to deactivate your account due to work requirements.";
             case NOT_USEFUL -> "You've requested to deactivate your account as it's no longer useful.";
-            case GDPR_REQUEST -> "You've requested permanent deletion of your account under GDPR.";
             case OTHER -> "You've requested to deactivate your account.";
         };
 
@@ -130,7 +125,6 @@ public class DeactivationMessageService {
             case SWITCHING_ACCOUNTS -> "Account Switch – Deactivation Confirmed – MyFavApp";
             case WORK_REQUIREMENTS -> "Work Requirements – Account Deactivated – MyFavApp";
             case NOT_USEFUL -> "Account Deactivated – MyFavApp";
-            case GDPR_REQUEST -> "GDPR Compliance – Account Permanently Deleted – MyFavApp";
             case OTHER -> "Account Deactivation Confirmed – MyFavApp";
         };
     }
@@ -155,7 +149,6 @@ public class DeactivationMessageService {
             case SWITCHING_ACCOUNTS -> "Confirm Account Switch – MyFavApp";
             case WORK_REQUIREMENTS -> "Confirm Work-Related Deactivation – MyFavApp";
             case NOT_USEFUL -> "Confirm Account Deactivation – MyFavApp";
-            case GDPR_REQUEST -> "Confirm GDPR Deletion Request – MyFavApp";
             case OTHER -> "Confirm Account Deactivation – MyFavApp";
         };
     }

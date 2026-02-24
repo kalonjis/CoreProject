@@ -1,0 +1,119 @@
+<mjml>
+  <mj-head>
+    <mj-title>Confirm your account deletion</mj-title>
+    <mj-preview>Confirm the permanent deletion of your MyFavApp account</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="15px" color="#555555" line-height="1.6" />
+      <mj-section padding="0" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f0f2f5">
+
+    <!-- Top accent bar -->
+    <mj-section background-color="#922b21" padding="6px 0" />
+
+    <!-- Header -->
+    <mj-section background-color="#922b21" padding="35px 40px 30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="26px" font-weight="bold" padding-bottom="8px">
+          🗑️ Account Deletion Request
+        </mj-text>
+        <mj-text align="center" color="#f1948a" font-size="14px" padding-top="0">
+          MyFavApp – Permanent account deletion
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Greeting -->
+    <mj-section background-color="#ffffff" padding="35px 40px 20px">
+      <mj-column>
+        <mj-text font-size="17px" color="#2c3e50" font-weight="bold" padding-bottom="4px">
+          Hello <span th:text="${username}">User</span>,
+        </mj-text>
+        <mj-text padding-top="8px">
+          We have received a request to <strong>permanently delete your MyFavApp account</strong>
+          and all associated personal data.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Irreversibility warning -->
+    <mj-section background-color="#ffffff" padding="0 40px 20px">
+      <mj-column border-left="4px solid #e74c3c" background-color="#fadbd8" border-radius="4px" padding="16px 20px">
+        <mj-text font-size="14px" color="#c0392b">
+          ⚠️ <strong>This action is irreversible.</strong>
+          Once confirmed, all your personal data will be permanently anonymized
+          and your account cannot be recovered.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- What will be deleted -->
+    <mj-section background-color="#ffffff" padding="0 40px 20px">
+      <mj-column>
+        <mj-text font-size="14px" color="#555555">
+          The following data will be anonymized or removed:
+        </mj-text>
+        <mj-text font-size="14px" color="#555555" padding-top="4px">
+          🔸 Profile information (name, email, phone number)<br/>
+          🔸 All personal preferences and settings<br/>
+          🔸 Activity history and associated content<br/>
+          🔸 All active sessions and devices
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- CTA Button -->
+    <mj-section background-color="#ffffff" padding="10px 40px 20px">
+      <mj-column>
+        <mj-text font-size="14px" color="#555555">
+          To permanently delete your account, click the button below:
+        </mj-text>
+        <mj-button background-color="#922b21"
+                   color="#ffffff"
+                   font-size="15px"
+                   font-weight="bold"
+                   border-radius="5px"
+                   padding="14px 32px"
+                   href="#"
+                   th:href="${confirmUrl}">
+          🗑️ Confirm account deletion
+        </mj-button>
+      </mj-column>
+    </mj-section>
+
+    <!-- Divider -->
+    <mj-section background-color="#ffffff" padding="0 40px">
+      <mj-column>
+        <mj-divider border-color="#ecf0f1" border-width="1px" />
+      </mj-column>
+    </mj-section>
+
+    <!-- Didn't request notice -->
+    <mj-section background-color="#ffffff" padding="20px 40px 35px">
+      <mj-column border-left="4px solid #ffc107" background-color="#fff9e6" border-radius="4px" padding="16px 20px">
+        <mj-text font-size="14px" color="#856404">
+          ⚠️ <strong>Didn't request this?</strong>
+          Simply ignore this email — your account will remain active.
+          We recommend changing your password if you suspect unauthorized access.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#2c3e50" padding="30px 40px">
+      <mj-column>
+        <mj-text align="center" color="#bdc3c7" font-size="14px" padding-bottom="6px">
+          Need help? <a href="mailto:support@myfavapp.com" style="color:#3498db; text-decoration:none;">support@myfavapp.com</a>
+        </mj-text>
+        <mj-text align="center" color="#7f8c8d" font-size="12px">
+          This confirmation link will expire in <strong style="color:#bdc3c7;">24 hours</strong>.<br/>
+          © <span th:text="${#dates.year(#dates.createNow())}">2025</span> MyFavApp. All rights reserved.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

@@ -187,4 +187,59 @@ public class AccountController {
         log.info("Account reactivation confirmed and processed");
         return ResponseEntity.ok(AccountOperationResponse.accountReactivated(username));
     }
+
+
+// =========================================================================
+// GDPR DELETION ENDPOINTS
+// =========================================================================
+
+    /**
+     * Initiates a GDPR account deletion request for the authenticated user.
+     *
+     * <p>Sends a confirmation email with a single-use link.
+     * No data is modified at this stage.
+     *
+     * <p>POST /api/account/request-deletion
+     *
+     * @param user the authenticated user
+     * @return 202 Accepted — confirmation email sent
+     */
+    @PostMapping("/request-deletion")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AccountOperationResponse> requestDeletion(
+            @AuthenticationPrincipal User user) {
+        log.info("Processing GDPR deletion request for user: {}", user.getUsername());
+
+        accountService.requestDeletion(user);
+
+        log.info("GDPR deletion request processed for user: {}", user.getUsername());
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(AccountOperationResponse.deletionRequested());
+    }
+
+    /**
+     * Confirms and executes the GDPR deletion via the token received by email.
+     *
+     * <p>Anonymizes personal data, invalidates all sessions and tokens,
+     * and clears authentication cookies.
+     *
+     * <p>GET /api/account/confirm-deletion?token=
+     *
+     * @param token   the raw token value from the confirmation email link
+     * @param response the HTTP response — used to clear auth cookies
+     * @return 200 OK — account deleted and session cleared
+     */
+    @GetMapping("/confirm-deletion")
+    public ResponseEntity<AccountOperationResponse> confirmDeletion(
+            @RequestParam String token,
+            HttpServletResponse response) {
+        log.info("Processing GDPR deletion confirmation");
+
+        accountService.confirmDeletion(token);
+
+        authCookieService.clearAuthenticationCookies(response);
+
+        log.info("GDPR deletion confirmed and session cleared");
+        return ResponseEntity.ok(AccountOperationResponse.accountDeleted());
+    }
 }

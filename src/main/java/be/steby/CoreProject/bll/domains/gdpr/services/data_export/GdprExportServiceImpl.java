@@ -186,7 +186,7 @@ public class GdprExportServiceImpl implements GdprExportService {
             log.info("GDPR archive ready for user: {}, expires: {}", user.getUsername(), expiresAt);
 
             // Publish event → listener sends download-ready email (async)
-            String downloadUrl = frontUrl + "/account/privacy?gdpr-token=" + exportRequest.getDownloadToken();
+            String downloadUrl = frontUrl + "/account/export/download?token=" + exportRequest.getDownloadToken();
             eventPublisher.publishEvent(new GdprExportReadyEvent(user, exportRequest.getDownloadToken(), downloadUrl));
 
         } catch (Exception e) {
