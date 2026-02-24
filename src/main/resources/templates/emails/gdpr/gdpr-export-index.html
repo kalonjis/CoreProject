@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MyFavApp — Your personal data</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+          font-family: Arial, sans-serif;
+          background: #f0f2f5;
+          color: #333;
+        }
+
+        header {
+          background: #2c3e50;
+          color: #fff;
+          padding: 24px 40px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        header h1 { font-size: 22px; }
+        header p  { font-size: 13px; color: #bdc3c7; margin-top: 4px; }
+
+        .layout {
+          display: flex;
+          min-height: calc(100vh - 80px);
+        }
+
+        nav {
+          width: 220px;
+          background: #fff;
+          border-right: 1px solid #e0e0e0;
+          padding: 24px 0;
+          flex-shrink: 0;
+        }
+        nav h2 {
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          color: #999;
+          padding: 0 20px 12px;
+        }
+        nav button {
+          display: block;
+          width: 100%;
+          text-align: left;
+          padding: 10px 20px;
+          border: none;
+          background: none;
+          cursor: pointer;
+          font-size: 14px;
+          color: #555;
+          border-left: 3px solid transparent;
+          transition: all .15s;
+        }
+        nav button:hover    { background: #f5f5f5; color: #333; }
+        nav button.active   { background: #eaf4fb; color: #2980b9; border-left-color: #2980b9; font-weight: bold; }
+        nav button .icon    { margin-right: 8px; }
+
+        main {
+          flex: 1;
+          padding: 32px 40px;
+          overflow: auto;
+        }
+
+        .notice {
+          background: #eafaf1;
+          border-left: 4px solid #27ae60;
+          border-radius: 4px;
+          padding: 14px 18px;
+          font-size: 13px;
+          color: #1e8449;
+          margin-bottom: 28px;
+        }
+
+        .section { display: none; }
+        .section.active { display: block; }
+
+        .section h2 {
+          font-size: 20px;
+          margin-bottom: 20px;
+          color: #2c3e50;
+        }
+
+        .card {
+          background: #fff;
+          border-radius: 8px;
+          box-shadow: 0 1px 4px rgba(0,0,0,.08);
+          padding: 20px 24px;
+          margin-bottom: 16px;
+        }
+        .card h3 {
+          font-size: 14px;
+          color: #888;
+          text-transform: uppercase;
+          letter-spacing: .5px;
+          margin-bottom: 12px;
+          border-bottom: 1px solid #f0f0f0;
+          padding-bottom: 8px;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 14px;
+        }
+        th {
+          text-align: left;
+          padding: 8px 12px;
+          background: #f8f9fa;
+          color: #666;
+          font-weight: 600;
+          border-bottom: 1px solid #eee;
+        }
+        td {
+          padding: 8px 12px;
+          border-bottom: 1px solid #f5f5f5;
+          color: #444;
+          word-break: break-word;
+        }
+        tr:last-child td { border-bottom: none; }
+
+        .kv { display: grid; grid-template-columns: 200px 1fr; gap: 8px 16px; }
+        .kv .k { color: #888; font-size: 13px; }
+        .kv .v { font-size: 14px; color: #333; }
+
+        .empty { color: #aaa; font-style: italic; font-size: 14px; }
+
+        .badge {
+          display: inline-block;
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: bold;
+          background: #eaf4fb;
+          color: #2980b9;
+        }
+
+        footer {
+          text-align: center;
+          padding: 20px;
+          font-size: 12px;
+          color: #aaa;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <h1>🗂️ MyFavApp — Your personal data</h1>
+        <p>GDPR / Right to Data Portability — This file stays on your device and is never uploaded anywhere.</p>
+    </div>
+</header>
+
+<div class="layout">
+    <nav>
+        <h2>Sections</h2>
+        <button class="active" onclick="show('profile')"      ><span class="icon">👤</span> Profile</button>
+        <button onclick="show('addresses')"   ><span class="icon">📍</span> Addresses</button>
+        <button onclick="show('devices')"     ><span class="icon">💻</span> Devices</button>
+        <button onclick="show('activity')"    ><span class="icon">📋</span> Activity</button>
+        <button onclick="show('notifications')"><span class="icon">🔔</span> Notifications</button>
+        <button onclick="show('calendar')"    ><span class="icon">📅</span> Calendar</button>
+        <button onclick="show('sport')"       ><span class="icon">🏃</span> Sport</button>
+        <button onclick="show('meta')"        ><span class="icon">ℹ️</span> Meta</button>
+    </nav>
+
+    <main>
+        <div class="notice">
+            🔒 All data is read locally from the JSON files included in this archive.
+            Nothing is sent to any server.
+        </div>
+
+        <div id="profile"       class="section active"></div>
+        <div id="addresses"     class="section"></div>
+        <div id="devices"       class="section"></div>
+        <div id="activity"      class="section"></div>
+        <div id="notifications" class="section"></div>
+        <div id="calendar"      class="section"></div>
+        <div id="sport"         class="section"></div>
+        <div id="meta"          class="section"></div>
+    </main>
+</div>
+
+<footer>© MyFavApp — Generated on <span id="genDate"></span></footer>
+
+<script>
+    const SECTIONS = ['profile','addresses','devices','activity','notifications','calendar','sport','meta'];
+
+    const LABELS = {
+      profile:       '👤 Profile',
+      addresses:     '📍 Addresses',
+      devices:       '💻 Devices',
+      activity:      '📋 Activity',
+      notifications: '🔔 Notifications',
+      calendar:      '📅 Calendar',
+      sport:         '🏃 Sport',
+      meta:          'ℹ️ Meta',
+    };
+
+    function show(id) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      [...document.querySelectorAll('nav button')].find(b => b.getAttribute('onclick').includes("'"+id+"'")).classList.add('active');
+    }
+
+    function fmt(val) {
+      if (val === null || val === undefined) return '<span class="empty">—</span>';
+      if (typeof val === 'boolean') return val ? '✅ Yes' : '❌ No';
+      if (typeof val === 'object') return '<pre style="font-size:12px;white-space:pre-wrap">'+JSON.stringify(val,null,2)+'</pre>';
+      return String(val);
+    }
+
+    function renderKV(obj) {
+      if (!obj || typeof obj !== 'object') return '<span class="empty">No data</span>';
+      return '<div class="kv">' +
+        Object.entries(obj).map(([k,v]) =>
+          `<span class="k">${k}</span><span class="v">${fmt(v)}</span>`
+        ).join('') +
+      '</div>';
+    }
+
+    function renderTable(arr, title) {
+      if (!arr || arr.length === 0)
+        return `<div class="card"><h3>${title}</h3><span class="empty">No entries</span></div>`;
+
+      // Tableau de primitives (strings, numbers) → liste simple
+      if (typeof arr[0] !== 'object' || arr[0] === null) {
+        return `<div class="card"><h3>${title} <span class="badge">${arr.length}</span></h3>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0">
+            ${arr.map(v => `<span class="badge" style="font-size:13px;padding:4px 10px">${v}</span>`).join('')}
+          </div></div>`;
+      }
+
+      // Tableau d'objets → table
+      const keys = Object.keys(arr[0]);
+      return `<div class="card"><h3>${title} <span class="badge">${arr.length}</span></h3>
+        <table>
+          <thead><tr>${keys.map(k=>`<th>${k}</th>`).join('')}</tr></thead>
+          <tbody>${arr.map(row=>`<tr>${keys.map(k=>`<td>${fmt(row[k])}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table></div>`;
+    }
+
+    function renderSection(id, data) {
+      const el = document.getElementById(id);
+      el.innerHTML = `<h2>${LABELS[id]}</h2>`;
+
+      if (!data) {
+        el.innerHTML += '<div class="card"><span class="empty">No data available.</span></div>';
+        return;
+      }
+
+      // Arrays → table, objects → key/value
+      if (Array.isArray(data)) {
+        el.innerHTML += renderTable(data, id);
+      } else {
+        // Try to find nested arrays and render them separately
+        const simple = {}, arrays = {};
+        Object.entries(data).forEach(([k,v]) => {
+          if (Array.isArray(v)) arrays[k] = v;
+          else simple[k] = v;
+        });
+        if (Object.keys(simple).length)
+          el.innerHTML += `<div class="card"><h3>Details</h3>${renderKV(simple)}</div>`;
+        Object.entries(arrays).forEach(([k,v]) => {
+          el.innerHTML += renderTable(v, k);
+        });
+      }
+    }
+
+    // Données inlinées par le serveur au moment de la génération — pas de fetch, fonctionne en file://
+    if (typeof GDPR_DATA !== 'undefined') {
+      SECTIONS.forEach(s => renderSection(s, GDPR_DATA[s] ?? null));
+      if (GDPR_DATA.meta?.exportedAt)
+        document.getElementById('genDate').textContent = new Date(GDPR_DATA.meta.exportedAt).toLocaleString();
+    } else {
+      document.querySelector('main').innerHTML = '<div class="notice" style="border-color:#e74c3c;background:#fdf2e9;color:#c0392b">⚠️ Data not found. Make sure you are opening index.html from the extracted ZIP folder.</div>';
+    }
+</script>
+</body>
+</html>

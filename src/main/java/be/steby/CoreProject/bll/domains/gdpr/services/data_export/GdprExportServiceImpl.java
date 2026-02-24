@@ -26,13 +26,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -63,8 +63,10 @@ public class GdprExportServiceImpl implements GdprExportService {
     private final GdprDataCollectorService dataCollectorService;
     private final GdprStorageService storageService;
     private final DeviceService deviceService;
-    private final ApplicationEventPublisher    eventPublisher;
-    private final ObjectMapper                 objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
+    private final ObjectMapper objectMapper;
+
+    private static final String INDEX_HTML_PATH = "templates/emails/gdpr/gdpr-export-index.html";
 
     @Value("${app.gdpr.export.archive-ttl-hours:72}")
     private int archiveTtlHours;
@@ -84,52 +86,49 @@ public class GdprExportServiceImpl implements GdprExportService {
     public GdprExportRequest request(User user) {
         log.info("GDPR export request initiated by user: {}", user.getUsername());
 
-        // Guard: no active request already in progress
+        // Guard 1 : pas de request active en cours
         List<GdprExportStatus> activeStatuses = List.of(
-            GdprExportStatus.PENDING,
-            GdprExportStatus.PROCESSING,
-            GdprExportStatus.READY
+                GdprExportStatus.PENDING,
+                GdprExportStatus.PROCESSING,
+                GdprExportStatus.READY
         );
         exportRequestRepository.findByUserAndStatusIn(user, activeStatuses)
-            .ifPresent(existing -> {
-                throw new GdprExportException(
-                    "An export request is already in progress (status: " + existing.getStatus() + "). " +
-                    "Please wait for it to complete or expire before requesting a new one."
-                );
-            });
-
-        // Guard: cooldown period
-        exportRequestRepository.findTopByUserOrderByCreatedAtDesc(user)
-            .ifPresent(last -> {
-                Instant cooldownEnd = last.getCreatedAt().plus(cooldownDays, ChronoUnit.DAYS);
-                if (Instant.now().isBefore(cooldownEnd)) {
-                    long hoursLeft = ChronoUnit.HOURS.between(Instant.now(), cooldownEnd);
+                .ifPresent(existing -> {
                     throw new GdprExportException(
-                        "You can only request one export every " + cooldownDays + " days. " +
-                        "Please wait approximately " + hoursLeft + " more hour(s)."
+                            "An export request is already in progress (status: " + existing.getStatus() + "). " +
+                                    "Please wait for it to complete or expire before requesting a new one."
                     );
-                }
-            });
+                });
+
+        exportRequestRepository.findTopByUserOrderByCreatedAtDesc(user)
+                .ifPresent(last -> {
+                    if (last.getStatus() == GdprExportStatus.FAILED) {
+                        log.info("Last request was FAILED — skipping cooldown for user: {}", user.getUsername());
+                        return; // pas de cooldown après un échec
+                    }
+                    Instant cooldownEnd = last.getCreatedAt().plus(cooldownDays, ChronoUnit.DAYS);
+                    if (Instant.now().isBefore(cooldownEnd)) {
+                        long hoursLeft = ChronoUnit.HOURS.between(Instant.now(), cooldownEnd);
+                        throw new GdprExportException(
+                                "You can only request one export every " + cooldownDays + " days. " +
+                                        "Please wait approximately " + hoursLeft + " more hour(s)."
+                        );
+                    }
+                });
 
         // Create request
         GdprExportRequest exportRequest = GdprExportRequest.builder()
-            .user(user)
-            .status(GdprExportStatus.PENDING)
-            .downloadToken(UUID.randomUUID().toString())
-            .build();
+                .user(user)
+                .status(GdprExportStatus.PENDING)
+                .downloadToken(UUID.randomUUID().toString())
+                .build();
 
         exportRequestRepository.save(exportRequest);
         log.info("GDPR export request created: token={}, user={}", exportRequest.getDownloadToken(), user.getUsername());
 
-        // Publish event → listener sends confirmation email (async)
+        // Publish event → confirmation email
         Device device = deviceService.detectCurrentDevice();
-        eventPublisher.publishEvent(
-                new GdprExportRequestedEvent(
-                    user,
-                    exportRequest.getDownloadToken(),
-                    device
-                )
-        );
+        eventPublisher.publishEvent(new GdprExportRequestedEvent(user, exportRequest.getDownloadToken(), device));
 
         return exportRequest;
     }
@@ -206,13 +205,18 @@ public class GdprExportServiceImpl implements GdprExportService {
     @Transactional
     public GdprDownloadResult download(String token) {
         GdprExportRequest exportRequest = exportRequestRepository.findByDownloadToken(token)
-            .orElseThrow(() -> new GdprExportException("Invalid download token."));
+                .orElseThrow(() -> new GdprExportException("Invalid download token."));
 
-        if (exportRequest.getStatus() == GdprExportStatus.DOWNLOADED) {
-            throw new GdprExportException("This archive has already been downloaded.");
+        // Permet le re-download si déjà DOWNLOADED mais encore dans le TTL
+        boolean alreadyDownloaded = exportRequest.getStatus() == GdprExportStatus.DOWNLOADED;
+        boolean stillValid = exportRequest.getExpiresAt() != null
+                && Instant.now().isBefore(exportRequest.getExpiresAt());
+
+        if (alreadyDownloaded && !stillValid) {
+            throw new GdprExportException("This archive has already been downloaded and the link has expired.");
         }
 
-        if (!exportRequest.isDownloadLinkValid()) {
+        if (!alreadyDownloaded && !exportRequest.isDownloadLinkValid()) {
             throw new GdprExportException("This download link has expired or is not yet ready.");
         }
 
@@ -227,13 +231,12 @@ public class GdprExportServiceImpl implements GdprExportService {
             result = GdprDownloadResult.stream(fileBytes, filename);
         }
 
-        // Mark as downloaded and delete archive
         exportRequest.setStatus(GdprExportStatus.DOWNLOADED);
         exportRequest.setDownloadedAt(Instant.now());
         exportRequestRepository.save(exportRequest);
-        storageService.delete(token);
 
-        log.info("GDPR archive downloaded and deleted: user={}", exportRequest.getUser().getUsername());
+        log.info("GDPR archive downloaded: user={} (file kept until expiry: {})",
+                exportRequest.getUser().getUsername(), exportRequest.getExpiresAt());
 
         return result;
     }
@@ -255,33 +258,65 @@ public class GdprExportServiceImpl implements GdprExportService {
     /**
      * Builds a ZIP archive containing one pretty-printed JSON file per data domain.
      */
+
     private byte[] buildZipArchive(GdprUserDataSnapshot snapshot) throws IOException {
         ObjectMapper prettyMapper = objectMapper.copy()
-            .enable(SerializationFeature.INDENT_OUTPUT);
+                .enable(SerializationFeature.INDENT_OUTPUT);
+
+        // Sérialise tous les JSON
+        Map<String, String> jsonMap = new LinkedHashMap<>();
+        jsonMap.put("profile",       prettyMapper.writeValueAsString(snapshot.profile()));
+        jsonMap.put("addresses",     prettyMapper.writeValueAsString(snapshot.addresses()));
+        jsonMap.put("devices",       prettyMapper.writeValueAsString(snapshot.devices()));
+        jsonMap.put("activity",      prettyMapper.writeValueAsString(snapshot.activity()));
+        jsonMap.put("notifications", prettyMapper.writeValueAsString(snapshot.notifications()));
+        jsonMap.put("calendar",      prettyMapper.writeValueAsString(snapshot.calendar()));
+        jsonMap.put("sport",         prettyMapper.writeValueAsString(snapshot.sport()));
+        jsonMap.put("meta",          prettyMapper.writeValueAsString(snapshot.meta()));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(baos)) {
 
-            addJsonEntry(zip, prettyMapper, "profile.json",       snapshot.profile());
-            addJsonEntry(zip, prettyMapper, "addresses.json",     snapshot.addresses());
-            addJsonEntry(zip, prettyMapper, "devices.json",       snapshot.devices());
-            addJsonEntry(zip, prettyMapper, "activity.json",      snapshot.activity());
-            addJsonEntry(zip, prettyMapper, "notifications.json", snapshot.notifications());
-            addJsonEntry(zip, prettyMapper, "calendar.json",      snapshot.calendar());
-            addJsonEntry(zip, prettyMapper, "sport.json",         snapshot.sport());
-            addJsonEntry(zip, prettyMapper, "meta.json",          snapshot.meta());
+            // index.html avec JSON inlinés
+            byte[] html = buildHtmlWithInlinedData(jsonMap);
+            zip.putNextEntry(new ZipEntry("index.html"));
+            zip.write(html);
+            zip.closeEntry();
+
+            // JSON bruts dans data/ (pour portabilité / réutilisation)
+            for (Map.Entry<String, String> entry : jsonMap.entrySet()) {
+                zip.putNextEntry(new ZipEntry("data/" + entry.getKey() + ".json"));
+                zip.write(entry.getValue().getBytes(StandardCharsets.UTF_8));
+                zip.closeEntry();
+            }
         }
 
         return baos.toByteArray();
     }
 
-    private void addJsonEntry(ZipOutputStream zip, ObjectMapper mapper,
-                               String filename, Object data) throws IOException {
-        byte[] json = mapper.writeValueAsBytes(data);
-        zip.putNextEntry(new ZipEntry(filename));
-        zip.write(json);
-        zip.closeEntry();
+    private byte[] buildHtmlWithInlinedData(Map<String, String> jsonMap) throws IOException {
+        // Charge le template HTML depuis les resources
+        String template;
+        try (InputStream is = getClass().getClassLoader()
+                .getResourceAsStream(INDEX_HTML_PATH)) {
+            if (is == null) throw new GdprExportException("gdpr-export-index.html template not found");
+            template = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        // Construit le bloc JS avec les données inlinées
+        StringBuilder inlined = new StringBuilder("<script id=\"gdpr-data\">\n");
+        inlined.append("const GDPR_DATA = {\n");
+        jsonMap.forEach((key, json) ->
+                inlined.append("  ").append(key).append(": ")
+                        .append(json).append(",\n")
+        );
+        inlined.append("};\n</script>");
+
+        // Injecte avant </head>
+        return template.replace("</head>", inlined + "\n</head>")
+                .getBytes(StandardCharsets.UTF_8);
     }
+
 
     // =========================================================================
     // Private — helpers

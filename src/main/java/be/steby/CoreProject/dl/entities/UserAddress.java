@@ -50,7 +50,6 @@ import lombok.*;
         indexes = {
                 @Index(name = "idx_user_address_user", columnList = "user_id"),
                 @Index(name = "idx_user_address_user_type", columnList = "user_id, address_type"),
-                @Index(name = "idx_user_address_user_default", columnList = "user_id, is_default")
         },
         uniqueConstraints = {
                 // Optional: Prevent duplicate links between same user and address with same type

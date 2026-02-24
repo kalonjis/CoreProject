@@ -42,11 +42,13 @@
     <!-- CTA Button -->
     <mj-section background-color="#ffffff" padding="10px 40px 30px">
       <mj-column>
-        <mj-button background-color="#27ae60" color="#ffffff" font-size="16px"
-                   font-weight="bold" border-radius="6px" padding="14px 28px"
-                   th:href="${downloadUrl}">
-          Download my data
-        </mj-button>
+        <mj-text align="center" padding="20px">
+          <a th:href="${downloadUrl}" style="background-color:#27ae60; color:#ffffff; padding:14px 28px;
+             text-decoration:none; border-radius:6px; font-weight:bold;
+             display:inline-block;">
+            Download my data
+          </a>
+        </mj-text>
       </mj-column>
     </mj-section>
 
@@ -62,26 +64,12 @@
       </mj-column>
     </mj-section>
 
-    <!-- Archive contents -->
-    <mj-section background-color="#ffffff" padding="0 40px 20px">
-      <mj-column background-color="#f8f9fa" border-radius="4px" padding="16px 20px">
-        <mj-text font-size="14px" color="#2c3e50" font-weight="bold" padding-bottom="4px">
-          📂 Archive contents (ZIP)
-        </mj-text>
-        <mj-text font-size="13px" color="#555555">
-          profile.json — addresses.json — devices.json — activity.json<br/>
-          notifications.json — calendar.json — sport.json
-        </mj-text>
-      </mj-column>
-    </mj-section>
-
     <!-- Security notice -->
     <mj-section background-color="#ffffff" padding="0 40px 35px">
       <mj-column background-color="#fdf2e9" border-left="4px solid #e67e22"
                  border-radius="4px" padding="16px 20px">
         <mj-text font-size="14px" color="#d35400">
-          🔒 If you did not request this export, please contact our support team
-          immediately and change your password.
+          🔒 This link is personal and single-use. Do not share it with anyone.
         </mj-text>
       </mj-column>
     </mj-section>
