@@ -72,6 +72,15 @@ public interface GdprExportRequestRepository extends JpaRepository<GdprExportReq
     List<GdprExportRequest> findExpiredReadyRequests(@Param("now") Instant now);
 
     /**
+     * Finds expired archives to be cleaned up — READY or DOWNLOADED whose TTL has expired.
+     * Replaces findExpiredReadyRequests, which only searched for READY.
+     */
+    @Query("SELECT r FROM GdprExportRequest r " +
+            "WHERE r.status IN ('READY', 'DOWNLOADED') " +
+            "AND r.expiresAt < :now")
+    List<GdprExportRequest> findExpiredRequests(@Param("now") Instant now);
+
+    /**
      * Bulk-updates expired READY requests to EXPIRED status.
      * More efficient than loading entities one by one.
      *

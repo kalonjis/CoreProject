@@ -42,11 +42,13 @@
     <!-- CTA Button -->
     <mj-section background-color="#ffffff" padding="10px 40px 30px">
       <mj-column>
-        <mj-button background-color="#2980b9" color="#ffffff" font-size="16px"
-                   font-weight="bold" border-radius="6px" padding="14px 28px"
-                   th:href="${confirmUrl}">
-          Confirm my export request
-        </mj-button>
+        <mj-text align="center" padding="20px">
+          <a th:href="${confirmUrl}" style="background-color:#2980b9; color:#ffffff; padding:14px 28px;
+             text-decoration:none; border-radius:6px; font-weight:bold;
+             display:inline-block;">
+            Confirm my export request
+          </a>
+        </mj-text>
       </mj-column>
     </mj-section>
 
