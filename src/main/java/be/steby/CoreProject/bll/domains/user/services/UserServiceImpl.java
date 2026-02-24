@@ -284,7 +284,6 @@ public class UserServiceImpl implements UserService {
         // Deactivate account
         user.setEnabled(false);
         user.setDeactivatedAt(Instant.now());
-        user.setDeactivationReason(DeactivationReason.GDPR_REQUEST);
 
         // ✅ Use saveUser() instead of direct repository save
         saveUser(user);

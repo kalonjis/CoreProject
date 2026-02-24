@@ -88,4 +88,40 @@ public class AccountNotificationListener {
 
         accountMailerService.sendAccountReactivationConfirmation(event.user());
     }
+
+    /**
+     * Sends the deletion confirmation email after the user submits a deletion request.
+     *
+     * @param event the deletion request event containing user and token
+     */
+    @EventListener
+    @Async("emailExecutor")
+    public void handleDeletionRequested(RequestAccountDeletionEvent event) {
+        log.info("Sending GDPR deletion confirmation email to: {}", event.user().getEmail());
+        try {
+            accountMailerService.sendDeletionRequest(event.confirmToken(), event.user());
+        } catch (Exception e) {
+            log.error("Failed to send GDPR deletion request email to: {}", event.user().getEmail(), e);
+        }
+    }
+
+    /**
+     * Sends the post-deletion acknowledgement email after anonymization is complete.
+     *
+     * <p>Uses the username and email captured before anonymization,
+     * as the user entity no longer holds the original values at this point.
+     *
+     * @param event the deletion confirmed event containing captured username and email
+     */
+    @EventListener
+    @Async("emailExecutor")
+    public void handleDeletionConfirmed(AccountDeletionConfirmedEvent event) {
+        log.info("Sending GDPR deletion acknowledgement email to: {}", event.email());
+        try {
+            accountMailerService.sendDeletionConfirmed(event.username(), event.email());
+        } catch (Exception e) {
+            log.error("Failed to send GDPR deletion confirmation email to: {}", event.email(), e);
+        }
+    }
+
 }

@@ -13,6 +13,7 @@ import be.steby.CoreProject.bll.domains.account.services.tokens.confirmation.Acc
 import be.steby.CoreProject.bll.domains.account.services.tokens.confirmation.AccountConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationAttemptServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.deactivation.AccountDeactivationTokenServiceImpl;
+import be.steby.CoreProject.bll.domains.account.services.tokens.deletion.AccountDeletionTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.account.services.tokens.reactivation.AccountReactivationTokenServiceImpl;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.emailaddress.models.EmailValidationResult;
@@ -23,6 +24,7 @@ import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.AccountConfirmationToken;
 import be.steby.CoreProject.dl.entities.tokens.AccountDeactivationToken;
+import be.steby.CoreProject.dl.entities.tokens.AccountDeletionToken;
 import be.steby.CoreProject.dl.entities.tokens.AccountReactivationToken;
 import be.steby.CoreProject.dl.entities.tokens.enums.TokenType;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
@@ -57,6 +59,7 @@ public class AccountServiceImpl implements AccountService {
     private final DeactivationPolicyService deactivationPolicyService;
 
     private final AccountReactivationTokenServiceImpl accountReactivationTokenService;
+    private final AccountDeletionTokenServiceImpl accountDeletionTokenService;
 
     private final UserService userService;
     private final DeviceService deviceService;
@@ -324,6 +327,61 @@ public class AccountServiceImpl implements AccountService {
         return user;
     }
 
+
+
+// =========================================================================
+// GDPR DELETION (irreversible)
+// =========================================================================
+
+    @Override
+    @Transactional
+    public void requestDeletion(User user) {
+        log.info("GDPR deletion request initiated by user: {}", user.getUsername());
+
+        if (!user.isEnabled()) {
+            throw new AccountAlreadyDeactivatedException(
+                    "Account is already deactivated. Cannot submit a deletion request.");
+        }
+
+//        if (accountDeletionTokenService.hasActiveDeletionToken(user)) {
+//            throw new IllegalStateException(
+//                    "A deletion request is already pending confirmation. " +
+//                            "Please check your inbox or wait for it to expire.");
+//        }
+
+        AccountDeletionToken token = accountDeletionTokenService.createAccountDeletionToken(user);
+
+        eventPublisher.publishEvent(new RequestAccountDeletionEvent(user, token.getPublicId()));
+
+        log.info("GDPR deletion token created for user: {}", user.getUsername());
+    }
+
+    @Override
+    @Transactional
+    public void confirmDeletion(String token) {
+        log.info("GDPR deletion confirmation received");
+
+        AccountDeletionToken deletionToken = accountDeletionTokenService
+                .getSecureValidToken(token, TokenType.ACCOUNT_DELETION);
+
+        accountDeletionTokenService.verifyTokenValidity(deletionToken);
+
+        User user = deletionToken.getUser();
+
+        // Capture PII before anonymization — entity values change after gdprUserDelete()
+        String username = user.getUsername();
+        String email = user.getEmail();
+
+        log.info("Executing GDPR anonymization for user: {}", username);
+        userService.gdprUserDelete(user);
+
+        accountDeletionTokenService.revokeAllUserTokens(user);
+
+        eventPublisher.publishEvent(new AccountDeletionConfirmedEvent(username, email));
+
+        log.info("GDPR deletion confirmed for user: {}", username);
+    }
+
     // =========================================================================
     // PUBLIC UTILITY METHODS
     // =========================================================================
@@ -346,7 +404,7 @@ public class AccountServiceImpl implements AccountService {
             if (user.isAdminDeactivated()) {
                 return String.format("Your account was permanently deactivated (%s). Please contact support.",
                         user.getAdminDeactivationReason().getDisplayName());
-            } else if (user.isSelfDeactivated() && user.getDeactivationReason() == DeactivationReason.GDPR_REQUEST) {
+            } else if (user.isSelfDeactivated() ) {
                 return "Your account was permanently deleted under GDPR. This action cannot be reversed.";
             } else {
                 return "Account reactivation is not available. Please contact support.";
@@ -379,9 +437,8 @@ public class AccountServiceImpl implements AccountService {
             return String.format(
                     "Account reactivation is not allowed for this deactivation reason: %s. %s",
                     user.getDeactivationReason().getDisplayName(),
-                    user.getDeactivationReason() == DeactivationReason.GDPR_REQUEST
-                            ? "This action is permanent and cannot be reversed."
-                            : "Please contact support for assistance.");
+                    "Please contact support for assistance."
+            );
         } else {
             return "Account deactivation reason unclear. Please contact support.";
         }

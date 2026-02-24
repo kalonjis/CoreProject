@@ -36,3 +36,11 @@ security:
     max-attempts: 3
     lockout-minutes: 60
 
+  account-deletion:
+    token:
+      # 24 hours — short TTL given the irreversible nature of the operation
+      expiration: 86400000
+    # Stricter limits than deactivation — deletion cannot be undone
+    max-attempts: 3
+    lockout-minutes: 60
+

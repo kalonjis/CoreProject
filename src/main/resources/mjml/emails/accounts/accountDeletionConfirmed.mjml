@@ -1,0 +1,98 @@
+<mjml>
+  <mj-head>
+    <mj-title>Your account has been deleted</mj-title>
+    <mj-preview>Your MyFavApp account and personal data have been permanently deleted</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="15px" color="#555555" line-height="1.6" />
+      <mj-section padding="0" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f0f2f5">
+
+    <!-- Top accent bar -->
+    <mj-section background-color="#566573" padding="6px 0" />
+
+    <!-- Header -->
+    <mj-section background-color="#566573" padding="35px 40px 30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="26px" font-weight="bold" padding-bottom="8px">
+          ✅ Account Deleted
+        </mj-text>
+        <mj-text align="center" color="#d5d8dc" font-size="14px" padding-top="0">
+          MyFavApp – GDPR / Right to Erasure
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Greeting + confirmation message -->
+    <mj-section background-color="#ffffff" padding="35px 40px 20px">
+      <mj-column>
+        <mj-text font-size="17px" color="#2c3e50" font-weight="bold" padding-bottom="4px">
+          Hello <span th:text="${username}">User</span>,
+        </mj-text>
+        <mj-text padding-top="8px">
+          Your request has been processed. Your <strong>MyFavApp account has been permanently deleted</strong>
+          in accordance with your GDPR right to erasure.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- GDPR confirmation block -->
+    <mj-section background-color="#ffffff" padding="0 40px 20px">
+      <mj-column border-left="4px solid #27ae60" background-color="#eafaf1" border-radius="4px" padding="16px 20px">
+        <mj-text font-size="14px" color="#1e8449">
+          🔒 <strong>GDPR Confirmation:</strong>
+          All personally identifiable information has been anonymized or permanently removed
+          from our systems in compliance with data protection regulations.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- What was done -->
+    <mj-section background-color="#ffffff" padding="0 40px 20px">
+      <mj-column>
+        <mj-text font-size="14px" color="#555555">
+          The following actions have been completed:
+        </mj-text>
+        <mj-text font-size="14px" color="#555555" padding-top="4px">
+          ✔ Personal data anonymized (name, email, phone number)<br/>
+          ✔ All active sessions and devices invalidated<br/>
+          ✔ Account access permanently revoked<br/>
+          ✔ Data retained only where legally required (e.g. financial records)
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Divider -->
+    <mj-section background-color="#ffffff" padding="0 40px">
+      <mj-column>
+        <mj-divider border-color="#ecf0f1" border-width="1px" />
+      </mj-column>
+    </mj-section>
+
+    <!-- Farewell -->
+    <mj-section background-color="#ffffff" padding="20px 40px 35px">
+      <mj-column>
+        <mj-text font-size="14px" color="#555555">
+          We're sorry to see you go. If you ever have questions about how your data was handled,
+          please don't hesitate to reach out to us.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#2c3e50" padding="30px 40px">
+      <mj-column>
+        <mj-text align="center" color="#bdc3c7" font-size="14px" padding-bottom="6px">
+          Questions? <a href="mailto:support@myfavapp.com" style="color:#3498db; text-decoration:none;">support@myfavapp.com</a>
+        </mj-text>
+        <mj-text align="center" color="#7f8c8d" font-size="12px">
+          © <span th:text="${#dates.year(#dates.createNow())}">2025</span> MyFavApp. All rights reserved.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

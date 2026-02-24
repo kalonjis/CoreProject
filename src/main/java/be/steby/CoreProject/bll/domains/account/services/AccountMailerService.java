@@ -218,4 +218,65 @@ public class AccountMailerService extends BaseMailerService {
 
         log.debug("Account reactivation confirmation email sent successfully to: {}", user.getEmail());
     }
+
+    // =========================================================================
+    // Step 1 — Deletion request confirmation email
+    // =========================================================================
+
+    /**
+     * Sends the deletion confirmation email containing the single-use link.
+     *
+     * <p>The user must click the link to trigger the actual anonymization.
+     * No data is modified at this stage.
+     *
+     * @param confirmToken the public ID of the {@link be.steby.CoreProject.dl.entities.tokens.AccountDeletionToken}
+     * @param user         the user who initiated the deletion request
+     */
+    public void sendDeletionRequest(String confirmToken, User user) {
+        log.info("Sending GDPR deletion request email to: {}", user.getEmail());
+
+        String confirmUrl = buildUrl("/api/account/confirm-deletion", "token", confirmToken);
+
+        Context context = createBaseContext(user);
+        context.setVariable("confirmUrl", confirmUrl);
+
+        sendEmail(
+                "Confirm your account deletion request",
+                "accounts/AccountDeletionRequest",
+                context,
+                user.getEmail()
+        );
+
+        log.debug("GDPR deletion request email sent to: {}", user.getEmail());
+    }
+
+    // =========================================================================
+    // Step 2 — Post-deletion acknowledgement email
+    // =========================================================================
+
+    /**
+     * Sends an acknowledgement email after GDPR anonymization has been executed.
+     *
+     * <p>Because the user entity is anonymized at this point, username and email
+     * must be passed explicitly — they are captured before anonymization by
+     * {@link be.steby.CoreProject.bll.domains.account.services.AccountDeletionServiceImpl}.
+     *
+     * @param username the original username (for email personalisation)
+     * @param email    the original email address (routing only — no longer stored)
+     */
+    public void sendDeletionConfirmed(String username, String email) {
+        log.info("Sending GDPR deletion confirmation email to: {}", email);
+
+        Context context = new Context();
+        context.setVariable("username", username);
+
+        sendEmail(
+                "Your account has been deleted",
+                "accounts/AccountDeletionConfirmed",
+                context,
+                email
+        );
+
+        log.debug("GDPR deletion confirmation email sent to: {}", email);
+    }
 }

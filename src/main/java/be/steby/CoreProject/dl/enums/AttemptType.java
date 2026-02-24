@@ -42,6 +42,14 @@ public enum AttemptType {
     ACCOUNT_REACTIVATION,
 
     /**
+     * GDPR account deletion requests initiated by the user.
+     *
+     * <p>Tracked separately from {@link #ACCOUNT_DEACTIVATION} because deletion
+     * is irreversible and warrants stricter rate limiting to prevent abuse.
+     */
+    ACCOUNT_DELETION,
+
+    /**
      * Device confirmation attempts for new device verification.
      */
     DEVICE_CONFIRMATION,
