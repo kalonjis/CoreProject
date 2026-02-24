@@ -68,6 +68,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     // Find by Recipient
     // =========================================================================
 
+    List<Notification> findAllByRecipient(User recipient);
+
     /**
      * Finds all notifications for a recipient, ordered by creation date (newest first).
      *
