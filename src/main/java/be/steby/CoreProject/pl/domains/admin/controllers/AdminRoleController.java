@@ -2,7 +2,6 @@ package be.steby.CoreProject.pl.domains.admin.controllers;
 
 import be.steby.CoreProject.bll.domains.admin.services.role.AdminRoleService;
 import be.steby.CoreProject.pl.domains.admin.models.requests.UserRoleForm;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,27 +45,25 @@ public class AdminRoleController {
      * - ADMIN can grant MODERATOR and USER roles to anyone
      * - ADMIN cannot grant ADMIN or SUPER_ADMIN roles
      *
-     * @param id User ID receiving the role
+     * @param publicId User publicId receiving the role
      * @param form Role form containing the role to grant
-     * @param request HTTP request for context capture
      * @return 200 OK with success message
      */
-    @PatchMapping("/grant-role/{id}")
+    @PatchMapping("/grant-role/{publicId}")
     public ResponseEntity<Map<String, String>> grantUserRole(
-            @PathVariable Long id,
-            @Valid @RequestBody UserRoleForm form,
-            HttpServletRequest request) {
+            @PathVariable String publicId,
+            @Valid @RequestBody UserRoleForm form) {
 
-        log.info("Admin grant role request - userId: {}, role: {}", id, form.userRole());
+        log.info("Admin grant role request - userId: {}, role: {}", publicId, form.userRole());
 
-        adminRoleService.grantRole(id, form.userRole());
+        adminRoleService.grantRole(publicId, form.userRole());
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "Role granted successfully");
-        response.put("userId", id.toString());
+        response.put("userId", publicId);
         response.put("role", form.userRole().name());
 
-        log.info("Role granted successfully - userId: {}, role: {}", id, form.userRole());
+        log.info("Role granted successfully - userId: {}, role: {}", publicId, form.userRole());
 
         return ResponseEntity.ok(response);
     }
@@ -84,27 +81,25 @@ public class AdminRoleController {
      * - ADMIN can revoke MODERATOR and USER roles from lower hierarchy users only
      * - ADMIN cannot revoke roles from other ADMINs or SUPER_ADMINs
      *
-     * @param id User ID losing the role
+     * @param publicId User publicId losing the role
      * @param form Role form containing the role to revoke
-     * @param request HTTP request for context capture
      * @return 200 OK with success message
      */
-    @PatchMapping("/revoke-role/{id}")
+    @PatchMapping("/revoke-role/{publicId}")
     public ResponseEntity<Map<String, String>> revokeUserRole(
-            @PathVariable Long id,
-            @Valid @RequestBody UserRoleForm form,
-            HttpServletRequest request) {
+            @PathVariable String publicId,
+            @Valid @RequestBody UserRoleForm form) {
 
-        log.info("Admin revoke role request - userId: {}, role: {}", id, form.userRole());
+        log.info("Admin revoke role request - userId: {}, role: {}", publicId, form.userRole());
 
-        adminRoleService.revokeRole(id, form.userRole());
+        adminRoleService.revokeRole(publicId, form.userRole());
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "Role revoked successfully");
-        response.put("userId", id.toString());
+        response.put("userId", publicId);
         response.put("role", form.userRole().name());
 
-        log.info("Role revoked successfully - userId: {}, role: {}", id, form.userRole());
+        log.info("Role revoked successfully - userId: {}, role: {}", publicId, form.userRole());
 
         return ResponseEntity.ok(response);
     }

@@ -8,7 +8,6 @@ import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException
 import be.steby.CoreProject.bll.common.exceptions.AttributeUnchangedException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
-import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Service for admin operations on user accounts.
@@ -34,12 +33,11 @@ public interface AdminUserAccountService {
      * - Complete profile (firstname/lastname provided by admin)
      *
      * @param request Admin user creation request with all required data
-     * @param httpRequest HTTP request for context capture (IP, user agent, etc.)
      * @return The created user entity
      * @throws AdminOperationException if validation fails
      * @throws UserPermissionException if actor lacks permission to assign requested roles
      */
-    User createUser(AdminUserCreationRequest request, HttpServletRequest httpRequest);
+    User createUser(AdminUserCreationRequest request);
 
     // ===============================
     // USER ACTIVATION
@@ -53,13 +51,12 @@ public interface AdminUserAccountService {
      * First activation: User created by admin, never logged in before
      * Reactivation: User was previously activated and then deactivated
      *
-     * @param userId ID of the user to activate
-     * @param request HTTP request for context capture
+     * @param publicId publicId of the user to activate
      * @throws be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException if user doesn't exist
      * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException if actor lacks permission
      * @throws AttributeUnchangedException if user is already active
      */
-    void activateUser(Long userId, HttpServletRequest request);
+    void activateUser(String publicId);
 
     // ===============================
     // USER DEACTIVATION
@@ -74,33 +71,30 @@ public interface AdminUserAccountService {
      * - May have different reactivation policies
      * - Logged separately for audit purposes
      *
-     * @param userId ID of the user to deactivate
+     * @param publicId publicId of the user to deactivate
      * @param deactivationCategory Admin deactivation category (policy violation, security, etc.)
      * @param adminDeactivationDetails Detailed reason for deactivation (required)
-     * @param request HTTP request for context capture
      * @throws UserNotFoundException if user doesn't exist
      * @throws UserPermissionException if actor lacks permission
      * @throws AttributeUnchangedException if user is already deactivated
      */
-    void deactivateUser(Long userId,
+    void deactivateUser(String publicId,
                         AdminDeactivationCategory deactivationCategory,
-                        String adminDeactivationDetails,
-                        HttpServletRequest request);
+                        String adminDeactivationDetails
+    );
 
     /**
      * Deactivates a user account with a structured deactivation request.
      * Convenience method that accepts a request object instead of individual parameters.
      *
-     * @param userId ID of the user to deactivate
+     * @param publicId publicId of the user to deactivate
      * @param request Deactivation request with category and details
-     * @param httpRequest HTTP request for context capture
      * @throws UserNotFoundException if user doesn't exist
      * @throws UserPermissionException if actor lacks permission
      * @throws AttributeUnchangedException if user is already deactivated
      */
-    void deactivateUser(Long userId,
-                        AdminDeactivationRequest request,
-                        HttpServletRequest httpRequest);
+    void deactivateUser(String publicId,
+                        AdminDeactivationRequest request);
 
     // ===============================
     // USER REACTIVATION
@@ -117,14 +111,13 @@ public interface AdminUserAccountService {
      * - Deactivation category and reason
      * - Time elapsed since deactivation
      *
-     * @param userId ID of the user to reactivate
-     * @param request HTTP request for context capture
+     * @param publicId publicId of the user to reactivate
      * @throws UserNotFoundException if user doesn't exist
      * @throws UserPermissionException if actor lacks permission
      * @throws AttributeUnchangedException if user is already active
      * @throws IllegalStateException if user was never activated before
      */
-//    void reactivateUser(Long userId, HttpServletRequest request);
+    //void reactivateUser(String publicId);
 
     // ===============================
     // USER DELETION
@@ -141,11 +134,11 @@ public interface AdminUserAccountService {
      * WARNING: This should only be used in exceptional circumstances.
      * For most cases, deactivation is preferred over deletion.
      *
-     * @param userId ID of the user to delete
+     * @param publicId publicId of the user to delete
      * @throws UserNotFoundException if user doesn't exist
      * @throws UserPermissionException if actor is not a super admin
      */
-    void deleteUser(Long userId);
+    void deleteUser(String publicId);
 
     /**
      * GDPR compliant user deletion with data anonymization.
@@ -178,9 +171,9 @@ public interface AdminUserAccountService {
      * - Security measure after suspicious activity
      * - Forced password change for compliance
      *
-     * @param userId ID of the user requiring password reset
+     * @param publicId publicId of the user requiring password reset
      * @throws UserNotFoundException if user doesn't exist
      * @throws UserPermissionException if actor lacks admin privileges
      */
-    void triggerPasswordReset(Long userId);
+    void triggerPasswordReset(String publicId);
 }

@@ -137,16 +137,16 @@ public class AdminUserSearchController {
      * Gets a specific user by ID.
      * GET /api/admin/users/{id}
      *
-     * @param id User ID
+     * @param publicId User publicId
      * @return User DTO with user details
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> getUserById(@PathVariable Long id) {
-        log.info("Admin get user by ID - userId: {}", id);
+    @GetMapping("/{publicId}")
+    public ResponseEntity<UserDTO> getUserById(@PathVariable String publicId) {
+        log.info("Admin get user by ID - userId: {}", publicId);
 
-        User user = adminSearchService.getUserById(id);
+        User user = adminSearchService.getUserByPublicId(publicId);
 
-        log.info("Admin retrieved user - userId: {}, username: {}", id, user.getUsername());
+        log.info("Admin retrieved user - userId: {}, username: {}", publicId, user.getUsername());
 
         return ResponseEntity.ok(UserDTO.fromEntity(user));
     }
@@ -155,16 +155,16 @@ public class AdminUserSearchController {
      * Gets all devices associated with a user.
      * GET /api/admin/users/{id}/devices
      *
-     * @param id User ID
+     * @param publicId User String publicId
      * @return List of user's devices
      */
     @GetMapping("/{id}/devices")
-    public ResponseEntity<List<Device>> getUserDevices(@PathVariable Long id) {
-        log.info("Admin get user devices - userId: {}", id);
+    public ResponseEntity<List<Device>> getUserDevices(@PathVariable String publicId) {
+        log.info("Admin get user devices - userId: {}", publicId);
 
-        List<Device> devices = adminSearchService.getUserDevices(id);
+        List<Device> devices = adminSearchService.getUserDevices(publicId);
 
-        log.info("Admin retrieved {} devices for userId: {}", devices.size(), id);
+        log.info("Admin retrieved {} devices for userId: {}", devices.size(), publicId);
 
         return ResponseEntity.ok(devices);
     }

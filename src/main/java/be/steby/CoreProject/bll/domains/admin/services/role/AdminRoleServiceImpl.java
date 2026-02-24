@@ -44,16 +44,18 @@ public class AdminRoleServiceImpl implements AdminRoleService {
 
     @Override
     @Transactional
-    public void grantRole(Long userId, UserRole role) {
-        log.debug("Admin role grant request - targetId: {}, role: {}", userId, role);
+    public void grantRole(String publicId, UserRole role) {
+
 
         // 1. Get actors
         User actor = userService.getAuthenticatedUser();
-        User target = userService.getUserById(userId);
+        User target = userService.getUserByPublicId(publicId);
+
+        log.debug("Admin role grant request - targetId: {}, role: {}", target.getId(), role);
 
         // check argument coherence
         if (target.hasRole(role)){
-            throw new InvalidAdminArgumentException("the user with id " + userId + "has already the role of :" + role);
+            throw new InvalidAdminArgumentException("the user with id " + target.getId() + "has already the role of :" + role);
         }
 
         // role == SUPER_ADMIN -> actor must be SUPER_ADMIN
@@ -77,7 +79,7 @@ public class AdminRoleServiceImpl implements AdminRoleService {
         eventPublisher.publishEvent(new AdminRoleGrantedEvent(target, actor, role) );
 
         log.info("Role {} successfully granted to user {} by admin {}",
-                role, target.getUsername(), actor.getUsername());
+                role, target.getId(), actor.getId());
     }
 
     // ===============================
@@ -86,16 +88,17 @@ public class AdminRoleServiceImpl implements AdminRoleService {
 
     @Override
     @Transactional
-    public void revokeRole(Long userId, UserRole role) {
-        log.debug("Admin role revoke request - targetId: {}, role: {}", userId, role);
+    public void revokeRole(String publicId, UserRole role) {
 
         // 1. Get actors
         User actor = userService.getAuthenticatedUser();
-        User target = userService.getUserById(userId);
+        User target = userService.getUserByPublicId(publicId);
+
+        log.debug("Admin role revoke request - targetId: {}, role: {}", target.getId(), role);
 
         // check argument coherence
         if (!target.hasRole(role)){
-            throw new InvalidAdminArgumentException("the user with id " + userId + "has not the role of :" + role);
+            throw new InvalidAdminArgumentException("the user with id " + target.getId() + "has not the role of :" + role);
         }
 
 
@@ -120,6 +123,6 @@ public class AdminRoleServiceImpl implements AdminRoleService {
         eventPublisher.publishEvent(new AdminRoleRevokedEvent(target, actor, role ));
 
         log.info("Role {} successfully revoked from user {} by admin {}",
-                role, target.getUsername(), actor.getUsername());
+                role, target.getId(), actor.getId());
     }
 }

@@ -27,13 +27,13 @@ public interface AdminRoleService {
      * - SUPER_ADMIN required for granting ADMIN or SUPER_ADMIN roles
      * - ADMIN required for granting MODERATOR or USER roles
      *
-     * @param userId ID of the user receiving the role
+     * @param publicId publicId of the user receiving the role
      * @param role Role to grant
      * @throws be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException if user doesn't exist
      * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException if actor lacks permission
      * @throws AttributeUnchangedException if user already has the role
      */
-    void grantRole(Long userId, UserRole role);
+    void grantRole(String publicId, UserRole role);
 
     /**
      * Revokes a role from a user as an administrator.
@@ -44,11 +44,11 @@ public interface AdminRoleService {
      * - SUPER_ADMIN required for revoking ADMIN or SUPER_ADMIN roles
      * - ADMIN required for revoking MODERATOR or USER roles
      *
-     * @param userId ID of the user losing the role
+     * @param publicId publicId of the user losing the role
      * @param role Role to revoke
      * @throws be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException if user doesn't exist
      * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException if actor lacks permission
      * @throws AttributeUnchangedException if user doesn't have the role
      */
-    void revokeRole(Long userId, UserRole role);
+    void revokeRole(String publicId, UserRole role);
 }

@@ -11,11 +11,11 @@ public record DeviceOperationResponse(
 ) {
 
     // Device confirmation operations
-    public static DeviceOperationResponse deviceConfirmed(Long deviceId) {
+    public static DeviceOperationResponse deviceConfirmed(String devicePublicId) {
         return new DeviceOperationResponse(
                 "Device confirmed successfully",
                 "DEVICE_CONFIRMED",
-                deviceId
+                devicePublicId
         );
     }
 

@@ -11,7 +11,6 @@ import java.util.Set;
  * Contains all necessary information for administrators to manage users.
  */
 public record AdminUserDTO(
-        long id,
         String publicId,
         String username,
         String firstname,
@@ -37,7 +36,6 @@ public record AdminUserDTO(
      */
     public static AdminUserDTO fromEntity(User user) {
         return new AdminUserDTO(
-                user.getId(),
                 user.getPublicId(),
                 user.getUsername(),
                 user.getFirstname(),
@@ -66,7 +64,6 @@ public record AdminUserDTO(
      */
     public static AdminUserDTO fromEntity(User user, Integer deviceCount) {
         return new AdminUserDTO(
-                user.getId(),
                 user.getPublicId(),
                 user.getUsername(),
                 user.getFirstname(),

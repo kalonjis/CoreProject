@@ -125,7 +125,7 @@ public class DeviceController {
         var device = deviceService.confirmDevice(token);
         
         log.info("Device confirmed successfully - deviceId: {}", device.getId());
-        return ResponseEntity.ok(DeviceOperationResponse.deviceConfirmed(device.getId()));
+        return ResponseEntity.ok(DeviceOperationResponse.deviceConfirmed(device.getPublicId()));
     }
 
     /**
