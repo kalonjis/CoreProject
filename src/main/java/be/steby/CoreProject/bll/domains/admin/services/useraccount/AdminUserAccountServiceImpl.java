@@ -18,7 +18,6 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.tokens.PasswordResetToken;
 import be.steby.CoreProject.dl.enums.ReactivationPolicy;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -62,7 +61,7 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
 
     @Override
     @Transactional
-    public User createUser(AdminUserCreationRequest request, HttpServletRequest httpRequest) {
+    public User createUser(AdminUserCreationRequest request) {
         log.debug("Admin user creation request - email: {}, roles: {}",
                 request.email(), request.userRoles());
 
@@ -124,12 +123,13 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
 
     @Override
     @Transactional
-    public void activateUser(Long userId, HttpServletRequest request) {
-        log.debug("Admin activation request - targetId: {}", userId);
+    public void activateUser(String publicId) {
 
         // 1. Get actors
         User admin = userService.getAuthenticatedUser();
-        User target = userService.getUserById(userId);
+        User target = userService.getUserByPublicId(publicId);
+
+        log.debug("Admin activation request by adminId: {} - targetId: {}",admin.getId(), target.getId());
 
         if (target.isEnabled()) {
             throw new AttributeUnchangedException("User is already activated");
@@ -158,8 +158,8 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
         eventPublisher.publishEvent(event);
 
         String actionType = isFirstActivation ? "activated" : "reactivated";
-        log.info("User successfully {} by admin - ID: {}, {} by: {}",
-                actionType, userId, actionType, admin.getUsername());
+        log.info("User: {} successfully: {} by admin - ID: {}",
+                publicId, actionType, admin.getId());
     }
 
     // ===============================
@@ -168,17 +168,17 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
 
     @Override
     @Transactional
-    public void deactivateUser(Long userId,
+    public void deactivateUser(String publicId,
                                AdminDeactivationCategory deactivationCategory,
-                               String adminDeactivationDetails,
-                               HttpServletRequest request) {
-        log.debug("Admin deactivation request - targetId: {}, category: {}",
-                userId, deactivationCategory);
+                               String adminDeactivationDetails
+        ) {
 
         // 1. Get actors
         User admin = userService.getAuthenticatedUser();
-        User target = userService.getUserById(userId);
+        User target = userService.getUserByPublicId(publicId);
 
+        log.debug("Admin deactivation request - targetId: {}, category: {}, by admin: {}",
+                target.getId(), deactivationCategory, admin.getId());
         if (!target.isEnabled()) {
             throw new AttributeUnchangedException("User is already deactivated");
         }
@@ -192,7 +192,7 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
 
         // 2. Validate deactivation details via admin policy
         AdminDeactivationRequest deactivationRequest = new AdminDeactivationRequest(
-                userId, deactivationCategory, adminDeactivationDetails);
+                target.getId(), deactivationCategory, adminDeactivationDetails);
 
         AdminValidationResult validationResult =
                 adminActionPolicyService.validateDeactivationDetails(deactivationRequest);
@@ -211,31 +211,29 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
                 target, admin, deactivationCategory, adminDeactivationDetails);
         eventPublisher.publishEvent(event);
 
-        log.info("User successfully deactivated by admin - ID: {}, deactivated by: {}, category: {}",
-                userId, admin.getUsername(), deactivationCategory);
+        log.info("User: {} successfully deactivated by admin: {}, category: {}",
+                target.getId(), admin.getId(), deactivationCategory);
     }
 
     @Override
     @Transactional
-    public void deactivateUser(Long userId,
-                               AdminDeactivationRequest request,
-                               HttpServletRequest httpRequest) {
+    public void deactivateUser(String publicId,
+                               AdminDeactivationRequest request) {
         // Delegate to the main method
         deactivateUser(
-                userId,
+                publicId,
                 request.deactivationCategory(),
-                request.adminDeactivationDetails(),
-                httpRequest
+                request.adminDeactivationDetails()
         );
     }
 
     // ===============================
     // USER REACTIVATION
     // ===============================
-
+//
 //    @Override
 //    @Transactional
-//    public void reactivateUser(Long userId, HttpServletRequest request) {
+//    public void reactivateUser(String publicId) {
 //        log.debug("Admin reactivation request - targetId: {}", userId);
 //
 //        // 1. Get actors
@@ -260,24 +258,24 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
 
     @Override
     @Transactional
-    public void deleteUser(Long userId) {
-        log.debug("Admin delete request - targetId: {}", userId);
+    public void deleteUser(String publicId) {
+        log.debug("Admin delete request - targetId: {}", publicId);
 
         // Get actors
         User admin = userService.getAuthenticatedUser();
-        User target = userService.getUserById(userId);
+        User target = userService.getUserByPublicId(publicId);
 
         // Capture user info BEFORE deletion for the event
         AdminUserDeletedEvent event = AdminUserDeletedEvent.hardDelete(target, admin);
 
         // Delegate to user service (includes permission checks)
-        userService.deleteUser(userId);
+        userService.deleteUser(target.getId());
 
         // Publish event AFTER successful deletion
         eventPublisher.publishEvent(event);
 
-        log.info("User successfully deleted by admin - ID: {}, deleted by: {}",
-                userId, admin.getUsername());
+        log.info("User: {} successfully deleted by admin : {}",
+                target.getId(), admin.getId());
     }
 
     @Override
@@ -308,12 +306,13 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
 
     @Override
     @Transactional
-    public void triggerPasswordReset(Long userId) {
-        log.debug("Admin password reset request - targetId: {}", userId);
+    public void triggerPasswordReset(String publicId) {
 
         // 1. Get user
-        User target = userService.getUserById(userId);
+        User target = userService.getUserByPublicId(publicId);
         User admin = userService.getAuthenticatedUser();
+
+        log.debug("Admin password reset request - targetId: {}", target.getId());
 
         // 2. Generate password reset token
         PasswordResetToken token = passwordResetTokenService.createPasswordResetToken(target);
@@ -322,7 +321,7 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
         // (PasswordResetTokenCreatedEvent published by createPasswordResetToken)
 
         log.info("Password reset triggered by admin - targetId: {}, admin: {}, token: {}",
-                userId, admin.getUsername(), token.getPublicId());
+                target.getId(), admin.getId(), token.getPublicId());
     }
 
     private void activateUserByAdmin(User admin, User target){

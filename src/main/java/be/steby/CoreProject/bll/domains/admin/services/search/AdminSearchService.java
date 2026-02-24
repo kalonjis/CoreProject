@@ -71,18 +71,28 @@ public interface AdminSearchService {
      */
     User getUserById(Long userId);
 
+    /**
+     * Retrieves a user by their ID.
+     *
+     * @param publicId User ID
+     * @return User entity
+     * @throws be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException if user doesn't exist
+     * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException if actor lacks admin privileges
+     */
+    User getUserByPublicId(String publicId);
+
 
     // Page<User> getAllUsers(Pageable pageable)
 
     /**
      * Retrieves all devices associated with a user.
      *
-     * @param userId User ID
+     * @param publicId User ID
      * @return List of user's devices
      * @throws be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException if user doesn't exist
      * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException if actor lacks admin privileges
      */
-    List<Device> getUserDevices(Long userId);
+    List<Device> getUserDevices(String publicId);
 
     // ===============================
     // STATISTICS OPERATIONS

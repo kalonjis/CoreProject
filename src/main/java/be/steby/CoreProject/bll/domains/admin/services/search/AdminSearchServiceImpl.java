@@ -73,22 +73,6 @@ public class AdminSearchServiceImpl implements AdminSearchService {
         return users;
     }
 
-//    @Override
-//    @Transactional(readOnly = true)
-//    public Page<User> getAllUsers(Pageable pageable) {
-//        log.debug("Admin retrieving all users");
-//
-//        // Validate admin permissions
-//        User admin = userService.getAuthenticatedUser();
-//        adminPermissionValidator.validateAdminRole(admin);
-//
-//        // Get all users
-//        Page<User> users = userRepository.findAll(pageable);
-//
-//        log.debug("Retrieved {} users", users.getTotalElements());
-//
-//        return users;
-//    }
 
     @Override
     @Transactional(readOnly = true)
@@ -109,18 +93,36 @@ public class AdminSearchServiceImpl implements AdminSearchService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Device> getUserDevices(Long userId) {
-        log.debug("Admin retrieving devices for user: {}", userId);
+    public User getUserByPublicId(String publicId) {
+        log.debug("Admin retrieving user by ID: {}", publicId);
+
+        // Validate admin permissions
+        User admin = userService.getAuthenticatedUser();
+        adminPermissionValidator.validateAdminRole(admin);
+
+        // Get user
+        User user = userService.getUserByPublicId(publicId);
+
+        log.debug("Retrieved user: {}", user.getUsername());
+
+        return user;
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Device> getUserDevices(String publicId) {
+        log.debug("Admin retrieving devices for user: {}", publicId);
 
         // Validate admin permissions
         User admin = userService.getAuthenticatedUser();
         adminPermissionValidator.validateAdminRole(admin);
 
         // Get user and devices
-        User user = userService.getUserById(userId);
+        User user = userService.getUserByPublicId(publicId);
         List<Device> devices = deviceRepository.findByUser(user);
 
-        log.debug("Retrieved {} devices for user: {}", devices.size(), userId);
+        log.debug("Retrieved {} devices for user: {}", devices.size(), publicId);
 
         return devices;
     }
