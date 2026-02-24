@@ -31,6 +31,7 @@ spring:
       - classpath:config/storage.yml
       - classpath:config/lead.yml
       - classpath:config/notification.yml
+      - classpath:config/gdpr.yml
 
 url:
   back_server: ${URL_BACK_SERVER}

@@ -19,6 +19,8 @@ public interface ActivityLogRepository
         extends JpaRepository<ActivityLog, Long>,
         JpaSpecificationExecutor<ActivityLog> {
 
+    List<ActivityLog> findByUserOrderByTimestampDesc(User user);
+
     // =========================================================================
     // Stats / counts
     // =========================================================================

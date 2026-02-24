@@ -1,0 +1,36 @@
+# =============================================================================
+# GDPR Export Configuration
+# =============================================================================
+# Storage provider:
+#   "local" → local filesystem (dev / bare-metal server)
+#   "r2"    → Cloudflare R2 via S3-compatible API (prod)
+# =============================================================================
+
+app:
+  gdpr:
+    storage:
+      provider: ${GDPR_STORAGE_PROVIDER:local}
+
+      # -----------------------------------------------------------------------
+      # Local filesystem (dev)
+      # -----------------------------------------------------------------------
+      local:
+        path: ${GDPR_STORAGE_LOCAL_PATH:./gdpr-exports}
+
+      # -----------------------------------------------------------------------
+      # Cloudflare R2 (prod) — leave empty in dev
+      # -----------------------------------------------------------------------
+      r2:
+        endpoint: ${GDPR_R2_ENDPOINT:}
+        access-key: ${GDPR_R2_ACCESS_KEY:}
+        secret-key: ${GDPR_R2_SECRET_KEY:}
+        bucket: ${GDPR_R2_BUCKET:}
+        presigned-url-ttl-hours: ${GDPR_R2_PRESIGNED_TTL_HOURS:72}
+
+    export:
+      # GDPR legal deadline: 30 days max to process a request
+      max-processing-days: 30
+      # Archive lifetime after generation
+      archive-ttl-hours: 72
+      # Minimum delay between two export requests from the same user
+      cooldown-days: 7

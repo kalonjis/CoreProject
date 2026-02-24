@@ -1,0 +1,87 @@
+<mjml>
+  <mj-head>
+    <mj-title>Confirm your data export request</mj-title>
+    <mj-preview>MyFavApp — Confirm your GDPR data export</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="15px" color="#555555" line-height="1.6" />
+      <mj-section padding="0" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f0f2f5">
+
+    <!-- Top accent bar -->
+    <mj-section background-color="#2980b9" padding="6px 0" />
+
+    <!-- Header -->
+    <mj-section background-color="#2980b9" padding="35px 40px 30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="26px" font-weight="bold" padding-bottom="8px">
+          📦 Data Export Request
+        </mj-text>
+        <mj-text align="center" color="#d6eaf8" font-size="14px" padding-top="0">
+          MyFavApp – GDPR / Right to Portability
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Greeting -->
+    <mj-section background-color="#ffffff" padding="35px 40px 20px">
+      <mj-column>
+        <mj-text font-size="17px" color="#2c3e50" font-weight="bold" padding-bottom="4px">
+          Hello <span th:text="${username}">User</span>,
+        </mj-text>
+        <mj-text padding-top="8px">
+          We received a request to export all personal data associated with your MyFavApp account.
+          To confirm this request and start generating your archive, click the button below.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- CTA Button -->
+    <mj-section background-color="#ffffff" padding="10px 40px 30px">
+      <mj-column>
+        <mj-button background-color="#2980b9" color="#ffffff" font-size="16px"
+                   font-weight="bold" border-radius="6px" padding="14px 28px"
+                   th:href="${confirmUrl}">
+          Confirm my export request
+        </mj-button>
+      </mj-column>
+    </mj-section>
+
+    <!-- Info box -->
+    <mj-section background-color="#ffffff" padding="0 40px 20px">
+      <mj-column background-color="#eaf4fb" border-left="4px solid #2980b9"
+                 border-radius="4px" padding="16px 20px">
+        <mj-text font-size="14px" color="#2471a3">
+          ℹ️ Once confirmed, we will generate your archive in the background.
+          You will receive a second email with the download link when it is ready.
+          The link will be valid for <strong th:text="${ttlHours}">72</strong> hours.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Security notice -->
+    <mj-section background-color="#ffffff" padding="0 40px 35px">
+      <mj-column background-color="#fdf2e9" border-left="4px solid #e67e22"
+                 border-radius="4px" padding="16px 20px">
+        <mj-text font-size="14px" color="#d35400">
+          🔒 If you did not request a data export, please ignore this email.
+          Your account and data remain unchanged.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="25px 40px">
+      <mj-column>
+        <mj-text align="center" color="#6c757d" font-size="13px">
+          This is an automated message — please do not reply.<br/>
+          © MyFavApp. All rights reserved.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

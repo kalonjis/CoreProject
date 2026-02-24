@@ -2,6 +2,7 @@ package be.steby.CoreProject.il.routes;
 
 import be.steby.CoreProject.il.routes.activitylog.ActivityLogRoutes;
 import be.steby.CoreProject.il.routes.calendar.CalendarRoutes;
+import be.steby.CoreProject.il.routes.gdpr.GdprRoutes;
 import be.steby.CoreProject.il.routes.lead.LeadRoutes;
 import be.steby.CoreProject.il.routes.notification.NotificationRoutes;
 import be.steby.CoreProject.il.routes.password.PasswordRoutes;
@@ -60,6 +61,7 @@ public final class SecurityRoutesAggregator {
             ProfileRoutes.PUBLIC,
             LeadRoutes.PUBLIC,
             CalendarRoutes.PUBLIC,
+            GdprRoutes.PUBLIC,
             NotificationRoutes.PUBLIC
     );
 
@@ -82,6 +84,7 @@ public final class SecurityRoutesAggregator {
             SportRoutes.AUTHENTICATED,
             CalendarRoutes.AUTHENTICATED,
             NotificationRoutes.AUTHENTICATED,
+            GdprRoutes.AUTHENTICATED,
             ActivityLogRoutes.AUTHENTICATED
 
     );
@@ -135,6 +138,7 @@ public final class SecurityRoutesAggregator {
             SportRoutes.CSRF_IGNORE,
             LeadRoutes.CSRF_IGNORE,
             CalendarRoutes.CSRF_IGNORE,
+            GdprRoutes.CSRF_IGNORE,
             NotificationRoutes.CSRF_IGNORE
     );
 
