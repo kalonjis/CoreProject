@@ -7,6 +7,7 @@ import be.steby.CoreProject.bll.domains.account.exceptions.AccountAlreadyActivat
 import be.steby.CoreProject.bll.domains.account.exceptions.SignupValidationException;
 import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.AccountAlreadyDeactivatedException;
 import be.steby.CoreProject.bll.domains.account.exceptions.deactivation.InvalidDeactivationRequestException;
+import be.steby.CoreProject.bll.domains.account.exceptions.deletion.DeletionAlreadyRequestedException;
 import be.steby.CoreProject.bll.domains.account.exceptions.reactivation.ReactivationNotAllowedException;
 import be.steby.CoreProject.bll.domains.account.models.*;
 import be.steby.CoreProject.bll.domains.account.services.tokens.confirmation.AccountConfirmationAttemptServiceImpl;
@@ -343,11 +344,11 @@ public class AccountServiceImpl implements AccountService {
                     "Account is already deactivated. Cannot submit a deletion request.");
         }
 
-//        if (accountDeletionTokenService.hasActiveDeletionToken(user)) {
-//            throw new IllegalStateException(
-//                    "A deletion request is already pending confirmation. " +
-//                            "Please check your inbox or wait for it to expire.");
-//        }
+        if (accountDeletionTokenService.hasPendingToken(user)) {
+            throw new DeletionAlreadyRequestedException(
+                    "A deletion request is already pending confirmation. " +
+                            "Please check your inbox or wait for it to expire.");
+        }
 
         AccountDeletionToken token = accountDeletionTokenService.createAccountDeletionToken(user);
 
@@ -364,16 +365,14 @@ public class AccountServiceImpl implements AccountService {
         AccountDeletionToken deletionToken = accountDeletionTokenService
                 .getSecureValidToken(token, TokenType.ACCOUNT_DELETION);
 
-        accountDeletionTokenService.verifyTokenValidity(deletionToken);
-
         User user = deletionToken.getUser();
 
-        // Capture PII before anonymization — entity values change after gdprUserDelete()
+        // Capture PII before anonymization — entity values change after anonymizeUser()
         String username = user.getUsername();
         String email = user.getEmail();
 
         log.info("Executing GDPR anonymization for user: {}", username);
-        userService.gdprUserDelete(user);
+        userService.anonymizeUser(user);
 
         accountDeletionTokenService.revokeAllUserTokens(user);
 

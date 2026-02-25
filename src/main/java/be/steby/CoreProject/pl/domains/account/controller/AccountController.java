@@ -8,7 +8,6 @@ import be.steby.CoreProject.pl.domains.account.models.requests.ReactivateAccount
 import be.steby.CoreProject.pl.domains.account.models.requests.ResendActivationByIdentifierRequest;
 import be.steby.CoreProject.pl.domains.account.models.requests.SignupRequest;
 import be.steby.CoreProject.pl.domains.account.models.responses.AccountOperationResponse;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,13 +18,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
-
 /**
- * REST Controller responsible for handling account lifecycle operations.
- * This controller manages account creation, activation, deactivation, and reactivation.
- * All business logic is delegated to appropriate services while this controller
- * focuses solely on HTTP concerns (status codes, headers, response formatting).
+ * REST controller for account lifecycle operations.
+ *
+ * <p>Handles signup, activation, deactivation, reactivation, and GDPR deletion.
+ * All business logic is delegated to {@link AccountService}.
+ * This controller is responsible for HTTP concerns only
+ * (status codes, headers, response formatting).
  */
 @RestController
 @RequestMapping("/api/account")
@@ -37,172 +36,202 @@ public class AccountController {
     private final AuthCookieService authCookieService;
 
     // =========================================================================
-    // PUBLIC ACCOUNT ENDPOINTS
+    // SIGNUP
     // =========================================================================
 
     /**
-     * Handles account creation requests.
-     * Creates a new user account and sends activation email.
+     * Creates a new user account and sends an activation email.
      *
-     * @param request Account signup request containing registration details
-     * @return ResponseEntity with 201 Created status and Location header
+     * <p>POST /api/account/signup
+     *
+     * @param request signup payload containing registration details
+     * @return 201 Created
      */
     @PostMapping("/signup")
     @PreAuthorize("isAnonymous()")
-    public ResponseEntity<AccountOperationResponse> signup(@Valid @RequestBody SignupRequest request) {
-        log.info("Processing account signup request for username: {}", request.email());
+    public ResponseEntity<AccountOperationResponse> signup(
+            @Valid @RequestBody SignupRequest request) {
+        log.info("Processing account signup request for email: {}", request.email());
 
         accountService.signup(request.toBllModel());
 
+        log.info("Account signup processed for email: {}", request.email());
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(AccountOperationResponse.accountCreated());
     }
 
+    // =========================================================================
+    // ACTIVATION
+    // =========================================================================
+
     /**
-     * Handles account activation using token from email.
-     * Activates the user account making it ready for login.
+     * Activates a new user account using the token from the confirmation email.
      *
-     * @param token Activation token from email
-     * @return ResponseEntity with 200 OK status
+     * <p>GET /api/account/activate?token=
+     *
+     * @param token the raw token value from the activation email link
+     * @return 200 OK
      */
     @GetMapping("/activate")
-    @PreAuthorize("isAnonymous()")
-    public ResponseEntity<AccountOperationResponse> activate(@RequestParam String token) {
-        log.info("Processing account activation request with token");
+    public ResponseEntity<AccountOperationResponse> activate(
+            @RequestParam String token) {
+        log.info("Processing account activation");
 
-        accountService.confirmNewUserAccount(token);
+        String username = accountService.confirmNewUserAccount(token).getUsername();
 
-        log.info("Account activation successful");
-        return ResponseEntity.ok(AccountOperationResponse.accountActivated());
+        log.info("Account activated for user: {}", username);
+        return ResponseEntity.ok(AccountOperationResponse.accountActivated(username));
     }
 
     /**
-     * Handles requests for new activation token when original token expires.
+     * Resends the activation email using the original token.
      *
-     * @param token Expired activation token
-     * @return ResponseEntity with 204 No Content status
+     * <p>POST /api/account/resend-activation
+     *
+     * @param token the original activation token
+     * @return 202 Accepted
      */
-    @GetMapping("/resend-activation")
-    @PreAuthorize("isAnonymous()")
-    public ResponseEntity<AccountOperationResponse> requestActivation(@RequestParam String token) {
-        log.info("Processing request for new activation token");
+    @PostMapping("/resend-activation")
+    public ResponseEntity<AccountOperationResponse> resendActivation(
+            @RequestParam String token) {
+        log.info("Processing activation resend");
 
         accountService.resendActivation(token);
 
-        log.info("New activation token request processed");
-        return ResponseEntity.ok(AccountOperationResponse.activationRequested());
+        log.info("Activation email resent");
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(AccountOperationResponse.activationResent());
     }
 
-
     /**
-     * Resends the activation email for a user who never activated their account.
-     * Identified by email or username (no token required).
-     * Fails silently to prevent user enumeration.
+     * Resends the activation email by email address or username.
      *
-     * POST /api/account/resend-activation-by-identifier
+     * <p>POST /api/account/resend-activation-by-identifier
+     *
+     * @param request payload containing the email or username
+     * @return 202 Accepted
      */
     @PostMapping("/resend-activation-by-identifier")
-    @PreAuthorize("isAnonymous()")
     public ResponseEntity<AccountOperationResponse> resendActivationByIdentifier(
             @Valid @RequestBody ResendActivationByIdentifierRequest request) {
-        log.info("Resend activation requested by identifier");
+        log.info("Processing activation resend by identifier");
+
         accountService.resendActivationByIdentifier(request.identifier());
-        return ResponseEntity.ok(AccountOperationResponse.activationRequested());
+
+        log.info("Activation email resent by identifier");
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(AccountOperationResponse.activationResent());
     }
 
     // =========================================================================
-    // AUTHENTICATED ACCOUNT ENDPOINTS
+    // DEACTIVATION
     // =========================================================================
 
     /**
-     * Handles account deactivation requests from authenticated users.
-     * Sends deactivation confirmation email to user.
+     * Initiates a self-deactivation request for the authenticated user.
+     * Sends a confirmation email with a single-use link.
      *
-     * @param request Deactivation request containing reason and details
-     * @param user Currently authenticated user
-     * @return ResponseEntity with 204 No Content status
+     * <p>POST /api/account/request-deactivation
+     *
+     * @param user    the authenticated user
+     * @param request deactivation payload containing reason and optional details
+     * @return 202 Accepted
      */
     @PostMapping("/request-deactivation")
-    public ResponseEntity<AccountOperationResponse> requestDeactivation(@Valid @RequestBody DeactivateAccountRequest request,
-                                                    @AuthenticationPrincipal User user) {
-        log.info("Processing account deactivation request for user: {}", user.getUsername());
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AccountOperationResponse> requestDeactivation(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody DeactivateAccountRequest request) {
+        log.info("Processing deactivation request for user: {}", user.getUsername());
 
         accountService.requestDeactivation(user, request.toBusiness());
 
-        log.info("Account deactivation request processed for user: {}", user.getUsername());
-        return ResponseEntity.ok(AccountOperationResponse.deactivationRequested());
+        log.info("Deactivation request processed for user: {}", user.getUsername());
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(AccountOperationResponse.deactivationRequested());
     }
 
     /**
-     * Handles account deactivation confirmation using token from email.
-     * Actually deactivates the user account.
+     * Confirms and executes the deactivation via the token received by email.
+     * Clears authentication cookies on success.
      *
-     * @param token Deactivation confirmation token from email
-     * @return ResponseEntity with 200 OK status
+     * <p>GET /api/account/confirm-deactivation?token=
+     *
+     * @param token    the raw token value from the confirmation email link
+     * @param response the HTTP response — used to clear auth cookies
+     * @return 200 OK
      */
     @GetMapping("/confirm-deactivation")
-    public ResponseEntity<AccountOperationResponse> confirmDeactivation(@RequestParam String token, HttpServletResponse response) {
-        log.info("Processing account deactivation confirmation");
+    public ResponseEntity<AccountOperationResponse> confirmDeactivation(
+            @RequestParam String token,
+            HttpServletResponse response) {
+        log.info("Processing deactivation confirmation");
 
-        accountService.deactivateAccount(token);
-
+        String username = accountService.deactivateAccount(token).getUsername();
         authCookieService.clearAuthenticationCookies(response);
 
-        log.info("Account deactivation confirmed and processed");
+        log.info("Deactivation confirmed for user: {}", username);
         return ResponseEntity.ok(AccountOperationResponse.accountDeactivated());
     }
 
+    // =========================================================================
+    // REACTIVATION
+    // =========================================================================
+
     /**
-     * Handles account reactivation requests from authenticated users.
-     * Sends reactivation confirmation email to user.
+     * Initiates a reactivation request for a deactivated account.
+     * Sends a confirmation email with a single-use link.
      *
-     * @param request Reactivation request containing reason and confirmation
-     * @return ResponseEntity with 204 No Content status
+     * <p>POST /api/account/request-reactivation
+     *
+     * @param request reactivation payload containing the account identifier
+     * @return 202 Accepted
      */
     @PostMapping("/request-reactivation")
-    public ResponseEntity<AccountOperationResponse> requestReactivation(@Valid @RequestBody ReactivateAccountRequest request) {
-        log.info("Processing account reactivation request for user: {}", request.identifier());
+    public ResponseEntity<AccountOperationResponse> requestReactivation(
+            @Valid @RequestBody ReactivateAccountRequest request) {
+        log.info("Processing reactivation request");
 
         accountService.requestReactivation(request.toBusiness());
 
-        log.info("Account reactivation request processed for user: {}", request.identifier());
-        return ResponseEntity.ok(AccountOperationResponse.reactivationRequested());
+        log.info("Reactivation request processed");
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(AccountOperationResponse.reactivationRequested());
     }
 
     /**
-     * Handles account reactivation confirmation using token from email.
-     * Actually reactivates the user account.
+     * Confirms and executes the reactivation via the token received by email.
      *
-     * @param token Reactivation confirmation token from email
-     * @return ResponseEntity with 200 OK status
+     * <p>GET /api/account/confirm-reactivation?token=
+     *
+     * @param token the raw token value from the confirmation email link
+     * @return 200 OK
      */
     @GetMapping("/confirm-reactivation")
-    public ResponseEntity<AccountOperationResponse> confirmReactivation(@RequestParam String token) {
-        log.info("Processing account reactivation confirmation");
+    public ResponseEntity<AccountOperationResponse> confirmReactivation(
+            @RequestParam String token) {
+        log.info("Processing reactivation confirmation");
 
         String username = accountService.reactivateAccount(token).getUsername();
 
-
-        log.info("Account reactivation confirmed and processed");
+        log.info("Reactivation confirmed for user: {}", username);
         return ResponseEntity.ok(AccountOperationResponse.accountReactivated(username));
     }
 
-
-// =========================================================================
-// GDPR DELETION ENDPOINTS
-// =========================================================================
+    // =========================================================================
+    // GDPR DELETION
+    // =========================================================================
 
     /**
-     * Initiates a GDPR account deletion request for the authenticated user.
-     *
-     * <p>Sends a confirmation email with a single-use link.
+     * Initiates a GDPR deletion request for the authenticated user.
+     * Sends a confirmation email with a single-use link.
      * No data is modified at this stage.
      *
      * <p>POST /api/account/request-deletion
      *
      * @param user the authenticated user
-     * @return 202 Accepted — confirmation email sent
+     * @return 202 Accepted
      */
     @PostMapping("/request-deletion")
     @PreAuthorize("isAuthenticated()")
@@ -219,15 +248,13 @@ public class AccountController {
 
     /**
      * Confirms and executes the GDPR deletion via the token received by email.
-     *
-     * <p>Anonymizes personal data, invalidates all sessions and tokens,
-     * and clears authentication cookies.
+     * Anonymizes personal data, revokes all tokens, and clears authentication cookies.
      *
      * <p>GET /api/account/confirm-deletion?token=
      *
-     * @param token   the raw token value from the confirmation email link
+     * @param token    the raw token value from the confirmation email link
      * @param response the HTTP response — used to clear auth cookies
-     * @return 200 OK — account deleted and session cleared
+     * @return 200 OK
      */
     @GetMapping("/confirm-deletion")
     public ResponseEntity<AccountOperationResponse> confirmDeletion(
@@ -236,7 +263,6 @@ public class AccountController {
         log.info("Processing GDPR deletion confirmation");
 
         accountService.confirmDeletion(token);
-
         authCookieService.clearAuthenticationCookies(response);
 
         log.info("GDPR deletion confirmed and session cleared");

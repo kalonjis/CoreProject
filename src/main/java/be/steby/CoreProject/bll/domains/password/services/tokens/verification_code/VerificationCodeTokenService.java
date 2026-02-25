@@ -121,7 +121,7 @@ public class VerificationCodeTokenService extends BaseTokenServiceImpl<Verificat
         String codeHash = passwordEncoder.encode(verificationCode);
 
         // Revoke any existing SMS tokens for this user (one active token policy)
-        verificationCodeTokenRepository.revokeAllUserSmsTokens(user);
+        verificationCodeTokenRepository.revokeAllUserTokens(user);
 
         // Create new token with hashed code
         VerificationCodeToken token = super.createToken(user, TokenType.SMS_PASSWORD_RESET, smsTokenDurationMs, false);
@@ -259,7 +259,7 @@ public class VerificationCodeTokenService extends BaseTokenServiceImpl<Verificat
         log.debug("Starting cleanup of expired and revoked SMS password reset tokens");
         
         try {
-            verificationCodeTokenRepository.deleteExpiredAndRevokedTokens(Instant.now());
+            verificationCodeTokenRepository.deleteExpiredTokens(Instant.now());
             log.debug("SMS password reset token cleanup completed successfully");
         } catch (Exception e) {
             log.error("Failed to cleanup expired SMS password reset tokens", e);

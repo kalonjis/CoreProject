@@ -63,7 +63,7 @@ public abstract class BaseTokenServiceImpl<T extends BaseToken> implements BaseT
             throw new TokenSecurityException("Failed to decrypt secured token", e);
         }
 
-        return tokenRepository.findByToken(plainToken)
+        return tokenRepository.findByTokenIgnoreCase(plainToken)
                 .orElseThrow(() -> new DoesntExistException("Token not found"));
     }
 
@@ -125,7 +125,7 @@ public abstract class BaseTokenServiceImpl<T extends BaseToken> implements BaseT
             throw new TokenSecurityException("Plain token expected for internal usage");
         }
 
-        return tokenRepository.findByToken(plainToken)
+        return tokenRepository.findByTokenIgnoreCase(plainToken)
                 .orElseThrow(() -> new DoesntExistException("Token not found"));
     }
 

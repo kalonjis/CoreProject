@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.account.exceptions.deletion;
 
-import be.steby.CoreProject.bll.common.exceptions.TokenExpiredException;
+import be.steby.CoreProject.bll.domains.account.exceptions.AccountDomainException;
 
 /**
  * Thrown when a GDPR deletion confirmation token has passed its expiry date.
@@ -9,7 +9,7 @@ import be.steby.CoreProject.bll.common.exceptions.TokenExpiredException;
  *
  * <p>HTTP status: 498 (Token Expired).
  */
-public class DeletionTokenExpiredException extends TokenExpiredException {
+public class DeletionTokenExpiredException extends AccountDomainException {
 
     public DeletionTokenExpiredException(String message) {
         super(message, 498);

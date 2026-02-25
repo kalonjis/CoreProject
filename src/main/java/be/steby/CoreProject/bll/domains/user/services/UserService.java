@@ -91,14 +91,21 @@ public interface UserService {
     // ===============================
 
     /**
-     * Permanently delete user account (super admin only).
+     * Permanently removes the user record from the database.
+     * Cascades to all associated data (tokens, devices, etc.).
+     *
+     * @param id the internal database ID of the user to delete
      */
     void deleteUser(Long id);
 
     /**
-     * GDPR compliant user deletion with data anonymization (super admin only).
+     * Anonymizes the user's personal data and marks the account as permanently
+     *
+     * <p>Carries no permission guard.
+     *
+     * @param user the user entity to anonymize
      */
-    void gdprUserDelete(User user);
+    void anonymizeUser(User user);
 
 
     // ===============================

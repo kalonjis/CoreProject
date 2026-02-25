@@ -257,38 +257,55 @@ public class UserServiceImpl implements UserService {
     // USER DELETION OPERATIONS
     // ===============================
 
+    /**
+     * Permanently removes the user record from the database.
+     * Cascades to all associated data (tokens, devices, etc.).
+     *
+     * @param id the internal database ID of the user to delete
+     * @throws UserNotFoundException   if no user exists with that ID
+     */
     @Override
     @Transactional
     public void deleteUser(Long id) {
-        // Only super admins can delete users
         requireSuperAdminPermissions();
 
         User user = getUserById(id);
         userRepository.delete(user);
 
-        log.info("User {} deleted by super admin", user.getUsername());
+        log.info("User {} permanently deleted by super admin", user.getUsername());
     }
 
-    @Override
+    /**
+     * Anonymizes the user's personal data and marks the account as permanently deleted
+     * via the GDPR right-to-erasure flow.
+     *
+     * <p>Sets the following fields:
+     * <ul>
+     *   <li>email → {@code deleted_<id>@anonymized.local}</li>
+     *   <li>firstname → {@code User}</li>
+     *   <li>lastname → {@code Deleted}</li>
+     *   <li>phoneNumber → {@code null}</li>
+     *   <li>enabled → {@code false}</li>
+     *   <li>gdprDeletedAt → current timestamp</li>
+     * </ul>
+     *
+     * <p>Carries no permission guard — callers are responsible for
+     * enforcing access control before invoking this method.
+     *
+     * @param user the user entity to anonymize
+     */
     @Transactional
-    public void gdprUserDelete(User user) {
-        // Only super admins can perform GDPR deletion
-        requireSuperAdminPermissions();
-
-        // Anonymize personal data
+    public void anonymizeUser(User user) {
         user.setEmail("deleted_" + user.getId() + "@anonymized.local");
         user.setFirstname("User");
         user.setLastname("Deleted");
         user.setPhoneNumber(null);
-
-        // Deactivate account
         user.setEnabled(false);
-        user.setDeactivatedAt(Instant.now());
+        user.setGdprDeletedAt(Instant.now());
 
-        // ✅ Use saveUser() instead of direct repository save
         saveUser(user);
 
-        log.info("User {} GDPR deleted and anonymized", user.getUsername());
+        log.info("User {} anonymized", user.getUsername());
     }
 
 

@@ -26,11 +26,11 @@ public record AccountOperationResponse(
     // Activation
     // =========================================================================
 
-    public static AccountOperationResponse accountActivated() {
-        return new AccountOperationResponse("Account activated successfully", null);
+    public static AccountOperationResponse accountActivated(String username) {
+        return new AccountOperationResponse("Account activated successfully", username);
     }
 
-    public static AccountOperationResponse activationRequested() {
+    public static AccountOperationResponse activationResent() {
         return new AccountOperationResponse(
                 "If your request was valid, a new activation link has been sent to your email.",
                 null
