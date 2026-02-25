@@ -259,8 +259,6 @@ public class AccountMailerService extends BaseMailerService {
      *
      * <p>Because the user entity is anonymized at this point, username and email
      * must be passed explicitly — they are captured before anonymization by
-     * {@link be.steby.CoreProject.bll.domains.account.services.AccountDeletionServiceImpl}.
-     *
      * @param username the original username (for email personalisation)
      * @param email    the original email address (routing only — no longer stored)
      */

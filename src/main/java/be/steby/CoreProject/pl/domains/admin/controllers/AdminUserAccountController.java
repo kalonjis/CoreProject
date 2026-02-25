@@ -1,9 +1,9 @@
 package be.steby.CoreProject.pl.domains.admin.controllers;
 
 import be.steby.CoreProject.bll.domains.admin.services.useraccount.AdminUserAccountService;
-import be.steby.CoreProject.pl.domains.account.models.responses.AccountOperationResponse;
 import be.steby.CoreProject.pl.domains.admin.models.requests.AdminUserCreateRequest;
 import be.steby.CoreProject.pl.domains.admin.models.requests.UserDeactivationForm;
+import be.steby.CoreProject.pl.domains.admin.models.responses.AdminAccountOperationResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,114 +12,200 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * REST Controller for admin user account lifecycle operations.
- * Handles user creation, activation, and deactivation.
+ * REST controller for admin-initiated user account lifecycle operations.
  *
- * All endpoints require ADMIN privileges.
- * Business logic is delegated to AdminUserAccountService.
+ * <h3>Responsibilities</h3>
+ * <p>This controller handles HTTP concerns only:
+ * <ul>
+ *   <li>Request deserialization and validation</li>
+ *   <li>HTTP status mapping</li>
+ *   <li>Response serialization</li>
+ * </ul>
+ * All business logic is delegated to {@link AdminUserAccountService}.
+ *
+ * <h3>Security</h3>
+ * <p>All endpoints require at minimum {@code ADMIN} authority.
+ * Endpoints marked with {@code @PreAuthorize("hasAuthority('SUPER_ADMIN')")} require
+ * elevated privileges enforced both at the HTTP layer and at the service layer.
+ *
+ * <h3>Base path</h3>
+ * <pre>/api/admin/users</pre>
  */
 @RestController
 @RequiredArgsConstructor
+@Slf4j
 @PreAuthorize("hasAuthority('ADMIN')")
 @RequestMapping("/api/admin/users")
-@Slf4j
 public class AdminUserAccountController {
 
     private final AdminUserAccountService adminUserAccountService;
 
-    // ===============================
+    // =========================================================================
     // USER CREATION
-    // ===============================
+    // =========================================================================
 
     /**
      * Creates a new user account as an administrator.
-     * POST /api/admin/users
      *
-     * @param request User creation request with all required data
-     * @return 201 Created with operation response
+     * <p>The created account is immediately enabled with a temporary password
+     * sent to the user by email. The user must change it on first login.
+     *
+     * <pre>POST /api/admin/users/create</pre>
+     *
+     * @param request creation payload (firstname, lastname, email, phone, roles)
+     * @return 201 Created
      */
     @PostMapping("/create")
-    public ResponseEntity<AccountOperationResponse> createUser(
+    public ResponseEntity<AdminAccountOperationResponse> createUser(
             @Valid @RequestBody AdminUserCreateRequest request) {
 
-        log.info("Admin user creation request - email: {}", request.email());
+        log.info("Admin user creation request — email: {}", request.email());
 
         adminUserAccountService.createUser(request.toBLL());
 
-        log.info("User created successfully - email: {}", request.email());
-
+        log.info("User created successfully — email: {}", request.email());
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(AccountOperationResponse.accountCreated());
+                .body(AdminAccountOperationResponse.userCreated());
     }
 
-    // ===============================
-    // USER ACTIVATION
-    // ===============================
+    // =========================================================================
+    // USER ACTIVATION  (first-time — everActivated == false)
+    // =========================================================================
 
     /**
-     * Activates or reactivates a user account.
-     * Automatically determines if it's first activation or reactivation.
-     * PATCH /api/admin/users/activate/{id}
+     * Activates a user account that was created by an admin and has never logged in.
      *
-     * @param publicId User's publicId to activate
-     * @return 200 OK with success message
+     * <p>Use this endpoint for accounts with {@code everActivated == false}.
+     * For previously activated accounts, use {@code PATCH /reactivate/{publicId}}.
+     *
+     * <pre>PATCH /api/admin/users/activate/{publicId}</pre>
+     *
+     * @param publicId public UUID of the target user
+     * @return 200 OK
      */
     @PatchMapping("/activate/{publicId}")
-    public ResponseEntity<Map<String, String>> activateUser(
-            @PathVariable String publicId
-    ) {
+    public ResponseEntity<AdminAccountOperationResponse> activateUser(
+            @PathVariable String publicId) {
 
-        log.info("Admin activation request - userId: {}", publicId);
+        log.info("Admin activation request — publicId: {}", publicId);
 
         adminUserAccountService.activateUser(publicId);
 
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "User activated successfully");
-        response.put("userId", publicId.toString());
-
-        log.info("User activated successfully - userId: {}", publicId);
-
-        return ResponseEntity.ok(response);
+        log.info("User activated successfully — publicId: {}", publicId);
+        return ResponseEntity.ok(AdminAccountOperationResponse.userActivated());
     }
 
-    // ===============================
-    // USER DEACTIVATION
-    // ===============================
+    // =========================================================================
+    // USER REACTIVATION  (everActivated == true && enabled == false)
+    // =========================================================================
 
     /**
-     * Deactivates a user account as an administrator.
-     * PATCH /api/admin/users/deactivate/{id}
+     * Reactivates a previously deactivated user account.
      *
-     * @param publicId User's publicId to deactivate
-     * @param form Deactivation form with category and details
-     * @return 200 OK with success message
+     * <p>Use this endpoint for accounts with {@code everActivated == true && enabled == false}.
+     * For first-time activation, use {@code PATCH /activate/{publicId}}.
+     *
+     * <pre>PATCH /api/admin/users/reactivate/{publicId}</pre>
+     *
+     * @param publicId public UUID of the target user
+     * @return 200 OK
+     */
+    @PatchMapping("/reactivate/{publicId}")
+    public ResponseEntity<AdminAccountOperationResponse> reactivateUser(
+            @PathVariable String publicId) {
+
+        log.info("Admin reactivation request — publicId: {}", publicId);
+
+        adminUserAccountService.reactivateUser(publicId);
+
+        log.info("User reactivated successfully — publicId: {}", publicId);
+        return ResponseEntity.ok(AdminAccountOperationResponse.userReactivated());
+    }
+
+    // =========================================================================
+    // USER DEACTIVATION
+    // =========================================================================
+
+    /**
+     * Deactivates a user account by administrative decision.
+     *
+     * <p>Requires a deactivation category and a mandatory justification.
+     * The deactivation is tracked in dedicated audit fields, separate from
+     * self-deactivation data.
+     *
+     * <pre>PATCH /api/admin/users/deactivate/{publicId}</pre>
+     *
+     * @param publicId public UUID of the target user
+     * @param form     deactivation payload (category + details)
+     * @return 200 OK
      */
     @PatchMapping("/deactivate/{publicId}")
-    public ResponseEntity<Map<String, String>> deactivateUser(
+    public ResponseEntity<AdminAccountOperationResponse> deactivateUser(
             @PathVariable String publicId,
             @Valid @RequestBody UserDeactivationForm form) {
 
-        log.info("Admin deactivation request - userId: {}, category: {}",
+        log.info("Admin deactivation request — publicId: {}, category: {}",
                 publicId, form.deactivationCategory());
 
-        adminUserAccountService.deactivateUser(
-                publicId,
-                form.deactivationCategory(),
-                form.adminDeactivationDetails()
-        );
+        adminUserAccountService.deactivateUser(publicId, form.deactivationCategory(),
+                form.adminDeactivationDetails());
 
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "User deactivated successfully");
-        response.put("userId", publicId);
-        response.put("category", form.deactivationCategory().name());
+        log.info("User deactivated successfully — publicId: {}", publicId);
+        return ResponseEntity.ok(AdminAccountOperationResponse.userDeactivated());
+    }
 
-        log.info("User deactivated successfully - userId: {}", publicId);
+    // =========================================================================
+    // USER DELETION (SUPER_ADMIN only)
+    // =========================================================================
 
-        return ResponseEntity.ok(response);
+    /**
+     * Permanently deletes a user account and all associated data.
+     *
+     * <p><strong>Irreversible.</strong> Use with extreme caution.
+     * Requires {@code SUPER_ADMIN} authority.
+     *
+     * <pre>DELETE /api/admin/users/delete/{publicId}</pre>
+     *
+     * @param publicId public UUID of the target user
+     * @return 200 OK
+     */
+    @DeleteMapping("/delete/{publicId}")
+    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
+    public ResponseEntity<AdminAccountOperationResponse> deleteUser(
+            @PathVariable String publicId) {
+
+        log.info("Admin hard-delete request — publicId: {}", publicId);
+
+        adminUserAccountService.deleteUser(publicId);
+
+        log.info("User permanently deleted — publicId: {}", publicId);
+        return ResponseEntity.ok(AdminAccountOperationResponse.userDeleted());
+    }
+
+    /**
+     * Anonymizes a user's personal data under GDPR right-to-erasure.
+     *
+     * <p>Preserves the user record for referential integrity while permanently
+     * removing all personally identifiable information.
+     * Requires {@code SUPER_ADMIN} authority.
+     *
+     * <pre>DELETE /api/admin/users/gdpr/{publicId}</pre>
+     *
+     * @param publicId public UUID of the target user
+     * @return 200 OK
+     */
+    @DeleteMapping("/gdpr/{publicId}")
+    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
+    public ResponseEntity<AdminAccountOperationResponse> gdprDeleteUser(
+            @PathVariable String publicId) {
+
+        log.info("Admin GDPR deletion request — publicId: {}", publicId);
+
+        adminUserAccountService.gdprDeleteUser(publicId);
+
+        log.info("User GDPR-anonymized successfully — publicId: {}", publicId);
+        return ResponseEntity.ok(AdminAccountOperationResponse.userGdprDeleted());
     }
 }
