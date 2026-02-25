@@ -21,18 +21,19 @@ public final class AdminRoutes {
 
     // ========== ADMIN ROUTES ==========
 
-    private static final String[] USER_MANAGEMENT = {
-            "/api/admin/users",
-            "/api/admin/users/create",
-            "/api/admin/users/all",
-            "/api/admin/users/stats",
-            "/api/admin/users/activate/**",
-            "/api/admin/users/deactivate/**",
-            "/api/admin/users/force-reset-password/**",
-            "/api/admin/users/grant-role/**",
-            "/api/admin/users/revoke-role/**",
-            "/api/admin/users/gdpr-deletion/**",
-            "/api/admin/users/deactivation-categories"
+    private static final String[] ADMIN_USER_ROUTES = {
+            "/api/admin/users",                        // GET  — list all users
+            "/api/admin/users/create",                 // POST — create user
+            "/api/admin/users/all",                    // GET  — paginated user list
+            "/api/admin/users/stats",                  // GET  — admin statistics
+            "/api/admin/users/activate/**",            // PATCH — first-time activation
+            "/api/admin/users/reactivate/**",          // PATCH — reactivation after deactivation
+            "/api/admin/users/deactivate/**",          // PATCH — admin deactivation
+            "/api/admin/users/delete/**",              // DELETE — hard delete (SUPER_ADMIN only)
+            "/api/admin/users/gdpr/**",                // DELETE — GDPR anonymization (SUPER_ADMIN only)
+            "/api/admin/users/grant-role/**",          // PATCH — grant role
+            "/api/admin/users/revoke-role/**",         // PATCH — revoke role
+            "/api/admin/users/deactivation-categories" // GET  — list deactivation categories
     };
 
     private static final String[] USER_ADDRESS_MANAGEMENT = {
@@ -97,7 +98,7 @@ public final class AdminRoutes {
      * All admin routes aggregated.
      */
     public static final String[] ADMIN = concatenate(
-            USER_MANAGEMENT,
+            ADMIN_USER_ROUTES,
             USER_ADDRESS_MANAGEMENT,
             ADDRESS_MANAGEMENT,
             DEVICE_MANAGEMENT,
@@ -121,7 +122,7 @@ public final class AdminRoutes {
      */
     public static final String[] CSRF_IGNORE = concatenate(
             // ⚠️ DEV ONLY - Remove ALL in production!
-            USER_MANAGEMENT,
+            ADMIN_USER_ROUTES,
             USER_ADDRESS_MANAGEMENT,
             ADDRESS_MANAGEMENT,
             DEVICE_MANAGEMENT,

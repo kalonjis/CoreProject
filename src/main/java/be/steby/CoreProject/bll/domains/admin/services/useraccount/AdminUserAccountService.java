@@ -1,179 +1,157 @@
 package be.steby.CoreProject.bll.domains.admin.services.useraccount;
 
+import be.steby.CoreProject.bll.common.exceptions.AttributeUnchangedException;
+import be.steby.CoreProject.bll.common.exceptions.UserPermissionException;
+import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
 import be.steby.CoreProject.bll.domains.admin.models.account.AdminDeactivationRequest;
 import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationRequest;
-import be.steby.CoreProject.bll.common.exceptions.UserPermissionException;
 import be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException;
-import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
-import be.steby.CoreProject.bll.common.exceptions.AttributeUnchangedException;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 
 /**
- * Service for admin operations on user accounts.
- * Handles user lifecycle management: creation, activation, deactivation, reactivation, and deletion.
+ * Service contract for admin-initiated user account lifecycle operations.
  *
- * This service focuses exclusively on account state management.
- * For role management, see AdminRoleService.
- * For search operations, see AdminSearchService.
+ * <h3>Separation of Concerns</h3>
+ * <p>This service is responsible for <strong>orchestration only</strong>:
+ * <ol>
+ *   <li>Resolve actors (admin + target) from the security context</li>
+ *   <li>Validate permissions via {@code AdminPermissionValidator}</li>
+ *   <li>Validate business rules via {@code AdminActionPolicyService}</li>
+ *   <li>Delegate state mutations to {@code UserService}</li>
+ *   <li>Publish domain events for audit and notifications</li>
+ * </ol>
+ *
+ * <p><strong>This service never mutates User fields directly.</strong>
+ * All field-level changes are owned by {@code UserService}.
+ *
+ * <h3>Related services</h3>
+ * <ul>
+ *   <li>{@code AdminRoleService} — role grant / revoke operations</li>
+ *   <li>{@code AdminSearchService} — read-only user queries</li>
+ *   <li>{@code AdminPasswordService} — password reset flows</li>
+ * </ul>
  */
 public interface AdminUserAccountService {
 
-    // ===============================
+    // =========================================================================
     // USER CREATION
-    // ===============================
+    // =========================================================================
 
     /**
      * Creates a new user account as an administrator.
      *
-     * The created user will have:
-     * - Email verified (admin verified identity)
-     * - Account disabled until first login
-     * - Temporary password (must be changed on first login)
-     * - Complete profile (firstname/lastname provided by admin)
+     * <p>The created account will have:
+     * <ul>
+     *   <li>Email verified (admin vouches for the identity)</li>
+     *   <li>Account immediately enabled</li>
+     *   <li>A temporary password the user must change on first login</li>
+     *   <li>A complete profile (firstname / lastname provided by admin)</li>
+     * </ul>
      *
-     * @param request Admin user creation request with all required data
-     * @return The created user entity
-     * @throws AdminOperationException if validation fails
-     * @throws UserPermissionException if actor lacks permission to assign requested roles
+     * @param request creation payload with email, name, phone, and roles
+     * @return the persisted user entity
+     * @throws AdminOperationException  if request validation fails
+     * @throws UserPermissionException  if the actor lacks permission to assign the requested roles
      */
     User createUser(AdminUserCreationRequest request);
 
-    // ===============================
-    // USER ACTIVATION
-    // ===============================
+    // =========================================================================
+    // USER ACTIVATION  (first-time only — everActivated == false)
+    // =========================================================================
 
     /**
-     * Activates or reactivates a user account as an administrator.
-     * Automatically determines whether it's a first activation or reactivation
-     * based on the user's activation history.
+     * Activates a user account that was created by an admin and has never logged in.
      *
-     * First activation: User created by admin, never logged in before
-     * Reactivation: User was previously activated and then deactivated
+     * <p>Use this when {@code everActivated == false}.
+     * For accounts that were previously active and then deactivated, use
+     * {@link #reactivateUser(String)} instead.
      *
-     * @param publicId publicId of the user to activate
-     * @throws be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException if user doesn't exist
-     * @throws be.steby.CoreProject.bll.common.exceptions.UserPermissionException if actor lacks permission
-     * @throws AttributeUnchangedException if user is already active
+     * @param publicId public UUID of the user to activate
+     * @throws UserNotFoundException        if no user exists with that publicId
+     * @throws UserPermissionException      if the actor lacks permission
+     * @throws AttributeUnchangedException  if the user is already active
+     * @throws IllegalStateException        if the user was already activated before
      */
     void activateUser(String publicId);
 
-    // ===============================
+    // =========================================================================
+    // USER REACTIVATION  (everActivated == true && enabled == false)
+    // =========================================================================
+
+    /**
+     * Reactivates a previously deactivated user account.
+     *
+     * <p>Use this when {@code everActivated == true && enabled == false}.
+     * For first-time activation of admin-created accounts, use
+     * {@link #activateUser(String)} instead.
+     *
+     * <p>Reactivation may be blocked depending on the deactivation category
+     * and the {@code ReactivationPolicy} attached to it.
+     *
+     * @param publicId public UUID of the user to reactivate
+     * @throws UserNotFoundException        if no user exists with that publicId
+     * @throws UserPermissionException      if the actor lacks permission or policy blocks reactivation
+     * @throws AttributeUnchangedException  if the user is already active
+     * @throws IllegalStateException        if the user was never activated before
+     */
+    void reactivateUser(String publicId);
+
+    // =========================================================================
     // USER DEACTIVATION
-    // ===============================
+    // =========================================================================
 
     /**
-     * Deactivates a user account as an administrator.
+     * Deactivates a user account by administrative decision.
      *
-     * Admin deactivation is distinct from user self-deactivation:
-     * - Requires administrative privileges
-     * - Includes categorization and detailed reason
-     * - May have different reactivation policies
-     * - Logged separately for audit purposes
+     * <p>Admin deactivation is tracked in dedicated fields
+     * ({@code adminDeactivation*}) and is completely separate from
+     * self-deactivation data, preserving audit integrity.
      *
-     * @param publicId publicId of the user to deactivate
-     * @param deactivationCategory Admin deactivation category (policy violation, security, etc.)
-     * @param adminDeactivationDetails Detailed reason for deactivation (required)
-     * @throws UserNotFoundException if user doesn't exist
-     * @throws UserPermissionException if actor lacks permission
-     * @throws AttributeUnchangedException if user is already deactivated
+     * @param publicId   public UUID of the user to deactivate
+     * @param category   administrative deactivation category
+     * @param details    mandatory free-text justification
+     * @throws UserNotFoundException        if no user exists with that publicId
+     * @throws UserPermissionException      if the actor lacks permission
+     * @throws AttributeUnchangedException  if the user is already deactivated
+     * @throws AdminOperationException      if deactivation validation fails
      */
-    void deactivateUser(String publicId,
-                        AdminDeactivationCategory deactivationCategory,
-                        String adminDeactivationDetails
-    );
+    void deactivateUser(String publicId, AdminDeactivationCategory category, String details);
 
     /**
-     * Deactivates a user account with a structured deactivation request.
-     * Convenience method that accepts a request object instead of individual parameters.
+     * Deactivates a user account using a structured request object.
+     * Convenience overload that delegates to {@link #deactivateUser(String, AdminDeactivationCategory, String)}.
      *
-     * @param publicId publicId of the user to deactivate
-     * @param request Deactivation request with category and details
-     * @throws UserNotFoundException if user doesn't exist
-     * @throws UserPermissionException if actor lacks permission
-     * @throws AttributeUnchangedException if user is already deactivated
+     * @param publicId public UUID of the user to deactivate
+     * @param request  deactivation payload with category and details
      */
-    void deactivateUser(String publicId,
-                        AdminDeactivationRequest request);
+    void deactivateUser(String publicId, AdminDeactivationRequest request);
 
-    // ===============================
-    // USER REACTIVATION
-    // ===============================
-
-    /**
-     * Reactivates a previously deactivated user account as an administrator.
-     *
-     * This method is specifically for reactivating users who were deactivated.
-     * For first-time activation of newly created accounts, use activateUser() instead.
-     *
-     * Reactivation policies may vary based on:
-     * - How the account was deactivated (admin vs self-deactivation)
-     * - Deactivation category and reason
-     * - Time elapsed since deactivation
-     *
-     * @param publicId publicId of the user to reactivate
-     * @throws UserNotFoundException if user doesn't exist
-     * @throws UserPermissionException if actor lacks permission
-     * @throws AttributeUnchangedException if user is already active
-     * @throws IllegalStateException if user was never activated before
-     */
-    //void reactivateUser(String publicId);
-
-    // ===============================
+    // =========================================================================
     // USER DELETION
-    // ===============================
+    // =========================================================================
 
     /**
-     * Permanently deletes a user account (super admin only).
+     * Permanently deletes a user account and all associated data (SUPER_ADMIN only).
      *
-     * This is a destructive operation that:
-     * - Removes the user entity from the database
-     * - Cascade deletes associated data (tokens, sessions, etc.)
-     * - Cannot be undone
+     * <p>This is an <strong>irreversible</strong> hard delete. Use with extreme caution.
+     * For most cases, deactivation or GDPR anonymization should be preferred.
      *
-     * WARNING: This should only be used in exceptional circumstances.
-     * For most cases, deactivation is preferred over deletion.
-     *
-     * @param publicId publicId of the user to delete
-     * @throws UserNotFoundException if user doesn't exist
-     * @throws UserPermissionException if actor is not a super admin
+     * @param publicId public UUID of the user to delete
+     * @throws UserNotFoundException    if no user exists with that publicId
+     * @throws UserPermissionException  if the actor is not a SUPER_ADMIN
      */
     void deleteUser(String publicId);
 
     /**
-     * GDPR compliant user deletion with data anonymization.
+     * Anonymizes a user's personal data under the GDPR right-to-erasure flow (SUPER_ADMIN only).
      *
-     * Unlike permanent deletion, this method:
-     * - Anonymizes personal data (email, phone, name → "Deleted")
-     * - Preserves user record for referential integrity
-     * - Marks account as deactivated with GDPR_REQUEST reason
-     * - Maintains audit trail while removing PII
+     * <p>Unlike {@link #deleteUser(String)}, this preserves the user record for
+     * referential integrity while removing all personally identifiable information.
      *
-     * This is the preferred deletion method for GDPR compliance.
-     *
-     * @param user User entity to anonymize and delete
-     * @throws UserPermissionException if actor is not a super admin
+     * @param publicId public UUID of the user to anonymize
+     * @throws UserNotFoundException    if no user exists with that publicId
+     * @throws UserPermissionException  if the actor is not a SUPER_ADMIN
      */
-    void gdprUserDelete(User user);
-
-    // ===============================
-    // PASSWORD MANAGEMENT
-    // ===============================
-
-    /**
-     * Triggers a password reset for a user as an administrator.
-     *
-     * This generates a password reset token and sends it to the user's email.
-     * The user can then reset their password using the token.
-     *
-     * Use cases:
-     * - User forgot password and requested admin help
-     * - Security measure after suspicious activity
-     * - Forced password change for compliance
-     *
-     * @param publicId publicId of the user requiring password reset
-     * @throws UserNotFoundException if user doesn't exist
-     * @throws UserPermissionException if actor lacks admin privileges
-     */
-    void triggerPasswordReset(String publicId);
+    void gdprDeleteUser(String publicId);
 }

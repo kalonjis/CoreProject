@@ -1,18 +1,20 @@
 package be.steby.CoreProject.bll.domains.user.services;
 
-import be.steby.CoreProject.bll.common.exceptions.*;
+import be.steby.CoreProject.bll.common.exceptions.AttributeUnchangedException;
+import be.steby.CoreProject.bll.common.exceptions.UserPermissionException;
+import be.steby.CoreProject.bll.common.exceptions.UsernameAlreadyTakenException;
 import be.steby.CoreProject.bll.common.models.reactivation.ReactivationEligibility;
 import be.steby.CoreProject.bll.common.services.reactivation.ReactivationPolicyService;
-import be.steby.CoreProject.bll.domains.admin.services.permissions.AdminPermissionValidator;
 import be.steby.CoreProject.bll.domains.emailaddress.exceptions.EmailAlreadyUsedException;
 import be.steby.CoreProject.bll.domains.user.events.UserPersistedEvent;
 import be.steby.CoreProject.bll.domains.user.exceptions.UserNotFoundException;
-import be.steby.CoreProject.dal.specifications.UserSpecification;
 import be.steby.CoreProject.dal.repositories.UserRepository;
+import be.steby.CoreProject.dal.specifications.UserSpecification;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.ReactivationPolicy;
 import be.steby.CoreProject.dl.enums.DeactivationReason;
+import be.steby.CoreProject.dl.enums.ReactivationPolicy;
 import be.steby.CoreProject.dl.enums.UserRole;
+import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -24,130 +26,82 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Map;
 
 /**
- * Updated UserService implementation with intelligent caching integration.
+ * Core implementation of {@link UserService}.
  *
- * This service now delegates authentication operations to UserAuthenticationService
- * while maintaining all existing business logic for user management operations.
+ * <p>This class is the <strong>sole owner of user state mutations</strong>.
+ * All field-level changes on a {@link User} entity go through this service.
+ * No other service should call setters on a User directly.
  *
- * ARCHITECTURE CHANGES:
- * - Authentication operations → UserAuthenticationService (with caching)
- * - Business logic operations → Remains in UserServiceImpl
- * - Cache invalidation → Handled by event listeners automatically
+ * <h3>Delegation</h3>
+ * <ul>
+ *   <li>Authentication context → {@link UserAuthenticationService} (cache-first)</li>
+ *   <li>Reactivation eligibility → {@link ReactivationPolicyService}</li>
+ *   <li>Cache invalidation → {@link UserPersistedEvent} (published on every save)</li>
+ * </ul>
  *
- * This maintains backward compatibility while adding caching benefits.
+ * <h3>Permission model</h3>
+ * <p>This service carries <strong>no permission guards</strong>.
+ * Callers (AccountService, AdminUserAccountService) are solely responsible
+ * for validating access before invoking any method here.
  */
-@Slf4j
-@RequiredArgsConstructor
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final AdminPermissionValidator adminPermissionValidator;
     private final ReactivationPolicyService reactivationPolicyService;
     private final ApplicationEventPublisher eventPublisher;
-
-    // ✅ NEW: Delegation to authentication service with caching
     private final UserAuthenticationService userAuthenticationService;
 
-    // ===============================
-    // SEARCH AND QUERY OPERATIONS
-    // ===============================
+    // =========================================================================
+    // SEARCH & QUERY
+    // =========================================================================
 
     @Override
     public Page<User> searchUsers(String query, Pageable pageable) {
-        log.info("Global search with query: '{}' and pagination: {}", query, pageable);
         return userRepository.findAll(UserSpecification.searchInAllFields(query), pageable);
     }
 
     @Override
     public Page<User> searchUsersByCriteria(String username, String firstname, String lastname,
                                             String email, String phoneNumber, Pageable pageable) {
-        log.info("Criteria search: username='{}', firstname='{}', lastname='{}', email='{}', phoneNumber='{}' with pagination: {}",
-                username, firstname, lastname, email, phoneNumber, pageable);
-
         return userRepository.findAll(
                 UserSpecification.searchByCriteria(username, firstname, lastname, email, phoneNumber),
-                pageable);
+                pageable
+        );
     }
-
-//    @Override
-//    public User getByOauthProviderAndOauthProviderId(String provider, String providerId) {
-//        return userRepository.findByOauthProviderAndOauthProviderId(provider, providerId)
-//                .orElseThrow(()-> new UserNotFoundException("No user fond from " + provider + "with providerId : " + providerId));
-//    }
-
-//    @Override
-//    public Optional<User> findUserForOAuthReconciliation(String provider, String providerId, String email) {
-//        log.debug("OAuth reconciliation attempt - provider: {}, providerId: {}, email: {}",
-//                provider, providerId, email);
-//
-//        // Strategy 1: Find by email (if valid email provided)
-//        if (email != null && !email.isBlank() && !email.contains("@oauth.local")) {
-//            Optional<User> userByEmail = userRepository.findByEmailIgnoreCase(email);
-//            if (userByEmail.isPresent()) {
-//                log.info("User found by email reconciliation: {}", email);
-//                return userByEmail;
-//            }
-//        }
-//
-//        // Strategy 2: Find by OAuth provider credentials
-//        Optional<User> userByOAuth = userRepository.findByOauthProviderAndOauthProviderId(provider, providerId);
-//        if (userByOAuth.isPresent()) {
-//            log.info("User found by OAuth provider credentials: {} - {}", provider, providerId);
-//            return userByOAuth;
-//        }
-//
-//        log.debug("No existing user found for OAuth reconciliation");
-//        return Optional.empty();
-//    }
 
     @Override
     public User getUserById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> UserNotFoundException.byId(id));
-    }
-
-    @Override
-    public User getUserByPublicId(String public_id) {
-        return userRepository.findByPublicId(public_id)
-                .orElseThrow(() -> UserNotFoundException.byPublicId(public_id));
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
     }
 
     @Override
     public User getUserByUsername(String username) {
         return userRepository.findByUsernameIgnoreCase(username)
-                .orElseThrow(() -> UserNotFoundException.byUsername(username));
+                .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
+    }
+
+    @Override
+    public User getUserByPublicId(String publicId) {
+        return userRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with publicId: " + publicId));
     }
 
     @Override
     public User getUserByEmail(String email) {
         return userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> UserNotFoundException.byEmail(email));
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
     }
-
 
     @Override
     public User getUserByUsernameOrByEmail(String identifier) {
-        return userRepository.findByEmailOrUsername(identifier)
-                .orElseThrow(()-> UserNotFoundException.byIdentifier(identifier));
-    }
-
-    /**
-     * ✅ UPDATED: Core save method that publishes UserPersistedEvent for cache management.
-     * All other methods use this to ensure cache invalidation.
-     */
-    @Override
-    public User saveUser(User user) {
-        User savedUser = userRepository.save(user);
-
-        // ✅ CRITICAL: Publish event with full user for cache management (like DeviceService)
-        eventPublisher.publishEvent(new UserPersistedEvent(savedUser));
-        log.debug("User {} saved and UserPersistedEvent published", savedUser.getUsername());
-
-        return savedUser;
+        return userRepository.findByUsernameOrEmail(identifier)
+                .orElseThrow(() -> new UserNotFoundException("User not found with identifier: " + identifier));
     }
 
     @Override
@@ -155,46 +109,65 @@ public class UserServiceImpl implements UserService {
         return userRepository.count();
     }
 
-    // ===============================
-    // USER ACTIVATION OPERATIONS
-    // ===============================
+    // =========================================================================
+    // PERSISTENCE
+    // =========================================================================
 
+    /**
+     * Persists a user and publishes {@link UserPersistedEvent} for cache invalidation.
+     * This is the only save path — direct repository calls are forbidden.
+     */
+    @Override
+    public User saveUser(User user) {
+        User saved = userRepository.save(user);
+        eventPublisher.publishEvent(new UserPersistedEvent(saved));
+        log.debug("User {} saved — UserPersistedEvent published", saved.getUsername());
+        return saved;
+    }
+
+    // =========================================================================
+    // SELF — Activation
+    // =========================================================================
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Mutated fields: {@code enabled}, {@code everActivated}, {@code activatedAt}.
+     */
     @Override
     @Transactional
     public void activateUser(Long id) {
         User user = getUserById(id);
+
         if (user.isEnabled()) {
-            throw new AttributeUnchangedException("The user is already activated");
+            throw new AttributeUnchangedException("User is already activated");
         }
 
         user.setEnabled(true);
-        if (!user.isEverActivated()) {
-            user.setEverActivated(true);
-        }
+        user.setEverActivated(true);
         user.setActivatedAt(Instant.now());
 
-        // ✅ Use saveUser() instead of direct repository save
         saveUser(user);
-
         log.info("User {} self-activated", user.getUsername());
     }
 
-    // ===============================
-    // USER DEACTIVATION OPERATIONS
-    // ===============================
+    // =========================================================================
+    // SELF — Deactivation
+    // =========================================================================
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Mutated fields: {@code enabled}, {@code deactivatedAt},
+     * {@code deactivationReason}, {@code deactivationDetails}.
+     */
     @Override
     @Transactional
     public void deactivateUser(Long id, DeactivationReason reason, String reasonDetails) {
         User user = getUserById(id);
-        if (!user.isEnabled()) {
-            throw new AttributeUnchangedException("The user is already deactivated");
-        }
 
-        // Super admin protection for self-deactivation
-        if (user.getUserRoles().contains(UserRole.SUPER_ADMIN) &&
-                !authenticatedHasRole(UserRole.SUPER_ADMIN)) {
-            throw UserPermissionExceptionFactory.forSuperAdminAction("deactivate");
+        if (!user.isEnabled()) {
+            throw new AttributeUnchangedException("User is already deactivated");
         }
 
         user.setEnabled(false);
@@ -202,98 +175,56 @@ public class UserServiceImpl implements UserService {
         user.setDeactivationReason(reason);
         user.setDeactivationDetails(reasonDetails);
 
-        // ✅ Use saveUser() instead of direct repository save
         saveUser(user);
         log.info("User {} self-deactivated with reason: {}", user.getUsername(), reason);
-
-        //eventPublisher.publishEvent(new UserDeactivatedEvent(user));
     }
 
+    // =========================================================================
+    // SELF — Reactivation
+    // =========================================================================
 
-    // ===============================
-    // USER REACTIVATION OPERATIONS
-    // ===============================
-
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Mutated fields: {@code enabled}, {@code reactivatedAt}, {@code reactivatedBy},
+     * {@code reactivationPolicy}. Clears: {@code deactivationReason},
+     * {@code deactivationDetails}, {@code deactivatedAt}.
+     */
     @Override
     @Transactional
     public void reactivateUser(User user) {
         if (user.isEnabled()) {
-            throw new AttributeUnchangedException("The user is already activated");
+            throw new AttributeUnchangedException("User is already activated");
         }
 
-        // Check reactivation eligibility (self-reactivation)
         ReactivationEligibility eligibility = reactivationPolicyService.checkEligibility(user, user);
         if (!eligibility.isEligible()) {
             throw new UserPermissionException("Reactivation not allowed: " + eligibility.getReason());
         }
 
-        // Determine reactivation policy
         ReactivationPolicy policy = reactivationPolicyService.determineReactivationPolicy(user, user);
 
-        log.info("Self-reactivating user {} with policy {}", user.getUsername(), policy);
-
-        // Perform reactivation
         user.setEnabled(true);
         user.setReactivatedAt(Instant.now());
         user.setReactivatedBy(user);
         user.setReactivationPolicy(policy);
+        clearSelfDeactivationFields(user);
 
-        // Clear self-deactivation data only
-        if (user.getDeactivatedAt() != null) {
-            user.setDeactivationReason(null);
-            user.setDeactivationDetails(null);
-            user.setDeactivatedAt(null);
-        }
-
-        // ✅ Use saveUser() instead of direct repository save
         saveUser(user);
-
         log.info("User {} successfully self-reactivated", user.getUsername());
     }
 
-
-
-    // ===============================
-    // USER DELETION OPERATIONS
-    // ===============================
+    // =========================================================================
+    // SELF — GDPR Deletion
+    // =========================================================================
 
     /**
-     * Permanently removes the user record from the database.
-     * Cascades to all associated data (tokens, devices, etc.).
+     * {@inheritDoc}
      *
-     * @param id the internal database ID of the user to delete
-     * @throws UserNotFoundException   if no user exists with that ID
+     * <p>Mutated fields: {@code email}, {@code firstname}, {@code lastname},
+     * {@code phoneNumber}, {@code enabled}, {@code gdprDeletedAt}.
      */
     @Override
-    @Transactional
-    public void deleteUser(Long id) {
-        requireSuperAdminPermissions();
-
-        User user = getUserById(id);
-        userRepository.delete(user);
-
-        log.info("User {} permanently deleted by super admin", user.getUsername());
-    }
-
-    /**
-     * Anonymizes the user's personal data and marks the account as permanently deleted
-     * via the GDPR right-to-erasure flow.
-     *
-     * <p>Sets the following fields:
-     * <ul>
-     *   <li>email → {@code deleted_<id>@anonymized.local}</li>
-     *   <li>firstname → {@code User}</li>
-     *   <li>lastname → {@code Deleted}</li>
-     *   <li>phoneNumber → {@code null}</li>
-     *   <li>enabled → {@code false}</li>
-     *   <li>gdprDeletedAt → current timestamp</li>
-     * </ul>
-     *
-     * <p>Carries no permission guard — callers are responsible for
-     * enforcing access control before invoking this method.
-     *
-     * @param user the user entity to anonymize
-     */
     @Transactional
     public void anonymizeUser(User user) {
         user.setEmail("deleted_" + user.getId() + "@anonymized.local");
@@ -304,30 +235,150 @@ public class UserServiceImpl implements UserService {
         user.setGdprDeletedAt(Instant.now());
 
         saveUser(user);
-
-        log.info("User {} anonymized", user.getUsername());
+        log.info("User {} anonymized (GDPR)", user.getUsername());
     }
 
+    // =========================================================================
+    // ADMIN — Activation (first-time only)
+    // =========================================================================
 
-    // ===============================
-    // USER VALIDATION AND CHECKS
-    // ===============================
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Mutated fields: {@code enabled}, {@code everActivated}, {@code activatedAt},
+     * {@code activatedBy}, {@code emailVerified}.
+     */
+    @Override
+    @Transactional
+    public void adminActivateUser(User target, User admin) {
+        if (target.isEnabled()) {
+            throw new AttributeUnchangedException("User is already activated");
+        }
+        if (target.isEverActivated()) {
+            throw new IllegalStateException(
+                    "User " + target.getUsername() + " was already activated before — use adminReactivateUser instead"
+            );
+        }
+
+        target.setEnabled(true);
+        target.setEverActivated(true);
+        target.setActivatedAt(Instant.now());
+        target.setActivatedBy(admin);
+        target.setEmailVerified(true);
+
+        saveUser(target);
+        log.info("User {} activated by admin {}", target.getUsername(), admin.getUsername());
+    }
+
+    // =========================================================================
+    // ADMIN — Deactivation
+    // =========================================================================
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Mutated fields: {@code enabled}, {@code adminDeactivatedAt},
+     * {@code adminDeactivationReason}, {@code adminDeactivationDetails},
+     * {@code adminDeactivatedBy}.
+     */
+    @Override
+    @Transactional
+    public void adminDeactivateUser(User target, User admin,
+                                    AdminDeactivationCategory category,
+                                    String details) {
+        if (!target.isEnabled()) {
+            throw new AttributeUnchangedException("User is already deactivated");
+        }
+
+        target.setEnabled(false);
+        target.setAdminDeactivatedAt(Instant.now());
+        target.setAdminDeactivationReason(category);
+        target.setAdminDeactivationDetails(details);
+        target.setAdminDeactivatedBy(admin);
+
+        saveUser(target);
+        log.info("User {} deactivated by admin {} — category: {}",
+                target.getUsername(), admin.getUsername(), category);
+    }
+
+    // =========================================================================
+    // ADMIN — Reactivation
+    // =========================================================================
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Mutated fields: {@code enabled}, {@code reactivatedAt}, {@code reactivatedBy},
+     * {@code reactivationPolicy}. Clears: self-deactivation fields always,
+     * admin-deactivation fields if applicable.
+     */
+    @Override
+    @Transactional
+    public void adminReactivateUser(User target, User admin) {
+        if (target.isEnabled()) {
+            throw new AttributeUnchangedException("User is already activated");
+        }
+        if (!target.isEverActivated()) {
+            throw new IllegalStateException(
+                    "User " + target.getUsername() + " was never activated — use adminActivateUser instead"
+            );
+        }
+
+        ReactivationEligibility eligibility = reactivationPolicyService.checkEligibility(target, admin);
+        if (!eligibility.isEligible()) {
+            throw new UserPermissionException("Reactivation not allowed: " + eligibility.getReason());
+        }
+
+        ReactivationPolicy policy = reactivationPolicyService.determineReactivationPolicy(target, admin);
+
+        target.setEnabled(true);
+        target.setReactivatedAt(Instant.now());
+        target.setReactivatedBy(admin);
+        target.setReactivationPolicy(policy);
+
+        clearSelfDeactivationFields(target);
+        clearAdminDeactivationFields(target);
+
+        saveUser(target);
+        log.info("User {} reactivated by admin {}", target.getUsername(), admin.getUsername());
+    }
+
+    // =========================================================================
+    // ADMIN — Hard Deletion
+    // =========================================================================
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Irreversible. No permission guard here — AdminUserAccountService is responsible.
+     */
+    @Override
+    @Transactional
+    public void deleteUser(Long id) {
+        User user = getUserById(id);
+        userRepository.delete(user);
+        log.info("User {} permanently deleted", user.getUsername());
+    }
+
+    // =========================================================================
+    // VALIDATION & CHECKS
+    // =========================================================================
 
     @Override
     public void setUserMailVerified(User user) {
         user.setEmailVerified(true);
-
-        // ✅ Use saveUser() instead of direct repository save
         saveUser(user);
     }
 
     @Override
     public void checkIfUserExists(User user) {
         if (existsByUsername(user.getUsername())) {
-            throw new UsernameAlreadyTakenException("User account with username: " + user.getUsername() + " already exists");
+            throw new UsernameAlreadyTakenException(
+                    "User account with username: " + user.getUsername() + " already exists");
         }
         if (existsByEmail(user.getEmail())) {
-            throw new EmailAlreadyUsedException("User account with email address: " + user.getEmail() + " already exists");
+            throw new EmailAlreadyUsedException(
+                    "User account with email: " + user.getEmail() + " already exists");
         }
     }
 
@@ -341,119 +392,53 @@ public class UserServiceImpl implements UserService {
         return userRepository.existsByEmailIgnoreCase(email);
     }
 
-    // ===============================
-    // AUTHENTICATION AND AUTHORIZATION - NOW WITH CACHING!
-    // ===============================
+    // =========================================================================
+    // AUTHENTICATION & SECURITY
+    // =========================================================================
 
-    /**
-     * ✅ CRITICAL UPDATE: Now uses UserAuthenticationService with intelligent caching.
-     *
-     * This is THE method that changes behavior:
-     * - Before: Direct SecurityContext lookup
-     * - After: Cache-first with DB fallback
-     *
-     * This method maintains the same interface but now benefits from:
-     * - Cache-first lookup for 10-50x performance improvement
-     * - Automatic cache invalidation on user changes
-     * - Enhanced security validation
-     * - Detailed audit logging
-     *
-     * ALL code calling this method benefits automatically!
-     */
     @Override
     public User getAuthenticatedUser() {
-        // ✅ CRITICAL CHANGE: Delegate to authentication service with caching
         return userAuthenticationService.getSecureAuthenticatedUser();
     }
 
-    /**
-     * ✅ NEW: Fast username check without full user retrieval.
-     * Uses the lightweight method from UserAuthenticationService.
-     */
-    public String getCurrentUsername() {
-        return userAuthenticationService.getCurrentUsername()
-                .orElseThrow(() -> new UserAuthenticationStateException("No user connected", 401));
-    }
-
-    /**
-     * ✅ ENHANCED: Now uses cached authentication check.
-     */
     @Override
     public boolean isAnonymous() {
-        return !userAuthenticationService.isAuthenticated();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth == null || !auth.isAuthenticated()
+                || auth.getPrincipal().equals("anonymousUser");
     }
 
     @Override
     public boolean authenticatedHasRole(UserRole role) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals(role.name()));
+        return SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(role.name()));
     }
 
-    @Override
-    public void requireAdminPermissions() {
-        // ADMIN or SUPER_ADMIN can perform admin operations
-        if (!authenticatedHasRole(UserRole.ADMIN) && !authenticatedHasRole(UserRole.SUPER_ADMIN)) {
-            throw UserPermissionExceptionFactory.forAdminPermissionRequired("perform administrative operations");
+    // =========================================================================
+    // PRIVATE HELPERS
+    // =========================================================================
+
+    /**
+     * Clears all self-deactivation fields on the given user.
+     * Called on both self-reactivation and admin-reactivation.
+     */
+    private void clearSelfDeactivationFields(User user) {
+        user.setDeactivationReason(null);
+        user.setDeactivationDetails(null);
+        user.setDeactivatedAt(null);
+    }
+
+    /**
+     * Clears all admin-deactivation fields on the given user.
+     * Called only on admin-reactivation when the account was admin-deactivated.
+     */
+    private void clearAdminDeactivationFields(User user) {
+        if (user.isAdminDeactivated()) {
+            user.setAdminDeactivationReason(null);
+            user.setAdminDeactivationDetails(null);
+            user.setAdminDeactivatedAt(null);
+            user.setAdminDeactivatedBy(null);
         }
-    }
-
-    @Override
-    public void requireSuperAdminPermissions() {
-        // Only SUPER_ADMIN can perform super admin operations
-        if (!authenticatedHasRole(UserRole.SUPER_ADMIN)) {
-            throw UserPermissionExceptionFactory.forInsufficientPermissions(
-                    UserRole.SUPER_ADMIN, "perform super administrative operations");
-        }
-    }
-
-    // ===============================
-    // CACHE MANAGEMENT OPERATIONS - NEW!
-    // ===============================
-
-    /**
-     * ✅ NEW: Manual cache invalidation for specific user.
-     * Useful for admin operations or troubleshooting.
-     */
-    public void invalidateUserCache(String username) {
-        userAuthenticationService.invalidateUserCache(username);
-        log.info("Manual cache invalidation requested for user: {}", username);
-    }
-
-    /**
-     * ✅ NEW: Manual cache invalidation by user ID.
-     */
-    public void invalidateUserCacheById(Long userId) {
-        userAuthenticationService.invalidateUserCacheById(userId);
-        log.info("Manual cache invalidation requested for userId: {}", userId);
-    }
-
-    /**
-     * ✅ NEW: Get cache statistics for monitoring.
-     */
-    public Map<String, Object> getUserCacheStats() {
-        return userAuthenticationService.getCacheStats();
-    }
-
-    /**
-     * ✅ NEW: Force cache cleanup for maintenance.
-     */
-    public int cleanUserCache() {
-        return userAuthenticationService.cleanExpiredCache();
-    }
-
-    /**
-     * ✅ NEW: Bulk role invalidation for permission changes.
-     */
-    public int invalidateUsersByRole(String role) {
-        requireAdminPermissions();
-        return userAuthenticationService.invalidateUsersByRole(role);
-    }
-
-    /**
-     * ✅ NEW: Cache health check.
-     */
-    public boolean isUserCacheHealthy() {
-        return !userAuthenticationService.isCacheNearCapacity();
     }
 }

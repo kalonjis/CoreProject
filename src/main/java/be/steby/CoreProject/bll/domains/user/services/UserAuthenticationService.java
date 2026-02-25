@@ -134,7 +134,7 @@ public class UserAuthenticationService {
         // 2. ✅ Cache MISS → DB via repository (not via UserService to avoid circular trouble)
         log.debug("Cache miss for user {} during Spring Security authentication - loading from database", username);
 
-        Optional<User> userOptional = userRepository.findByEmailOrUsername(username);
+        Optional<User> userOptional = userRepository.findByUsernameOrEmail(username);
 
         if (userOptional.isEmpty()) {
             log.warn("Authentication failed: username '{}' not found", username);
