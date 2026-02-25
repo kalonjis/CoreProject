@@ -44,8 +44,8 @@ public final class AccountRoutes {
             // ⚠️ DEV ONLY - Remove in production
             "/api/account/request-deactivation",
             "/api/account/confirm-deactivation/**",
-            "/api/account/confirm-deletion",
-            "/api/account/request-deletion"
+            "/api/account/request-deletion",
+            "/api/account/confirm-deletion"
     };
 
     private AccountRoutes() {
