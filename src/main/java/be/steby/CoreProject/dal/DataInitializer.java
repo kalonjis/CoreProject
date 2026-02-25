@@ -90,6 +90,9 @@ public class DataInitializer implements CommandLineRunner {
 
         log.info("🔧 Initialisation des données système");
 
+        if(userRepository.existsByEmailIgnoreCase(user1.getEmail())) {
+            return;
+        }
 
         List<User> users = List.of(user1, user2, user3, user4, user5);
 
@@ -108,6 +111,7 @@ public class DataInitializer implements CommandLineRunner {
         users.get(1).setMustChangePassword(false);
         users.get(1).setPhoneNumberVerified(true);
         users.get(1).getUserRoles().add(UserRole.MONITORING);
+
 
 
         userRepository.saveAll(users);

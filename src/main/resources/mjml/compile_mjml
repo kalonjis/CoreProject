@@ -13,6 +13,8 @@ mjml src/main/resources/mjml/emails/accounts/AccountReactivationRequest.mjml -o 
 mjml src/main/resources/mjml/emails/accounts/AccountReactivationConfirmation.mjml -o src/main/resources/templates/emails/accounts/AccountReactivationConfirmation.html
 mjml src/main/resources/mjml/emails/accounts/accountDeactivationRequest.mjml -o src/main/resources/templates/emails/accounts/accountDeactivationRequest.html
 mjml src/main/resources/mjml/emails/accounts/accountDeactivationConfirmation.mjml -o src/main/resources/templates/emails/accounts/accountDeactivationConfirmation.html
+mjml src/main/resources/mjml/emails/accounts/AccountDeletionRequest.mjml -o src/main/resources/templates/emails/accounts/AccountDeletionRequest.html
+mjml src/main/resources/mjml/emails/accounts/AccountDeletionConfirmed.mjml -o src/main/resources/templates/emails/accounts/AccountDeletionConfirmed.html
 
 # Admin
 mjml src/main/resources/mjml/emails/admin/temporaryPassword.mjml -o src/main/resources/templates/emails/admin/temporaryPassword.html
