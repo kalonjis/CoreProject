@@ -71,16 +71,14 @@
         <mj-text font-size="14px" color="#555555">
           To permanently delete your account, click the button below:
         </mj-text>
-        <mj-button background-color="#922b21"
-                   color="#ffffff"
-                   font-size="15px"
-                   font-weight="bold"
-                   border-radius="5px"
-                   padding="14px 32px"
-                   href="#"
-                   th:href="${confirmUrl}">
-          🗑️ Confirm account deletion
-        </mj-button>
+        <mj-text align="center" padding="20px">
+          <a th:href="${confirmUrl}"
+             style="background-color:#922b21; color:#ffffff; font-size:15px;
+                    font-weight:bold; border-radius:5px; padding:14px 32px;
+                    text-decoration:none; display:inline-block;">
+            🗑️ Confirm account deletion
+          </a>
+        </mj-text>
       </mj-column>
     </mj-section>
 
