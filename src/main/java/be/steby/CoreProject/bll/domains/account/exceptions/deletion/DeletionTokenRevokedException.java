@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.account.exceptions.deletion;
 
-import be.steby.CoreProject.bll.common.exceptions.TokenRevokedException;
+import be.steby.CoreProject.bll.domains.account.exceptions.AccountDomainException;
 
 /**
  * Thrown when a GDPR deletion confirmation token has already been revoked.
@@ -10,7 +10,7 @@ import be.steby.CoreProject.bll.common.exceptions.TokenRevokedException;
  *
  * <p>HTTP status: 410 Gone — the token existed but is no longer valid.
  */
-public class DeletionTokenRevokedException extends TokenRevokedException {
+public class DeletionTokenRevokedException extends AccountDomainException {
 
     public DeletionTokenRevokedException(String message) {
         super(message, 410);

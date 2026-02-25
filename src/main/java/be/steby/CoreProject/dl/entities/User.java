@@ -215,6 +215,21 @@ public class User extends BaseEntity<Long> implements UserDetails {
     private ReactivationPolicy reactivationPolicy;
 
 
+    // =========================================================================
+    // GDPR deletion
+    // =========================================================================
+
+    /**
+     * Timestamp set when the user's account is permanently anonymized via the
+     * GDPR right-to-erasure flow. {@code null} means the account has never been
+     * GDPR-deleted.
+     *
+     * <p>Once set, this value is never cleared — the operation is irreversible.
+     */
+    @Column(name = "gdpr_deleted_at")
+    private Instant gdprDeletedAt;
+
+
     /**
      * Addresses linked to this user.
      *
@@ -398,22 +413,51 @@ public class User extends BaseEntity<Long> implements UserDetails {
         return this.password != null;
     }
 
+    // =========================================================================
+    // State helpers
+    // =========================================================================
+
     /**
-     * Détermine si l'utilisateur a été désactivé par un admin
+     * Returns {@code true} if the account was permanently anonymized
+     * via the GDPR deletion flow.
+     *
+     * @return {@code true} when {@link #gdprDeletedAt} is not {@code null}
+     */
+    public boolean isGdprDeleted() {
+        return gdprDeletedAt != null;
+    }
+
+    /**
+     * Returns {@code true} if the account was deactivated by an administrator.
+     *
+     * @return {@code true} when the account is disabled and carries an admin deactivation reason
      */
     public boolean isAdminDeactivated() {
         return !enabled && adminDeactivationReason != null;
     }
 
     /**
-     * Détermine si l'utilisateur s'est auto-désactivé
+     * Returns {@code true} if the account was self-deactivated by the user
+     * through the standard reversible deactivation flow.
+     *
+     * <p>GDPR-deleted accounts are excluded — use {@link #isGdprDeleted()} for that case.
+     *
+     * @return {@code true} when the account is disabled, carries a self-deactivation reason,
+     *         has no admin deactivation reason, and has not been GDPR-deleted
      */
     public boolean isSelfDeactivated() {
-        return !enabled && deactivationReason != null && adminDeactivationReason == null;
+        return !enabled
+                && deactivationReason != null
+                && adminDeactivationReason == null
+                && gdprDeletedAt == null;
     }
 
     /**
-     * Récupère la raison de désactivation (admin ou self)
+     * Returns the human-readable deactivation reason, regardless of whether
+     * the deactivation was triggered by an admin or the user themselves.
+     * Returns {@code null} if no reason is recorded.
+     *
+     * @return display name of the active deactivation reason, or {@code null}
      */
     public String getDeactivationDisplayReason() {
         if (adminDeactivationReason != null) {

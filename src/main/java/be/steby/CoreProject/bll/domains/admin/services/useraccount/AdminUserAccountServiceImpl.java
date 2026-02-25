@@ -290,7 +290,7 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
         AdminUserDeletedEvent event = AdminUserDeletedEvent.gdprDelete(user, admin);
 
         // Delegate to user service (includes permission checks and anonymization)
-        userService.gdprUserDelete(user);
+        //userService.gdprUserDelete(user);
 
         // Publish event AFTER successful deletion
         eventPublisher.publishEvent(event);
