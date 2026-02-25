@@ -235,7 +235,7 @@ public class AccountMailerService extends BaseMailerService {
     public void sendDeletionRequest(String confirmToken, User user) {
         log.info("Sending GDPR deletion request email to: {}", user.getEmail());
 
-        String confirmUrl = buildUrl("/api/account/confirm-deletion", "token", confirmToken);
+        String confirmUrl = buildUrl("/account/deletion", "token", confirmToken);
 
         Context context = createBaseContext(user);
         context.setVariable("confirmUrl", confirmUrl);
