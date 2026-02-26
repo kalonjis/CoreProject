@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.admin.events.account;
 
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 
 import java.time.Instant;
@@ -26,6 +27,11 @@ public record AdminUserCreatedEvent(
         String temporaryPassword,
 
         /**
+         * The device used to perform the creation.
+         */
+        Device device,
+
+        /**
          * Timestamp of the event.
          */
         Instant timestamp
@@ -37,12 +43,16 @@ public record AdminUserCreatedEvent(
      * @param createdUser The user that was created
      * @param adminUser The admin who created the user
      * @param temporaryPassword The temporary password
+     * @param device The device used to create the user
+     *
      */
     public AdminUserCreatedEvent(
             User createdUser,
             User adminUser,
-            String temporaryPassword) {
-        this(createdUser, adminUser, temporaryPassword, Instant.now());
+            String temporaryPassword,
+            Device device
+    ) {
+        this(createdUser, adminUser, temporaryPassword, device, Instant.now());
     }
 
     /**
@@ -51,13 +61,16 @@ public record AdminUserCreatedEvent(
      * @param createdUser The user that was created
      * @param adminUser The admin who created the user
      * @param temporaryPassword The temporary password
+     * @param device The device used to create the user
      * @return A new AdminUserCreatedEvent instance
      */
     public static AdminUserCreatedEvent of(
             User createdUser,
             User adminUser,
-            String temporaryPassword) {
-        return new AdminUserCreatedEvent(createdUser, adminUser, temporaryPassword);
+            String temporaryPassword,
+            Device device
+    ) {
+        return new AdminUserCreatedEvent(createdUser, adminUser, temporaryPassword, device);
     }
 
     /**

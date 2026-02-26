@@ -6,14 +6,13 @@
 package be.steby.CoreProject.bll.domains.admin.services;
 
 import be.steby.CoreProject.bll.common.services.activitylog.ActivityLogService;
-import be.steby.CoreProject.bll.domains.admin.events.AdminActionEvent;
 import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserActivatedEvent;
 import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserCreatedEvent;
 import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserDeactivatedEvent;
 import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserDeletedEvent;
+import be.steby.CoreProject.bll.domains.admin.events.role.AdminRoleGrantedEvent;
+import be.steby.CoreProject.bll.domains.admin.events.role.AdminRoleRevokedEvent;
 import be.steby.CoreProject.bll.domains.admin.listeners.AdminActivityLogListener;
-import be.steby.CoreProject.bll.domains.admin.models.role.AdminRoleGrantedEvent;
-import be.steby.CoreProject.bll.domains.admin.models.role.AdminRoleRevokedEvent;
 import be.steby.CoreProject.dal.repositories.ActivityLogRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.action_log_type.AdminAction;
@@ -61,7 +60,7 @@ public class AdminActivityLogService extends ActivityLogService {
     public void logUserCreated(AdminUserCreatedEvent event) {
         String details = String.format("target: %s (email: %s)",
                 event.getCreatedUsername(), event.getCreatedUserEmail());
-        logUserActivity(event.adminUser(), null, AdminAction.ADMIN_USER_CREATED, true, details);
+        logUserActivity(event.adminUser(), event.device(), AdminAction.ADMIN_USER_CREATED, true, details);
 
         log.debug("ADMIN_USER_CREATED logged — admin: {}, created: {}",
                 event.getAdminUsername(), event.getCreatedUsername());
@@ -79,7 +78,7 @@ public class AdminActivityLogService extends ActivityLogService {
                 : AdminAction.ADMIN_USER_ACTIVATED;
 
         String details = buildTargetUserDetails(event.targetUser());
-        logUserActivity(event.adminUser(), null, action, true, details);
+        logUserActivity(event.adminUser(), event.device(), action, true, details);
 
         log.debug("{} logged — admin: {}, target: {}",
                 action.getName(), event.getAdminUsername(), event.targetUser().getUsername());
@@ -93,7 +92,7 @@ public class AdminActivityLogService extends ActivityLogService {
      */
     public void logUserDeactivated(AdminUserDeactivatedEvent event) {
         String details = buildDeactivationDetails(event);
-        logUserActivity(event.adminUser(), null, AdminAction.ADMIN_USER_DEACTIVATED, true, details);
+        logUserActivity(event.adminUser(), event.device(), AdminAction.ADMIN_USER_DEACTIVATED, true, details);
 
         log.debug("ADMIN_USER_DEACTIVATED logged — admin: {}, target: {}, category: {}",
                 event.getAdminUsername(), event.getTargetUsername(), event.category());
@@ -109,7 +108,7 @@ public class AdminActivityLogService extends ActivityLogService {
         String deleteType = event.gdprDeletion() ? "GDPR" : "hard";
         String details = String.format("deleted: %s (id: %d, email: %s) | type: %s",
                 event.deletedUsername(), event.deletedUserId(), event.deletedEmail(), deleteType);
-        logUserActivity(event.adminUser(), null, AdminAction.ADMIN_USER_DELETED, true, details);
+        logUserActivity(event.adminUser(), event.device(), AdminAction.ADMIN_USER_DELETED, true, details);
 
         log.debug("ADMIN_USER_DELETED logged — admin: {}, deleted: {}, type: {}",
                 event.getAdminUsername(), event.deletedUsername(), deleteType);
@@ -127,7 +126,7 @@ public class AdminActivityLogService extends ActivityLogService {
     public void logRoleGranted(AdminRoleGrantedEvent event) {
         String details = String.format("target: %s | role: %s granted",
                 event.targetUser().getUsername(), event.grantedRole().name());
-        logUserActivity(event.adminUser(), null, AdminAction.ADMIN_ROLE_GRANTED, true, details);
+        logUserActivity(event.adminUser(), event.device(), AdminAction.ADMIN_ROLE_GRANTED, true, details);
 
         log.debug("ADMIN_ROLE_GRANTED logged — admin: {}, target: {}, role: {}",
                 event.adminUser().getUsername(), event.targetUser().getUsername(), event.grantedRole());
@@ -141,7 +140,7 @@ public class AdminActivityLogService extends ActivityLogService {
     public void logRoleRevoked(AdminRoleRevokedEvent event) {
         String details = String.format("target: %s | role: %s revoked",
                 event.targetUser().getUsername(), event.revokedRole().name());
-        logUserActivity(event.adminUser(), null, AdminAction.ADMIN_ROLE_REVOKED, true, details);
+        logUserActivity(event.adminUser(), event.device(), AdminAction.ADMIN_ROLE_REVOKED, true, details);
 
         log.debug("ADMIN_ROLE_REVOKED logged — admin: {}, target: {}, role: {}",
                 event.adminUser().getUsername(), event.targetUser().getUsername(), event.revokedRole());
@@ -257,30 +256,6 @@ public class AdminActivityLogService extends ActivityLogService {
     }
 
     // =========================================================================
-    // Generic Admin Action
-    // =========================================================================
-
-    /**
-     * Persists a generic admin action from {@link AdminActionEvent}.
-     * Used as fallback for actions not covered by specific methods.
-     *
-     * @param event the generic admin action event
-     */
-    public void logGenericAdminAction(AdminActionEvent event) {
-        AdminAction action = mapEventTypeToAction(event.actionType());
-        String details = buildGenericDetails(event);
-
-        logUserActivity(event.adminUser(), null, action,
-                event.isSuccess(), event.isFailure() ? event.resultMessage() : details);
-
-        log.debug("{} logged — admin: {}, target: {}, success: {}",
-                action.getName(),
-                event.getAdminUsername(),
-                event.getTargetUsername(),
-                event.isSuccess());
-    }
-
-    // =========================================================================
     // Private helpers
     // =========================================================================
 
@@ -298,33 +273,33 @@ public class AdminActivityLogService extends ActivityLogService {
         return sb.toString();
     }
 
-    private String buildGenericDetails(AdminActionEvent event) {
-        StringBuilder sb = new StringBuilder();
-        if (event.hasTargetUser()) {
-            sb.append("target: ").append(event.getTargetUsername());
-        }
-        if (event.actionDescription() != null && !event.actionDescription().isBlank()) {
-            if (!sb.isEmpty()) sb.append(" | ");
-            sb.append("action: ").append(event.actionDescription());
-        }
-        return sb.isEmpty() ? null : sb.toString();
-    }
-
-    private AdminAction mapEventTypeToAction(AdminActionEvent.AdminActionType eventType) {
-        return switch (eventType) {
-            case USER_CREATION -> AdminAction.ADMIN_USER_CREATED;
-            case USER_DELETION -> AdminAction.ADMIN_USER_DELETED;
-            case USER_ACTIVATION -> AdminAction.ADMIN_USER_ACTIVATED;
-            case USER_DEACTIVATION -> AdminAction.ADMIN_USER_DEACTIVATED;
-            case ROLE_GRANT -> AdminAction.ADMIN_ROLE_GRANTED;
-            case ROLE_REVOKE -> AdminAction.ADMIN_ROLE_REVOKED;
-            case PASSWORD_RESET -> AdminAction.ADMIN_PASSWORD_RESET;
-            case USER_SEARCH -> AdminAction.ADMIN_USER_SEARCHED;
-            case DATA_EXPORT -> AdminAction.ADMIN_DATA_EXPORTED;
-            case SYSTEM_CONFIGURATION -> AdminAction.ADMIN_CONFIG_CHANGED;
-            case SECURITY_ACTION -> AdminAction.ADMIN_FORCE_LOGOUT;
-            case AUDIT_ACCESS -> AdminAction.ADMIN_AUDIT_ACCESSED;
-            case OTHER -> AdminAction.ADMIN_CONFIG_CHANGED; // fallback
-        };
-    }
+//    private String buildGenericDetails(AdminActionEvent event) {
+//        StringBuilder sb = new StringBuilder();
+//        if (event.hasTargetUser()) {
+//            sb.append("target: ").append(event.getTargetUsername());
+//        }
+//        if (event.actionDescription() != null && !event.actionDescription().isBlank()) {
+//            if (!sb.isEmpty()) sb.append(" | ");
+//            sb.append("action: ").append(event.actionDescription());
+//        }
+//        return sb.isEmpty() ? null : sb.toString();
+//    }
+//
+//    private AdminAction mapEventTypeToAction(AdminActionEvent.AdminActionType eventType) {
+//        return switch (eventType) {
+//            case USER_CREATION -> AdminAction.ADMIN_USER_CREATED;
+//            case USER_DELETION -> AdminAction.ADMIN_USER_DELETED;
+//            case USER_ACTIVATION -> AdminAction.ADMIN_USER_ACTIVATED;
+//            case USER_DEACTIVATION -> AdminAction.ADMIN_USER_DEACTIVATED;
+//            case ROLE_GRANT -> AdminAction.ADMIN_ROLE_GRANTED;
+//            case ROLE_REVOKE -> AdminAction.ADMIN_ROLE_REVOKED;
+//            case PASSWORD_RESET -> AdminAction.ADMIN_PASSWORD_RESET;
+//            case USER_SEARCH -> AdminAction.ADMIN_USER_SEARCHED;
+//            case DATA_EXPORT -> AdminAction.ADMIN_DATA_EXPORTED;
+//            case SYSTEM_CONFIGURATION -> AdminAction.ADMIN_CONFIG_CHANGED;
+//            case SECURITY_ACTION -> AdminAction.ADMIN_FORCE_LOGOUT;
+//            case AUDIT_ACCESS -> AdminAction.ADMIN_AUDIT_ACCESSED;
+//            case OTHER -> AdminAction.ADMIN_CONFIG_CHANGED; // fallback
+//        };
+//    }
 }

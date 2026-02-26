@@ -1,11 +1,13 @@
 package be.steby.CoreProject.bll.domains.admin.services.role;
 
+import be.steby.CoreProject.bll.domains.admin.events.role.AdminRoleGrantedEvent;
+import be.steby.CoreProject.bll.domains.admin.events.role.AdminRoleRevokedEvent;
 import be.steby.CoreProject.bll.domains.admin.exceptions.AdminOperationException;
 import be.steby.CoreProject.bll.domains.admin.exceptions.InvalidAdminArgumentException;
-import be.steby.CoreProject.bll.domains.admin.models.role.AdminRoleGrantedEvent;
-import be.steby.CoreProject.bll.domains.admin.models.role.AdminRoleRevokedEvent;
 import be.steby.CoreProject.bll.domains.admin.services.permissions.AdminPermissionValidator;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ public class AdminRoleServiceImpl implements AdminRoleService {
     private final UserService userService;
     private final AdminPermissionValidator adminPermissionValidator;
     private final ApplicationEventPublisher eventPublisher;
+    private final DeviceService deviceService;
 
     // ===============================
     // ROLE GRANTING
@@ -76,7 +79,8 @@ public class AdminRoleServiceImpl implements AdminRoleService {
         userService.saveUser(target);
 
         // 4. Publish role granted event
-        eventPublisher.publishEvent(new AdminRoleGrantedEvent(target, actor, role) );
+        Device device = deviceService.detectCurrentDevice();
+        eventPublisher.publishEvent(new AdminRoleGrantedEvent(target, actor, device, role) );
 
         log.info("Role {} successfully granted to user {} by admin {}",
                 role, target.getId(), actor.getId());
@@ -120,7 +124,8 @@ public class AdminRoleServiceImpl implements AdminRoleService {
         userService.saveUser(target);
 
         // 4. Publish role revoked event
-        eventPublisher.publishEvent(new AdminRoleRevokedEvent(target, actor, role ));
+        Device device = deviceService.detectCurrentDevice();
+        eventPublisher.publishEvent(new AdminRoleRevokedEvent(target, actor, device, role ));
 
         log.info("Role {} successfully revoked from user {} by admin {}",
                 role, target.getId(), actor.getId());
