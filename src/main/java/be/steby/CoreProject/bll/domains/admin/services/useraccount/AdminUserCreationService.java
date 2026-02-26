@@ -4,6 +4,7 @@ import be.steby.CoreProject.bll.common.services.passwordgenerator.TemporaryPassw
 import be.steby.CoreProject.bll.common.services.validation.email.EmailPolicyService;
 import be.steby.CoreProject.bll.common.services.validation.password.PasswordPolicyService;
 import be.steby.CoreProject.bll.common.services.validation.textField.TextFieldValidationService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.emailaddress.exceptions.EmailAlreadyUsedException;
 import be.steby.CoreProject.bll.domains.emailaddress.models.EmailValidationResult;
 import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserCreatedEvent;
@@ -13,10 +14,13 @@ import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationRe
 import be.steby.CoreProject.bll.domains.admin.models.AdminValidationResult;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.bll.domains.user.services.UsernameGeneratorService;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -47,11 +51,11 @@ public class AdminUserCreationService {
     private final UserService userService;
     private final UsernameGeneratorService usernameGeneratorService;
     private final PasswordEncoder passwordEncoder;
-    private final PasswordPolicyService passwordPolicyService;
     private final TemporaryPasswordGeneratorService temporaryPasswordGeneratorService;
     private final EmailPolicyService emailPolicyService;
     private final TextFieldValidationService textFieldValidationService;
     private final ApplicationEventPublisher eventPublisher;
+    private final DeviceService deviceService;
 
     // ===============================
     // PUBLIC API - NEW SPLIT FLOW
@@ -275,10 +279,12 @@ public class AdminUserCreationService {
     private void publishAdminCreationEvent(User user, String temporaryPassword) {
         User admin = userService.getAuthenticatedUser();
 
+        Device device = deviceService.detectCurrentDevice();
         AdminUserCreatedEvent event = new AdminUserCreatedEvent(
                 user,
                 admin,
-                temporaryPassword
+                temporaryPassword,
+                device
         );
 
         eventPublisher.publishEvent(event);

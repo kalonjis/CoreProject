@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.admin.events.account;
 
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 
 import java.time.Instant;
@@ -19,6 +20,11 @@ public record AdminUserActivatedEvent(
          * L'administrateur qui a effectué l'activation.
          */
         User adminUser,
+
+        /**
+         * The device used to perform the creation.
+         */
+        Device device,
 
         /**
          * Indique si l'utilisateur était précédemment désactivé.
@@ -42,9 +48,10 @@ public record AdminUserActivatedEvent(
     public AdminUserActivatedEvent(
             User targetUser,
             User adminUser,
+            Device device,
             boolean wasPreviouslyDeactivated,
             Instant lastDeactivationDate) {
-        this(targetUser, adminUser, wasPreviouslyDeactivated, lastDeactivationDate, Instant.now());
+        this(targetUser, adminUser, device, wasPreviouslyDeactivated, lastDeactivationDate, Instant.now());
     }
 
     /**
@@ -52,6 +59,7 @@ public record AdminUserActivatedEvent(
      *
      * @param targetUser L'utilisateur activé
      * @param adminUser L'administrateur
+     * @param device The device used to activate the user
      * @param wasPreviouslyDeactivated Si l'utilisateur était désactivé
      * @param lastDeactivationDate Date de dernière désactivation
      * @return Nouvel événement
@@ -59,11 +67,12 @@ public record AdminUserActivatedEvent(
     public static AdminUserActivatedEvent of(
             User targetUser,
             User adminUser,
+            Device device,
             boolean wasPreviouslyDeactivated,
             Instant lastDeactivationDate) {
 
                 return new AdminUserActivatedEvent(
-                targetUser, adminUser, wasPreviouslyDeactivated, lastDeactivationDate
+                targetUser, adminUser, device, wasPreviouslyDeactivated, lastDeactivationDate
                 );
     }
 
@@ -72,13 +81,19 @@ public record AdminUserActivatedEvent(
      *
      * @param targetUser L'utilisateur activé
      * @param adminUser L'administrateur
+     * @param device The device used to activate the user
      * @return Nouvel événement
      */
     public static AdminUserActivatedEvent simple(
             User targetUser,
-            User adminUser) {
+            User adminUser,
+            Device device
+    ) {
         return new AdminUserActivatedEvent(
-                targetUser, adminUser, false, null
+                targetUser,
+                adminUser,
+                device,
+                false, null
         );
     }
 

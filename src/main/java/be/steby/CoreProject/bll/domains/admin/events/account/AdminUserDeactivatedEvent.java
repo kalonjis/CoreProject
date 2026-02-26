@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.admin.events.account;
 
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 
@@ -20,6 +21,11 @@ public record AdminUserDeactivatedEvent(
          * L'administrateur qui a effectué la désactivation.
          */
         User adminUser,
+
+        /**
+         * The device used to perform the deactivation.
+         */
+        Device device,
 
         /**
          * Catégorie administrative de la désactivation.
@@ -53,11 +59,12 @@ public record AdminUserDeactivatedEvent(
     public AdminUserDeactivatedEvent(
             User targetUser,
             User adminUser,
+            Device device,
             AdminDeactivationCategory category,
             String comment,
             boolean invalidateActiveSessions,
             Instant lastActivity) {
-        this(targetUser, adminUser, category, comment, invalidateActiveSessions, lastActivity, Instant.now());
+        this(targetUser, adminUser, device, category, comment, invalidateActiveSessions, lastActivity, Instant.now());
     }
 
     /**
@@ -65,6 +72,7 @@ public record AdminUserDeactivatedEvent(
      *
      * @param targetUser L'utilisateur désactivé
      * @param adminUser L'administrateur
+     * @param device The device used to create the user
      * @param category La catégorie de la désactivation
      * @param comment Commentaire optionnel
      * @param invalidateActiveSessions Si invalider les sessions
@@ -74,13 +82,14 @@ public record AdminUserDeactivatedEvent(
     public static AdminUserDeactivatedEvent of(
             User targetUser,
             User adminUser,
+            Device device,
             AdminDeactivationCategory category,
             String comment,
             boolean invalidateActiveSessions,
             Instant lastActivity
             ) {
                 return new AdminUserDeactivatedEvent(
-                    targetUser, adminUser, category, comment, invalidateActiveSessions, lastActivity
+                    targetUser, adminUser, device, category, comment, invalidateActiveSessions, lastActivity
                 );
     }
 
@@ -89,6 +98,7 @@ public record AdminUserDeactivatedEvent(
      *
      * @param targetUser L'utilisateur désactivé
      * @param adminUser L'administrateur
+     * @param device The device used to create the user
      * @param category La catégorie de la désactivation
      * @param adminDeactivationDetails Les commentaires de la désactivation
      * @return Nouvel événement
@@ -96,10 +106,11 @@ public record AdminUserDeactivatedEvent(
     public static AdminUserDeactivatedEvent simple(
             User targetUser,
             User adminUser,
+            Device device,
             AdminDeactivationCategory category,
             String adminDeactivationDetails) {
                 return new AdminUserDeactivatedEvent(
-                        targetUser, adminUser, category, adminDeactivationDetails, true, null
+                        targetUser, adminUser, device, category, adminDeactivationDetails, true, null
                 );
     }
 

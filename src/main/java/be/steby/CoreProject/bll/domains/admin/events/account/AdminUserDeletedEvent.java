@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.admin.events.account;
 
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 
 import java.time.Instant;
@@ -33,6 +34,11 @@ public record AdminUserDeletedEvent(
         User adminUser,
 
         /**
+         * The device used to perform the deletion.
+         */
+        Device device,
+
+        /**
          * Whether this was a GDPR deletion (anonymization) or hard delete.
          */
         boolean gdprDeletion,
@@ -51,8 +57,9 @@ public record AdminUserDeletedEvent(
             String deletedUsername,
             String deletedEmail,
             User adminUser,
+            Device device,
             boolean gdprDeletion) {
-        this(deletedUserId, deletedUsername, deletedEmail, adminUser, gdprDeletion, Instant.now());
+        this(deletedUserId, deletedUsername, deletedEmail, adminUser, device, gdprDeletion, Instant.now());
     }
 
     /**
@@ -63,12 +70,13 @@ public record AdminUserDeletedEvent(
      * @param gdprDeletion Whether this is a GDPR deletion
      * @return New event instance
      */
-    public static AdminUserDeletedEvent of(User deletedUser, User adminUser, boolean gdprDeletion) {
+    public static AdminUserDeletedEvent of(User deletedUser, User adminUser, Device device, boolean gdprDeletion) {
         return new AdminUserDeletedEvent(
                 deletedUser.getId(),
                 deletedUser.getUsername(),
                 deletedUser.getEmail(),
                 adminUser,
+                device,
                 gdprDeletion
         );
     }
@@ -76,15 +84,15 @@ public record AdminUserDeletedEvent(
     /**
      * Creates a hard deletion event.
      */
-    public static AdminUserDeletedEvent hardDelete(User deletedUser, User adminUser) {
-        return of(deletedUser, adminUser, false);
+    public static AdminUserDeletedEvent hardDelete(User deletedUser, User adminUser, Device device) {
+        return of(deletedUser, adminUser, device, false);
     }
 
     /**
      * Creates a GDPR deletion event.
      */
-    public static AdminUserDeletedEvent gdprDelete(User deletedUser, User adminUser) {
-        return of(deletedUser, adminUser, true);
+    public static AdminUserDeletedEvent gdprDelete(User deletedUser, User adminUser, Device device) {
+        return of(deletedUser, adminUser, device, true);
     }
 
     /**

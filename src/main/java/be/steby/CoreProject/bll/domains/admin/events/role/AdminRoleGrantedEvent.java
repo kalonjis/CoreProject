@@ -1,5 +1,6 @@
-package be.steby.CoreProject.bll.domains.admin.models.role;
+package be.steby.CoreProject.bll.domains.admin.events.role;
 
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.UserRole;
 
@@ -18,6 +19,11 @@ public record AdminRoleGrantedEvent(
          * The administrator who granted the role.
          */
         User adminUser,
+
+        /**
+         * The device used to revoke the role.
+         */
+        Device device,
 
         /**
          * The role that was granted.

@@ -11,12 +11,16 @@ import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationRe
 import be.steby.CoreProject.bll.domains.admin.models.account.AdminUserCreationResult;
 import be.steby.CoreProject.bll.domains.admin.services.permissions.AdminPermissionValidator;
 import be.steby.CoreProject.bll.domains.admin.services.validation.AdminActionPolicyService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.user.exceptions.UserAlreadyActivatedException;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +50,8 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
     private final AdminPermissionValidator adminPermissionValidator;
     private final AdminActionPolicyService adminActionPolicyService;
     private final ApplicationEventPublisher eventPublisher;
+    private final DeviceService deviceService;
+
 
     // =========================================================================
     // USER CREATION
@@ -103,7 +109,7 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
         // 2. Guard: must never have been activated before
         if (target.isEverActivated()) {
             throw new UserAlreadyActivatedException(
-                    "User " + target.getUsername() + " was already activated — use reactivateUser instead"
+                    "User " + target.getUsername() + " was already activated "
             );
         }
 
@@ -114,7 +120,8 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
         userService.adminActivateUser(target, admin);
 
         // 5. Publish event
-        eventPublisher.publishEvent(AdminUserActivatedEvent.simple(target, admin));
+        Device device = deviceService.detectCurrentDevice();
+        eventPublisher.publishEvent(AdminUserActivatedEvent.simple(target, admin, device));
 
         log.info("User {} activated by admin {}", target.getUsername(), admin.getUsername());
     }
@@ -152,8 +159,9 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
         userService.adminReactivateUser(target, admin);
 
         // 6. Publish event
+        Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(
-                AdminUserActivatedEvent.of(target, admin, true, target.getAdminDeactivatedAt())
+                AdminUserActivatedEvent.of(target, admin, device, true, target.getAdminDeactivatedAt())
         );
 
         log.info("User {} reactivated by admin {}", target.getUsername(), admin.getUsername());
@@ -198,8 +206,9 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
         userService.adminDeactivateUser(target, admin, category, details);
 
         // 6. Publish event
+        Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(
-                AdminUserDeactivatedEvent.simple(target, admin, category, details)
+                AdminUserDeactivatedEvent.simple(target, admin, device, category, details)
         );
 
         log.info("User {} deactivated by admin {} — category: {}",
@@ -230,7 +239,8 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
         adminPermissionValidator.validateSuperAdminRole(admin);
 
         // 3. Capture identifying info BEFORE deletion (entity will be gone after)
-        AdminUserDeletedEvent event = AdminUserDeletedEvent.hardDelete(target, admin);
+        Device device = deviceService.detectCurrentDevice();
+        AdminUserDeletedEvent event = AdminUserDeletedEvent.hardDelete(target, admin, device);
 
         // 4. Delegate deletion to UserService
         userService.deleteUser(target.getId());
@@ -255,7 +265,8 @@ public class AdminUserAccountServiceImpl implements AdminUserAccountService {
         adminPermissionValidator.validateSuperAdminRole(admin);
 
         // 3. Capture identifying info BEFORE anonymization (PII will be wiped)
-        AdminUserDeletedEvent event = AdminUserDeletedEvent.gdprDelete(target, admin);
+        Device device = deviceService.detectCurrentDevice();
+        AdminUserDeletedEvent event = AdminUserDeletedEvent.gdprDelete(target, admin, device);
 
         // 4. Delegate anonymization to UserService
         userService.anonymizeUser(target);
