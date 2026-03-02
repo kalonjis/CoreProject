@@ -8,6 +8,7 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.EmailTwoFactor
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.InvalidVerificationCodeException;
 import be.steby.CoreProject.bll.domains.auth.models.EmailTwoFactorActivationBllRequest;
 import be.steby.CoreProject.bll.domains.auth.models.TwoFactorActivationResult;
+import be.steby.CoreProject.bll.domains.auth.services.twofactor.TwoFactorUserSyncService;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.jwt.TwoFactorJwtService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
@@ -18,10 +19,8 @@ import be.steby.CoreProject.dl.entities.TwoFactorAuth;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.TwoFactorType;
 import io.jsonwebtoken.Claims;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -74,9 +73,7 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
     private final TwoFactorJwtService twoFactorJwtService;
     private final ApplicationEventPublisher eventPublisher;
     private final DeviceService deviceService;
-
-    @Autowired
-    private HttpServletRequest httpServletRequest;
+    private final TwoFactorUserSyncService twoFactorUserSyncService;
 
     // ==================== PUBLIC API METHODS ====================
 
@@ -178,6 +175,7 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
         emailTwoFactor.setDisabledAt(Instant.now());
 
         twoFactorAuthRepository.save(emailTwoFactor);
+        twoFactorUserSyncService.syncOnDisable(user);
 
         // Publish activity log event
         Device device = deviceService.detectCurrentDevice();
@@ -327,6 +325,7 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
                 .build();
 
         TwoFactorAuth saved = twoFactorAuthRepository.save(emailTwoFactor);
+        twoFactorUserSyncService.syncOnEnable(user);
 
         // Publish confirmation event and reset rate limiting
         Device device = deviceService.detectCurrentDevice();
@@ -356,6 +355,8 @@ public class EmailTwoFactorServiceImpl implements EmailTwoFactorService {
         emailTwoFactor.setFailedAttempts(0);
 
         TwoFactorAuth saved = twoFactorAuthRepository.save(emailTwoFactor);
+        twoFactorUserSyncService.syncOnEnable(user);
+
         // Publish confirmation event and reset rate limiting
         Device device = deviceService.detectCurrentDevice();
         eventPublisher.publishEvent(new TwoFactorEnabledEvent(user, device, TwoFactorType.EMAIL));

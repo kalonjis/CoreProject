@@ -9,6 +9,7 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.SmsTwoFactorAl
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.SmsTwoFactorNotEnabledException;
 import be.steby.CoreProject.bll.domains.auth.models.SmsTwoFactorActivationBllRequest;
 import be.steby.CoreProject.bll.domains.auth.models.TwoFactorActivationResult;
+import be.steby.CoreProject.bll.domains.auth.services.twofactor.TwoFactorUserSyncService;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.jwt.TwoFactorJwtService;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
@@ -55,9 +56,8 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
     private final SmsTwoFactorVerificationAttemptService smsTwoFactorVerificationAttemptService;
     private final TwoFactorJwtService twoFactorJwtService;
     private final DeviceService deviceService;
+    private final TwoFactorUserSyncService twoFactorUserSyncService;
 
-    @Autowired
-    private HttpServletRequest httpServletRequest;
     
     @Override
     @Transactional
@@ -95,6 +95,7 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
         
         // 5. Save to database
         TwoFactorAuth saved = twoFactorAuthRepository.save(smsTwoFactor);
+        twoFactorUserSyncService.syncOnEnable(user);
         log.info("SMS 2FA enabled successfully for user: {} (id: {})", user.getUsername(), saved.getId());
 
         // 6. Publish activity log event
@@ -123,6 +124,7 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
         
         // 3. Save changes
         twoFactorAuthRepository.save(smsTwoFactor);
+        twoFactorUserSyncService.syncOnDisable(user);
         log.info("SMS 2FA disabled successfully for user: {}", user.getUsername());
 
         // Publish activity log event
@@ -303,6 +305,7 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
         existing.setFailedAttempts(0);
 
         twoFactorAuthRepository.save(existing);
+        twoFactorUserSyncService.syncOnEnable(user);
         log.info("SMS 2FA reactivated for user: {}", user.getUsername());
     }
 
@@ -317,6 +320,7 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
                 .ifPresent(primary -> {
                     primary.setIsPrimary(false);
                     twoFactorAuthRepository.save(primary);
+
                 });
 
         // Create new configuration
@@ -331,6 +335,7 @@ public class SmsTwoFactorServiceImpl implements SmsTwoFactorService {
                 .build();
 
         twoFactorAuthRepository.save(smsTwoFactor);
+        twoFactorUserSyncService.syncOnEnable(user);
         log.info("SMS 2FA created for user: {}", user.getUsername());
     }
     

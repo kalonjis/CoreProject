@@ -7,6 +7,7 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TOTPTwoFactorA
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TOTPTwoFactorNotEnabledException;
 import be.steby.CoreProject.bll.domains.auth.models.TotpActivationInitiateResult;
 import be.steby.CoreProject.bll.domains.auth.models.TotpTwoFactorActivationBllRequest;
+import be.steby.CoreProject.bll.domains.auth.services.twofactor.TwoFactorUserSyncService;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.config.TOTPConfiguration;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.config.TOTPSecretEncryptionService;
 import be.steby.CoreProject.bll.domains.auth.services.twofactor.jwt.TwoFactorJwtService;
@@ -24,7 +25,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,7 +69,6 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
 
     private final TwoFactorAuthRepository twoFactorAuthRepository;
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
     private final TOTPConfiguration totpConfig;
     private final TOTPSecretEncryptionService encryptionService;
     private final TwoFactorJwtService twoFactorJwtService;
@@ -78,9 +77,7 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
     private final TotpTwoFactorVerificationAttemptService totpVerificationAttemptService;
     private final SecureRandom secureRandom = new SecureRandom();
     private final DeviceService deviceService;
-
-    @Autowired
-    private HttpServletRequest httpServletRequest;
+    private final TwoFactorUserSyncService twoFactorUserSyncService;
 
 
     // Base32 alphabet for secret encoding (RFC 4648)
@@ -132,6 +129,7 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
         // Set this as primary
         totpAuth.setIsPrimary(true);
         twoFactorAuthRepository.save(totpAuth);
+        twoFactorUserSyncService.syncOnEnable(user);
 
         // Generate setup information for the user
         String qrCodeUri = generateQRCodeUri(user.getEmail(), secretKey);
@@ -242,6 +240,7 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
         totpAuth.setDisabledAt(Instant.now());
 
         twoFactorAuthRepository.save(totpAuth);
+        twoFactorUserSyncService.syncOnDisable(user);
         log.info("TOTP 2FA disabled successfully for user: {}", user.getUsername());
 
         // Publish activity log event
@@ -526,5 +525,6 @@ public class TOTPTwoFactorServiceImpl implements TOTPTwoFactorService {
         // Set this as primary and save
         totpAuth.setIsPrimary(true);
         twoFactorAuthRepository.save(totpAuth);
+        twoFactorUserSyncService.syncOnEnable(user);
     }
 }

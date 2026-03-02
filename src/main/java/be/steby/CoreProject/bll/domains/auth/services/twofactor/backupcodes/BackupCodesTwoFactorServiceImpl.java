@@ -9,8 +9,6 @@ import be.steby.CoreProject.bll.domains.auth.services.twofactor.config.BackupCod
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
 import be.steby.CoreProject.dl.entities.Device;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import be.steby.CoreProject.dal.repositories.TwoFactorAuthRepository;
@@ -49,9 +47,6 @@ public class BackupCodesTwoFactorServiceImpl implements BackupCodesTwoFactorServ
     private final PasswordEncoder passwordEncoder;
     private final DeviceService deviceService;
     private final ApplicationEventPublisher eventPublisher;
-
-    @Autowired
-    private HttpServletRequest httpServletRequest;
 
     @Override
     @Transactional

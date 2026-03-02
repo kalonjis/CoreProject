@@ -20,6 +20,7 @@ mjml src/main/resources/mjml/emails/accounts/AccountDeletionConfirmed.mjml -o sr
 mjml src/main/resources/mjml/emails/admin/temporaryPassword.mjml -o src/main/resources/templates/emails/admin/temporaryPassword.html
 mjml src/main/resources/mjml/emails/admin/temporaryPasswordAlternative.mjml -o src/main/resources/templates/emails/admin/temporaryPasswordAlternative.html
 mjml src/main/resources/mjml/emails/admin/passwordResetLink.mjml -o src/main/resources/templates/emails/admin/passwordResetLink.html
+mjml src/main/resources/mjml/emails/admin/AdminDeactivatedUser.mjml -o src/main/resources/templates/emails/admin/AdminDeactivatedUser.html
 
 # Devices
 mjml src/main/resources/mjml/emails/devices/newDeviceAlert.mjml -o src/main/resources/templates/emails/devices/newDeviceAlert.html

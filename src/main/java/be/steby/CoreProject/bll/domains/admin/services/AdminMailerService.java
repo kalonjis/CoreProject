@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.admin.services;
 
 import be.steby.CoreProject.bll.common.services.notification.mailer.BaseMailerService;
+import be.steby.CoreProject.bll.domains.admin.events.account.AdminUserDeactivatedEvent;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.il.mail.EmailComposer;
 import lombok.extern.slf4j.Slf4j;
@@ -114,4 +115,38 @@ public class AdminMailerService extends BaseMailerService {
     }
 
 
+    /**
+     * Sends an account deactivation notification email to the target user
+     * following an administrative deactivation.
+     *
+     * <p>The email informs the user that their account has been deactivated,
+     * provides the deactivation category, and indicates whether reactivation
+     * is possible.
+     *
+     * @param event the admin user deactivated event containing all context
+     */
+    public void sendAdminDeactivationEmail(AdminUserDeactivatedEvent event) {
+        User target = event.targetUser();
+        log.info("Sending admin deactivation notification to: {}", target.getEmail());
+
+        boolean canReactivate = event.category().allowsReactivation();
+
+        Context context = createBaseContext(target);
+        context.setVariable("categoryDisplayName", event.category().getDisplayName());
+        context.setVariable("categoryDescription", event.category().getDescription());
+        context.setVariable("comment",              event.hasComment() ? event.comment() : null);
+        context.setVariable("canReactivate",        canReactivate);
+        context.setVariable("isTemporary",          event.isTemporary());
+        context.setVariable("isSecurityRelated",    event.isSecurityRelated());
+        context.setVariable("supportUrl",           buildUrl("/contact"));
+        context.setVariable("reactivationUrl",      canReactivate ? buildUrl("/account/reactivation") : null);
+
+        String subject = event.isSecurityRelated()
+                ? "🔒 Security Alert: Your account has been suspended"
+                : "Your account has been deactivated";
+
+        sendEmail(subject, "admin/adminDeactivatedUser", context, target.getEmail());
+
+        log.debug("Admin deactivation email sent to: {}", target.getEmail());
+    }
 }

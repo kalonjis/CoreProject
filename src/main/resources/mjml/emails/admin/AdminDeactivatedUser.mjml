@@ -1,0 +1,130 @@
+<mjml>
+  <mj-head>
+    <mj-title>Account Deactivated – CoreProject</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="15px" color="#333333" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f4f4">
+
+    <!-- Header -->
+    <mj-section background-color="#c0392b" padding="30px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="32px" padding-bottom="0">
+          🔒
+        </mj-text>
+        <mj-text align="center" color="#ffffff" font-size="22px" font-weight="bold" padding-top="8px">
+          Account Deactivated
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Greeting -->
+    <mj-section background-color="#ffffff" padding="30px 40px 10px">
+      <mj-column>
+        <mj-text>
+          Hello <strong th:text="${userName}">User</strong>,
+        </mj-text>
+        <mj-text>
+          We are writing to inform you that your account on <strong>CoreProject</strong>
+          has been administratively deactivated.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Reason box -->
+    <mj-section background-color="#fff5f5" border-radius="6px" padding="5px 40px">
+      <mj-column background-color="#fff5f5" border-radius="6px" padding="20px" border="1px solid #f5c6c6">
+        <mj-text color="#c0392b" font-size="13px" font-weight="bold" letter-spacing="0.05em" padding-bottom="4px">
+          REASON
+        </mj-text>
+        <mj-text font-size="15px" font-weight="600" color="#2c2c2c" padding-top="0" padding-bottom="4px">
+          <span th:text="${categoryDisplayName}">Category</span>
+        </mj-text>
+        <mj-text font-size="14px" color="#666666" padding-top="0">
+          <span th:text="${categoryDescription}">Description</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Admin comment (optional) -->
+    <mj-section background-color="#ffffff" padding="10px 40px">
+      <mj-column>
+        <mj-text>
+          <div th:if="${comment != null}"
+               style="background:#f9f9f9;border-left:4px solid #c0392b;border-radius:0 4px 4px 0;padding:16px 20px;">
+            <p style="margin:0 0 4px;font-size:12px;font-weight:700;text-transform:uppercase;color:#888;">
+              ADDITIONAL INFORMATION
+            </p>
+            <p style="margin:0;font-size:14px;color:#444;line-height:1.6;" th:text="${comment}">Comment</p>
+          </div>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Reactivation possible -->
+    <mj-section background-color="#ffffff" padding="10px 40px">
+      <mj-column>
+        <mj-text>
+          <div th:if="${canReactivate}">
+            <p style="margin:0 0 16px;font-size:15px;color:#555;line-height:1.6;">
+              This deactivation is <strong>temporary</strong>. You may submit a reactivation
+              request by clicking the button below.
+            </p>
+            <p style="margin:0;text-align:center;">
+              <a th:href="${reactivationUrl}"
+                 style="display:inline-block;padding:14px 32px;background:#27ae60;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:bold;">
+                Request Reactivation
+              </a>
+            </p>
+          </div>
+          <div th:if="${!canReactivate}">
+            <p style="margin:0;font-size:15px;color:#555;line-height:1.6;">
+              This deactivation is <strong>permanent</strong> and cannot be reversed through a
+              self-service request. If you believe this is a mistake, please contact our support team.
+            </p>
+          </div>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Security alert (optional) -->
+    <mj-section background-color="#ffffff" padding="0 40px 10px">
+      <mj-column>
+        <mj-text>
+          <div th:if="${isSecurityRelated}"
+               style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:16px 20px;">
+            <p style="margin:0;font-size:14px;color:#7b5800;line-height:1.6;">
+              ⚠️ This action was taken for security reasons. If you believe your account may have
+              been compromised, please contact support immediately.
+            </p>
+          </div>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Support link -->
+    <mj-section background-color="#ffffff" padding="10px 40px 30px">
+      <mj-column>
+        <mj-text color="#777777" font-size="14px">
+          For any questions, please visit our
+          <a th:href="${supportUrl}" style="color:#c0392b;">support page</a>
+          or reply to this email.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f8f9fa" padding="20px 40px">
+      <mj-column>
+        <mj-text align="center" color="#999999" font-size="12px">
+          This is an automated message — please do not reply directly.<br/>
+          © <span th:text="${#dates.year(#dates.createNow())}">2025</span> CoreProject. All rights reserved.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

@@ -1,9 +1,11 @@
 package be.steby.CoreProject.pl.domains.admin.controllers;
 
 import be.steby.CoreProject.bll.domains.admin.services.useraccount.AdminUserAccountService;
+import be.steby.CoreProject.dl.enums.admin.deactivation.AdminDeactivationCategory;
 import be.steby.CoreProject.pl.domains.admin.models.requests.AdminUserCreateRequest;
 import be.steby.CoreProject.pl.domains.admin.models.requests.UserDeactivationForm;
 import be.steby.CoreProject.pl.domains.admin.models.responses.AdminAccountOperationResponse;
+import be.steby.CoreProject.pl.domains.admin.models.responses.DeactivationCategoryDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +13,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * REST controller for admin-initiated user account lifecycle operations.
@@ -127,6 +132,22 @@ public class AdminUserAccountController {
     // =========================================================================
     // USER DEACTIVATION
     // =========================================================================
+
+
+    /**
+     * Returns all available deactivation categories.
+     * Used by the admin UI to populate the category picker in the deactivation modal.
+     *
+     * GET /api/admin/users/deactivation-categories
+     */
+    @GetMapping("/deactivation-categories")
+    public ResponseEntity<List<DeactivationCategoryDTO>> getDeactivationCategories() {
+        List<DeactivationCategoryDTO> categories = Arrays.stream(AdminDeactivationCategory.values())
+                .map(DeactivationCategoryDTO::fromEnum)
+                .toList();
+
+        return ResponseEntity.ok(categories);
+    }
 
     /**
      * Deactivates a user account by administrative decision.

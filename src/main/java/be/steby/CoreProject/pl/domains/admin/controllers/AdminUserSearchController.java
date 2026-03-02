@@ -141,15 +141,16 @@ public class AdminUserSearchController {
      * @return User DTO with user details
      */
     @GetMapping("/{publicId}")
-    public ResponseEntity<UserDTO> getUserById(@PathVariable String publicId) {
+    public ResponseEntity<AdminUserDTO> getUserById(@PathVariable String publicId) {
         log.info("Admin get user by ID - userId: {}", publicId);
 
         User user = adminSearchService.getUserByPublicId(publicId);
 
         log.info("Admin retrieved user - userId: {}, username: {}", publicId, user.getUsername());
 
-        return ResponseEntity.ok(UserDTO.fromEntity(user));
+        return ResponseEntity.ok(AdminUserDTO.fromEntity(user));
     }
+
 
     /**
      * Gets all devices associated with a user.
@@ -158,7 +159,7 @@ public class AdminUserSearchController {
      * @param publicId User String publicId
      * @return List of user's devices
      */
-    @GetMapping("/{id}/devices")
+    @GetMapping("/{publicId}/devices")
     public ResponseEntity<List<Device>> getUserDevices(@PathVariable String publicId) {
         log.info("Admin get user devices - userId: {}", publicId);
 
