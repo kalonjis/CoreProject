@@ -104,13 +104,12 @@ public class VerificationCodeTokenService extends BaseTokenServiceImpl<Verificat
      * @throws MaxAttemptsReachedException if rate limits are exceeded
      */
     @Transactional
-    public CodeGenerationResult createSmsPasswordResetToken(User user) {
-        log.debug("Creating SMS password reset token for user: {}", user.getUsername());
+    public CodeGenerationResult createVerificationCodeToken(User user) {
+        log.debug("Creating verification code token for user: {}", user.getUsername());
 
-        // Check SMS-specific rate limiting
         if (verificationCodeAttemptService.hasExceededAttempts(user)) {
-            log.warn("User {} exceeded SMS password reset attempts", user.getUsername());
-            throw new MaxAttemptsReachedException("Too many SMS password reset attempts. Please try again later.");
+            log.warn("User {} exceeded verification code attempts", user.getUsername());
+            throw new MaxAttemptsReachedException("Too many attempts. Please try again later.");
         }
 
         // Generate secure 6-digit verification code
@@ -131,7 +130,7 @@ public class VerificationCodeTokenService extends BaseTokenServiceImpl<Verificat
         // Record attempt for rate limiting
         verificationCodeAttemptService.recordAttempt(user);
 
-        log.info("SMS password reset token created successfully for user: {} (token: {})", 
+        log.info("Verification code token created successfully for user: {} (token: {})",
                 user.getUsername(), token.getToken());
 
         return new CodeGenerationResult(token, verificationCode);

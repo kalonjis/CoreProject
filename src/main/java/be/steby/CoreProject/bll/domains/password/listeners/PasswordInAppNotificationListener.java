@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.domains.notification.models.NotificationRequest;
 import be.steby.CoreProject.bll.domains.notification.services.NotificationService;
 import be.steby.CoreProject.bll.domains.password.events.PasswordChangedEvent;
 import be.steby.CoreProject.bll.domains.password.events.PasswordResetCompletedEvent;
+import be.steby.CoreProject.dl.enums.notification.NotificationChannel;
 import be.steby.CoreProject.dl.enums.notification.NotificationPriority;
 import be.steby.CoreProject.dl.enums.notification.NotificationType;
 import lombok.RequiredArgsConstructor;
@@ -106,6 +107,7 @@ public class PasswordInAppNotificationListener {
             NotificationRequest request = NotificationRequest.builder()
                     .recipient(event.user())
                     .type(NotificationType.SECURITY)
+                    .channel(NotificationChannel.IN_APP)
                     .title("🔑 Mot de passe réinitialisé")
                     .body("Votre mot de passe a été réinitialisé avec succès. Si vous n'êtes pas à l'origine de cette action, contactez le support.")
                     .actionUrl(ACTION_URL)
