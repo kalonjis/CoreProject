@@ -1,81 +1,39 @@
 package be.steby.CoreProject.bll.domains.password.services;
 
-import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordResetTokenException;
-import be.steby.CoreProject.bll.domains.password.exceptions.PasswordAlreadyDefinedException;
-import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordException;
-import be.steby.CoreProject.bll.domains.password.exceptions.PasswordDomainException;
 import be.steby.CoreProject.bll.domains.password.models.*;
-import be.steby.CoreProject.dl.enums.PasswordResetType;
+
+import be.steby.CoreProject.bll.domains.password.exceptions.*;
+import be.steby.CoreProject.bll.common.exceptions.TokenValidityException;
 
 /**
- * Service interface for password management operations.
+ * Core password operations: verification, reset completion, change, and definition.
  *
- * <p>This service handles all password-related business logic including:
+ * <p>Reset initiation is intentionally excluded from this service and delegated
+ * to channel-specific services:
  * <ul>
- *   <li>Password reset requests via multiple delivery methods (EMAIL_LINK, EMAIL_CODE, SMS_CODE)</li>
- *   <li>Verification code validation for code-based reset flows</li>
- *   <li>Password reset completion with tokens or permission cookies</li>
- *   <li>Password changes for authenticated users</li>
- *   <li>Token regeneration for expired reset requests</li>
+ *   <li>{@link EmailLinkPasswordResetService} — reset via email link</li>
+ *   <li>{@link EmailCodePasswordResetService} — reset via email verification code</li>
+ *   <li>{@link SmsPasswordResetService} — reset via SMS verification code</li>
  * </ul>
- *
- * <p><strong>Security considerations:</strong>
- * <ul>
- *   <li>User enumeration prevention (generic responses)</li>
- *   <li>Rate limiting compliance</li>
- *   <li>Secure token handling</li>
- *   <li>Session invalidation on password change/reset</li>
- * </ul>
- *
- * @see PasswordResetType
- * @see CodePasswordResetResult
- * @see CodeVerificationResult
  */
 public interface PasswordService {
 
     // =========================================================================
-    // FORGOT PASSWORD - INITIATE RESET
+    // CODE VERIFICATION (EMAIL_CODE + SMS_CODE)
     // =========================================================================
 
     /**
-     * Initiates a password reset request with support for multiple delivery methods.
+     * Verifies a 6-digit code and grants permission to reset the password.
      *
-     * <p>This method handles all password reset types defined in {@link PasswordResetType}:
-     * <ul>
-     *   <li>{@code EMAIL_LINK}: Creates a long-lived token and sends reset link via email</li>
-     *   <li>{@code EMAIL_CODE}: Creates a short verification code and sends via email</li>
-     *   <li>{@code SMS_CODE}: Creates a short verification code and sends via SMS (requires verified phone)</li>
-     * </ul>
+     * <p>Used for both {@code EMAIL_CODE} and {@code SMS_CODE} flows. Validates the
+     * user-provided code against the hashed value stored in the database, referenced
+     * by the JWT token from the verification cookie.
      *
-     * <p>For security reasons, the response is always generic regardless of whether the email exists
-     * or whether delivery requirements are met. This prevents user enumeration attacks.
+     * <p>On success, returns a short-lived permission token (typically 15 minutes)
+     * that allows the user to access the password reset form.
      *
-     * <p><strong>Code-based flows:</strong> For {@code EMAIL_CODE} and {@code SMS_CODE}, the returned
-     * result contains a JWT token that should be stored in a verification cookie by the controller.
-     *
-     * @param request contains email and reset type
-     * @return result containing JWT token for code-based flows, or failure indicator
-     * @throws PasswordDomainException if request data fails business validation
-     */
-    CodePasswordResetResult requestPasswordReset(ForgotPasswordBLLRequest request);
-
-    // =========================================================================
-    // CODE VERIFICATION (EMAIL_CODE and SMS_CODE flows)
-    // =========================================================================
-
-    /**
-     * Verifies a password reset code and grants permission to reset password.
-     *
-     * <p>This method handles verification for both {@code EMAIL_CODE} and {@code SMS_CODE}
-     * reset flows. It validates the user-provided 6-digit code against the hashed code
-     * stored in the database, referenced by the JWT token.
-     *
-     * <p>If validation succeeds, generates a permission token that allows access to
-     * the password reset page. The permission token has a limited lifespan (typically 15 minutes).
-     *
-     * @param request contains verification code and JWT token from cookie
-     * @return verification result with permission token if successful, failure otherwise
-     * @throws PasswordDomainException if validation fails or token is invalid
+     * @param request contains the 6-digit code and the JWT reference token from cookie
+     * @return success with permission token, or failure if code is invalid or expired
      */
     CodeVerificationResult verifyPasswordResetCode(VerifyCodeBLLRequest request);
 
@@ -84,32 +42,30 @@ public interface PasswordService {
     // =========================================================================
 
     /**
-     * Completes the password reset process using a valid token from email link.
+     * Completes the password reset using a token from the email link (EMAIL_LINK flow).
      *
-     * <p>This method is used for {@code EMAIL_LINK} reset flow. It validates the token,
-     * checks its expiration, and updates the user's password if all validations pass.
-     * The token is consumed during this process.
+     * <p>Validates and consumes the token, updates the password, then revokes all
+     * active sessions and disconnects all devices for security.
      *
-     * <p>All active user sessions are invalidated for security.
-     *
-     * @param request contains the new password (already validated at PL level)
-     * @param token the password reset token from email link
-     * @throws PasswordDomainException if token is invalid, expired, or password fails validation
+     * @param request contains the new password
+     * @param token   the reset token from the email link URL parameter
+     * @throws InvalidPasswordResetTokenException if the token is invalid or expired
+     * @throws InvalidPasswordException           if the new password fails policy validation
      */
     void resetPassword(PasswordResetRequest request, String token);
 
     /**
-     * Completes password reset using a permission token from code verification.
+     * Completes the password reset using a permission token (EMAIL_CODE + SMS_CODE flows).
      *
-     * <p>This method is used for {@code EMAIL_CODE} and {@code SMS_CODE} reset flows,
-     * after successful code verification via {@link #verifyPasswordResetCode}.
+     * <p>Called after successful code verification. The permission token — issued by
+     * {@link #verifyPasswordResetCode} — grants temporary access to reset the password
+     * without requiring the original email token.
      *
-     * <p>The permission token grants temporary access to reset the password without
-     * needing the original email token. All active user sessions are invalidated for security.
+     * <p>All active sessions are revoked and all devices are disconnected on success.
      *
-     * @param request contains permission token and new password
-     * @throws PasswordDomainException if password fails validation
-     * @throws InvalidPasswordResetTokenException if permission token is invalid or expired
+     * @param request contains the permission token and the new password
+     * @throws InvalidPasswordResetTokenException if the permission token is invalid or expired
+     * @throws InvalidPasswordException           if the new password fails policy validation
      */
     void resetPasswordWithPermission(ResetPasswordWithPermissionBLLRequest request);
 
@@ -118,50 +74,43 @@ public interface PasswordService {
     // =========================================================================
 
     /**
-     * Requests a new password reset token if the previous one expired.
+     * Issues a new EMAIL_LINK reset token when the previous one has expired.
      *
-     * <p>This allows users to generate a new reset link without going through
-     * the entire forgot password flow again.
+     * <p>The expired token is revoked and a fresh one is created and sent by email.
+     * If the token is still valid, a {@code TokenValidityException} is thrown with
+     * a link to the existing reset page.
      *
-     * <p><strong>Security:</strong> Uses generic responses to prevent token validation attacks.
-     *
-     * @param token the expired token
-     * @throws PasswordDomainException if token validation fails
+     * @param token the expired (or potentially still valid) reset token
+     * @throws TokenValidityException if the token is still valid
      */
     void requestPasswordToken(String token);
 
     // =========================================================================
-    // CHANGE PASSWORD (AUTHENTICATED)
+    // AUTHENTICATED OPERATIONS
     // =========================================================================
 
     /**
-     * Changes the password for an authenticated user.
+     * Changes the password for the currently authenticated user.
      *
-     * <p>Validates the current password, applies password policy validation to the
-     * new password, and updates the user's password.
+     * <p>Requires the current password for verification. On success, all sessions
+     * except the current device are revoked. If the current device cannot be
+     * identified, all sessions are revoked.
      *
-     * <p>All active sessions except the current one are invalidated for security.
-     *
-     * @param request contains current password and new password
-     * @throws PasswordDomainException if current password is incorrect or new password fails validation
+     * @param request contains the current password and the new password
+     * @throws InvalidPasswordException    if the current password is incorrect or the new one fails policy
+     * @throws NoPasswordDefinedException  if the user has no password yet (OAuth user — use definePassword instead)
      */
     void changePassword(PasswordChangeRequest request);
 
-    // =========================================================================
-    // DEFINE PASSWORD (OAUTH USERS)
-    // =========================================================================
-
     /**
-     * Defines a password for OAuth-only users who don't have one yet.
+     * Defines a first password for OAuth users who signed up without credentials.
      *
-     * <p>This allows users who signed up via OAuth (Google, GitHub, Microsoft)
-     * to also login with credentials.
+     * <p>Only allowed when the user has no password defined ({@code user.hasPassword() == false}).
+     * Does not require a current password. Use {@link #changePassword} if the user already has one.
      *
-     * <p>Only allowed if user has no password defined (user.hasPassword() == false).
-     *
-     * @param newPassword the password to define (already validated at PL level)
-     * @throws PasswordAlreadyDefinedException if user already has a password
-     * @throws InvalidPasswordException if password fails policy validation
+     * @param newPassword the password to set
+     * @throws PasswordAlreadyDefinedException if the user already has a password
+     * @throws InvalidPasswordException        if the password fails policy validation
      */
     void definePassword(String newPassword);
 }
