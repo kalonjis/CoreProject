@@ -4,8 +4,9 @@ import lombok.Getter;
 
 @Getter
 public class CoreProjectException extends RuntimeException {
+
     /**
-     * The {@code detailed message} or object associated with the {@link Exception}.
+     * The {@code detailed message} associated with the {@link Exception}.
      */
     private final String message;
 
@@ -15,68 +16,83 @@ public class CoreProjectException extends RuntimeException {
     private final int status;
 
     /**
-     * Constructs a new {@link CoreProjectException }with the specified {@code detail message}.
-     * The {@code status code} is set to {@code 500 (Internal Server Error)} by default.
-     *
-     * @param message the detail message (which is saved for later retrieval
-     *                by the {@link #getMessage()} method).
+     * A machine-readable {@code error code} identifying the type of error.
+     * Examples: {@code "INVALID_TOKEN"}, {@code "USER_NOT_FOUND"}, {@code "FORBIDDEN"}.
+     * <p>
+     * Useful to distinguish between exceptions that share the same HTTP status code.
      */
+    private final String errorCode;
+
+    // -------------------------------------------------------------------------
+    // Constructors without cause
+    // -------------------------------------------------------------------------
+
     public CoreProjectException(String message) {
         super(message);
-        this.message = message;
-        this.status = 500;
+        this.message   = message;
+        this.status    = 500;
+        this.errorCode = "INTERNAL_ERROR";
     }
 
-
-    /**
-     * Constructs a new {@link CoreProjectException} with the specified {@code detail message} and {@code status code}.
-     *
-     * @param message the {@code detail message} (which is saved for later retrieval
-     *                by the {@link #getMessage()} method).
-     * @param status  the {@code HTTP status code} (which is saved for later retrieval
-     *                by the {@link #getStatus()} method).
-     */
-    public CoreProjectException(String message, int status){
+    public CoreProjectException(String message, int status) {
         super(message);
-        this.status = status;
-        this.message = message;
+        this.message   = message;
+        this.status    = status;
+        this.errorCode = "INTERNAL_ERROR";
     }
 
+    public CoreProjectException(String message, int status, String errorCode) {
+        super(message);
+        this.message   = message;
+        this.status    = status;
+        this.errorCode = errorCode;
+    }
 
-    /**
-     *
-     */
+    // -------------------------------------------------------------------------
+    // Constructors with cause
+    // -------------------------------------------------------------------------
+
     public CoreProjectException(String message, Throwable cause) {
-        super(message, cause);  // Pass cause to RuntimeException
-        this.message = message;
-        this.status = 500;
+        super(message, cause);
+        this.message   = message;
+        this.status    = 500;
+        this.errorCode = "INTERNAL_ERROR";
     }
 
-    /**
-     *
-     */
     public CoreProjectException(String message, int status, Throwable cause) {
-        super(message, cause);  // Pass cause to RuntimeException
-        this.message = message;
-        this.status = status;
+        super(message, cause);
+        this.message   = message;
+        this.status    = status;
+        this.errorCode = "INTERNAL_ERROR";
     }
 
+    public CoreProjectException(String message, int status, String errorCode, Throwable cause) {
+        super(message, cause);
+        this.message   = message;
+        this.status    = status;
+        this.errorCode = errorCode;
+    }
+
+    // -------------------------------------------------------------------------
+    // toString
+    // -------------------------------------------------------------------------
 
     /**
-     * Returns a {@code string representation} of this {@code exception}.
-     * The string includes the {@code class name}, {@code method name}, {@code file name}, {@code line number}, and {@code message}.
-     *
-     * @return a string representation of this exception.
+     * Returns a string representation of this exception.
+     * Includes class name, method, file, line number, status, error code, and message.
      */
     @Override
     public String toString() {
-        StackTraceElement element = this.getStackTrace()[0];
-        return String.format("%s" + " thrown in " + "%s" + "() at " + "%s:%d"  + " with message: " + "%s" ,
+        StackTraceElement el = this.getStackTrace()[0];
+        return String.format(
+                "%s thrown in %s() at %s:%d | status=%d | code=%s | message: %s",
                 this.getClass().getSimpleName(),
-                element.getMethodName(),
-                element.getFileName(),
-                element.getLineNumber(),
-                this.getMessage());
+                el.getMethodName(),
+                el.getFileName(),
+                el.getLineNumber(),
+                this.status,
+                this.errorCode,
+                this.getMessage()
+        );
     }
 }
-

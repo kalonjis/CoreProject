@@ -28,7 +28,15 @@ import be.steby.CoreProject.bll.common.exceptions.CoreProjectException;
  */
 public abstract class TwoFactorDomainException extends AuthDomainException {
 
-    /**
+    
+    private static final String ERROR_CODE = "TWO_FACTOR_DOMAIN";
+
+    @Override
+    public String getErrorCode() {
+        return ERROR_CODE;
+    }
+    // ────────────────────────────────────────────────────────────────
+/**
      * Creates a new 2FA domain exception with a message.
      * Default status is 401 (Unauthorized).
      *

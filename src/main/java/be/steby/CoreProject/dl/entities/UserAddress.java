@@ -48,8 +48,7 @@ import lombok.*;
 @Entity
 @Table(name = "user_address",
         indexes = {
-                @Index(name = "idx_user_address_user", columnList = "user_id"),
-                @Index(name = "idx_user_address_user_type", columnList = "user_id, address_type"),
+                @Index(name = "idx_user_address_user", columnList = "user_id")
         },
         uniqueConstraints = {
                 // Optional: Prevent duplicate links between same user and address with same type

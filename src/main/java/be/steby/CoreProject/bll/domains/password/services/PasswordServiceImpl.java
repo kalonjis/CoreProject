@@ -197,6 +197,7 @@ public class PasswordServiceImpl implements PasswordService {
     // =========================================================================
 
     @Override
+    @Transactional
     public void changePassword(PasswordChangeRequest request) {
         User user = userService.getAuthenticatedUser();
         Device currentDevice = deviceService.detectCurrentDevice();

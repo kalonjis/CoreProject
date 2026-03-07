@@ -1,7 +1,15 @@
 package be.steby.CoreProject.bll.common.exceptions;
 
 public class TokenValidityException extends CoreProjectException {
-    /**
+    
+    private static final String ERROR_CODE = "TOKEN_VALIDITY";
+
+    @Override
+    public String getErrorCode() {
+        return ERROR_CODE;
+    }
+    // ────────────────────────────────────────────────────────────────
+/**
      * Constructs a new {@code AuthenticationException} with the specified {@code detail message}.
      * The {@code status code} is set to {@code 400 (Unauthorized)} by default.
      *
