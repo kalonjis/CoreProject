@@ -19,7 +19,15 @@ package be.steby.CoreProject.bll.common.exceptions;
  */
 public class TokenSecurityException extends CoreProjectException {
 
-    /**
+    
+    private static final String ERROR_CODE = "TOKEN_SECURITY";
+
+    @Override
+    public String getErrorCode() {
+        return ERROR_CODE;
+    }
+    // ────────────────────────────────────────────────────────────────
+/**
      * Constructs a new TokenSecurityException with the specified detail message.
      * The HTTP status code is set to 400 (Bad Request) by default.
      *

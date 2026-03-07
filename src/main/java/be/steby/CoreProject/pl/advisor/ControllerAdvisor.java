@@ -4,8 +4,12 @@ import be.steby.CoreProject.bll.domains.auth.exceptions.PasswordChangeRequiredEx
 import be.steby.CoreProject.bll.domains.auth.exceptions.twofactor.TwoFactorCodeDeliveryException;
 import be.steby.CoreProject.bll.common.exceptions.CoreProjectException;
 import be.steby.CoreProject.bll.common.exceptions.RateLimitExceededException;
+import be.steby.CoreProject.bll.domains.password.exceptions.InvalidPasswordResetTokenException;
+import be.steby.CoreProject.bll.domains.password.services.cookies.PasswordCookieService;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -26,35 +30,89 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Controller advice class for global exception handling in the application.
- * Uses {@code @ControllerAdvice} to capture and handle specific exceptions in a centralized manner.
+ * Global exception handler for the application.
+ *
+ * <p>All error responses share a consistent structure:
+ * <pre>{@code
+ * {
+ *   "status":    403,
+ *   "errorCode": "FORBIDDEN",
+ *   "exception": "AdminPrivilegeException",
+ *   "message":   "You do not have the required privileges.",
+ *   "timestamp": "2025-03-01T14:30:00"          // always present
+ *   // optional extra fields depending on the exception type
+ * }
+ * }</pre>
  */
 @Slf4j
 @ControllerAdvice
+@RequiredArgsConstructor
 public class ControllerAdvisor {
 
     @Value("${url.back_server}")
     private String BACK_URL;
 
+    private final PasswordCookieService passwordCookieService;
+
+    // =========================================================================
+    // Helper
+    // =========================================================================
+
     /**
-     * <p>Handles exceptions of type {@link CoreProjectException}.</p>
-     * <p>This method captures {@link CoreProjectException}, logs the error message,
-     * and returns an HTTP response with a status containing the error message.</p>
+     * Builds the standard error response body shared by all handlers.
      *
-     * @param error the {@link CoreProjectException} that was thrown
-     * @return a {@link ResponseEntity} containing the error message with a status
+     * @param status    HTTP status code
+     * @param errorCode machine-readable error identifier (e.g. {@code "INVALID_TOKEN"})
+     * @param exception simple class name of the thrown exception
+     * @param message   human-readable error description
+     * @return a mutable {@link Map} that handlers can enrich with extra fields
      */
-    @ExceptionHandler(CoreProjectException.class)
-    public ResponseEntity<Map<String, String>> handleCoreProjectException(CoreProjectException error) {
-        log.error("Exception occurred: {}", error.toString());
-        HashMap<String, String> map = new HashMap<>();
-        map.put("error", error.getMessage());
-        return ResponseEntity.status(error.getStatus())
-                .header("Content-Type", "application/json")
-                .body(map);
+    private Map<String, Object> buildError(int status, String errorCode, String exception, String message) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("status",    status);
+        body.put("errorCode", errorCode);
+        body.put("exception", exception);
+        body.put("message",   message);
+        body.put("timestamp", LocalDateTime.now());
+        return body;
     }
 
+    // =========================================================================
+    // CoreProjectException — catch-all for the whole hierarchy
+    // =========================================================================
 
+    /**
+     * Handles any {@link CoreProjectException} (and all its subclasses that are
+     * not handled by a more specific handler below).
+     *
+     * <p>The {@code errorCode} is read directly from the exception, so each leaf
+     * exception controls its own code (e.g. {@code "INVALID_TOKEN"}, {@code "USER_NOT_FOUND"}).
+     */
+    @ExceptionHandler(CoreProjectException.class)
+    public ResponseEntity<Map<String, Object>> handleCoreProjectException(CoreProjectException ex) {
+        log.error("Exception occurred: {}", ex.toString());
+
+        Map<String, Object> body = buildError(
+                ex.getStatus(),
+                ex.getErrorCode(),
+                ex.getClass().getSimpleName(),
+                ex.getMessage()
+        );
+
+        return ResponseEntity
+                .status(ex.getStatus())
+                .header("Content-Type", "application/json")
+                .body(body);
+    }
+
+    // =========================================================================
+    // Specific handlers (take priority over the catch-all above)
+    // =========================================================================
+
+    /**
+     * Handles {@link PasswordChangeRequiredException}.
+     * Adds a {@code redirectUrl} hint so the frontend knows where to send the user.
+     */
     @ExceptionHandler(PasswordChangeRequiredException.class)
     public ResponseEntity<Map<String, Object>> handlePasswordChangeRequired(
             PasswordChangeRequiredException ex,
@@ -62,163 +120,152 @@ public class ControllerAdvisor {
 
         log.warn("Password change required for user accessing: {}", request.getRequestURI());
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("error", "PASSWORD_CHANGE_REQUIRED");
-        response.put("message", ex.getMessage());
-        response.put("redirectUrl", "/auth/change-password?forced=true");
-        response.put("timestamp", LocalDateTime.now());
+        Map<String, Object> body = buildError(
+                HttpStatus.FORBIDDEN.value(),
+                "PASSWORD_CHANGE_REQUIRED",
+                ex.getClass().getSimpleName(),
+                ex.getMessage()
+        );
+        body.put("redirectUrl", "/auth/change-password?forced=true");
 
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
     }
 
     /**
-     * Handles method argument validation exceptions.
-     * {@link MethodArgumentNotValidException}
-     *
-     * @param error The {@code MethodArgumentNotValidException} to handle.
-     * @return A {@code ResponseEntity} with a status code of 406 (Not Acceptable) and a body containing a list of validation errors.
+     * Handles bean-validation errors ({@link MethodArgumentNotValidException}).
+     * The {@code fieldErrors} list contains one entry per invalid field.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, List<String>>> handleValidationErrors(MethodArgumentNotValidException error) {
-        Map<String, List<String>> errorResponse = new HashMap<>();
-        errorResponse.put("errors", error.getBindingResult().getFieldErrors()
-                .stream().map(FieldError::getDefaultMessage).collect(Collectors.toList()));
-        errorResponse.get("errors").addAll(
-                error.getBindingResult().getGlobalErrors()
-                        .stream()
-                        .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                        .toList()
+    public ResponseEntity<Map<String, Object>> handleValidationErrors(MethodArgumentNotValidException ex) {
+
+        List<String> fieldErrors = ex.getBindingResult().getFieldErrors()
+                .stream()
+                .map(FieldError::getDefaultMessage)
+                .collect(Collectors.toList());
+
+        List<String> globalErrors = ex.getBindingResult().getGlobalErrors()
+                .stream()
+                .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                .toList();
+
+        Map<String, Object> body = buildError(
+                HttpStatus.BAD_REQUEST.value(),
+                "VALIDATION_ERROR",
+                ex.getClass().getSimpleName(),
+                "One or more fields failed validation."
         );
-        errorResponse.put("globalErrors", error.getBindingResult().getGlobalErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).collect(Collectors.toList()));
-        return ResponseEntity.status(400).body(errorResponse);
+        body.put("fieldErrors",  fieldErrors);
+        body.put("globalErrors", globalErrors);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
-
-    // Remplace ton handler existant dans ControllerAdvisor.java
-
+    /**
+     * Handles malformed JSON requests, with special treatment for XSS attempts.
+     */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException error) {
+    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
 
-        Map<String, Object> response = new HashMap<>();
-
-        // Vérifier si c'est une erreur XSS
-        Throwable cause = error.getCause();
+        Throwable cause = ex.getCause();
         if (cause instanceof JsonMappingException jsonEx) {
-            Throwable rootCause = jsonEx.getCause();
+            Throwable root = jsonEx.getCause();
+            if (root instanceof IllegalArgumentException
+                    && root.getMessage() != null
+                    && (root.getMessage().contains("HTML") || root.getMessage().contains("Invalid content"))) {
 
-            if (rootCause instanceof IllegalArgumentException
-                    && rootCause.getMessage() != null
-                    && (rootCause.getMessage().contains("HTML")
-                    || rootCause.getMessage().contains("Invalid content"))) {
+                log.warn("XSS attempt blocked: {}", root.getMessage());
 
-                log.warn("XSS attempt blocked: {}", rootCause.getMessage());
-
-                response.put("error", "INVALID_INPUT");
-                response.put("message", rootCause.getMessage());
-
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .header("Content-Type", "application/json")
-                        .body(response);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                        buildError(HttpStatus.BAD_REQUEST.value(), "XSS_DETECTED",
+                                ex.getClass().getSimpleName(), root.getMessage())
+                );
             }
         }
 
-        // Erreur JSON générique (pas XSS)
-        log.error("Invalid request format: {}", error.getMessage());
+        log.error("Invalid request format: {}", ex.getMessage());
 
-        response.put("error", "INVALID_FORMAT");
-        response.put("message", "Invalid request format. Please check your JSON data.");
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .header("Content-Type", "application/json")
-                .body(response);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                buildError(HttpStatus.BAD_REQUEST.value(), "INVALID_FORMAT",
+                        ex.getClass().getSimpleName(), "Invalid request format. Please check your JSON data.")
+        );
     }
 
     /**
-     * Handles TwoFactorCodeDeliveryException when 2FA code delivery fails.
-     *
-     * Returns 503 Service Unavailable with:
-     * - Error message explaining the failure
-     * - The method that failed
-     * - Available alternative methods
-     *
-     * @param error the TwoFactorCodeDeliveryException
-     * @return ResponseEntity with 503 status and alternatives
+     * Handles {@link TwoFactorCodeDeliveryException}.
+     * Adds the failed delivery method and available alternatives.
      */
     @ExceptionHandler(TwoFactorCodeDeliveryException.class)
-    public ResponseEntity<Map<String, Object>> handleTwoFactorCodeDeliveryException(
-            TwoFactorCodeDeliveryException error) {
+    public ResponseEntity<Map<String, Object>> handleTwoFactorCodeDelivery(TwoFactorCodeDeliveryException ex) {
 
-        log.warn("2FA code delivery failed for method {}: {} - Alternatives: {}",
-                error.getFailedMethod(), error.getMessage(), error.getAlternativeMethods());
+        log.warn("2FA code delivery failed for method {}: {} — Alternatives: {}",
+                ex.getFailedMethod(), ex.getMessage(), ex.getAlternativeMethods());
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("error", "2FA_DELIVERY_FAILED");
-        response.put("message", error.getMessage());
-        response.put("failedMethod", error.getFailedMethod().name());
-        response.put("alternativeMethods", error.getAlternativeMethods().stream()
-                .map(Enum::name)
-                .toList());
-        response.put("timestamp", LocalDateTime.now());
+        Map<String, Object> body = buildError(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                "2FA_DELIVERY_FAILED",
+                ex.getClass().getSimpleName(),
+                ex.getMessage()
+        );
+        body.put("failedMethod",       ex.getFailedMethod().name());
+        body.put("alternativeMethods", ex.getAlternativeMethods().stream().map(Enum::name).toList());
 
-        return ResponseEntity
-                .status(HttpStatus.SERVICE_UNAVAILABLE)
-                .header("Content-Type", "application/json")
-                .body(response);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
     }
 
-
     /**
-     * Handles rate limit exceeded exceptions when users make too many requests.
-     *
-     * <p>Returns HTTP 429 (Too Many Requests) with:</p>
-     * <ul>
-     *   <li>Error code indicating rate limit exceeded</li>
-     *   <li>User-friendly message</li>
-     *   <li>Retry-After header (seconds to wait)</li>
-     *   <li>Timestamp of when the error occurred</li>
-     * </ul>
-     *
-     * <h4>Example Response:</h4>
-     * <pre>{@code
-     * HTTP/1.1 429 Too Many Requests
-     * Retry-After: 45
-     * Content-Type: application/json
-     *
-     * {
-     *   "error": "RATE_LIMIT_EXCEEDED",
-     *   "message": "Too many requests. Please try again later.",
-     *   "timestamp": "2025-02-17T14:30:00"
-     * }
-     * }</pre>
-     *
-     * @param ex the RateLimitExceededException that was thrown
-     * @param request the HTTP request that triggered the rate limit
-     * @return ResponseEntity with 429 status and error details
+     * Handles {@link RateLimitExceededException}.
+     * Adds a {@code Retry-After} header and {@code retryAfter} field (seconds) when available.
      */
     @ExceptionHandler(RateLimitExceededException.class)
     public ResponseEntity<Map<String, Object>> handleRateLimitExceeded(
             RateLimitExceededException ex,
             HttpServletRequest request) {
 
-        log.warn("Rate limit exceeded for request: {} from IP: {}",
-                request.getRequestURI(),
-                request.getRemoteAddr());
+        log.warn("Rate limit exceeded — URI: {} | IP: {}", request.getRequestURI(), request.getRemoteAddr());
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("error", "RATE_LIMIT_EXCEEDED");
-        response.put("message", ex.getMessage());
-        response.put("timestamp", LocalDateTime.now());
+        Map<String, Object> body = buildError(
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                "RATE_LIMIT_EXCEEDED",
+                ex.getClass().getSimpleName(),
+                ex.getMessage()
+        );
 
         ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS);
 
         if (ex.getUnlockTime() != null) {
-            long secondsRemaining = Math.max(0,
-                    ChronoUnit.SECONDS.between(Instant.now(), ex.getUnlockTime()));
-            builder.header("Retry-After", String.valueOf(secondsRemaining));
-            response.put("retryAfter", secondsRemaining);
+            long seconds = Math.max(0, ChronoUnit.SECONDS.between(Instant.now(), ex.getUnlockTime()));
+            builder.header("Retry-After", String.valueOf(seconds));
+            body.put("retryAfter", seconds);
         }
 
-        return builder.body(response);
+        return builder.body(body);
+    }
+
+    // =========================================================================
+    // PASSWORD RESET — cookie lifecycle
+    // =========================================================================
+
+    /**
+     * Handles invalid or expired password-reset permission tokens.
+     * Clears the {@code password_reset_permission} cookie since it is unrecoverable.
+     */
+    @ExceptionHandler(InvalidPasswordResetTokenException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidPasswordResetToken(
+            InvalidPasswordResetTokenException ex,
+            HttpServletResponse response) {
+
+        log.warn("Invalid password reset permission token: {}", ex.getMessage());
+        passwordCookieService.clearPasswordResetPermissionCookie(response);
+
+        Map<String, Object> body = buildError(
+                HttpStatus.UNAUTHORIZED.value(),
+                "PERMISSION_EXPIRED",
+                ex.getClass().getSimpleName(),
+                ex.getMessage()
+        );
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .header("Content-Type", "application/json")
+                .body(body);
     }
 }
-
