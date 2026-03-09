@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.lead.services;
 
-import be.steby.CoreProject.dal.repositories.LeadRepository;
+import be.steby.CoreProject.dal.repositories.crm.LeadRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
