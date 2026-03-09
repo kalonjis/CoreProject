@@ -1,0 +1,94 @@
+package be.steby.CoreProject.dal.repositories.crm;
+
+import be.steby.CoreProject.dl.entities.crm.Contact;
+import be.steby.CoreProject.dl.enums.crm.ContactStatus;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Repository for {@link Contact} entity operations.
+ *
+ * <p>Extends both {@link JpaRepository} for standard CRUD operations and
+ * {@link JpaSpecificationExecutor} for dynamic multi-criteria filtering
+ * used in the admin contact list (filter by status, organisation,
+ * assigned commercial, etc.).</p>
+ *
+ * <h3>Query strategy</h3>
+ * <ul>
+ *   <li>Simple lookups → derived query methods ({@code findBy...})</li>
+ *   <li>Dynamic admin filters → {@code ContactSpecification}
+ *       via {@code findAll(Specification, Pageable)}</li>
+ * </ul>
+ *
+ * @see be.steby.CoreProject.dal.specifications.crm.ContactSpecification
+ */
+@Repository
+public interface ContactRepository extends JpaRepository<Contact, Long>,
+        JpaSpecificationExecutor<Contact> {
+
+    // =========================================================================
+    // Lookup
+    // =========================================================================
+
+    /**
+     * Finds a contact by its public UUID.
+     *
+     * @param publicId the public UUID
+     * @return the contact if found
+     */
+    Optional<Contact> findByPublicId(String publicId);
+
+    /**
+     * Finds a contact by their email address (case-insensitive).
+     *
+     * <p>Used for deduplication checks and lead conversion —
+     * a lead email may already exist as a contact.</p>
+     *
+     * @param email the email address
+     * @return the contact if found
+     */
+    Optional<Contact> findByEmailIgnoreCase(String email);
+
+    /**
+     * Returns {@code true} if a contact with the given email already exists.
+     *
+     * <p>Used for fast duplicate detection before lead conversion.</p>
+     *
+     * @param email the email address to check
+     * @return true if a matching contact exists
+     */
+    boolean existsByEmailIgnoreCase(String email);
+
+    // =========================================================================
+    // Organisation
+    // =========================================================================
+
+    /**
+     * Finds all contacts belonging to a given organisation.
+     *
+     * <p>Used to populate the contacts tab in the organisation detail view.</p>
+     *
+     * @param organisationId the internal ID of the organisation
+     * @return list of contacts for that organisation
+     */
+    List<Contact> findByOrganisationId(Long organisationId);
+
+    // =========================================================================
+    // Status
+    // =========================================================================
+
+    /**
+     * Finds all contacts with a given CRM status.
+     *
+     * <p>Used for bulk operations and status-based reporting
+     * (e.g., all CLIENT contacts for a renewal campaign).</p>
+     *
+     * @param status the contact status to filter by
+     * @return list of contacts with that status
+     */
+    List<Contact> findByStatus(ContactStatus status);
+}

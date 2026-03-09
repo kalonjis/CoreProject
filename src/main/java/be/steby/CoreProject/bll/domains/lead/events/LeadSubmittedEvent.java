@@ -1,6 +1,6 @@
 package be.steby.CoreProject.bll.domains.lead.events;
 
-import be.steby.CoreProject.dl.entities.Lead;
+import be.steby.CoreProject.dl.entities.crm.Lead;
 
 /**
  * Event published when a public inquiry is submitted successfully.
