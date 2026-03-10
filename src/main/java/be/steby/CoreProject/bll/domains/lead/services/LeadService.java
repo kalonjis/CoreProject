@@ -1,23 +1,129 @@
 package be.steby.CoreProject.bll.domains.lead.services;
 
-import be.steby.CoreProject.bll.domains.lead.models.LeadRequest;
-import be.steby.CoreProject.bll.domains.lead.models.LeadResult;
+import be.steby.CoreProject.bll.domains.lead.models.*;
+import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.entities.crm.Lead;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
- * Service for handling public inquiry submissions.
+ * Service for managing leads throughout their full lifecycle.
  *
- * <p>Manages the complete inquiry flow for anonymous visitors including
- * validation, rate limiting, persistence, and email notification.</p>
+ * <h3>Public flow</h3>
+ * <pre>
+ * Anonymous visitor → {@link #submitInquiry}
+ * </pre>
+ *
+ * <h3>CRM flow</h3>
+ * <pre>
+ * NEW ──► {@link #markInReview} ──► {@link #convert}
+ *                              └──► {@link #reject}
+ * </pre>
+ *
+ * <p>Assignment via {@link #assign} can occur at any non-terminal status.</p>
  */
 public interface LeadService {
 
+    // =========================================================================
+    // Public submission
+    // =========================================================================
+
     /**
-     * Processes a public inquiry submission.
+     * Processes a public inquiry submission from an anonymous visitor.
      *
      * @param request     the inquiry form data
      * @param httpRequest the HTTP request (for IP extraction)
      * @return the result of the submission
      */
     LeadResult submitInquiry(LeadRequest request, HttpServletRequest httpRequest);
+
+    // =========================================================================
+    // Lookup
+    // =========================================================================
+
+    /**
+     * Finds a lead by its public UUID.
+     *
+     * @param publicId the public UUID
+     * @return the lead
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadNotFoundException if not found
+     */
+    Lead getByPublicId(String publicId);
+
+    /**
+     * Returns a paginated, filtered list of leads for the admin queue.
+     *
+     * @param filter   the filter criteria (all fields optional)
+     * @param pageable pagination and sorting parameters
+     * @return a page of matching leads
+     */
+    Page<Lead> findAll(LeadFilterRequest filter, Pageable pageable);
+
+    // =========================================================================
+    // CRM lifecycle
+    // =========================================================================
+
+    /**
+     * Assigns or reassigns a lead to a commercial.
+     *
+     * <p>Can be called at any non-terminal status.
+     * Publishes a {@link be.steby.CoreProject.bll.domains.lead.events.LeadAssignedEvent}.</p>
+     *
+     * @param publicId the public UUID of the lead
+     * @param request  the assignment request
+     * @param actor    the user performing the action
+     * @return the updated lead
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadNotFoundException if not found
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadAlreadyConvertedException if terminal
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadAlreadyRejectedException if terminal
+     */
+    Lead assign(String publicId, LeadAssignRequest request, User actor);
+
+    /**
+     * Transitions a lead to {@code IN_REVIEW} status.
+     *
+     * <p>Publishes a {@link be.steby.CoreProject.bll.domains.lead.events.LeadInReviewEvent}.</p>
+     *
+     * @param publicId the public UUID of the lead
+     * @param actor    the commercial opening the lead
+     * @return the updated lead
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadNotFoundException if not found
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadAlreadyConvertedException if terminal
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadAlreadyRejectedException if terminal
+     */
+    Lead markInReview(String publicId, User actor);
+
+    /**
+     * Converts a lead into a Contact.
+     *
+     * <p>Transitions the lead to {@code CONVERTED}, records {@code convertedAt},
+     * and publishes a {@link be.steby.CoreProject.bll.domains.lead.events.LeadConvertedEvent}
+     * for the {@code contact} domain to consume.</p>
+     *
+     * @param publicId the public UUID of the lead
+     * @param request  the conversion data used to create the Contact
+     * @param actor    the commercial performing the conversion
+     * @return the updated lead
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadNotFoundException if not found
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadAlreadyConvertedException if already converted
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadAlreadyRejectedException if already rejected
+     */
+    Lead convert(String publicId, LeadConvertRequest request, User actor);
+
+    /**
+     * Rejects a lead with a mandatory reason.
+     *
+     * <p>Transitions the lead to {@code REJECTED}, records {@code rejectionReason},
+     * and publishes a {@link be.steby.CoreProject.bll.domains.lead.events.LeadRejectedEvent}.</p>
+     *
+     * @param publicId the public UUID of the lead
+     * @param request  the rejection request containing the reason
+     * @param actor    the commercial performing the rejection
+     * @return the updated lead
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadNotFoundException if not found
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadAlreadyConvertedException if already converted
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadAlreadyRejectedException if already rejected
+     */
+    Lead reject(String publicId, LeadRejectRequest request, User actor);
 }

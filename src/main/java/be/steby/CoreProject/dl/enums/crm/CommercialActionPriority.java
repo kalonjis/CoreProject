@@ -1,12 +1,14 @@
 package be.steby.CoreProject.dl.enums.crm;
 
+import be.steby.CoreProject.dl.entities.crm.CommercialAction;
+
 /**
- * Priority level of a {@link be.steby.CoreProject.dl.entities.crm.CommercialActionItem}.
+ * Priority level of a {@link CommercialAction}.
  *
  * <p>Used to sort the commercial's task list and to visually highlight
  * urgent items in the UI (e.g. red badge for {@code HIGH}).</p>
  */
-public enum CommercialActionItemPriority {
+public enum CommercialActionPriority {
 
     /** Can be done whenever time permits. */
     LOW,

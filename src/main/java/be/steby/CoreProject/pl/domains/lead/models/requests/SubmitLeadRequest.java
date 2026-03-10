@@ -1,4 +1,4 @@
-package be.steby.CoreProject.pl.domains.Lead.models.requests;
+package be.steby.CoreProject.pl.domains.lead.models.requests;
 
 import be.steby.CoreProject.bll.domains.lead.models.LeadRequest;
 import be.steby.CoreProject.dl.enums.LeadType;

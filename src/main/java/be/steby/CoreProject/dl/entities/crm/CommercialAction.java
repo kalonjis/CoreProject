@@ -2,8 +2,8 @@ package be.steby.CoreProject.dl.entities.crm;
 
 import be.steby.CoreProject.dl.entities.BaseEntity;
 import be.steby.CoreProject.dl.entities.User;
-import be.steby.CoreProject.dl.enums.crm.CommercialActionItemPriority;
-import be.steby.CoreProject.dl.enums.crm.CommercialActionItemStatus;
+import be.steby.CoreProject.dl.enums.crm.CommercialActionPriority;
+import be.steby.CoreProject.dl.enums.crm.CommercialActionStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -12,9 +12,9 @@ import java.time.Instant;
 /**
  * Represents an action to be performed by a commercial in the CRM.
  *
- * <p>A {@code CommercialActionItem} is a concrete to-do item linked to a {@link Deal} and/or
+ * <p>A {@code CommercialAction} is a concrete to-do item linked to a {@link Deal} and/or
  * a {@link Contact}. Tasks can be created manually by the commercial team
- * or generated automatically by the workflow engine (e.g. a follow-up CommercialActionItem
+ * or generated automatically by the workflow engine (e.g. a follow-up CommercialAction
  * created when a call goes unanswered).</p>
  *
  * <h3>Inheritance</h3>
@@ -27,42 +27,42 @@ import java.time.Instant;
  *
  * <h3>Relationships</h3>
  * <ul>
- *   <li>Many {@code CommercialActionItem} → one {@link Deal} (optional)</li>
- *   <li>Many {@code CommercialActionItem} → one {@link Contact} (optional)</li>
- *   <li>Many {@code CommercialActionItem} → one {@link User} assignedTo — who must do it</li>
- *   <li>Many {@code CommercialActionItem} → one {@link User} createdBy — who created it (from {@code BaseEntity#createdBy} string, not a FK)</li>
+ *   <li>Many {@code CommercialAction} → one {@link Deal} (optional)</li>
+ *   <li>Many {@code CommercialAction} → one {@link Contact} (optional)</li>
+ *   <li>Many {@code CommercialAction} → one {@link User} assignedTo — who must do it</li>
+ *   <li>Many {@code CommercialAction} → one {@link User} createdBy — who created it (from {@code BaseEntity#createdBy} string, not a FK)</li>
  * </ul>
  * <p>At least one of {@code deal} or {@code contact} must be set.
  * Enforced at the service layer.</p>
  *
  * <h3>Completion</h3>
- * <p>When a CommercialActionItem is completed, the service sets {@code status = DONE}
+ * <p>When a CommercialAction is completed, the service sets {@code status = DONE}
  * and records {@code completedAt}. Optionally, a linked {@link Interaction}
- * of type {@code TASK_DONE} can be created to keep the deal timeline complete.</p>
+ * of type {@code ACTION_DONE} can be created to keep the deal timeline complete.</p>
  *
  * <h3>Database indexes</h3>
  * <ul>
- *   <li>{@code idx_task_public_id}  — fast lookup by UUID (API)</li>
- *   <li>{@code idx_task_assigned}   — all tasks for a given commercial (my tasks view)</li>
- *   <li>{@code idx_task_deal}       — all tasks linked to a deal</li>
- *   <li>{@code idx_task_contact}    — all tasks linked to a contact</li>
- *   <li>{@code idx_task_status}     — filter pending / done / cancelled</li>
- *   <li>{@code idx_task_due}        — overdue CommercialActionItem detection</li>
+ *   <li>{@code idx_CommercialAction_public_id}  — fast lookup by UUID (API)</li>
+ *   <li>{@code idx_CommercialAction_assigned}   — all CommercialAction for a given commercial (my tasks view)</li>
+ *   <li>{@code idx_CommercialAction_deal}       — all CommercialAction linked to a deal</li>
+ *   <li>{@code idx_CommercialAction_contact}    — all CommercialAction linked to a contact</li>
+ *   <li>{@code idx_CommercialAction_status}     — filter pending / done / cancelled</li>
+ *   <li>{@code idx_CommercialAction_due}        — overdue CommercialAction detection</li>
  * </ul>
  *
- * @see CommercialActionItemStatus
- * @see CommercialActionItemPriority
+ * @see CommercialActionStatus
+ * @see CommercialActionPriority
  * @see Interaction
  */
 @Entity
 @Table(
     indexes = {
-        @Index(name = "idx_task_public_id", columnList = "public_id"),
-        @Index(name = "idx_task_assigned",  columnList = "assigned_to_id"),
-        @Index(name = "idx_task_deal",      columnList = "deal_id"),
-        @Index(name = "idx_task_contact",   columnList = "contact_id"),
-        @Index(name = "idx_task_status",    columnList = "status"),
-        @Index(name = "idx_task_due",       columnList = "due_date")
+        @Index(name = "idx_CommercialAction_public_id", columnList = "public_id"),
+        @Index(name = "idx_CommercialAction_assigned",  columnList = "assigned_to_id"),
+        @Index(name = "idx_CommercialAction_deal",      columnList = "deal_id"),
+        @Index(name = "idx_CommercialAction_contact",   columnList = "contact_id"),
+        @Index(name = "idx_CommercialAction_status",    columnList = "status"),
+        @Index(name = "idx_CommercialAction_due",       columnList = "due_date")
     }
 )
 @Getter
@@ -72,7 +72,7 @@ import java.time.Instant;
 @Builder
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true, onlyExplicitlyIncluded = true)
-public class CommercialActionItem extends BaseEntity<Long> {
+public class CommercialAction extends BaseEntity<Long> {
 
     // =========================================================================
     // Identity
@@ -81,7 +81,7 @@ public class CommercialActionItem extends BaseEntity<Long> {
     /**
      * Short title describing what needs to be done.
      *
-     * <p>Required. Shown in CommercialActionItem lists, deal sidebars, and notifications.</p>
+     * <p>Required. Shown in CommercialAction lists, deal sidebars, and notifications.</p>
      *
      * <p>Example: "Call back Thomas — quote follow-up",
      * "Send updated contract to ACME SA"</p>
@@ -93,8 +93,8 @@ public class CommercialActionItem extends BaseEntity<Long> {
     /**
      * Optional longer description providing context or instructions.
      *
-     * <p>Shown in the CommercialActionItem detail view. Useful for auto-generated tasks
-     * where the workflow engine adds context about why the CommercialActionItem was created.</p>
+     * <p>Shown in the CommercialAction detail view. Useful for auto-generated tasks
+     * where the workflow engine adds context about why the CommercialAction was created.</p>
      */
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
@@ -104,37 +104,37 @@ public class CommercialActionItem extends BaseEntity<Long> {
     // =========================================================================
 
     /**
-     * Priority level of the CommercialActionItem.
+     * Priority level of the CommercialAction.
      *
-     * <p>Required. Defaults to {@link CommercialActionItemPriority#MEDIUM}.
-     * Used to sort the commercial's CommercialActionItem list and to highlight urgent items.</p>
+     * <p>Required. Defaults to {@link CommercialActionPriority#MEDIUM}.
+     * Used to sort the commercial's CommercialAction list and to highlight urgent items.</p>
      *
-     * @see CommercialActionItemPriority
+     * @see CommercialActionPriority
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "priority", nullable = false, length = 10)
     @Builder.Default
-    private CommercialActionItemPriority priority = CommercialActionItemPriority.MEDIUM;
+    private CommercialActionPriority priority = CommercialActionPriority.MEDIUM;
 
     /**
-     * Current status of the CommercialActionItem.
+     * Current status of the CommercialAction.
      *
-     * <p>Required. Defaults to {@link CommercialActionItemStatus#PENDING} on creation.
+     * <p>Required. Defaults to {@link CommercialActionStatus#PENDING} on creation.
      * Transitions are managed by the service layer.</p>
      *
-     * @see CommercialActionItemStatus
+     * @see CommercialActionStatus
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 15)
     @Builder.Default
-    private CommercialActionItemStatus status = CommercialActionItemStatus.PENDING;
+    private CommercialActionStatus status = CommercialActionStatus.PENDING;
 
     // =========================================================================
     // Timing
     // =========================================================================
 
     /**
-     * Deadline by which the CommercialActionItem must be completed.
+     * Deadline by which the CommercialAction must be completed.
      *
      * <p>Optional. Used to detect overdue tasks and trigger reminder
      * notifications. Stored as {@link Instant} to support time-based deadlines
@@ -144,10 +144,10 @@ public class CommercialActionItem extends BaseEntity<Long> {
     private Instant dueDate;
 
     /**
-     * Timestamp when the CommercialActionItem was marked as done.
+     * Timestamp when the CommercialAction was marked as done.
      *
      * <p>Set by the service layer when {@code status} transitions to {@code DONE}.
-     * Null if the CommercialActionItem is still pending or was cancelled.</p>
+     * Null if the CommercialAction is still pending or was cancelled.</p>
      */
     @Column(name = "completed_at")
     private Instant completedAt;
@@ -157,7 +157,7 @@ public class CommercialActionItem extends BaseEntity<Long> {
     // =========================================================================
 
     /**
-     * The commercial responsible for completing this CommercialActionItem.
+     * The commercial responsible for completing this CommercialAction.
      *
      * <p>Required. Shown in the "My Tasks" dashboard view and used
      * for notification delivery.</p>
@@ -167,7 +167,7 @@ public class CommercialActionItem extends BaseEntity<Long> {
     private User assignedTo;
 
     /**
-     * Deal this CommercialActionItem is linked to.
+     * Deal this CommercialAction is linked to.
      *
      * <p>Optional — at least one of {@code deal} or {@code contact} must be set.
      * Loaded lazily.</p>
@@ -177,7 +177,7 @@ public class CommercialActionItem extends BaseEntity<Long> {
     private Deal deal;
 
     /**
-     * Contact this CommercialActionItem is linked to.
+     * Contact this CommercialAction is linked to.
      *
      * <p>Optional — at least one of {@code deal} or {@code contact} must be set.
      * Loaded lazily.</p>
@@ -191,12 +191,12 @@ public class CommercialActionItem extends BaseEntity<Long> {
     // =========================================================================
 
     /**
-     * Returns {@code true} if the CommercialActionItem has passed its deadline without being completed.
+     * Returns {@code true} if the CommercialAction has passed its deadline without being completed.
      *
      * @return true if pending and {@code dueDate} is in the past
      */
     public boolean isOverdue() {
-        return this.status == CommercialActionItemStatus.PENDING
+        return this.status == CommercialActionStatus.PENDING
             && this.dueDate != null
             && this.dueDate.isBefore(Instant.now());
     }
