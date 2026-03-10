@@ -62,6 +62,7 @@ import lombok.*;
         @Index(name = "idx_contact_public_id", columnList = "public_id"),
         @Index(name = "idx_contact_email",     columnList = "email"),
         @Index(name = "idx_contact_org",       columnList = "organisation_id"),
+        @Index(name = "idx_contact_assigned", columnList = "assigned_to_id"),
         @Index(name = "idx_contact_status",    columnList = "status")
     }
 )
@@ -150,6 +151,22 @@ public class Contact extends BaseEntity<Long> {
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
     private ContactStatus status = ContactStatus.NEW;
+
+
+    // =========================================================================
+    // Assignment
+    // =========================================================================
+
+    /**
+     * The commercial (User) responsible for this contact.
+     *
+     * <p>Optional at creation — inherited from {@link Lead#getAssignedTo()}
+     * when converted, or set manually afterward.
+     * Loaded lazily to avoid unnecessary joins in list queries.</p>
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_to_id")
+    private User assignedTo;
 
     // =========================================================================
     // Relationships
