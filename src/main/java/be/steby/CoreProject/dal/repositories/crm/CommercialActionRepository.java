@@ -1,8 +1,8 @@
 package be.steby.CoreProject.dal.repositories.crm;
 
-import be.steby.CoreProject.dl.entities.crm.CommercialActionItem;
-import be.steby.CoreProject.dl.enums.crm.CommercialActionItemPriority;
-import be.steby.CoreProject.dl.enums.crm.CommercialActionItemStatus;
+import be.steby.CoreProject.dl.entities.crm.CommercialAction;
+import be.steby.CoreProject.dl.enums.crm.CommercialActionPriority;
+import be.steby.CoreProject.dl.enums.crm.CommercialActionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository for {@link CommercialActionItem} entity operations.
+ * Repository for {@link CommercialAction} entity operations.
  *
  * <p>Tasks are always accessed in the context of a commercial's workload,
  * a deal, or a contact. Targeted derived queries cover all needed access
@@ -26,7 +26,7 @@ import java.util.Optional;
  * </ul>
  */
 @Repository
-public interface CommercialActionItemRepository extends JpaRepository<CommercialActionItem, Long> {
+public interface CommercialActionRepository extends JpaRepository<CommercialAction, Long> {
 
     // =========================================================================
     // Lookup
@@ -38,7 +38,7 @@ public interface CommercialActionItemRepository extends JpaRepository<Commercial
      * @param publicId the public UUID
      * @return the task if found
      */
-    Optional<CommercialActionItem> findByPublicId(String publicId);
+    Optional<CommercialAction> findByPublicId(String publicId);
 
     // =========================================================================
     // Commercial workload — "My Tasks" view
@@ -53,7 +53,7 @@ public interface CommercialActionItemRepository extends JpaRepository<Commercial
      * @param assignedToId the internal ID of the commercial
      * @return pending tasks for that commercial, soonest due first
      */
-    List<CommercialActionItem> findByAssignedToIdAndStatusOrderByDueDateAsc(Long assignedToId, CommercialActionItemStatus status);
+    List<CommercialAction> findByAssignedToIdAndStatusOrderByDueDateAsc(Long assignedToId, CommercialActionStatus status);
 
     /**
      * Finds all pending high-priority tasks assigned to a specific commercial.
@@ -65,10 +65,10 @@ public interface CommercialActionItemRepository extends JpaRepository<Commercial
      * @param status       the task status to filter by
      * @return matching tasks, soonest due first
      */
-    List<CommercialActionItem> findByAssignedToIdAndPriorityAndStatusOrderByDueDateAsc(
+    List<CommercialAction> findByAssignedToIdAndPriorityAndStatusOrderByDueDateAsc(
             Long assignedToId,
-            CommercialActionItemPriority priority,
-            CommercialActionItemStatus status
+            CommercialActionPriority priority,
+            CommercialActionStatus status
     );
 
     // =========================================================================
@@ -83,7 +83,7 @@ public interface CommercialActionItemRepository extends JpaRepository<Commercial
      * @param dealId the internal ID of the deal
      * @return all tasks for that deal, soonest due first
      */
-    List<CommercialActionItem> findByDealIdOrderByDueDateAsc(Long dealId);
+    List<CommercialAction> findByDealIdOrderByDueDateAsc(Long dealId);
 
     /**
      * Finds all tasks linked to a specific contact, ordered by due date ascending.
@@ -93,7 +93,7 @@ public interface CommercialActionItemRepository extends JpaRepository<Commercial
      * @param contactId the internal ID of the contact
      * @return all tasks for that contact, soonest due first
      */
-    List<CommercialActionItem> findByContactIdOrderByDueDateAsc(Long contactId);
+    List<CommercialAction> findByContactIdOrderByDueDateAsc(Long contactId);
 
     // =========================================================================
     // Overdue detection
@@ -108,11 +108,11 @@ public interface CommercialActionItemRepository extends JpaRepository<Commercial
      * @param now the reference instant (typically {@code Instant.now()})
      * @return overdue pending tasks
      */
-    @Query("SELECT c FROM CommercialActionItem c " +
+    @Query("SELECT c FROM CommercialAction c " +
            "WHERE c.status = 'PENDING' " +
            "AND c.dueDate IS NOT NULL " +
            "AND c.dueDate < :now")
-    List<CommercialActionItem> findAllOverdue(@Param("now") Instant now);
+    List<CommercialAction> findAllOverdue(@Param("now") Instant now);
 
     /**
      * Counts pending tasks assigned to a specific commercial.
@@ -122,5 +122,5 @@ public interface CommercialActionItemRepository extends JpaRepository<Commercial
      * @param assignedToId the internal ID of the commercial
      * @return number of pending tasks
      */
-    long countByAssignedToIdAndStatus(Long assignedToId, CommercialActionItemStatus status);
+    long countByAssignedToIdAndStatus(Long assignedToId, CommercialActionStatus status);
 }

@@ -21,8 +21,9 @@ public enum UserRole {
     SUPER_ADMIN(0),
     ADMIN(1),
     MODERATOR(2),
-    USER(3),
-    GUEST(4);
+    COMMERCIAL(3),
+    USER(4),
+    GUEST(5);
 
     private final int hierarchyLevel;
 
@@ -85,6 +86,7 @@ public enum UserRole {
             case SUPER_ADMIN -> "Super Administrator - Full system access";
             case ADMIN -> "Administrator - User and content management";
             case MODERATOR -> "Moderator - Content and interaction moderation";
+            case COMMERCIAL  -> "CRM and commercial operations access";
             case USER -> "User - Standard feature access";
             case GUEST -> "Guest - Limited read-only access";
         };

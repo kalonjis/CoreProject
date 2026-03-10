@@ -26,19 +26,6 @@ public enum InteractionType {
     /** Physical or virtual site visit. */
     VISIT,
 
-    /** A completed {@code Task} logged as an activity. */
-    TASK_DONE
+    /** A completed {@code COMMERCIAL_ACTION} logged as an activity. */
+    ACTION_DONE
 }
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ActivityDirection.java
-// ─────────────────────────────────────────────────────────────────────────────
-
-
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ActivityOutcome.java
-// ─────────────────────────────────────────────────────────────────────────────
-

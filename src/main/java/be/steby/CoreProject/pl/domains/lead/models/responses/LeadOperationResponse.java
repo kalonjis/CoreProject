@@ -1,4 +1,4 @@
-package be.steby.CoreProject.pl.domains.Lead.models.responses;
+package be.steby.CoreProject.pl.domains.lead.models.responses;
 
 import be.steby.CoreProject.bll.domains.lead.models.LeadResult;
 
