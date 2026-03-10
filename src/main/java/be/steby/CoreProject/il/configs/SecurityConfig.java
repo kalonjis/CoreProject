@@ -33,11 +33,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 // ✅ TOUS les imports depuis SecurityRoutesAggregator
-import static be.steby.CoreProject.il.routes.SecurityRoutesAggregator.PUBLIC_ROUTES;
-import static be.steby.CoreProject.il.routes.SecurityRoutesAggregator.AUTHENTICATED_ROUTES;
-import static be.steby.CoreProject.il.routes.SecurityRoutesAggregator.ADMIN_ROUTES;
-import static be.steby.CoreProject.il.routes.SecurityRoutesAggregator.MONITORING_AUTHORIZED_ROUTES;
-import static be.steby.CoreProject.il.routes.SecurityRoutesAggregator.CSRF_IGNORE;
+import static be.steby.CoreProject.il.routes.SecurityRoutesAggregator.*;
+
 
 /**
  * Spring Security configuration for the application.
@@ -172,10 +169,13 @@ public class SecurityConfig {
                         // 5. Authenticated routes - require authentication but no specific role
                         .requestMatchers(AUTHENTICATED_ROUTES).authenticated()
 
-                        // 6. Admin routes - require ADMIN or SUPER_ADMIN role
+                        // 6. Commercial routes - require COMMERCIAL or ADMIN role
+                        .requestMatchers(COMMERCIAL_ROUTES).hasAnyAuthority("COMMERCIAL", "ADMIN")
+
+                        // 7. Admin routes - require ADMIN or SUPER_ADMIN role
                         .requestMatchers(ADMIN_ROUTES).hasAnyAuthority("SUPER_ADMIN", "ADMIN")
 
-                        // 7. Default - require authentication for any other request
+                        // 8. Default - require authentication for any other request
                         .anyRequest().authenticated()
                 )
 
