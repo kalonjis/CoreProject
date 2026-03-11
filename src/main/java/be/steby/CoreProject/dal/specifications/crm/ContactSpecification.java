@@ -138,4 +138,22 @@ public class ContactSpecification {
             ? cb.isNotNull(root.get("originLead"))
             : cb.isNull(root.get("originLead"));
     }
+
+    // =========================================================================
+    // Assignment
+    // =========================================================================
+
+    /**
+     * Filters contacts assigned to a specific commercial.
+     *
+     * <p>Used in the admin contact list to scope the view to a given
+     * commercial's portfolio.</p>
+     *
+     * @param assignedToId the internal ID of the assigned commercial, or {@code null} to skip
+     * @return the specification, or {@code null}
+     */
+    public static Specification<Contact> assignedTo(Long assignedToId) {
+        if (assignedToId == null) return null;
+        return (root, query, cb) -> cb.equal(root.get("assignedTo").get("id"), assignedToId);
+    }
 }

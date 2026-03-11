@@ -1,7 +1,9 @@
 package be.steby.CoreProject.bll.domains.contact.services;
 
+import be.steby.CoreProject.bll.domains.contact.models.ContactAssignRequest;
 import be.steby.CoreProject.bll.domains.contact.models.ContactCreateRequest;
 import be.steby.CoreProject.bll.domains.contact.models.ContactFilterRequest;
+import be.steby.CoreProject.bll.domains.contact.models.ContactMergeRequest;
 import be.steby.CoreProject.bll.domains.contact.models.ContactUpdateRequest;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Contact;
@@ -215,4 +217,40 @@ public interface ContactService {
      * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactNotFoundException if not found
      */
     Contact linkOrganisation(String contactPublicId, String organisationPublicId, User actor);
+
+    /**
+     * Assigns or unassigns a commercial to a contact.
+     *
+     * <p>Passing {@code null} as {@code request.commercialPublicId()} removes the
+     * current assignee. Publishes a {@code ContactAssignedEvent} on success.</p>
+     *
+     * @param contactPublicId the public UUID of the contact
+     * @param request         the assignment request (commercialPublicId may be null to unassign)
+     * @param actor           the user performing the operation
+     * @return the updated contact
+     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactNotFoundException if not found
+     */
+    Contact assign(String contactPublicId, ContactAssignRequest request, User actor);
+
+    /**
+     * Merges two duplicate contacts into one surviving record.
+     *
+     * <p>The {@code targetPublicId} contact is kept. The {@code sourcePublicId}
+     * contact is archived (status set to {@code INACTIVE}) after non-null fields
+     * are copied from source to target where the target is blank.</p>
+     *
+     * <p>Fields copied from source when target is blank:
+     * {@code phone}, {@code jobTitle}, {@code notes}, {@code organisation},
+     * {@code originLead}.</p>
+     *
+     * <p>Publishes a {@code ContactMergedEvent} on success.</p>
+     *
+     * @param request the merge request (sourcePublicId and targetPublicId must differ)
+     * @param actor   the user performing the operation
+     * @return the surviving target contact after the merge
+     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactNotFoundException if either contact is not found
+     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactValidationException
+     *         if source and target are the same contact
+     */
+    Contact merge(ContactMergeRequest request, User actor);
 }

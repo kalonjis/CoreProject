@@ -1,5 +1,6 @@
 package be.steby.CoreProject.dal.repositories.crm;
 
+import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.enums.crm.ContactStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -91,4 +92,19 @@ public interface ContactRepository extends JpaRepository<Contact, Long>,
      * @return list of contacts with that status
      */
     List<Contact> findByStatus(ContactStatus status);
+
+    // =========================================================================
+    // User link
+    // =========================================================================
+
+    /**
+     * Finds the contact linked to a given platform account.
+     *
+     * <p>Used by {@code ContactService#linkUser} to prevent a user
+     * from being linked to more than one contact.</p>
+     *
+     * @param linkedUser the platform user account
+     * @return the contact linked to that user, if any
+     */
+    Optional<Contact> findByLinkedUser(User linkedUser);
 }

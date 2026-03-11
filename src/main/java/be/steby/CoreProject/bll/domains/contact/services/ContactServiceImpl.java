@@ -1,14 +1,19 @@
 package be.steby.CoreProject.bll.domains.contact.services;
 
+import be.steby.CoreProject.bll.domains.contact.events.ContactAssignedEvent;
 import be.steby.CoreProject.bll.domains.contact.events.ContactCreatedEvent;
 import be.steby.CoreProject.bll.domains.contact.events.ContactCreatedFromLeadEvent;
+import be.steby.CoreProject.bll.domains.contact.events.ContactMergedEvent;
 import be.steby.CoreProject.bll.domains.contact.events.ContactStatusChangedEvent;
 import be.steby.CoreProject.bll.domains.contact.events.ContactUpdatedEvent;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.contact.exceptions.*;
+import be.steby.CoreProject.bll.domains.contact.models.ContactAssignRequest;
 import be.steby.CoreProject.bll.domains.contact.models.ContactCreateRequest;
 import be.steby.CoreProject.bll.domains.contact.models.ContactFilterRequest;
+import be.steby.CoreProject.bll.domains.contact.models.ContactMergeRequest;
 import be.steby.CoreProject.bll.domains.contact.models.ContactUpdateRequest;
+import be.steby.CoreProject.dal.repositories.UserRepository;
 import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
 import be.steby.CoreProject.dal.repositories.crm.OrganisationRepository;
 import be.steby.CoreProject.dal.specifications.crm.ContactSpecification;
@@ -49,11 +54,6 @@ import java.util.UUID;
  * <p>Valid transitions are defined in {@link #ALLOWED_TRANSITIONS}.
  * Any attempt outside this map throws {@link ContactStatusTransitionException}.</p>
  *
- * <h3>Note on pending additions</h3>
- * <ul>
- *   <li>{@code ContactRepository.findByLinkedUser(User)} — needed by {@link #linkUser}
- *       to guard against a user already linked to another contact</li>
- * </ul>
  */
 @Service
 @RequiredArgsConstructor
@@ -63,6 +63,7 @@ public class ContactServiceImpl implements ContactService {
 
     private final ContactRepository contactRepository;
     private final OrganisationRepository organisationRepository;
+    private final UserRepository userRepository;
     private final DeviceService deviceService;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -107,8 +108,7 @@ public class ContactServiceImpl implements ContactService {
     @Override
     public Contact getById(Long id) {
         return contactRepository.findById(id)
-                .orElseThrow(() -> new ContactNotFoundException(
-                        "Contact not found with id: " + id));
+                .orElseThrow(() -> ContactNotFoundException.byId(id));
     }
 
     @Override
@@ -140,8 +140,12 @@ public class ContactServiceImpl implements ContactService {
             spec = spec.and(ContactSpecification.belongsToOrganisation(org.getId()));
         }
 
-        // TODO: ContactSpecification.assignedTo(id) not yet implemented
-        // Requires adding assignedTo field to Contact entity + spec predicate
+        if (filter.assignedToPublicId() != null) {
+            User commercial = userRepository.findByPublicId(filter.assignedToPublicId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "User not found with publicId: " + filter.assignedToPublicId()));
+            spec = spec.and(ContactSpecification.assignedTo(commercial.getId()));
+        }
 
         return contactRepository.findAll(spec, pageable);
     }
@@ -301,10 +305,9 @@ public class ContactServiceImpl implements ContactService {
             throw ContactAlreadyLinkedToUserException.contactAlreadyLinked(contactPublicId);
         }
 
-        // TODO: requires ContactRepository.findByLinkedUser(User) to be added
-        // contactRepository.findByLinkedUser(user).ifPresent(c -> {
-        //     throw ContactAlreadyLinkedToUserException.userAlreadyLinked(user.getPublicId());
-        // });
+        contactRepository.findByLinkedUser(user).ifPresent(c -> {
+            throw ContactAlreadyLinkedToUserException.userAlreadyLinked(user.getPublicId());
+        });
 
         contact.setLinkedUser(user);
         Contact saved = contactRepository.save(contact);
@@ -329,6 +332,71 @@ public class ContactServiceImpl implements ContactService {
                 organisationPublicId != null ? organisationPublicId : "null (unlinked)",
                 contactPublicId, actor.getUsername());
         return saved;
+    }
+
+    @Override
+    @Transactional
+    public Contact assign(String contactPublicId, ContactAssignRequest request, User actor) {
+        log.debug("Assigning contact {} to commercial {}, by: {}",
+                contactPublicId, request.commercialPublicId(), actor.getUsername());
+
+        Contact contact = getByPublicId(contactPublicId);
+        User previousAssignee = contact.getAssignedTo();
+
+        User newAssignee = null;
+        if (request.commercialPublicId() != null) {
+            newAssignee = userRepository.findByPublicId(request.commercialPublicId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "User not found with publicId: " + request.commercialPublicId()));
+        }
+
+        contact.setAssignedTo(newAssignee);
+        Contact saved = contactRepository.save(contact);
+
+        log.info("Contact {} assigned to {} by {}",
+                contactPublicId,
+                newAssignee != null ? newAssignee.getPublicId() : "null (unassigned)",
+                actor.getUsername());
+
+        eventPublisher.publishEvent(new ContactAssignedEvent(
+                saved, newAssignee, previousAssignee, actor, deviceService.detectAndRegisterDevice(actor)));
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public Contact merge(ContactMergeRequest request, User actor) {
+        if (request.sourcePublicId().equals(request.targetPublicId())) {
+            throw new ContactValidationException("Source and target contacts must be different");
+        }
+
+        log.debug("Merging contact {} into {}, by: {}",
+                request.sourcePublicId(), request.targetPublicId(), actor.getUsername());
+
+        Contact source = getByPublicId(request.sourcePublicId());
+        Contact target = getByPublicId(request.targetPublicId());
+
+        // Copy non-null fields from source to target where target is blank
+        if (target.getPhone()     == null && source.getPhone()     != null) target.setPhone(source.getPhone());
+        if (target.getJobTitle()  == null && source.getJobTitle()  != null) target.setJobTitle(source.getJobTitle());
+        if (target.getNotes()     == null && source.getNotes()     != null) target.setNotes(source.getNotes());
+        if (target.getOrganisation() == null && source.getOrganisation() != null) target.setOrganisation(source.getOrganisation());
+        if (target.getOriginLead()   == null && source.getOriginLead()   != null) target.setOriginLead(source.getOriginLead());
+
+        // Note: Deal and Interaction reassignment deferred to Deal/Interaction domain implementation
+
+        // Archive source contact (soft delete)
+        source.setStatus(ContactStatus.INACTIVE);
+        contactRepository.save(source);
+
+        Contact savedTarget = contactRepository.save(target);
+
+        log.info("Contact merged — source {} archived, target {} updated, by: {}",
+                source.getPublicId(), target.getPublicId(), actor.getUsername());
+
+        eventPublisher.publishEvent(new ContactMergedEvent(
+                savedTarget, source, actor, deviceService.detectAndRegisterDevice(actor)));
+        return savedTarget;
     }
 
     // =========================================================================

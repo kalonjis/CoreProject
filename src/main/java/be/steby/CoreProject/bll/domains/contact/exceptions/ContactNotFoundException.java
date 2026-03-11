@@ -68,6 +68,16 @@ public class ContactNotFoundException extends ContactDomainException {
     // =========================================================================
 
     /**
+     * Creates an exception for a contact not found by its internal id.
+     *
+     * @param id the internal id that yielded no result
+     * @return a new ContactNotFoundException
+     */
+    public static ContactNotFoundException byId(Long id) {
+        return new ContactNotFoundException("Contact not found with id: " + id);
+    }
+
+    /**
      * Creates an exception for a contact not found by its public UUID.
      *
      * @param publicId the public UUID that yielded no result
