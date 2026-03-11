@@ -68,13 +68,30 @@ public class Lead extends BaseEntity<Long> {
     private String email;
 
     /**
-     * Name of the person submitting the inquiry.
+     * Phone Number of the person submitting the inquiry.
+     *
+     * <p>Optional. Helps to pre-fill the Contact.</p>
+     */
+    @Column(name = "phone", length = 20)
+    private String phone;
+
+    /**
+     * FirstName of the person submitting the inquiry.
      *
      * <p>Optional. Helps personalize responses and pre-fill the Contact
      * form when converting the lead.</p>
      */
-    @Column(name = "name", length = 100)
-    private String name;
+    @Column(name = "first_name", length = 100)
+    private String firstname;
+
+    /**
+     * LastName of the person submitting the inquiry.
+     *
+     * <p>Optional. Helps personalize responses and pre-fill the Contact
+     * form when converting the lead.</p>
+     */
+    @Column(name = "last_name", length = 100)
+    private String lastname;
 
     /**
      * Subject or title of the inquiry.
