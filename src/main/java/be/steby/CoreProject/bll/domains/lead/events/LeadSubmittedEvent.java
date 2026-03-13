@@ -31,7 +31,7 @@ public record LeadSubmittedEvent(
      * @return the name or default value
      */
     public String getVisitorName() {
-        return lead.hasName() ? lead.getName() : "Anonymous";
+        return lead.getName().orElse("Anonymous");
     }
 
     /**

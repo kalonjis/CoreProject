@@ -8,6 +8,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
+import java.util.Optional;
 
 /**
  * Entity representing a public inquiry submitted through the contact form
@@ -33,19 +34,22 @@ import java.time.Instant;
  * <p>{@code ipAddress} and {@code submittedAt} are used for rate limiting
  * and abuse detection.</p>
  *
+ * <h4>Name handling</h4>
+ * <p>The visitor's name is stored as a single field to avoid unreliable
+ * firstname/lastname splitting (e.g. "Jean-Pierre De La Tour").</p>
  *
  * @see LeadType
  * @see LeadStatus
  */
 @Entity
 @Table(indexes = {
-                @Index(name = "idx_lead_email",        columnList = "email"),
-                @Index(name = "idx_lead_submitted_at", columnList = "submitted_at"),
-                @Index(name = "idx_lead_type",         columnList = "lead_type"),
-                @Index(name = "idx_lead_ip",           columnList = "ip_address"),
-                @Index(name = "idx_lead_status",       columnList = "status"),
-                @Index(name = "idx_lead_assigned",     columnList = "assigned_to_id")
-        })
+        @Index(name = "idx_lead_email",        columnList = "email"),
+        @Index(name = "idx_lead_submitted_at", columnList = "submitted_at"),
+        @Index(name = "idx_lead_type",         columnList = "lead_type"),
+        @Index(name = "idx_lead_ip",           columnList = "ip_address"),
+        @Index(name = "idx_lead_status",       columnList = "status"),
+        @Index(name = "idx_lead_assigned",     columnList = "assigned_to_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -68,7 +72,7 @@ public class Lead extends BaseEntity<Long> {
     private String email;
 
     /**
-     * Phone Number of the person submitting the inquiry.
+     * Phone number of the person submitting the inquiry.
      *
      * <p>Optional. Helps to pre-fill the Contact.</p>
      */
@@ -76,22 +80,13 @@ public class Lead extends BaseEntity<Long> {
     private String phone;
 
     /**
-     * FirstName of the person submitting the inquiry.
+     * Full name of the person submitting the inquiry, as a single field.
      *
-     * <p>Optional. Helps personalize responses and pre-fill the Contact
-     * form when converting the lead.</p>
+     * <p>Optional. Stored as provided by the visitor — no firstname/lastname
+     * split is attempted to avoid unreliable parsing of culturally diverse names.</p>
      */
-    @Column(name = "first_name", length = 100)
-    private String firstname;
-
-    /**
-     * LastName of the person submitting the inquiry.
-     *
-     * <p>Optional. Helps personalize responses and pre-fill the Contact
-     * form when converting the lead.</p>
-     */
-    @Column(name = "last_name", length = 100)
-    private String lastname;
+    @Column(name = "name", length = 200)
+    private String name;
 
     /**
      * Subject or title of the inquiry.
@@ -115,7 +110,7 @@ public class Lead extends BaseEntity<Long> {
     private LeadType leadType;
 
     // ========================================
-    // CRM Status  — NEW
+    // CRM Status
     // ========================================
 
     /**
@@ -196,6 +191,16 @@ public class Lead extends BaseEntity<Long> {
      */
     public boolean hasName() {
         return this.name != null && !this.name.isBlank();
+    }
+
+    /**
+     * Returns the visitor's name if provided.
+     *
+     * @return an {@link Optional} containing the name,
+     *         or {@link Optional#empty()} if not provided
+     */
+    public Optional<String> getName() {
+        return Optional.ofNullable(name).filter(n -> !n.isBlank());
     }
 
     /**

@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -366,11 +367,11 @@ public interface UserAddressRepository extends JpaRepository<UserAddress, Long>,
     @Modifying
     @Query("""
             UPDATE UserAddress ua
-            SET ua.active = false, ua.validTo = CURRENT_TIMESTAMP
+            SET ua.active = false, ua.validTo = :now
             WHERE ua.user = :user
               AND ua.active = true
             """)
-    void deactivateAllForUser(@Param("user") User user);
+    void deactivateAllForUser(@Param("user") User user, @Param("now") Instant now);
 
     // endregion
 }

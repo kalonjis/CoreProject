@@ -50,10 +50,14 @@ import java.util.UUID;
  * <p>Flow 2 (manual) — {@link #create(ContactCreateRequest, User)} is called
  * directly by the commercial team to encode a contact from any source.</p>
  *
+ * <h3>Name handling from lead</h3>
+ * <p>When creating a contact from a lead, the visitor's name (single field)
+ * is stored in {@code firstName}. {@code lastName} is left null and a warning
+ * is logged so the commercial team can complete the record manually.</p>
+ *
  * <h3>Status transition guard</h3>
  * <p>Valid transitions are defined in {@link #ALLOWED_TRANSITIONS}.
  * Any attempt outside this map throws {@link ContactStatusTransitionException}.</p>
- *
  */
 @Service
 @RequiredArgsConstructor
@@ -75,12 +79,12 @@ public class ContactServiceImpl implements ContactService {
      * Defines the allowed CRM status transitions for a contact.
      *
      * <pre>
-     * NEW      → ENGAGED, INACTIVE, LOST
-     * ENGAGED  → QUALIFIED, INACTIVE, LOST
-     * QUALIFIED→ CLIENT, LOST, INACTIVE
-     * CLIENT   → LOST, INACTIVE
-     * LOST     → ENGAGED
-     * INACTIVE → ENGAGED
+     * NEW       → ENGAGED, INACTIVE, LOST
+     * ENGAGED   → QUALIFIED, INACTIVE, LOST
+     * QUALIFIED → CLIENT, LOST, INACTIVE
+     * CLIENT    → LOST, INACTIVE
+     * LOST      → ENGAGED
+     * INACTIVE  → ENGAGED
      * </pre>
      */
     private static final Map<ContactStatus, Set<ContactStatus>> ALLOWED_TRANSITIONS;
@@ -125,27 +129,35 @@ public class ContactServiceImpl implements ContactService {
 
     @Override
     public Page<Contact> findAll(ContactFilterRequest filter, Pageable pageable) {
-        Specification<Contact> spec = ContactSpecification.nameOrEmailContains(filter.keyword())
-                .and(ContactSpecification.hasStatus(filter.status()))
-                .and(ContactSpecification.hasLinkedUser(filter.hasLinkedUser()))
-                .and(ContactSpecification.convertedFromLead(filter.convertedFromLead()));
-
         // Mutual exclusion: withoutOrganisation takes precedence over organisationPublicId
+        Specification<Contact> organisationSpec;
         if (Boolean.TRUE.equals(filter.withoutOrganisation())) {
-            spec = spec.and(ContactSpecification.withoutOrganisation());
+            organisationSpec = ContactSpecification.withoutOrganisation();
         } else if (filter.organisationPublicId() != null) {
             Organisation org = organisationRepository.findByPublicId(filter.organisationPublicId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Organisation not found with publicId: " + filter.organisationPublicId()));
-            spec = spec.and(ContactSpecification.belongsToOrganisation(org.getId()));
+            organisationSpec = ContactSpecification.belongsToOrganisation(org.getId());
+        } else {
+            organisationSpec = null;
         }
 
+        Long assignedToId = null;
         if (filter.assignedToPublicId() != null) {
-            User commercial = userRepository.findByPublicId(filter.assignedToPublicId())
+            assignedToId = userRepository.findByPublicId(filter.assignedToPublicId())
                     .orElseThrow(() -> new IllegalArgumentException(
-                            "User not found with publicId: " + filter.assignedToPublicId()));
-            spec = spec.and(ContactSpecification.assignedTo(commercial.getId()));
+                            "User not found with publicId: " + filter.assignedToPublicId()))
+                    .getId();
         }
+
+        Specification<Contact> spec = Specification.allOf(
+                ContactSpecification.nameOrEmailContains(filter.keyword()),
+                ContactSpecification.hasStatus(filter.status()),
+                ContactSpecification.hasLinkedUser(filter.hasLinkedUser()),
+                ContactSpecification.convertedFromLead(filter.convertedFromLead()),
+                organisationSpec,
+                ContactSpecification.assignedTo(assignedToId)
+        );
 
         return contactRepository.findAll(spec, pageable);
     }
@@ -180,9 +192,10 @@ public class ContactServiceImpl implements ContactService {
                 })
                 .orElseGet(() -> {
                     String publicId = UUID.randomUUID().toString();
+
                     Contact contact = Contact.builder()
-                            .firstName(lead.getFirstname())
-                            .lastName(lead.getLastname())
+                            .firstName(lead.getName().orElse(null))
+                            .lastName(null)
                             .email(lead.getEmail().toLowerCase().trim())
                             .phone(lead.getPhone())
                             .status(ContactStatus.NEW)
@@ -194,6 +207,12 @@ public class ContactServiceImpl implements ContactService {
                     Contact saved = contactRepository.save(contact);
                     log.info("Contact created from lead — publicId: {}, email: {}",
                             saved.getPublicId(), saved.getEmail());
+
+                    if (saved.getLastName() == null) {
+                        log.warn("Contact {} created from lead with no lastName — " +
+                                        "full name '{}' stored in firstName only. Manual review recommended.",
+                                saved.getPublicId(), saved.getFirstName());
+                    }
 
                     eventPublisher.publishEvent(new ContactCreatedFromLeadEvent(
                             saved, lead, null, null));
@@ -377,9 +396,9 @@ public class ContactServiceImpl implements ContactService {
         Contact target = getByPublicId(request.targetPublicId());
 
         // Copy non-null fields from source to target where target is blank
-        if (target.getPhone()     == null && source.getPhone()     != null) target.setPhone(source.getPhone());
-        if (target.getJobTitle()  == null && source.getJobTitle()  != null) target.setJobTitle(source.getJobTitle());
-        if (target.getNotes()     == null && source.getNotes()     != null) target.setNotes(source.getNotes());
+        if (target.getPhone()        == null && source.getPhone()        != null) target.setPhone(source.getPhone());
+        if (target.getJobTitle()     == null && source.getJobTitle()     != null) target.setJobTitle(source.getJobTitle());
+        if (target.getNotes()        == null && source.getNotes()        != null) target.setNotes(source.getNotes());
         if (target.getOrganisation() == null && source.getOrganisation() != null) target.setOrganisation(source.getOrganisation());
         if (target.getOriginLead()   == null && source.getOriginLead()   != null) target.setOriginLead(source.getOriginLead());
 
@@ -431,23 +450,5 @@ public class ContactServiceImpl implements ContactService {
         return organisationRepository.findByPublicId(organisationPublicId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Organisation not found with publicId: " + organisationPublicId));
-    }
-
-    /**
-     * Splits a raw name string into {@code [firstName, lastName]}.
-     *
-     * <p>Splits on the first space. If no space is found, the full name
-     * is placed in {@code firstName} and {@code lastName} is left empty.
-     * If the name is null or blank, both parts are empty strings.</p>
-     *
-     * @param name the raw name from the lead (e.g. "Thomas Dupont")
-     * @return a two-element array {@code [firstName, lastName]}
-     */
-    private String[] splitName(String name) {
-        if (name == null || name.isBlank()) return new String[]{"", ""};
-        String trimmed = name.trim();
-        int idx = trimmed.indexOf(' ');
-        if (idx == -1) return new String[]{trimmed, ""};
-        return new String[]{trimmed.substring(0, idx).trim(), trimmed.substring(idx + 1).trim()};
     }
 }

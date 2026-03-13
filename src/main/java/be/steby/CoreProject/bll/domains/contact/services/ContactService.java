@@ -1,10 +1,7 @@
 package be.steby.CoreProject.bll.domains.contact.services;
 
-import be.steby.CoreProject.bll.domains.contact.models.ContactAssignRequest;
-import be.steby.CoreProject.bll.domains.contact.models.ContactCreateRequest;
-import be.steby.CoreProject.bll.domains.contact.models.ContactFilterRequest;
-import be.steby.CoreProject.bll.domains.contact.models.ContactMergeRequest;
-import be.steby.CoreProject.bll.domains.contact.models.ContactUpdateRequest;
+import be.steby.CoreProject.bll.domains.contact.models.*;
+import be.steby.CoreProject.bll.domains.contact.exceptions.*;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.entities.crm.Lead;
@@ -53,7 +50,7 @@ public interface ContactService {
      *
      * @param id the internal database ID
      * @return the matching contact
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactNotFoundException if not found
+     * @throws ContactNotFoundException if not found
      */
     Contact getById(Long id);
 
@@ -62,7 +59,7 @@ public interface ContactService {
      *
      * @param publicId the public UUID of the contact
      * @return the matching contact
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactNotFoundException if not found
+     * @throws ContactNotFoundException if not found
      */
     Contact getByPublicId(String publicId);
 
@@ -71,7 +68,7 @@ public interface ContactService {
      *
      * @param email the email address to look up
      * @return the matching contact
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactNotFoundException if not found
+     * @throws ContactNotFoundException if not found
      */
     Contact getByEmail(String email);
 
@@ -130,9 +127,9 @@ public interface ContactService {
      * @param request the contact creation data
      * @param actor   the commercial performing the operation
      * @return the newly created contact
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactEmailAlreadyExistsException
+     * @throws ContactEmailAlreadyExistsException
      *         if a contact with the same email already exists
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactValidationException
+     * @throws ContactValidationException
      *         if a provided field value fails business validation
      */
     Contact create(ContactCreateRequest request, User actor);
@@ -161,10 +158,10 @@ public interface ContactService {
      * @param request  the partial update request
      * @param actor    the user performing the update
      * @return the updated contact
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactNotFoundException if not found
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactEmailAlreadyExistsException
+     * @throws ContactNotFoundException if not found
+     * @throws ContactEmailAlreadyExistsException
      *         if the new email conflicts with another existing contact
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactValidationException
+     * @throws ContactValidationException
      *         if a provided field value fails business validation
      */
     Contact update(String publicId, ContactUpdateRequest request, User actor);
@@ -179,8 +176,8 @@ public interface ContactService {
      * @param newStatus the target status
      * @param actor     the user performing the transition
      * @return the updated contact
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactNotFoundException if not found
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactStatusTransitionException
+     * @throws ContactNotFoundException if not found
+     * @throws ContactStatusTransitionException
      *         if the transition from the current status to {@code newStatus} is not allowed
      */
     Contact updateStatus(String publicId, ContactStatus newStatus, User actor);
@@ -198,8 +195,8 @@ public interface ContactService {
      * @param contactPublicId the public UUID of the contact
      * @param user            the platform account to link
      * @return the updated contact
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactNotFoundException if not found
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactAlreadyLinkedToUserException
+     * @throws ContactNotFoundException if not found
+     * @throws ContactAlreadyLinkedToUserException
      *         if the contact already has a linked user, or if the user is already linked to another contact
      */
     Contact linkUser(String contactPublicId, User user);
@@ -214,7 +211,7 @@ public interface ContactService {
      * @param organisationPublicId the public UUID of the organisation to link, or {@code null} to unlink
      * @param actor                the user performing the operation
      * @return the updated contact
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactNotFoundException if not found
+     * @throws ContactNotFoundException if not found
      */
     Contact linkOrganisation(String contactPublicId, String organisationPublicId, User actor);
 
@@ -228,7 +225,7 @@ public interface ContactService {
      * @param request         the assignment request (commercialPublicId may be null to unassign)
      * @param actor           the user performing the operation
      * @return the updated contact
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactNotFoundException if not found
+     * @throws ContactNotFoundException if not found
      */
     Contact assign(String contactPublicId, ContactAssignRequest request, User actor);
 
@@ -248,8 +245,8 @@ public interface ContactService {
      * @param request the merge request (sourcePublicId and targetPublicId must differ)
      * @param actor   the user performing the operation
      * @return the surviving target contact after the merge
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactNotFoundException if either contact is not found
-     * @throws be.steby.CoreProject.bll.domains.contact.exceptions.ContactValidationException
+     * @throws ContactNotFoundException if either contact is not found
+     * @throws ContactValidationException
      *         if source and target are the same contact
      */
     Contact merge(ContactMergeRequest request, User actor);
