@@ -3,7 +3,9 @@ package be.steby.CoreProject.il.routes;
 import be.steby.CoreProject.il.routes.activitylog.ActivityLogRoutes;
 import be.steby.CoreProject.il.routes.calendar.CalendarRoutes;
 import be.steby.CoreProject.il.routes.gdpr.GdprRoutes;
+import be.steby.CoreProject.il.routes.contact.CrmContactRoutes;
 import be.steby.CoreProject.il.routes.lead.CrmLeadRoutes;
+import be.steby.CoreProject.il.routes.organisation.CrmOrganisationRoutes;
 import be.steby.CoreProject.il.routes.lead.LeadRoutes;
 import be.steby.CoreProject.il.routes.notification.NotificationRoutes;
 import be.steby.CoreProject.il.routes.password.PasswordRoutes;
@@ -100,7 +102,9 @@ public final class SecurityRoutesAggregator {
      * .requestMatchers(COMMERCIAL_ROUTES).hasAnyAuthority("COMMERCIAL", "ADMIN")
      */
     public static final String[] COMMERCIAL_ROUTES = concatenate(
-            CrmLeadRoutes.COMMERCIAL
+            CrmLeadRoutes.COMMERCIAL,
+            CrmContactRoutes.COMMERCIAL,
+            CrmOrganisationRoutes.COMMERCIAL
     );
 
     // ========== ADMIN ROUTES ==========
@@ -152,6 +156,8 @@ public final class SecurityRoutesAggregator {
             SportRoutes.CSRF_IGNORE,
             LeadRoutes.CSRF_IGNORE,
             CrmLeadRoutes.CSRF_IGNORE,
+            CrmContactRoutes.CSRF_IGNORE,
+            CrmOrganisationRoutes.CSRF_IGNORE,
             CalendarRoutes.CSRF_IGNORE,
             GdprRoutes.CSRF_IGNORE,
             NotificationRoutes.CSRF_IGNORE
