@@ -434,7 +434,7 @@ public class UserServiceImpl implements UserService {
      * Called only on admin-reactivation when the account was admin-deactivated.
      */
     private void clearAdminDeactivationFields(User user) {
-        if (user.isAdminDeactivated()) {
+        if (user.getAdminDeactivationReason() != null) {
             user.setAdminDeactivationReason(null);
             user.setAdminDeactivationDetails(null);
             user.setAdminDeactivatedAt(null);
