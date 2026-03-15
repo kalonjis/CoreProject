@@ -98,7 +98,7 @@ public class DealSpecification {
     public static Specification<Deal> atStage(Long stageId) {
         if (stageId == null) return null;
         return (root, query, cb) ->
-            cb.equal(root.get("stage").get("id"), stageId);
+            cb.equal(root.get("pipelineStep").get("id"), stageId);
     }
 
     // =========================================================================

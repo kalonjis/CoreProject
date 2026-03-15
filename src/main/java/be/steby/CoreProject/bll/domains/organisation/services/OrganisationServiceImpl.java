@@ -80,7 +80,8 @@ public class OrganisationServiceImpl implements OrganisationService {
 
     @Override
     public Page<Organisation> findAll(OrganisationFilterRequest filter, Pageable pageable) {
-        Specification<Organisation> spec = OrganisationSpecification.nameContains(filter.keyword())
+        Specification<Organisation> spec = Specification
+                .where(OrganisationSpecification.nameContains(filter.keyword()))
                 .and(OrganisationSpecification.hasIndustry(filter.industry()))
                 .and(OrganisationSpecification.hasSize(filter.size()))
                 .and(OrganisationSpecification.inCountry(filter.countryCode()));

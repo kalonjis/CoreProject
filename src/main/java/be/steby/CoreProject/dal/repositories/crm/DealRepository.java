@@ -164,4 +164,16 @@ public interface DealRepository extends JpaRepository<Deal, Long>,
            "WHERE d.pipeline.id = :pipelineId AND d.status = 'OPEN' " +
            "GROUP BY d.pipelineStep.id")
     List<Object[]> countOpenDealsByStage(@Param("pipelineId") Long pipelineId);
+
+    // =========================================================================
+    // Dashboard stats
+    // =========================================================================
+
+    long countByStatus(DealStatus status);
+
+    @Query("SELECT COUNT(d) FROM Deal d WHERE d.status = 'WON' AND d.closedAt >= :since")
+    long countWonSince(@Param("since") java.time.Instant since);
+
+    @Query("SELECT COALESCE(SUM(d.amount), 0) FROM Deal d WHERE d.status = 'WON' AND d.closedAt >= :since")
+    java.math.BigDecimal sumAmountWonSince(@Param("since") java.time.Instant since);
 }

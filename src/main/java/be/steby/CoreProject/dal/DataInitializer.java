@@ -7,19 +7,37 @@ import be.steby.CoreProject.dal.repositories.AddressRepository;
 import be.steby.CoreProject.dal.repositories.DeviceRepository;
 import be.steby.CoreProject.dal.repositories.UserAddressRepository;
 import be.steby.CoreProject.dal.repositories.UserRepository;
+import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
+import be.steby.CoreProject.dal.repositories.crm.DealRepository;
+import be.steby.CoreProject.dal.repositories.crm.LeadRepository;
+import be.steby.CoreProject.dal.repositories.crm.OrganisationRepository;
+import be.steby.CoreProject.dal.repositories.crm.PipelineRepository;
 import be.steby.CoreProject.dl.entities.Address;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.UserAddress;
+import be.steby.CoreProject.dl.entities.crm.Contact;
+import be.steby.CoreProject.dl.entities.crm.Deal;
+import be.steby.CoreProject.dl.entities.crm.Lead;
+import be.steby.CoreProject.dl.entities.crm.Organisation;
+import be.steby.CoreProject.dl.entities.crm.Pipeline;
+import be.steby.CoreProject.dl.entities.crm.PipelineStep;
 import be.steby.CoreProject.dl.enums.AddressType;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
+import be.steby.CoreProject.dl.enums.LeadType;
 import be.steby.CoreProject.dl.enums.UserRole;
+import be.steby.CoreProject.dl.enums.crm.ContactStatus;
+import be.steby.CoreProject.dl.enums.crm.DealStatus;
+import be.steby.CoreProject.dl.enums.crm.LeadStatus;
+import be.steby.CoreProject.dl.enums.crm.OrganisationSize;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,6 +51,11 @@ public class DataInitializer implements CommandLineRunner {
     private final UserCreationService userCreationService;
     private final AddressRepository addressRepository;
     private final UserAddressRepository userAddressRepository;
+    private final PipelineRepository pipelineRepository;
+    private final OrganisationRepository organisationRepository;
+    private final LeadRepository leadRepository;
+    private final ContactRepository contactRepository;
+    private final DealRepository dealRepository;
 
 
     @Override
@@ -90,9 +113,9 @@ public class DataInitializer implements CommandLineRunner {
 
         log.info("🔧 Initialisation des données système");
 
-        if(userRepository.existsByEmailIgnoreCase(user1.getEmail())) {
-            return;
-        }
+        boolean usersAlreadyExist = userRepository.existsByEmailIgnoreCase(user1.getEmail());
+
+        if (!usersAlreadyExist) {
 
         List<User> users = List.of(user1, user2, user3, user4, user5);
 
@@ -406,7 +429,7 @@ public class DataInitializer implements CommandLineRunner {
                 log.info("✅ Created {} addresses", addresses.size());
 
         // ===============================
-        // 2. CREATE USER-ADDRESS LINKS
+        // region CREATE USER-ADDRESS LINKS
         // ===============================
 
         // Gunt's addresses
@@ -534,6 +557,422 @@ public class DataInitializer implements CommandLineRunner {
                 userAddressRepository.saveAll(userAddresses);
                 log.info("✅ Created {} user-address links", userAddresses.size());
                 log.info("🎉 Address initialization complete!");
+
+        } // end if (!usersAlreadyExist)
+
+        //endregion
+
+
+        //region CRM
+
+        if (pipelineRepository.count() > 0) {
+            log.info("CRM data already exists, skipping");
+            return;
+        }
+
+        // Si les users existaient avant ce run, recharger depuis la DB
+        if (usersAlreadyExist) {
+            user1 = userRepository.findByEmailIgnoreCase("fakeGunt@fake.com").orElseThrow();
+            user2 = userRepository.findByEmailIgnoreCase("kalonj1981@hotmail.com").orElseThrow();
+        }
+
+        log.info("🔧 Initializing CRM data...");
+
+        // -----------------------------------------------------------------------
+        // PIPELINE
+        // -----------------------------------------------------------------------
+
+        Pipeline pipeline = Pipeline.builder()
+                .name("B2B Services")
+                .description("Pipeline principal pour les contrats de services aux entreprises.")
+                .isDefault(true)
+                .displayOrder(0)
+                .build();
+
+        PipelineStep stepQualif = PipelineStep.builder()
+                .name("Qualification")
+                .color("#3498db")
+                .position(0)
+                .pipeline(pipeline)
+                .build();
+
+        PipelineStep stepDevis = PipelineStep.builder()
+                .name("Devis envoyé")
+                .color("#9b59b6")
+                .position(1)
+                .pipeline(pipeline)
+                .build();
+
+        PipelineStep stepNego = PipelineStep.builder()
+                .name("Négociation")
+                .color("#e67e22")
+                .position(2)
+                .pipeline(pipeline)
+                .build();
+
+        PipelineStep stepVisite = PipelineStep.builder()
+                .name("Visite technique")
+                .color("#1abc9c")
+                .position(3)
+                .pipeline(pipeline)
+                .build();
+
+        PipelineStep stepWon = PipelineStep.builder()
+                .name("Gagné")
+                .color("#27ae60")
+                .position(4)
+                .isWon(true)
+                .pipeline(pipeline)
+                .build();
+
+        PipelineStep stepLost = PipelineStep.builder()
+                .name("Perdu")
+                .color("#e74c3c")
+                .position(5)
+                .isLost(true)
+                .pipeline(pipeline)
+                .build();
+
+        pipeline.getPipelineSteps().addAll(List.of(stepQualif, stepDevis, stepNego, stepVisite, stepWon, stepLost));
+        pipelineRepository.save(pipeline);
+        log.info("✅ Pipeline '{}' created with {} steps", pipeline.getName(), pipeline.getPipelineSteps().size());
+
+        // -----------------------------------------------------------------------
+        // ORGANISATIONS
+        // -----------------------------------------------------------------------
+
+        Organisation orgAcme = Organisation.builder()
+                .name("ACME Cleaning SA")
+                .website("https://www.acme-cleaning.be")
+                .industry("Nettoyage industriel")
+                .size(OrganisationSize.MEDIUM)
+                .phone("+32 2 456 78 90")
+                .notes("Client historique depuis 2019. Contrat annuel reconductible.")
+                .build();
+
+        Organisation orgTechno = Organisation.builder()
+                .name("TechnoPlus SPRL")
+                .website("https://www.technoplus.be")
+                .industry("Technologies de l'information")
+                .size(OrganisationSize.SMALL)
+                .phone("+32 4 789 01 23")
+                .build();
+
+        Organisation orgImmo = Organisation.builder()
+                .name("Immo Prestige SA")
+                .website("https://www.immoprestige.be")
+                .industry("Immobilier")
+                .size(OrganisationSize.LARGE)
+                .phone("+32 2 111 22 33")
+                .notes("Gestion de 50+ immeubles. Fort potentiel de contrats récurrents.")
+                .build();
+
+        Organisation orgSante = Organisation.builder()
+                .name("Centre Médical du Parc")
+                .industry("Santé")
+                .size(OrganisationSize.SMALL)
+                .phone("+32 81 44 55 66")
+                .build();
+
+        Organisation orgLogistique = Organisation.builder()
+                .name("BelExpress Logistics")
+                .website("https://www.belexpress.be")
+                .industry("Logistique et transport")
+                .size(OrganisationSize.ENTERPRISE)
+                .phone("+32 3 987 65 43")
+                .notes("Entrepôts à Liège et Anvers. Contrat multi-sites en discussion.")
+                .build();
+
+        organisationRepository.saveAll(List.of(orgAcme, orgTechno, orgImmo, orgSante, orgLogistique));
+        log.info("✅ Created 5 organisations");
+
+        // -----------------------------------------------------------------------
+        // LEADS
+        // -----------------------------------------------------------------------
+
+        Lead lead1 = Lead.builder()
+                .email("thomas.martin@acme-cleaning.be")
+                .name("Thomas Martin")
+                .phone("+32 475 11 22 33")
+                .subject("Demande de devis nettoyage bureaux")
+                .leadType(LeadType.COMMERCIAL)
+                .status(LeadStatus.CONVERTED)
+                .assignedTo(user1)
+                .submittedAt(Instant.now().minusSeconds(86400 * 30))
+                .convertedAt(Instant.now().minusSeconds(86400 * 25))
+                .ipAddress("85.200.1.50")
+                .build();
+
+        Lead lead2 = Lead.builder()
+                .email("sophie.durand@technoplus.be")
+                .name("Sophie Durand")
+                .subject("Partenariat technologique")
+                .leadType(LeadType.PARTNERSHIP)
+                .status(LeadStatus.IN_REVIEW)
+                .assignedTo(user2)
+                .submittedAt(Instant.now().minusSeconds(86400 * 10))
+                .ipAddress("195.10.20.30")
+                .build();
+
+        Lead lead3 = Lead.builder()
+                .email("marc.lecomte@immoprestige.be")
+                .name("Marc Lecomte")
+                .phone("+32 474 55 66 77")
+                .subject("Nettoyage résidences haut de gamme")
+                .leadType(LeadType.COMMERCIAL)
+                .status(LeadStatus.CONVERTED)
+                .assignedTo(user1)
+                .submittedAt(Instant.now().minusSeconds(86400 * 20))
+                .convertedAt(Instant.now().minusSeconds(86400 * 15))
+                .ipAddress("212.44.5.6")
+                .build();
+
+        Lead lead4 = Lead.builder()
+                .email("press@dailybel.be")
+                .name("Rédaction DailyBel")
+                .subject("Interview fondateur")
+                .leadType(LeadType.PRESS)
+                .status(LeadStatus.REJECTED)
+                .assignedTo(user2)
+                .rejectionReason("Hors périmètre commercial — demande presse non prioritaire")
+                .submittedAt(Instant.now().minusSeconds(86400 * 5))
+                .ipAddress("195.50.100.1")
+                .build();
+
+        Lead lead5 = Lead.builder()
+                .email("info@belexpress.be")
+                .name("Service Achats BelExpress")
+                .phone("+32 3 987 65 43")
+                .subject("Contrat nettoyage entrepôts multi-sites")
+                .leadType(LeadType.COMMERCIAL)
+                .status(LeadStatus.CONVERTED)
+                .assignedTo(user1)
+                .submittedAt(Instant.now().minusSeconds(86400 * 45))
+                .convertedAt(Instant.now().minusSeconds(86400 * 40))
+                .ipAddress("91.200.30.10")
+                .build();
+
+        Lead lead6 = Lead.builder()
+                .email("contact@clinique-parc.be")
+                .name("Dr. Isabelle Fontaine")
+                .subject("Renseignements nettoyage médical")
+                .leadType(LeadType.COMMERCIAL)
+                .status(LeadStatus.NEW)
+                .submittedAt(Instant.now().minusSeconds(86400 * 2))
+                .ipAddress("178.51.22.44")
+                .build();
+
+        leadRepository.saveAll(List.of(lead1, lead2, lead3, lead4, lead5, lead6));
+        log.info("✅ Created 6 leads");
+
+        // -----------------------------------------------------------------------
+        // CONTACTS
+        // -----------------------------------------------------------------------
+
+        Contact contactThomas = Contact.builder()
+                .firstName("Thomas")
+                .lastName("Martin")
+                .email("thomas.martin@acme-cleaning.be")
+                .phone("+32 475 11 22 33")
+                .jobTitle("Directeur Général")
+                .status(ContactStatus.QUALIFIED)
+                .assignedTo(user1)
+                .organisation(orgAcme)
+                .originLead(lead1)
+                .notes("Décideur principal. Appelle le vendredi matin.")
+                .build();
+
+        Contact contactSophie = Contact.builder()
+                .firstName("Sophie")
+                .lastName("Durand")
+                .email("sophie.durand@technoplus.be")
+                .phone("+32 476 22 33 44")
+                .jobTitle("CTO")
+                .status(ContactStatus.NEW)
+                .assignedTo(user2)
+                .organisation(orgTechno)
+                .build();
+
+        Contact contactMarc = Contact.builder()
+                .firstName("Marc")
+                .lastName("Lecomte")
+                .email("marc.lecomte@immoprestige.be")
+                .phone("+32 474 55 66 77")
+                .jobTitle("Responsable Facility Management")
+                .status(ContactStatus.QUALIFIED)
+                .assignedTo(user1)
+                .organisation(orgImmo)
+                .originLead(lead3)
+                .build();
+
+        Contact contactIsabelle = Contact.builder()
+                .firstName("Isabelle")
+                .lastName("Fontaine")
+                .email("isabelle.fontaine@clinique-parc.be")
+                .phone("+32 81 44 55 66")
+                .jobTitle("Directrice Médicale")
+                .status(ContactStatus.NEW)
+                .organisation(orgSante)
+                .build();
+
+        Contact contactPierre = Contact.builder()
+                .firstName("Pierre")
+                .lastName("Vanderberg")
+                .email("pierre.vanderberg@belexpress.be")
+                .phone("+32 477 88 99 00")
+                .jobTitle("Directeur Achats")
+                .status(ContactStatus.QUALIFIED)
+                .assignedTo(user1)
+                .organisation(orgLogistique)
+                .originLead(lead5)
+                .notes("Négocie dur mais loyal. Budget approuvé pour 3 sites.")
+                .build();
+
+        Contact contactNadia = Contact.builder()
+                .firstName("Nadia")
+                .lastName("Osman")
+                .email("nadia.osman@freelance.be")
+                .phone("+32 496 33 44 55")
+                .jobTitle("Consultante Indépendante")
+                .status(ContactStatus.NEW)
+                .assignedTo(user2)
+                .notes("Contact freelance, pas d'organisation liée.")
+                .build();
+
+        Contact contactJean = Contact.builder()
+                .firstName("Jean-Pierre")
+                .lastName("Dubois")
+                .email("jpdubois@technoplus.be")
+                .phone("+32 471 66 77 88")
+                .jobTitle("CEO")
+                .status(ContactStatus.CLIENT)
+                .assignedTo(user2)
+                .organisation(orgTechno)
+                .build();
+
+        contactRepository.saveAll(List.of(contactThomas, contactSophie, contactMarc,
+                contactIsabelle, contactPierre, contactNadia, contactJean));
+        log.info("✅ Created 7 contacts");
+
+        // -----------------------------------------------------------------------
+        // DEALS
+        // -----------------------------------------------------------------------
+
+        Deal deal1 = Deal.builder()
+                .title("Nettoyage bureaux — ACME Cleaning SA")
+                .amount(new BigDecimal("1200.00"))
+                .currency("EUR")
+                .status(DealStatus.OPEN)
+                .pipeline(pipeline)
+                .pipelineStep(stepDevis)
+                .contact(contactThomas)
+                .organisation(orgAcme)
+                .assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().plusDays(15))
+                .notes("Devis envoyé le 10/03. Attente retour client.")
+                .build();
+
+        Deal deal2 = Deal.builder()
+                .title("Contrat entretien — Immo Prestige")
+                .amount(new BigDecimal("3500.00"))
+                .currency("EUR")
+                .status(DealStatus.OPEN)
+                .pipeline(pipeline)
+                .pipelineStep(stepNego)
+                .contact(contactMarc)
+                .organisation(orgImmo)
+                .assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().plusDays(30))
+                .notes("Négociation sur le volume — 12 résidences.")
+                .build();
+
+        Deal deal3 = Deal.builder()
+                .title("Multi-sites entrepôts — BelExpress")
+                .amount(new BigDecimal("8900.00"))
+                .currency("EUR")
+                .status(DealStatus.OPEN)
+                .pipeline(pipeline)
+                .pipelineStep(stepVisite)
+                .contact(contactPierre)
+                .organisation(orgLogistique)
+                .assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().plusDays(7))
+                .notes("Visite technique confirmée pour la semaine prochaine.")
+                .build();
+
+        Deal deal4 = Deal.builder()
+                .title("Partenariat TechnoPlus")
+                .amount(new BigDecimal("500.00"))
+                .currency("EUR")
+                .status(DealStatus.OPEN)
+                .pipeline(pipeline)
+                .pipelineStep(stepQualif)
+                .contact(contactSophie)
+                .organisation(orgTechno)
+                .assignedTo(user2)
+                .expectedCloseDate(LocalDate.now().plusDays(45))
+                .build();
+
+        Deal deal5 = Deal.builder()
+                .title("Nettoyage médical — Centre du Parc")
+                .amount(new BigDecimal("650.00"))
+                .currency("EUR")
+                .status(DealStatus.OPEN)
+                .pipeline(pipeline)
+                .pipelineStep(stepQualif)
+                .contact(contactIsabelle)
+                .organisation(orgSante)
+                .assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().plusDays(60))
+                .build();
+
+        Deal deal6 = Deal.builder()
+                .title("Prestation freelance — Nadia Osman")
+                .amount(new BigDecimal("200.00"))
+                .currency("EUR")
+                .status(DealStatus.OPEN)
+                .pipeline(pipeline)
+                .pipelineStep(stepDevis)
+                .contact(contactNadia)
+                .assignedTo(user2)
+                .expectedCloseDate(LocalDate.now().minusDays(3))
+                .notes("Deal en retard — relance nécessaire.")
+                .build();
+
+        Deal deal7 = Deal.builder()
+                .title("Contrat annuel TechnoPlus — Bureaux Liège")
+                .amount(new BigDecimal("4200.00"))
+                .currency("EUR")
+                .status(DealStatus.WON)
+                .pipeline(pipeline)
+                .pipelineStep(stepWon)
+                .contact(contactJean)
+                .organisation(orgTechno)
+                .assignedTo(user2)
+                .expectedCloseDate(LocalDate.now().minusDays(10))
+                .closedAt(Instant.now().minusSeconds(86400 * 8))
+                .notes("Contrat signé le 05/03. Démarrage le 01/04.")
+                .build();
+
+        Deal deal8 = Deal.builder()
+                .title("Nettoyage chantier — Promoteur Inconnu")
+                .amount(new BigDecimal("1800.00"))
+                .currency("EUR")
+                .status(DealStatus.LOST)
+                .pipeline(pipeline)
+                .pipelineStep(stepLost)
+                .contact(contactMarc)
+                .organisation(orgImmo)
+                .assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().minusDays(20))
+                .closedAt(Instant.now().minusSeconds(86400 * 18))
+                .notes("Client a choisi un concurrent moins cher.")
+                .build();
+
+        dealRepository.saveAll(List.of(deal1, deal2, deal3, deal4, deal5, deal6, deal7, deal8));
+        log.info("✅ Created 8 deals");
+
+        log.info("🎉 CRM data initialization complete!");
 
         //endregion
 

@@ -4,8 +4,13 @@ import be.steby.CoreProject.il.routes.activitylog.ActivityLogRoutes;
 import be.steby.CoreProject.il.routes.calendar.CalendarRoutes;
 import be.steby.CoreProject.il.routes.gdpr.GdprRoutes;
 import be.steby.CoreProject.il.routes.contact.CrmContactRoutes;
+import be.steby.CoreProject.il.routes.deal.CrmDealRoutes;
 import be.steby.CoreProject.il.routes.lead.CrmLeadRoutes;
 import be.steby.CoreProject.il.routes.organisation.CrmOrganisationRoutes;
+import be.steby.CoreProject.il.routes.commercialaction.CrmCommercialActionRoutes;
+import be.steby.CoreProject.il.routes.dashboard.CrmDashboardRoutes;
+import be.steby.CoreProject.il.routes.interaction.CrmInteractionRoutes;
+import be.steby.CoreProject.il.routes.pipeline.CrmPipelineRoutes;
 import be.steby.CoreProject.il.routes.lead.LeadRoutes;
 import be.steby.CoreProject.il.routes.notification.NotificationRoutes;
 import be.steby.CoreProject.il.routes.password.PasswordRoutes;
@@ -45,6 +50,7 @@ import static be.steby.CoreProject.il.routes.SecurityRoutes.concatenate;
  * @see SwaggerRoutes
  * @see DebugRoutes
  * @see CrmLeadRoutes
+ * @see CrmDealRoutes
  */
 public final class SecurityRoutesAggregator {
 
@@ -104,7 +110,12 @@ public final class SecurityRoutesAggregator {
     public static final String[] COMMERCIAL_ROUTES = concatenate(
             CrmLeadRoutes.COMMERCIAL,
             CrmContactRoutes.COMMERCIAL,
-            CrmOrganisationRoutes.COMMERCIAL
+            CrmOrganisationRoutes.COMMERCIAL,
+            CrmDealRoutes.COMMERCIAL,
+            CrmPipelineRoutes.COMMERCIAL,
+            CrmInteractionRoutes.COMMERCIAL,
+            CrmCommercialActionRoutes.COMMERCIAL,
+            CrmDashboardRoutes.COMMERCIAL
     );
 
     // ========== ADMIN ROUTES ==========
@@ -158,6 +169,11 @@ public final class SecurityRoutesAggregator {
             CrmLeadRoutes.CSRF_IGNORE,
             CrmContactRoutes.CSRF_IGNORE,
             CrmOrganisationRoutes.CSRF_IGNORE,
+            CrmDealRoutes.CSRF_IGNORE,
+            CrmPipelineRoutes.CSRF_IGNORE,
+            CrmInteractionRoutes.CSRF_IGNORE,
+            CrmCommercialActionRoutes.CSRF_IGNORE,
+            CrmDashboardRoutes.CSRF_IGNORE,
             CalendarRoutes.CSRF_IGNORE,
             GdprRoutes.CSRF_IGNORE,
             NotificationRoutes.CSRF_IGNORE
