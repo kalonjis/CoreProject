@@ -114,6 +114,12 @@ public interface CommercialActionRepository extends JpaRepository<CommercialActi
            "AND c.dueDate < :now")
     List<CommercialAction> findAllOverdue(@Param("now") Instant now);
 
+    @Query("SELECT COUNT(c) FROM CommercialAction c " +
+           "WHERE c.status = 'PENDING' " +
+           "AND c.dueDate IS NOT NULL " +
+           "AND c.dueDate < :now")
+    long countAllOverdue(@Param("now") Instant now);
+
     /**
      * Counts pending tasks assigned to a specific commercial.
      *

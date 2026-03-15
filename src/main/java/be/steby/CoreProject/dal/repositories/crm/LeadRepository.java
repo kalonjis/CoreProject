@@ -97,4 +97,10 @@ public interface LeadRepository extends JpaRepository<Lead, Long>, JpaSpecificat
     @Query("SELECT COUNT(l) FROM Lead l " +
             "WHERE LOWER(l.email) = LOWER(:email) AND l.submittedAt >= :since")
     long countByEmailSince(@Param("email") String email, @Param("since") Instant since);
+
+    // =========================================================================
+    // Dashboard stats
+    // =========================================================================
+
+    long countByStatus(LeadStatus status);
 }
