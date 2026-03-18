@@ -117,6 +117,29 @@ public class CrmInteractionController {
         return ResponseEntity.ok(timeline);
     }
 
+    /**
+     * Returns the interaction timeline for a lead, ordered most recent first.
+     *
+     * <p>Used during lead qualification — before conversion to a Contact.</p>
+     *
+     * <p><strong>Endpoint:</strong> GET /api/crm/interactions/lead/{leadPublicId}</p>
+     *
+     * @param leadPublicId the public UUID of the lead
+     * @return list of interactions linked to that lead
+     */
+    @GetMapping("/lead/{leadPublicId}")
+    @Operation(summary = "Lead timeline", description = "Returns all interactions linked to a lead, most recent first")
+    public ResponseEntity<List<InteractionResponse>> getTimelineByLead(@PathVariable String leadPublicId) {
+        log.debug("CRM lead timeline requested — leadPublicId: {}", leadPublicId);
+
+        List<InteractionResponse> timeline = interactionService.getTimelineByLead(leadPublicId)
+                .stream()
+                .map(InteractionResponse::fromEntity)
+                .toList();
+
+        return ResponseEntity.ok(timeline);
+    }
+
     // =========================================================================
     // Write
     // =========================================================================

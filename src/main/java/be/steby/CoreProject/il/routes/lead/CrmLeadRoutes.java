@@ -35,6 +35,7 @@ public final class CrmLeadRoutes {
     };
 
     private static final String[] LIFECYCLE_ROUTES = {
+            BASE + "/*/enrich",  // PATCH — enrich lead with contact details
             BASE + "/*/assign",  // PATCH — assign lead to a commercial
             BASE + "/*/review",  // PATCH — transition lead to IN_REVIEW
             BASE + "/*/convert", // POST  — convert lead to Contact

@@ -61,8 +61,10 @@ import java.time.Instant;
         @Index(name = "idx_CommercialAction_assigned",  columnList = "assigned_to_id"),
         @Index(name = "idx_CommercialAction_deal",      columnList = "deal_id"),
         @Index(name = "idx_CommercialAction_contact",   columnList = "contact_id"),
+        @Index(name = "idx_CommercialAction_lead",      columnList = "lead_id"),
         @Index(name = "idx_CommercialAction_status",    columnList = "status"),
-        @Index(name = "idx_CommercialAction_due",       columnList = "due_date")
+        @Index(name = "idx_CommercialAction_due",       columnList = "due_date"),
+        @Index(name = "idx_CommercialAction_reminder",  columnList = "reminder_at")
     }
 )
 @Getter
@@ -152,6 +154,25 @@ public class CommercialAction extends BaseEntity<Long> {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    /**
+     * Timestamp at which the reminder should be sent.
+     *
+     * <p>Optional. When set, the {@code CommercialActionReminderScheduler} will
+     * notify the assigned commercial via their preferred channels (IN_APP / EMAIL)
+     * once this instant is reached. Null means no reminder is scheduled.</p>
+     */
+    @Column(name = "reminder_at")
+    private Instant reminderAt;
+
+    /**
+     * Timestamp when the reminder was actually dispatched.
+     *
+     * <p>Set by the scheduler after successful dispatch. Null until the reminder
+     * fires. Used for idempotence — the scheduler will not re-send if non-null.</p>
+     */
+    @Column(name = "reminder_sent_at")
+    private Instant reminderSentAt;
+
     // =========================================================================
     // Relationships
     // =========================================================================
@@ -179,12 +200,23 @@ public class CommercialAction extends BaseEntity<Long> {
     /**
      * Contact this CommercialAction is linked to.
      *
-     * <p>Optional — at least one of {@code deal} or {@code contact} must be set.
+     * <p>Optional — at least one of {@code lead}, {@code deal}, or {@code contact} must be set.
      * Loaded lazily.</p>
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "contact_id")
     private Contact contact;
+
+    /**
+     * Lead this CommercialAction is linked to.
+     *
+     * <p>Optional — set when creating a task during lead qualification,
+     * before conversion to a Contact.
+     * At least one of {@code lead}, {@code deal}, or {@code contact} must be set.</p>
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lead_id")
+    private Lead lead;
 
     // =========================================================================
     // Utility methods

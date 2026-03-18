@@ -65,6 +65,21 @@ public interface LeadService {
     // =========================================================================
 
     /**
+     * Enriches a lead with contact details provided or completed by the commercial.
+     *
+     * <p>Only updates fields that are non-null in the request.
+     * Can be called at any non-terminal status.</p>
+     *
+     * @param publicId the public UUID of the lead
+     * @param request  the enrichment data (all fields optional)
+     * @return the updated lead
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadNotFoundException if not found
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadAlreadyConvertedException if terminal
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadAlreadyRejectedException if terminal
+     */
+    Lead enrich(String publicId, LeadEnrichRequest request);
+
+    /**
      * Assigns or reassigns a lead to a commercial.
      *
      * <p>Can be called at any non-terminal status.

@@ -117,7 +117,9 @@ public class LeadServiceImpl implements LeadService {
 
         Specification<Lead> spec = Specification.allOf(
                 LeadSpecification.hasStatus(filter.status()),
+                LeadSpecification.isActive(filter.activeOnly()),
                 LeadSpecification.hasLeadType(filter.leadType()),
+                LeadSpecification.hasLeadSource(filter.leadSource()),
                 Boolean.TRUE.equals(filter.unassignedOnly())
                         ? LeadSpecification.unassigned()
                         : LeadSpecification.assignedTo(assignedToId),
@@ -131,6 +133,28 @@ public class LeadServiceImpl implements LeadService {
     // =========================================================================
     // CRM lifecycle
     // =========================================================================
+
+    @Override
+    @Transactional
+    public Lead enrich(String publicId, LeadEnrichRequest request) {
+        Lead lead = getByPublicId(publicId);
+        guardTerminal(lead);
+
+        if (request.civility()         != null) lead.setCivility(request.civility());
+        if (request.firstName()        != null) lead.setFirstName(request.firstName().isBlank()        ? null : request.firstName().trim());
+        if (request.lastName()         != null) lead.setLastName(request.lastName().isBlank()          ? null : request.lastName().trim());
+        if (request.phone()            != null) lead.setPhone(request.phone().isBlank()                ? null : request.phone().trim());
+        if (request.organisationName() != null) lead.setOrganisationName(request.organisationName().isBlank() ? null : request.organisationName().trim());
+        if (request.leadType()         != null) lead.setLeadType(request.leadType());
+        if (request.leadSource()       != null) lead.setLeadSource(request.leadSource());
+
+        leadRepository.save(lead);
+
+        log.info("Lead {} enriched — firstName: {}, lastName: {}, phone: {}, org: {}, source: {}",
+                publicId, request.firstName(), request.lastName(), request.phone(), request.organisationName(), request.leadSource());
+
+        return lead;
+    }
 
     @Override
     @Transactional
@@ -158,6 +182,13 @@ public class LeadServiceImpl implements LeadService {
     public Lead markInReview(String publicId, User actor) {
         Lead lead = getByPublicId(publicId);
         guardTerminal(lead);
+
+        // Only the assigned commercial or an admin can mark in review
+        if (!actor.hasAdminPrivileges()) {
+            if (lead.getAssignedTo() == null || !lead.getAssignedTo().getId().equals(actor.getId())) {
+                throw new LeadDomainException("Only the assigned commercial can mark this lead in review", 403);
+            }
+        }
 
         Device device = deviceService.detectAndRegisterDevice(actor);
 
@@ -189,7 +220,9 @@ public class LeadServiceImpl implements LeadService {
 
         Device device = deviceService.detectAndRegisterDevice(actor);
 
-        eventPublisher.publishEvent(new LeadConvertedEvent(lead, actor, contactPublicId, device));
+        eventPublisher.publishEvent(new LeadConvertedEvent(
+                lead, actor, contactPublicId, device,
+                request.organisationPublicId(), request.organisationName()));
 
         return lead;
     }
@@ -262,9 +295,15 @@ public class LeadServiceImpl implements LeadService {
     private Lead buildInquiry(LeadRequest request, String email, String ipAddress) {
         return Lead.builder()
                 .email(email)
-                .name(request.hasName() ? request.name().trim() : null)
+                .civility(request.civility())
+                .firstName(request.firstName())
+                .lastName(request.lastName())
+                .phone(request.phone())
+                .organisationName(request.organisationName())
                 .subject(request.subject().trim())
+                .message(request.message() != null ? request.message().trim() : null)
                 .leadType(request.leadType())
+                .leadSource(request.leadSource())
                 .ipAddress(ipAddress)
                 .submittedAt(Instant.now())
                 .build();

@@ -25,6 +25,8 @@ import java.time.Instant;
  * @param assignedToUsername username of the assigned commercial
  * @param dealPublicId       public UUID of the linked deal, or {@code null}
  * @param contactPublicId    public UUID of the linked contact, or {@code null}
+ * @param reminderAt         scheduled reminder timestamp, or {@code null} if not set
+ * @param reminderSentAt     timestamp when the reminder was dispatched, or {@code null} if not yet sent
  * @param createdAt          timestamp of entity creation
  * @param updatedAt          timestamp of last update
  */
@@ -41,6 +43,8 @@ public record CommercialActionResponse(
         String assignedToUsername,
         String dealPublicId,
         String contactPublicId,
+        Instant reminderAt,
+        Instant reminderSentAt,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -65,6 +69,8 @@ public record CommercialActionResponse(
                 action.getAssignedTo() != null ? action.getAssignedTo().getUsername() : null,
                 action.getDeal()       != null ? action.getDeal().getPublicId()       : null,
                 action.getContact()    != null ? action.getContact().getPublicId()    : null,
+                action.getReminderAt(),
+                action.getReminderSentAt(),
                 action.getCreatedAt(),
                 action.getUpdatedAt()
         );

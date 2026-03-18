@@ -118,6 +118,29 @@ public class CrmCommercialActionController {
     }
 
     /**
+     * Returns all commercial actions linked to a lead, ordered by due date ascending.
+     *
+     * <p>Used during lead qualification — before conversion to a Contact.</p>
+     *
+     * <p><strong>Endpoint:</strong> GET /api/crm/commercial-actions/lead/{leadPublicId}</p>
+     *
+     * @param leadPublicId the public UUID of the lead
+     * @return list of actions linked to that lead
+     */
+    @GetMapping("/lead/{leadPublicId}")
+    @Operation(summary = "Actions by lead", description = "Returns all commercial actions linked to a lead")
+    public ResponseEntity<List<CommercialActionResponse>> findByLead(@PathVariable String leadPublicId) {
+        log.debug("CRM commercial actions by lead requested — leadPublicId: {}", leadPublicId);
+
+        List<CommercialActionResponse> actions = commercialActionService.findByLead(leadPublicId)
+                .stream()
+                .map(CommercialActionResponse::fromEntity)
+                .toList();
+
+        return ResponseEntity.ok(actions);
+    }
+
+    /**
      * Returns all commercial actions assigned to the authenticated user.
      *
      * <p>Optional {@code status} query parameter filters by lifecycle status.

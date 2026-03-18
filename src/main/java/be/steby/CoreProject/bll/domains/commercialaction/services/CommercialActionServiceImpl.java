@@ -16,10 +16,12 @@ import be.steby.CoreProject.dal.repositories.UserRepository;
 import be.steby.CoreProject.dal.repositories.crm.CommercialActionRepository;
 import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
 import be.steby.CoreProject.dal.repositories.crm.DealRepository;
+import be.steby.CoreProject.dal.repositories.crm.LeadRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.CommercialAction;
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.entities.crm.Deal;
+import be.steby.CoreProject.dl.entities.crm.Lead;
 import be.steby.CoreProject.dl.enums.crm.CommercialActionPriority;
 import be.steby.CoreProject.dl.enums.crm.CommercialActionStatus;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +62,7 @@ public class CommercialActionServiceImpl implements CommercialActionService {
     private final CommercialActionRepository commercialActionRepository;
     private final DealRepository dealRepository;
     private final ContactRepository contactRepository;
+    private final LeadRepository leadRepository;
     private final UserRepository userRepository;
     private final DeviceService deviceService;
     private final ApplicationEventPublisher eventPublisher;
@@ -91,6 +94,14 @@ public class CommercialActionServiceImpl implements CommercialActionService {
     }
 
     @Override
+    public List<CommercialAction> findByLead(String leadPublicId) {
+        Lead lead = leadRepository.findByPublicId(leadPublicId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Lead not found with publicId: " + leadPublicId));
+        return commercialActionRepository.findByLeadIdOrderByDueDateAsc(lead.getId());
+    }
+
+    @Override
     public List<CommercialAction> findByAssignedTo(String assignedToPublicId, CommercialActionStatus status) {
         User user = userRepository.findByPublicId(assignedToPublicId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -109,8 +120,8 @@ public class CommercialActionServiceImpl implements CommercialActionService {
     public CommercialAction create(CommercialActionCreateRequest request, User actor) {
         log.debug("Creating commercial action — title: '{}', by: {}", request.title(), actor.getUsername());
 
-        // Guard: at least one of deal/contact must be provided
-        if (request.dealPublicId() == null && request.contactPublicId() == null) {
+        // Guard: at least one of lead/deal/contact must be provided
+        if (request.dealPublicId() == null && request.contactPublicId() == null && request.leadPublicId() == null) {
             throw CommercialActionValidationException.neitherDealNorContact();
         }
 
@@ -119,11 +130,10 @@ public class CommercialActionServiceImpl implements CommercialActionService {
             throw CommercialActionValidationException.missingAssignee();
         }
 
-        // Resolve optional deal reference
+        // Resolve optional references
         Deal deal = resolveDeal(request.dealPublicId());
-
-        // Resolve optional contact reference
         Contact contact = resolveContact(request.contactPublicId());
+        Lead lead = resolveLead(request.leadPublicId());
 
         // Resolve required assignee
         User assignedTo = userRepository.findByPublicId(request.assignedToPublicId())
@@ -136,9 +146,11 @@ public class CommercialActionServiceImpl implements CommercialActionService {
                 .priority(request.priority() != null ? request.priority() : CommercialActionPriority.MEDIUM)
                 .status(CommercialActionStatus.PENDING)
                 .dueDate(request.dueDate())
+                .reminderAt(request.reminderAt())
                 .assignedTo(assignedTo)
                 .deal(deal)
                 .contact(contact)
+                .lead(lead)
                 .build();
 
         action.setPublicId(UUID.randomUUID().toString());
@@ -166,6 +178,10 @@ public class CommercialActionServiceImpl implements CommercialActionService {
         if (request.description() != null) action.setDescription(request.description());
         if (request.priority()    != null) action.setPriority(request.priority());
         if (request.dueDate()     != null) action.setDueDate(request.dueDate());
+        if (request.reminderAt()  != null) {
+            action.setReminderAt(request.reminderAt());
+            action.setReminderSentAt(null); // reset so the scheduler picks it up again
+        }
 
         // Inline reassignment
         if (request.assignedToPublicId() != null) {
@@ -294,5 +310,20 @@ public class CommercialActionServiceImpl implements CommercialActionService {
         return contactRepository.findByPublicId(contactPublicId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Contact not found with publicId: " + contactPublicId));
+    }
+
+    /**
+     * Resolves a lead entity from its public UUID.
+     * Returns {@code null} if {@code publicId} is null (action without lead).
+     *
+     * @param leadPublicId the public UUID of the lead, or {@code null}
+     * @return the lead entity, or {@code null}
+     * @throws IllegalArgumentException if the publicId is provided but yields no result
+     */
+    private Lead resolveLead(String leadPublicId) {
+        if (leadPublicId == null) return null;
+        return leadRepository.findByPublicId(leadPublicId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Lead not found with publicId: " + leadPublicId));
     }
 }

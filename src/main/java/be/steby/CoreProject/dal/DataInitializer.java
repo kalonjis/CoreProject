@@ -692,7 +692,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Lead lead1 = Lead.builder()
                 .email("thomas.martin@acme-cleaning.be")
-                .name("Thomas Martin")
+                .firstName("Thomas").lastName("Martin")
                 .phone("+32 475 11 22 33")
                 .subject("Demande de devis nettoyage bureaux")
                 .leadType(LeadType.COMMERCIAL)
@@ -705,7 +705,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Lead lead2 = Lead.builder()
                 .email("sophie.durand@technoplus.be")
-                .name("Sophie Durand")
+                .firstName("Sophie").lastName("Durand")
                 .subject("Partenariat technologique")
                 .leadType(LeadType.PARTNERSHIP)
                 .status(LeadStatus.IN_REVIEW)
@@ -716,7 +716,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Lead lead3 = Lead.builder()
                 .email("marc.lecomte@immoprestige.be")
-                .name("Marc Lecomte")
+                .firstName("Marc").lastName("Lecomte")
                 .phone("+32 474 55 66 77")
                 .subject("Nettoyage résidences haut de gamme")
                 .leadType(LeadType.COMMERCIAL)
@@ -729,7 +729,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Lead lead4 = Lead.builder()
                 .email("press@dailybel.be")
-                .name("Rédaction DailyBel")
+                .firstName("Rédaction DailyBel")
                 .subject("Interview fondateur")
                 .leadType(LeadType.PRESS)
                 .status(LeadStatus.REJECTED)
@@ -741,7 +741,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Lead lead5 = Lead.builder()
                 .email("info@belexpress.be")
-                .name("Service Achats BelExpress")
+                .firstName("Service Achats BelExpress")
                 .phone("+32 3 987 65 43")
                 .subject("Contrat nettoyage entrepôts multi-sites")
                 .leadType(LeadType.COMMERCIAL)
@@ -754,7 +754,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Lead lead6 = Lead.builder()
                 .email("contact@clinique-parc.be")
-                .name("Dr. Isabelle Fontaine")
+                .firstName("Isabelle").lastName("Fontaine")
                 .subject("Renseignements nettoyage médical")
                 .leadType(LeadType.COMMERCIAL)
                 .status(LeadStatus.NEW)

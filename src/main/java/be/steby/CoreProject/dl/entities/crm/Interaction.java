@@ -64,6 +64,7 @@ import java.time.Instant;
         @Index(name = "idx_interaction_public_id", columnList = "public_id"),
         @Index(name = "idx_interaction_deal",      columnList = "deal_id"),
         @Index(name = "idx_interaction_contact",   columnList = "contact_id"),
+        @Index(name = "idx_interaction_lead",      columnList = "lead_id"),
         @Index(name = "idx_interaction_user",      columnList = "performed_by_id"),
         @Index(name = "idx_interaction_occurred",  columnList = "occurred_at")
     }
@@ -181,7 +182,7 @@ public class Interaction extends BaseEntity<Long> {
     /**
      * Contact this interaction is linked to.
      *
-     * <p>Optional but at least one of {@code deal} or {@code contact} must be set.
+     * <p>Optional — at least one of {@code lead}, {@code deal}, or {@code contact} must be set.
      * Loaded lazily — not needed when browsing the deal timeline.</p>
      */
     @ManyToOne(fetch = FetchType.LAZY)
@@ -189,12 +190,30 @@ public class Interaction extends BaseEntity<Long> {
     private Contact contact;
 
     /**
+     * Lead this interaction is linked to.
+     *
+     * <p>Optional — set when logging an interaction during lead qualification,
+     * before the lead has been converted to a Contact.
+     * At least one of {@code lead}, {@code deal}, or {@code contact} must be set.</p>
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lead_id")
+    private Lead lead;
+
+    /**
      * The commercial (User) who performed this interaction.
      *
      * <p>Required. Used for performance reporting and team interaction feeds.</p>
      */
+    /**
+     * The commercial (User) who performed this interaction.
+     *
+     * <p>Required for user-initiated interactions. {@code null} for system-generated
+     * interactions (e.g., {@code CONTACT_FORM}) where the action originates from
+     * an anonymous visitor rather than a CRM user.</p>
+     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "performed_by_id", nullable = false)
+    @JoinColumn(name = "performed_by_id")
     private User performedBy;
 
     // =========================================================================

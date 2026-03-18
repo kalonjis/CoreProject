@@ -81,6 +81,20 @@ public interface InteractionRepository extends JpaRepository<Interaction, Long> 
     List<Interaction> findByContactIdOrderByOccurredAtDesc(Long contactId);
 
     // =========================================================================
+    // Lead timeline
+    // =========================================================================
+
+    /**
+     * Finds all interactions linked to a lead, ordered by occurrence date descending.
+     *
+     * <p>Used during lead qualification — before conversion to a Contact.</p>
+     *
+     * @param leadId the internal ID of the lead
+     * @return interactions for that lead, most recent first
+     */
+    List<Interaction> findByLeadIdOrderByOccurredAtDesc(Long leadId);
+
+    // =========================================================================
     // Team reporting
     // =========================================================================
 

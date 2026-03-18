@@ -18,8 +18,10 @@ import java.time.Instant;
  * @param priority           priority level; defaults to {@code MEDIUM} in the service if null (optional)
  * @param dueDate            deadline for the action (optional)
  * @param assignedToPublicId public UUID of the commercial responsible for the action (required)
- * @param dealPublicId       public UUID of the linked deal (optional — at least one of deal/contact required)
- * @param contactPublicId    public UUID of the linked contact (optional — at least one of deal/contact required)
+ * @param dealPublicId       public UUID of the linked deal (optional — at least one of lead/deal/contact required)
+ * @param contactPublicId    public UUID of the linked contact (optional — at least one of lead/deal/contact required)
+ * @param leadPublicId       public UUID of the linked lead (optional — at least one of lead/deal/contact required)
+ * @param reminderAt         when to send the reminder notification (optional)
  */
 public record CreateCommercialActionRequest(
 
@@ -38,7 +40,11 @@ public record CreateCommercialActionRequest(
 
         String dealPublicId,
 
-        String contactPublicId
+        String contactPublicId,
+
+        String leadPublicId,
+
+        Instant reminderAt
 
 ) {
 
@@ -55,7 +61,9 @@ public record CreateCommercialActionRequest(
                 dueDate,
                 assignedToPublicId,
                 dealPublicId,
-                contactPublicId
+                contactPublicId,
+                leadPublicId,
+                reminderAt
         );
     }
 }

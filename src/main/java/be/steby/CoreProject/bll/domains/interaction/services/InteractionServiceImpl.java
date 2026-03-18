@@ -13,12 +13,14 @@ import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
 import be.steby.CoreProject.dal.repositories.crm.DealRepository;
 import be.steby.CoreProject.dal.repositories.crm.EmailLogRepository;
 import be.steby.CoreProject.dal.repositories.crm.InteractionRepository;
+import be.steby.CoreProject.dal.repositories.crm.LeadRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.CallLog;
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.entities.crm.Deal;
 import be.steby.CoreProject.dl.entities.crm.EmailLog;
 import be.steby.CoreProject.dl.entities.crm.Interaction;
+import be.steby.CoreProject.dl.entities.crm.Lead;
 import be.steby.CoreProject.dl.enums.crm.InteractionType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,6 +60,7 @@ public class InteractionServiceImpl implements InteractionService {
     private final EmailLogRepository emailLogRepository;
     private final DealRepository dealRepository;
     private final ContactRepository contactRepository;
+    private final LeadRepository leadRepository;
     private final DeviceService deviceService;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -87,6 +90,14 @@ public class InteractionServiceImpl implements InteractionService {
         return interactionRepository.findByContactIdOrderByOccurredAtDesc(contact.getId());
     }
 
+    @Override
+    public List<Interaction> getTimelineByLead(String leadPublicId) {
+        Lead lead = leadRepository.findByPublicId(leadPublicId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Lead not found with publicId: " + leadPublicId));
+        return interactionRepository.findByLeadIdOrderByOccurredAtDesc(lead.getId());
+    }
+
     // =========================================================================
     // Write
     // =========================================================================
@@ -97,8 +108,8 @@ public class InteractionServiceImpl implements InteractionService {
         log.debug("Creating interaction — type: {}, subject: '{}', by: {}",
                 request.type(), request.subject(), actor.getUsername());
 
-        // Guard: at least one of deal/contact must be provided
-        if (request.dealPublicId() == null && request.contactPublicId() == null) {
+        // Guard: at least one of lead/deal/contact must be provided
+        if (request.dealPublicId() == null && request.contactPublicId() == null && request.leadPublicId() == null) {
             throw InteractionValidationException.neitherDealNorContact();
         }
 
@@ -110,11 +121,10 @@ public class InteractionServiceImpl implements InteractionService {
             throw InteractionValidationException.emailLogRequiredForEmailType();
         }
 
-        // Resolve optional deal reference
+        // Resolve optional references
         Deal deal = resolveDeal(request.dealPublicId());
-
-        // Resolve optional contact reference
         Contact contact = resolveContact(request.contactPublicId());
+        Lead lead = resolveLead(request.leadPublicId());
 
         // Build and persist the interaction
         Interaction interaction = Interaction.builder()
@@ -127,6 +137,7 @@ public class InteractionServiceImpl implements InteractionService {
                 .occurredAt(request.occurredAt())
                 .deal(deal)
                 .contact(contact)
+                .lead(lead)
                 .performedBy(actor)
                 .build();
 
@@ -236,5 +247,20 @@ public class InteractionServiceImpl implements InteractionService {
         return contactRepository.findByPublicId(contactPublicId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Contact not found with publicId: " + contactPublicId));
+    }
+
+    /**
+     * Resolves a lead entity from its public UUID.
+     * Returns {@code null} if {@code publicId} is null (interaction without lead).
+     *
+     * @param leadPublicId the public UUID of the lead, or {@code null}
+     * @return the lead entity, or {@code null}
+     * @throws IllegalArgumentException if the publicId is provided but yields no result
+     */
+    private Lead resolveLead(String leadPublicId) {
+        if (leadPublicId == null) return null;
+        return leadRepository.findByPublicId(leadPublicId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Lead not found with publicId: " + leadPublicId));
     }
 }

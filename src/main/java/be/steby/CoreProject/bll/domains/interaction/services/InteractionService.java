@@ -60,6 +60,16 @@ public interface InteractionService {
      */
     List<Interaction> getTimelineByContact(String contactPublicId);
 
+    /**
+     * Returns the full interaction timeline for a lead, most recent first.
+     *
+     * <p>Used during lead qualification — before conversion to a Contact.</p>
+     *
+     * @param leadPublicId the public UUID of the lead
+     * @return list of interactions linked to that lead (may be empty)
+     */
+    List<Interaction> getTimelineByLead(String leadPublicId);
+
     // =========================================================================
     // Write
     // =========================================================================

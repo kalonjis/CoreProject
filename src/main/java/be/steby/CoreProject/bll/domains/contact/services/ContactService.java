@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.domains.contact.exceptions.*;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.entities.crm.Lead;
+import jakarta.annotation.Nullable;
 import be.steby.CoreProject.dl.enums.crm.ContactStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -97,22 +98,34 @@ public interface ContactService {
     // =========================================================================
 
     /**
-     * Creates a contact automatically from a submitted lead.
+     * Creates a contact automatically from a converted lead.
      *
-     * <p>Called by {@code ContactCreationListener} upon receiving a
-     * {@code LeadSubmittedEvent}. The contact is created immediately
-     * with available lead data: {@code email}, {@code name}, {@code phone}.
+     * <p>Called by {@code LeadConversionListener} upon receiving a
+     * {@code LeadConvertedEvent}. Uses enriched lead data: {@code firstName},
+     * {@code lastName}, {@code email}, {@code phone}.
      * Status defaults to {@code NEW}. The lead is linked via {@code originLead}.</p>
      *
      * <p>If a contact with the same email already exists, no new contact
      * is created — the existing one is returned and linked to the lead.</p>
      *
-     * <p>Publishes a {@code ContactCreatedEvent} on success.</p>
+     * <p>Organisation resolution priority:</p>
+     * <ol>
+     *   <li>{@code organisationPublicId} — links to an existing organisation</li>
+     *   <li>{@code organisationName} — finds by name or creates on the fly</li>
+     * </ol>
      *
-     * @param lead the submitted lead to create a contact from
+     * <p>Publishes a {@code ContactCreatedFromLeadEvent} on success.</p>
+     *
+     * @param lead                 the converted lead
+     * @param organisationPublicId public UUID of an existing organisation (may be null)
+     * @param organisationName     organisation name to find-or-create (may be null)
+     * @param actor                the commercial who performed the conversion
      * @return the newly created (or existing) contact
      */
-    Contact createFromLead(Lead lead);
+    Contact createFromLead(Lead lead,
+                           @Nullable String organisationPublicId,
+                           @Nullable String organisationName,
+                           User actor);
 
     /**
      * Creates a contact manually, without going through the lead flow.

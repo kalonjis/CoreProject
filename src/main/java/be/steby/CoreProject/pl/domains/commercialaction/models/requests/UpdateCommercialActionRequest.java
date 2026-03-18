@@ -22,6 +22,7 @@ import java.time.Instant;
  * @param priority           new priority level (optional)
  * @param dueDate            new deadline (optional)
  * @param assignedToPublicId public UUID of the new assignee — triggers reassignment if non-null (optional)
+ * @param reminderAt         new reminder timestamp — null leaves existing value unchanged (optional)
  */
 public record UpdateCommercialActionRequest(
 
@@ -34,7 +35,9 @@ public record UpdateCommercialActionRequest(
 
         Instant dueDate,
 
-        String assignedToPublicId
+        String assignedToPublicId,
+
+        Instant reminderAt
 
 ) {
 
@@ -49,7 +52,8 @@ public record UpdateCommercialActionRequest(
                 description != null ? description.trim() : null,
                 priority,
                 dueDate,
-                assignedToPublicId
+                assignedToPublicId,
+                reminderAt
         );
     }
 }

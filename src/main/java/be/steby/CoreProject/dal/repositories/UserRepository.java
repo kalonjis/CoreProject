@@ -1,6 +1,7 @@
 package be.steby.CoreProject.dal.repositories;
 
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.UserRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -94,6 +96,19 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
      * @return {@code true} if registered
      */
     boolean existsByEmailIgnoreCase(String email);
+
+    // =========================================================================
+    // Role-based lookup
+    // =========================================================================
+
+    /**
+     * Returns all active users holding a given role, ordered by lastname then firstname.
+     *
+     * @param role the role to filter by
+     * @return list of matching users
+     */
+    @Query("SELECT DISTINCT u FROM User u JOIN u.userRoles r WHERE r = :role AND u.enabled = true ORDER BY u.lastname, u.firstname")
+    List<User> findActiveByRole(@Param("role") UserRole role);
 
     // =========================================================================
     // Statistics

@@ -95,6 +95,16 @@ public interface CommercialActionRepository extends JpaRepository<CommercialActi
      */
     List<CommercialAction> findByContactIdOrderByDueDateAsc(Long contactId);
 
+    /**
+     * Finds all tasks linked to a specific lead, ordered by due date ascending.
+     *
+     * <p>Used during lead qualification — before conversion to a Contact.</p>
+     *
+     * @param leadId the internal ID of the lead
+     * @return all tasks for that lead, soonest due first
+     */
+    List<CommercialAction> findByLeadIdOrderByDueDateAsc(Long leadId);
+
     // =========================================================================
     // Overdue detection
     // =========================================================================
@@ -119,6 +129,22 @@ public interface CommercialActionRepository extends JpaRepository<CommercialActi
            "AND c.dueDate IS NOT NULL " +
            "AND c.dueDate < :now")
     long countAllOverdue(@Param("now") Instant now);
+
+    /**
+     * Finds pending actions whose reminder time has arrived and has not yet been sent.
+     *
+     * <p>Used by {@code CommercialActionReminderScheduler} every 15 minutes.
+     * The {@code reminderSentAt IS NULL} guard ensures idempotence.</p>
+     *
+     * @param now the reference instant (typically {@code Instant.now()})
+     * @return actions ready for reminder dispatch
+     */
+    @Query("SELECT c FROM CommercialAction c " +
+           "WHERE c.status = 'PENDING' " +
+           "AND c.reminderAt IS NOT NULL " +
+           "AND c.reminderAt <= :now " +
+           "AND c.reminderSentAt IS NULL")
+    List<CommercialAction> findDueReminders(@Param("now") Instant now);
 
     /**
      * Counts pending tasks assigned to a specific commercial.

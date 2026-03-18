@@ -63,6 +63,16 @@ public interface CommercialActionService {
     List<CommercialAction> findByContact(String contactPublicId);
 
     /**
+     * Returns all commercial actions linked to a given lead, ordered by due date ascending.
+     *
+     * <p>Used during lead qualification — before conversion to a Contact.</p>
+     *
+     * @param leadPublicId the public UUID of the lead
+     * @return list of actions for that lead (may be empty)
+     */
+    List<CommercialAction> findByLead(String leadPublicId);
+
+    /**
      * Returns all commercial actions assigned to a given commercial filtered by status,
      * ordered by due date ascending.
      *
