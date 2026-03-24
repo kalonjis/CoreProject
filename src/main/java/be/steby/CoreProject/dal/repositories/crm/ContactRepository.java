@@ -107,4 +107,19 @@ public interface ContactRepository extends JpaRepository<Contact, Long>,
      * @return the contact linked to that user, if any
      */
     Optional<Contact> findByLinkedUser(User linkedUser);
+
+    // =========================================================================
+    // Lead traceability
+    // =========================================================================
+
+    /**
+     * Finds the contact that was converted from a given lead.
+     *
+     * <p>Used after lead conversion to retrieve the created contact's publicId
+     * so that a Deal can be immediately linked to it.</p>
+     *
+     * @param leadPublicId the public UUID of the origin lead
+     * @return the contact if found
+     */
+    Optional<Contact> findByOriginLead_PublicId(String leadPublicId);
 }

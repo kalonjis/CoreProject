@@ -3,6 +3,8 @@ package be.steby.CoreProject.dl.entities.crm;
 import be.steby.CoreProject.dl.entities.BaseEntity;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.LeadType;
+import be.steby.CoreProject.dl.enums.crm.Civility;
+import be.steby.CoreProject.dl.enums.crm.LeadSource;
 import be.steby.CoreProject.dl.enums.crm.LeadStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -26,17 +28,9 @@ import java.util.Optional;
  *                   └──► REJECTED  (spam, out of scope, etc.)
  * </pre>
  *
- * <h4>Privacy</h4>
- * <p>The actual message content is sent via email and intentionally not
- * persisted in the database for privacy reasons.</p>
- *
  * <h4>Anti-spam</h4>
  * <p>{@code ipAddress} and {@code submittedAt} are used for rate limiting
  * and abuse detection.</p>
- *
- * <h4>Name handling</h4>
- * <p>The visitor's name is stored as a single field to avoid unreliable
- * firstname/lastname splitting (e.g. "Jean-Pierre De La Tour").</p>
  *
  * @see LeadType
  * @see LeadStatus
@@ -64,6 +58,16 @@ public class Lead extends BaseEntity<Long> {
     // ========================================
 
     /**
+     * Civility (salutation) of the person submitting the inquiry.
+     *
+     * <p>Optional. Provided by the visitor on the contact form or
+     * enriched by the commercial team.</p>
+     */
+    @Column(name = "civility", length = 10)
+    @Enumerated(EnumType.STRING)
+    private Civility civility;
+
+    /**
      * Email address of the person submitting the inquiry.
      *
      * <p>Required. Used as the reply-to address for responses.</p>
@@ -80,13 +84,31 @@ public class Lead extends BaseEntity<Long> {
     private String phone;
 
     /**
-     * Full name of the person submitting the inquiry, as a single field.
+     * First name of the person, set during commercial enrichment.
      *
-     * <p>Optional. Stored as provided by the visitor — no firstname/lastname
-     * split is attempted to avoid unreliable parsing of culturally diverse names.</p>
+     * <p>Optional. Enriched by the commercial team after lead submission,
+     * or pre-filled if the visitor provided it on the contact form.</p>
      */
-    @Column(name = "name", length = 200)
-    private String name;
+    @Column(name = "first_name", length = 100)
+    private String firstName;
+
+    /**
+     * Last name of the person, set during commercial enrichment.
+     *
+     * <p>Optional. Enriched by the commercial team after lead submission,
+     * or pre-filled if the visitor provided it on the contact form.</p>
+     */
+    @Column(name = "last_name", length = 100)
+    private String lastName;
+
+    /**
+     * Name of the organisation the visitor represents.
+     *
+     * <p>Optional. Enriched by the commercial team or provided by the visitor.
+     * Used at conversion time to create or link an {@link be.steby.CoreProject.dl.entities.crm.Organisation}.</p>
+     */
+    @Column(name = "organisation_name", length = 200)
+    private String organisationName;
 
     /**
      * Subject or title of the inquiry.
@@ -95,6 +117,15 @@ public class Lead extends BaseEntity<Long> {
      */
     @Column(name = "subject", nullable = false, length = 255)
     private String subject;
+
+    /**
+     * Message body of the inquiry, as submitted by the visitor.
+     *
+     * <p>Optional on enrichment. Stored to allow the commercial team
+     * to read the original message directly in the CRM.</p>
+     */
+    @Column(name = "message", columnDefinition = "TEXT")
+    private String message;
 
     // ========================================
     // Classification
@@ -108,6 +139,18 @@ public class Lead extends BaseEntity<Long> {
     @Column(name = "lead_type", nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private LeadType leadType;
+
+    /**
+     * Acquisition source — how the prospect reached us.
+     *
+     * <p>Automatically detected from UTM parameters on the public contact form.
+     * Can be corrected by the commercial during enrichment.</p>
+     *
+     * @see LeadSource
+     */
+    @Column(name = "lead_source", length = 30)
+    @Enumerated(EnumType.STRING)
+    private LeadSource leadSource;
 
     // ========================================
     // CRM Status
@@ -185,22 +228,29 @@ public class Lead extends BaseEntity<Long> {
     // ========================================
 
     /**
-     * Returns {@code true} if a name was provided with the inquiry.
+     * Returns {@code true} if any name information is available for this lead.
      *
-     * @return true if {@code name} is not null and not blank
+     * @return true if at least one of {@code firstName} or {@code lastName} is not blank
      */
     public boolean hasName() {
-        return this.name != null && !this.name.isBlank();
+        return isPresent(firstName) || isPresent(lastName);
     }
 
     /**
-     * Returns the visitor's name if provided.
+     * Returns the best available display name for this lead.
      *
-     * @return an {@link Optional} containing the name,
-     *         or {@link Optional#empty()} if not provided
+     * @return an {@link Optional} containing "firstName lastName" (trimmed), or empty if neither is set
      */
-    public Optional<String> getName() {
-        return Optional.ofNullable(name).filter(n -> !n.isBlank());
+    public Optional<String> getDisplayName() {
+        if (isPresent(firstName) || isPresent(lastName)) {
+            String full = ((firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "")).trim();
+            return Optional.of(full);
+        }
+        return Optional.empty();
+    }
+
+    private boolean isPresent(String value) {
+        return value != null && !value.isBlank();
     }
 
     /**

@@ -65,6 +65,20 @@ public interface InteractionRepository extends JpaRepository<Interaction, Long> 
      */
     List<Interaction> findByDealIdAndTypeOrderByOccurredAtDesc(Long dealId, InteractionType type);
 
+    /**
+     * Finds all interactions linked to a deal OR to the deal's contact,
+     * ordered by occurrence date descending.
+     *
+     * <p>Used for the unified deal timeline: shows both deal-specific interactions
+     * and the contact's pre-deal history (e.g. interactions from lead qualification).</p>
+     *
+     * @param dealId    the internal ID of the deal
+     * @param contactId the internal ID of the deal's primary contact
+     * @return merged interactions, most recent first
+     */
+    @Query("SELECT i FROM Interaction i LEFT JOIN i.deal d LEFT JOIN i.contact c WHERE d.id = :dealId OR c.id = :contactId ORDER BY i.occurredAt DESC")
+    List<Interaction> findByDealOrContact(@Param("dealId") Long dealId, @Param("contactId") Long contactId);
+
     // =========================================================================
     // Contact timeline
     // =========================================================================
@@ -79,6 +93,32 @@ public interface InteractionRepository extends JpaRepository<Interaction, Long> 
      * @return interactions for that contact, most recent first
      */
     List<Interaction> findByContactIdOrderByOccurredAtDesc(Long contactId);
+
+    /**
+     * Finds all interactions linked to a contact directly OR via a deal where that
+     * contact is the primary contact, ordered by occurrence date descending.
+     *
+     * <p>Used for the unified contact timeline: includes interactions logged on the contact's deals.</p>
+     *
+     * @param contactId the internal ID of the contact
+     * @return interactions for that contact or their deals, most recent first
+     */
+    @Query("SELECT i FROM Interaction i LEFT JOIN i.contact c LEFT JOIN i.deal d LEFT JOIN d.contact dc WHERE c.id = :contactId OR dc.id = :contactId ORDER BY i.occurredAt DESC")
+    List<Interaction> findByContactOrContactDeal(@Param("contactId") Long contactId);
+
+    // =========================================================================
+    // Lead timeline
+    // =========================================================================
+
+    /**
+     * Finds all interactions linked to a lead, ordered by occurrence date descending.
+     *
+     * <p>Used during lead qualification — before conversion to a Contact.</p>
+     *
+     * @param leadId the internal ID of the lead
+     * @return interactions for that lead, most recent first
+     */
+    List<Interaction> findByLeadIdOrderByOccurredAtDesc(Long leadId);
 
     // =========================================================================
     // Team reporting

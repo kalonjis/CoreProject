@@ -96,4 +96,14 @@ public class ContactNotFoundException extends ContactDomainException {
     public static ContactNotFoundException byEmail(String email) {
         return new ContactNotFoundException("Contact not found with email: " + email);
     }
+
+    /**
+     * Creates an exception for a contact not found by origin lead public UUID.
+     *
+     * @param leadPublicId the lead public UUID that yielded no result
+     * @return a new ContactNotFoundException
+     */
+    public static ContactNotFoundException byOriginLeadPublicId(String leadPublicId) {
+        return new ContactNotFoundException("Contact not found for lead: " + leadPublicId);
+    }
 }

@@ -20,6 +20,9 @@ public enum InteractionType {
     /** In-person or video meeting. */
     MEETING,
 
+    /** Product or service demonstration. */
+    DEMO,
+
     /** Internal free-text note logged by the commercial. */
     NOTE,
 
@@ -27,5 +30,13 @@ public enum InteractionType {
     VISIT,
 
     /** A completed {@code COMMERCIAL_ACTION} logged as an activity. */
-    ACTION_DONE
+    ACTION_DONE,
+
+    /**
+     * The initial contact form message submitted by the visitor.
+     *
+     * <p>System-generated automatically when a public lead is submitted.
+     * {@code performedBy} is {@code null} for this type — the author is the visitor.</p>
+     */
+    CONTACT_FORM
 }

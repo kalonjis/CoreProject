@@ -52,8 +52,7 @@ public class PublicLeadController {
             @Valid @RequestBody SubmitLeadRequest request,
             HttpServletRequest httpRequest) {
 
-        log.info("Public inquiry received - type: {}, subject: {}",
-                request.leadType(), request.subject());
+        log.info("Public inquiry received - type: {}", request.leadType());
 
         try {
             LeadResult result = leadService.submitInquiry(

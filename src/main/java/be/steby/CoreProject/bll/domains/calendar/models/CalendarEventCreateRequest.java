@@ -47,6 +47,8 @@ import java.time.Instant;
  * @param recurrence      recurrence pattern (defaults to NONE if null)
  * @param colorCode       hex color code for UI (optional)
  * @param reminderMinutes minutes before event to send reminder (optional)
+ * @param sourceType      type of the CRM source entity (e.g. "COMMERCIAL_ACTION") — null for manual events
+ * @param sourcePublicId  public UUID of the CRM source entity — null for manual events
  *
  * @see be.steby.CoreProject.bll.domains.calendar.services.CalendarEventService#createEvent
  * @see be.steby.CoreProject.dl.entities.CalendarEvent
@@ -62,7 +64,9 @@ public record CalendarEventCreateRequest(
         EventStatus status,
         EventRecurrence recurrence,
         String colorCode,
-        Integer reminderMinutes
+        Integer reminderMinutes,
+        String sourceType,
+        String sourcePublicId
 ) {
 
     /**

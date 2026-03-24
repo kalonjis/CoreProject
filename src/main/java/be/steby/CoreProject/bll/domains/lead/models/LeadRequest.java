@@ -1,6 +1,8 @@
 package be.steby.CoreProject.bll.domains.lead.models;
 
 import be.steby.CoreProject.dl.enums.LeadType;
+import be.steby.CoreProject.dl.enums.crm.Civility;
+import be.steby.CoreProject.dl.enums.crm.LeadSource;
 
 /**
  * Business layer model for public inquiry submission.
@@ -8,19 +10,29 @@ import be.steby.CoreProject.dl.enums.LeadType;
  * <p>Contains all data from the public contact form submitted by
  * anonymous visitors.</p>
  *
- * @param email       Email address of the visitor (required)
- * @param name        Name of the visitor (optional)
- * @param subject     Subject of the inquiry (required)
- * @param message     Content of the message (required, not persisted in DB)
- * @param leadType Type of inquiry (required)
- * @param website     Honeypot field - must be empty (bots fill this)
+ * @param email            email address of the visitor (required)
+ * @param civility         salutation of the visitor (optional)
+ * @param firstName        first name of the visitor (optional)
+ * @param lastName         last name of the visitor (optional)
+ * @param phone            phone number of the visitor (optional)
+ * @param organisationName name of the organisation the visitor represents (optional)
+ * @param subject          subject of the inquiry (required)
+ * @param message          content of the message (required, not persisted in DB)
+ * @param leadType         type of inquiry (required)
+ * @param leadSource       acquisition source detected from UTM params (optional)
+ * @param website          honeypot field - must be empty (bots fill this)
  */
 public record LeadRequest(
         String email,
-        String name,
+        Civility civility,
+        String firstName,
+        String lastName,
+        String phone,
+        String organisationName,
         String subject,
         String message,
         LeadType leadType,
+        LeadSource leadSource,
         String website
 ) {
 
@@ -40,14 +52,5 @@ public record LeadRequest(
      */
     public boolean hasEmail() {
         return email != null && !email.isBlank();
-    }
-
-    /**
-     * Checks if a name was provided in the request.
-     *
-     * @return true if name is present and not blank
-     */
-    public boolean hasName() {
-        return name != null && !name.isBlank();
     }
 }

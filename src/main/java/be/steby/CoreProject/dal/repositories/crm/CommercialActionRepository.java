@@ -86,6 +86,20 @@ public interface CommercialActionRepository extends JpaRepository<CommercialActi
     List<CommercialAction> findByDealIdOrderByDueDateAsc(Long dealId);
 
     /**
+     * Finds all tasks linked to a deal OR to the deal's contact, ordered by due date ascending.
+     *
+     * <p>Used for the deal action list: shows both deal-specific actions and
+     * the contact's actions (e.g. tasks created during lead qualification before
+     * the deal existed). Null due dates are sorted last.</p>
+     *
+     * @param dealId    the internal ID of the deal
+     * @param contactId the internal ID of the deal's primary contact
+     * @return all tasks for that deal or contact, soonest due first
+     */
+    @Query("SELECT ca FROM CommercialAction ca LEFT JOIN ca.deal d LEFT JOIN ca.contact c WHERE d.id = :dealId OR c.id = :contactId ORDER BY ca.dueDate ASC NULLS LAST")
+    List<CommercialAction> findByDealOrContactOrderByDueDateAsc(@Param("dealId") Long dealId, @Param("contactId") Long contactId);
+
+    /**
      * Finds all tasks linked to a specific contact, ordered by due date ascending.
      *
      * <p>Used to populate the tasks tab in the contact detail view.</p>
@@ -94,6 +108,29 @@ public interface CommercialActionRepository extends JpaRepository<CommercialActi
      * @return all tasks for that contact, soonest due first
      */
     List<CommercialAction> findByContactIdOrderByDueDateAsc(Long contactId);
+
+    /**
+     * Finds all tasks linked to a contact directly OR via a deal where that contact
+     * is the primary contact, ordered by due date ascending.
+     *
+     * <p>Used to populate the contact action list: shows both contact-level actions
+     * and actions created on the contact's deals.</p>
+     *
+     * @param contactId the internal ID of the contact
+     * @return all tasks for that contact or their deals, soonest due first
+     */
+    @Query("SELECT ca FROM CommercialAction ca LEFT JOIN ca.contact c LEFT JOIN ca.deal d LEFT JOIN d.contact dc WHERE c.id = :contactId OR dc.id = :contactId ORDER BY ca.dueDate ASC NULLS LAST")
+    List<CommercialAction> findByContactOrContactDealOrderByDueDateAsc(@Param("contactId") Long contactId);
+
+    /**
+     * Finds all tasks linked to a specific lead, ordered by due date ascending.
+     *
+     * <p>Used during lead qualification — before conversion to a Contact.</p>
+     *
+     * @param leadId the internal ID of the lead
+     * @return all tasks for that lead, soonest due first
+     */
+    List<CommercialAction> findByLeadIdOrderByDueDateAsc(Long leadId);
 
     // =========================================================================
     // Overdue detection
@@ -121,6 +158,22 @@ public interface CommercialActionRepository extends JpaRepository<CommercialActi
     long countAllOverdue(@Param("now") Instant now);
 
     /**
+     * Finds pending actions whose reminder time has arrived and has not yet been sent.
+     *
+     * <p>Used by {@code CommercialActionReminderScheduler} every 15 minutes.
+     * The {@code reminderSentAt IS NULL} guard ensures idempotence.</p>
+     *
+     * @param now the reference instant (typically {@code Instant.now()})
+     * @return actions ready for reminder dispatch
+     */
+    @Query("SELECT c FROM CommercialAction c " +
+           "WHERE c.status = 'PENDING' " +
+           "AND c.reminderAt IS NOT NULL " +
+           "AND c.reminderAt <= :now " +
+           "AND c.reminderSentAt IS NULL")
+    List<CommercialAction> findDueReminders(@Param("now") Instant now);
+
+    /**
      * Counts pending tasks assigned to a specific commercial.
      *
      * <p>Used to display the task count badge in the commercial's navigation.</p>
@@ -129,4 +182,69 @@ public interface CommercialActionRepository extends JpaRepository<CommercialActi
      * @return number of pending tasks
      */
     long countByAssignedToIdAndStatus(Long assignedToId, CommercialActionStatus status);
+
+    // =========================================================================
+    // Timeline — completed actions (unified timeline)
+    // =========================================================================
+
+    /**
+     * Finds all completed actions linked to a deal, ordered by completion date descending.
+     *
+     * <p>Used to populate the unified timeline view alongside {@link Interaction} entries.</p>
+     *
+     * @param dealId the internal ID of the deal
+     * @param status must be {@code DONE}
+     * @return completed actions for that deal, most recently completed first
+     */
+    List<CommercialAction> findByDealIdAndStatusOrderByCompletedAtDesc(Long dealId, CommercialActionStatus status);
+
+    /**
+     * Finds all completed actions linked to a deal OR to the deal's contact,
+     * ordered by completion date descending.
+     *
+     * <p>Used for the unified deal timeline: shows both deal-specific completed actions
+     * and the contact's pre-deal history (e.g. actions from lead qualification).</p>
+     *
+     * @param dealId    the internal ID of the deal
+     * @param contactId the internal ID of the deal's primary contact
+     * @param status    must be {@code DONE}
+     * @return merged completed actions, most recently completed first
+     */
+    @Query("SELECT ca FROM CommercialAction ca LEFT JOIN ca.deal d LEFT JOIN ca.contact c WHERE (d.id = :dealId OR c.id = :contactId) AND ca.status = :status ORDER BY ca.completedAt DESC")
+    List<CommercialAction> findByDealOrContactAndStatus(@Param("dealId") Long dealId, @Param("contactId") Long contactId, @Param("status") CommercialActionStatus status);
+
+    /**
+     * Finds all completed actions linked to a contact, ordered by completion date descending.
+     *
+     * <p>Used to populate the unified timeline view alongside {@link Interaction} entries.</p>
+     *
+     * @param contactId the internal ID of the contact
+     * @param status must be {@code DONE}
+     * @return completed actions for that contact, most recently completed first
+     */
+    List<CommercialAction> findByContactIdAndStatusOrderByCompletedAtDesc(Long contactId, CommercialActionStatus status);
+
+    /**
+     * Finds all completed actions linked to a contact directly OR via a deal where that
+     * contact is the primary contact, ordered by completion date descending.
+     *
+     * <p>Used for the unified contact timeline: includes actions completed on the contact's deals.</p>
+     *
+     * @param contactId the internal ID of the contact
+     * @param status must be {@code DONE}
+     * @return completed actions for that contact or their deals, most recently completed first
+     */
+    @Query("SELECT ca FROM CommercialAction ca LEFT JOIN ca.contact c LEFT JOIN ca.deal d LEFT JOIN d.contact dc WHERE (c.id = :contactId OR dc.id = :contactId) AND ca.status = :status ORDER BY ca.completedAt DESC")
+    List<CommercialAction> findByContactOrContactDealAndStatusOrderByCompletedAtDesc(@Param("contactId") Long contactId, @Param("status") CommercialActionStatus status);
+
+    /**
+     * Finds all completed actions linked to a lead, ordered by completion date descending.
+     *
+     * <p>Used to populate the unified timeline view alongside {@link Interaction} entries.</p>
+     *
+     * @param leadId the internal ID of the lead
+     * @param status must be {@code DONE}
+     * @return completed actions for that lead, most recently completed first
+     */
+    List<CommercialAction> findByLeadIdAndStatusOrderByCompletedAtDesc(Long leadId, CommercialActionStatus status);
 }

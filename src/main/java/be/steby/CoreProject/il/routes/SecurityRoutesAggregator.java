@@ -10,7 +10,9 @@ import be.steby.CoreProject.il.routes.organisation.CrmOrganisationRoutes;
 import be.steby.CoreProject.il.routes.commercialaction.CrmCommercialActionRoutes;
 import be.steby.CoreProject.il.routes.dashboard.CrmDashboardRoutes;
 import be.steby.CoreProject.il.routes.interaction.CrmInteractionRoutes;
+import be.steby.CoreProject.il.routes.timeline.CrmTimelineRoutes;
 import be.steby.CoreProject.il.routes.pipeline.CrmPipelineRoutes;
+import be.steby.CoreProject.il.routes.lead.LeadIngestRoutes;
 import be.steby.CoreProject.il.routes.lead.LeadRoutes;
 import be.steby.CoreProject.il.routes.notification.NotificationRoutes;
 import be.steby.CoreProject.il.routes.password.PasswordRoutes;
@@ -28,6 +30,7 @@ import be.steby.CoreProject.il.routes.sport.SportRoutes;
 import be.steby.CoreProject.il.routes.storage.StorageRoutes;
 import be.steby.CoreProject.il.routes.swagger.SwaggerRoutes;
 import be.steby.CoreProject.il.routes.debug.DebugRoutes;
+import be.steby.CoreProject.il.routes.user.CrmUserRoutes;
 
 import static be.steby.CoreProject.il.routes.SecurityRoutes.concatenate;
 
@@ -70,6 +73,7 @@ public final class SecurityRoutesAggregator {
             DebugRoutes.PUBLIC,
             ProfileRoutes.PUBLIC,
             LeadRoutes.PUBLIC,
+            LeadIngestRoutes.PUBLIC,
             CalendarRoutes.PUBLIC,
             GdprRoutes.PUBLIC,
             NotificationRoutes.PUBLIC
@@ -114,8 +118,10 @@ public final class SecurityRoutesAggregator {
             CrmDealRoutes.COMMERCIAL,
             CrmPipelineRoutes.COMMERCIAL,
             CrmInteractionRoutes.COMMERCIAL,
+            CrmTimelineRoutes.COMMERCIAL,
             CrmCommercialActionRoutes.COMMERCIAL,
-            CrmDashboardRoutes.COMMERCIAL
+            CrmDashboardRoutes.COMMERCIAL,
+            CrmUserRoutes.COMMERCIAL
     );
 
     // ========== ADMIN ROUTES ==========
@@ -166,14 +172,17 @@ public final class SecurityRoutesAggregator {
             ProfileRoutes.CSRF_IGNORE,
             SportRoutes.CSRF_IGNORE,
             LeadRoutes.CSRF_IGNORE,
+            LeadIngestRoutes.CSRF_IGNORE,
             CrmLeadRoutes.CSRF_IGNORE,
             CrmContactRoutes.CSRF_IGNORE,
             CrmOrganisationRoutes.CSRF_IGNORE,
             CrmDealRoutes.CSRF_IGNORE,
             CrmPipelineRoutes.CSRF_IGNORE,
             CrmInteractionRoutes.CSRF_IGNORE,
+            CrmTimelineRoutes.CSRF_IGNORE,
             CrmCommercialActionRoutes.CSRF_IGNORE,
             CrmDashboardRoutes.CSRF_IGNORE,
+            CrmUserRoutes.CSRF_IGNORE,
             CalendarRoutes.CSRF_IGNORE,
             GdprRoutes.CSRF_IGNORE,
             NotificationRoutes.CSRF_IGNORE

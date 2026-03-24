@@ -1,9 +1,11 @@
 package be.steby.CoreProject.dl.entities.crm;
 
+import be.steby.CoreProject.dl.entities.Address;
 import be.steby.CoreProject.dl.entities.BaseEntity;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.enums.crm.CommercialActionPriority;
 import be.steby.CoreProject.dl.enums.crm.CommercialActionStatus;
+import be.steby.CoreProject.dl.enums.crm.CommercialActionType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -61,8 +63,11 @@ import java.time.Instant;
         @Index(name = "idx_CommercialAction_assigned",  columnList = "assigned_to_id"),
         @Index(name = "idx_CommercialAction_deal",      columnList = "deal_id"),
         @Index(name = "idx_CommercialAction_contact",   columnList = "contact_id"),
+        @Index(name = "idx_CommercialAction_lead",      columnList = "lead_id"),
         @Index(name = "idx_CommercialAction_status",    columnList = "status"),
-        @Index(name = "idx_CommercialAction_due",       columnList = "due_date")
+        @Index(name = "idx_CommercialAction_due",       columnList = "due_date"),
+        @Index(name = "idx_CommercialAction_reminder",  columnList = "reminder_at"),
+        @Index(name = "idx_CommercialAction_address",   columnList = "address_id")
     }
 )
 @Getter
@@ -102,6 +107,19 @@ public class CommercialAction extends BaseEntity<Long> {
     // =========================================================================
     // Classification
     // =========================================================================
+
+    /**
+     * Type of work to be performed.
+     *
+     * <p>Required. Determines the icon shown in the UI, and whether
+     * a linked calendar event should be created ({@link CommercialActionType#requiresCalendarSlot()}).</p>
+     *
+     * @see CommercialActionType
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false, length = 15)
+    @Builder.Default
+    private CommercialActionType type = CommercialActionType.TASK;
 
     /**
      * Priority level of the CommercialAction.
@@ -152,6 +170,25 @@ public class CommercialAction extends BaseEntity<Long> {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    /**
+     * Timestamp at which the reminder should be sent.
+     *
+     * <p>Optional. When set, the {@code CommercialActionReminderScheduler} will
+     * notify the assigned commercial via their preferred channels (IN_APP / EMAIL)
+     * once this instant is reached. Null means no reminder is scheduled.</p>
+     */
+    @Column(name = "reminder_at")
+    private Instant reminderAt;
+
+    /**
+     * Timestamp when the reminder was actually dispatched.
+     *
+     * <p>Set by the scheduler after successful dispatch. Null until the reminder
+     * fires. Used for idempotence — the scheduler will not re-send if non-null.</p>
+     */
+    @Column(name = "reminder_sent_at")
+    private Instant reminderSentAt;
+
     // =========================================================================
     // Relationships
     // =========================================================================
@@ -179,12 +216,58 @@ public class CommercialAction extends BaseEntity<Long> {
     /**
      * Contact this CommercialAction is linked to.
      *
-     * <p>Optional — at least one of {@code deal} or {@code contact} must be set.
+     * <p>Optional — at least one of {@code lead}, {@code deal}, or {@code contact} must be set.
      * Loaded lazily.</p>
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "contact_id")
     private Contact contact;
+
+    /**
+     * Lead this CommercialAction is linked to.
+     *
+     * <p>Optional — set when creating a task during lead qualification,
+     * before conversion to a Contact.
+     * At least one of {@code lead}, {@code deal}, or {@code contact} must be set.</p>
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lead_id")
+    private Lead lead;
+
+    // =========================================================================
+    // Location (MEETING / DEMO)
+    // =========================================================================
+
+    /**
+     * Free-text location for this action.
+     *
+     * <p>Relevant for {@link CommercialActionType#MEETING} and {@link CommercialActionType#DEMO}.
+     * Can be a visio link (Teams, Zoom…) or a room/office name.
+     * Use {@link #address} for a structured physical address.</p>
+     */
+    @Column(name = "location", length = 300)
+    private String location;
+
+    /**
+     * Structured physical address for this action.
+     *
+     * <p>Optional. Set when the meeting takes place at a known physical location.
+     * Lazy-loaded. Can coexist with {@link #location} (e.g. location = "Salle A",
+     * address = "Rue de la Loi 16, Bruxelles").</p>
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "address_id")
+    private Address address;
+
+    /**
+     * Duration of the meeting in minutes.
+     *
+     * <p>Only relevant when {@link #type} requires a calendar slot ({@code MEETING}, {@code DEMO}).
+     * Used to compute the {@code endDateTime} of the linked {@link be.steby.CoreProject.dl.entities.CalendarEvent}.
+     * Defaults to 60 minutes at the listener level when null.</p>
+     */
+    @Column(name = "duration_minutes")
+    private Integer durationMinutes;
 
     // =========================================================================
     // Utility methods

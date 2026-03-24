@@ -1,8 +1,10 @@
 package be.steby.CoreProject.bll.domains.calendar.services;
 
 import be.steby.CoreProject.bll.domains.address.services.AddressService;
+import be.steby.CoreProject.dl.entities.Address;
 import be.steby.CoreProject.bll.domains.calendar.events.CalendarEventCancelledEvent;
 import be.steby.CoreProject.bll.domains.calendar.events.CalendarEventCreatedEvent;
+import be.steby.CoreProject.bll.domains.calendar.events.CalendarEventUpdatedEvent;
 import be.steby.CoreProject.bll.domains.calendar.exceptions.CalendarEventNotFoundException;
 import be.steby.CoreProject.bll.domains.calendar.models.CalendarEventCreateRequest;
 import be.steby.CoreProject.bll.domains.calendar.models.CalendarEventUpdateRequest;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Implementation of {@link CalendarEventService}.
@@ -91,6 +94,8 @@ public class CalendarEventServiceImpl implements CalendarEventService {
                 .recurrence(request.recurrence())
                 .colorCode(request.colorCode())
                 .reminderMinutes(request.reminderMinutes())
+                .sourceType(request.sourceType())
+                .sourcePublicId(request.sourcePublicId())
                 .build();
 
         // Persist
@@ -207,6 +212,8 @@ public class CalendarEventServiceImpl implements CalendarEventService {
 
         CalendarEvent updatedEvent = eventRepository.save(event);
 
+        eventPublisher.publishEvent(new CalendarEventUpdatedEvent(updatedEvent, currentUser));
+
         log.info("Event updated: {}", publicId);
         return updatedEvent;
     }
@@ -265,6 +272,50 @@ public class CalendarEventServiceImpl implements CalendarEventService {
             throw new OwnershipException(
                     "You do not have permission to modify this event");
         }
+    }
+
+    // =========================================================================
+    // CRM Integration
+    // =========================================================================
+
+    @Override
+    public Optional<CalendarEvent> findBySourcePublicId(String sourcePublicId) {
+        return eventRepository.findBySourcePublicId(sourcePublicId);
+    }
+
+    @Override
+    @Transactional
+    public void cancelBySourcePublicId(String sourcePublicId) {
+        eventRepository.findBySourcePublicId(sourcePublicId).ifPresent(event -> {
+            event.setStatus(EventStatus.CANCELLED);
+            eventRepository.save(event);
+            log.info("Calendar event cancelled from CRM source: {}", sourcePublicId);
+        });
+    }
+
+    @Override
+    @Transactional
+    public void updateBySourcePublicId(String sourcePublicId,
+                                       String title,
+                                       String description,
+                                       String location,
+                                       Address address,
+                                       Instant startDateTime,
+                                       Instant endDateTime,
+                                       String ownerPublicId,
+                                       Integer reminderMinutes) {
+        eventRepository.findBySourcePublicId(sourcePublicId).ifPresent(event -> {
+            if (title           != null) event.setTitle(title);
+            event.setDescription(description);
+            event.setLocation(location);
+            event.setAddress(address);
+            if (startDateTime   != null) event.setStartDateTime(startDateTime);
+            if (endDateTime     != null) event.setEndDateTime(endDateTime);
+            if (ownerPublicId   != null) event.setOwnerPublicId(ownerPublicId);
+            if (reminderMinutes != null) event.setReminderMinutes(reminderMinutes);
+            eventRepository.save(event);
+            log.info("Calendar event updated from CRM source: {}", sourcePublicId);
+        });
     }
 
     // =========================================================================

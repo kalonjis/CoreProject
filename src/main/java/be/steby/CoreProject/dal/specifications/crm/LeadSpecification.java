@@ -2,6 +2,7 @@ package be.steby.CoreProject.dal.specifications.crm;
 
 import be.steby.CoreProject.dl.entities.crm.Lead;
 import be.steby.CoreProject.dl.enums.LeadType;
+import be.steby.CoreProject.dl.enums.crm.LeadSource;
 import be.steby.CoreProject.dl.enums.crm.LeadStatus;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.domain.Specification;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
 
 /**
  * JPA Specifications for dynamic filtering of {@link Lead} entities.
@@ -63,6 +65,17 @@ public class LeadSpecification {
         return (root, query, cb) -> cb.equal(root.get("leadType"), leadType);
     }
 
+    /**
+     * Filters leads by their acquisition source.
+     *
+     * @param leadSource the source to filter by, or {@code null} to skip
+     * @return the specification, or {@code null}
+     */
+    public static Specification<Lead> hasLeadSource(LeadSource leadSource) {
+        if (leadSource == null) return null;
+        return (root, query, cb) -> cb.equal(root.get("leadSource"), leadSource);
+    }
+
     // =========================================================================
     // Assignment
     // =========================================================================
@@ -111,11 +124,31 @@ public class LeadSpecification {
     }
 
     // =========================================================================
+    // Active filter
+    // =========================================================================
+
+    /**
+     * Filters to only active (non-terminal) leads: {@code NEW} and {@code IN_REVIEW}.
+     *
+     * <p>Used as the default view — converted leads are in the Contact list,
+     * and rejected leads are archived.</p>
+     *
+     * @param activeOnly if {@code true}, applies the filter; if {@code false} or {@code null}, skipped
+     * @return the specification, or {@code null}
+     */
+    public static Specification<Lead> isActive(Boolean activeOnly) {
+        if (!Boolean.TRUE.equals(activeOnly)) return null;
+        return (root, query, cb) ->
+                root.get("status").in(Arrays.asList(LeadStatus.NEW, LeadStatus.IN_REVIEW));
+    }
+
+    // =========================================================================
     // Text search
     // =========================================================================
 
     /**
-     * Filters leads whose email or name contains the given keyword (case-insensitive).
+     * Filters leads whose email, name, firstName, lastName, or organisationName
+     * contains the given keyword (case-insensitive).
      *
      * <p>Used for the search bar in the admin lead queue.</p>
      *
@@ -127,8 +160,11 @@ public class LeadSpecification {
         return (root, query, cb) -> {
             String pattern = "%" + keyword.toLowerCase().trim() + "%";
             return cb.or(
-                cb.like(cb.lower(root.get("email")), pattern),
-                cb.like(cb.lower(root.get("name")),  pattern)
+                cb.like(cb.lower(root.get("email")),            pattern),
+                cb.like(cb.lower(root.get("name")),             pattern),
+                cb.like(cb.lower(root.get("firstName")),        pattern),
+                cb.like(cb.lower(root.get("lastName")),         pattern),
+                cb.like(cb.lower(root.get("organisationName")), pattern)
             );
         };
     }

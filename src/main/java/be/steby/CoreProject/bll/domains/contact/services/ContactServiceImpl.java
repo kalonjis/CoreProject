@@ -13,6 +13,8 @@ import be.steby.CoreProject.bll.domains.contact.models.ContactCreateRequest;
 import be.steby.CoreProject.bll.domains.contact.models.ContactFilterRequest;
 import be.steby.CoreProject.bll.domains.contact.models.ContactMergeRequest;
 import be.steby.CoreProject.bll.domains.contact.models.ContactUpdateRequest;
+import be.steby.CoreProject.bll.domains.organisation.models.OrganisationCreateRequest;
+import be.steby.CoreProject.bll.domains.organisation.services.OrganisationService;
 import be.steby.CoreProject.dal.repositories.UserRepository;
 import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
 import be.steby.CoreProject.dal.repositories.crm.OrganisationRepository;
@@ -67,6 +69,7 @@ public class ContactServiceImpl implements ContactService {
 
     private final ContactRepository contactRepository;
     private final OrganisationRepository organisationRepository;
+    private final OrganisationService organisationService;
     private final UserRepository userRepository;
     private final DeviceService deviceService;
     private final ApplicationEventPublisher eventPublisher;
@@ -128,6 +131,12 @@ public class ContactServiceImpl implements ContactService {
     }
 
     @Override
+    public Contact getByOriginLeadPublicId(String leadPublicId) {
+        return contactRepository.findByOriginLead_PublicId(leadPublicId)
+                .orElseThrow(() -> ContactNotFoundException.byOriginLeadPublicId(leadPublicId));
+    }
+
+    @Override
     public Page<Contact> findAll(ContactFilterRequest filter, Pageable pageable) {
         // Mutual exclusion: withoutOrganisation takes precedence over organisationPublicId
         Specification<Contact> organisationSpec;
@@ -176,11 +185,15 @@ public class ContactServiceImpl implements ContactService {
 
     @Override
     @Transactional
-    public Contact createFromLead(Lead lead) {
-        log.debug("Creating contact from lead — email: {}", lead.getEmail());
+    public Contact createFromLead(Lead lead, String organisationPublicId, String organisationName, User actor, String emailOverride) {
+        String email = (emailOverride != null && !emailOverride.isBlank())
+                ? emailOverride.toLowerCase().trim()
+                : lead.getEmail();
+
+        log.debug("Creating contact from lead — email: {}", email);
 
         // If a contact with this email already exists, link it and return
-        return contactRepository.findByEmailIgnoreCase(lead.getEmail())
+        return contactRepository.findByEmailIgnoreCase(email)
                 .map(existing -> {
                     log.info("Contact with email {} already exists (publicId: {}), linking to lead",
                             lead.getEmail(), existing.getPublicId());
@@ -191,13 +204,17 @@ public class ContactServiceImpl implements ContactService {
                     return existing;
                 })
                 .orElseGet(() -> {
+                    Organisation organisation = resolveOrganisationForConversion(
+                            organisationPublicId, organisationName, actor);
+
                     String publicId = UUID.randomUUID().toString();
 
                     Contact contact = Contact.builder()
-                            .firstName(lead.getName().orElse(null))
-                            .lastName(null)
-                            .email(lead.getEmail().toLowerCase().trim())
+                            .firstName(lead.getFirstName())
+                            .lastName(lead.getLastName())
+                            .email(email)
                             .phone(lead.getPhone())
+                            .organisation(organisation)
                             .status(ContactStatus.NEW)
                             .originLead(lead)
                             .build();
@@ -205,14 +222,9 @@ public class ContactServiceImpl implements ContactService {
                     contact.setPublicId(publicId);
 
                     Contact saved = contactRepository.save(contact);
-                    log.info("Contact created from lead — publicId: {}, email: {}",
-                            saved.getPublicId(), saved.getEmail());
-
-                    if (saved.getLastName() == null) {
-                        log.warn("Contact {} created from lead with no lastName — " +
-                                        "full name '{}' stored in firstName only. Manual review recommended.",
-                                saved.getPublicId(), saved.getFirstName());
-                    }
+                    log.info("Contact created from lead — publicId: {}, email: {}, org: {}",
+                            saved.getPublicId(), saved.getEmail(),
+                            organisation != null ? organisation.getName() : "none");
 
                     eventPublisher.publishEvent(new ContactCreatedFromLeadEvent(
                             saved, lead, null, null));
@@ -360,6 +372,11 @@ public class ContactServiceImpl implements ContactService {
                 contactPublicId, request.commercialPublicId(), actor.getUsername());
 
         Contact contact = getByPublicId(contactPublicId);
+
+        if (!actor.hasAdminPrivileges() && !actor.getPublicId().equals(request.commercialPublicId())) {
+            throw new ContactAssignNotAuthorizedException();
+        }
+
         User previousAssignee = contact.getAssignedTo();
 
         User newAssignee = null;
@@ -450,5 +467,38 @@ public class ContactServiceImpl implements ContactService {
         return organisationRepository.findByPublicId(organisationPublicId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Organisation not found with publicId: " + organisationPublicId));
+    }
+
+    /**
+     * Resolves or creates an organisation during lead conversion.
+     *
+     * <p>Priority:</p>
+     * <ol>
+     *   <li>{@code organisationPublicId} → resolved directly by UUID</li>
+     *   <li>{@code organisationName} → found by name (case-insensitive) or created on the fly</li>
+     *   <li>Neither provided → returns {@code null} (independent contact)</li>
+     * </ol>
+     */
+    private Organisation resolveOrganisationForConversion(
+            String organisationPublicId, String organisationName, User actor) {
+
+        if (organisationPublicId != null && !organisationPublicId.isBlank()) {
+            return resolveOrganisation(organisationPublicId);
+        }
+
+        if (organisationName != null && !organisationName.isBlank()) {
+            return organisationRepository.findByNameIgnoreCase(organisationName.trim())
+                    .orElseGet(() -> {
+                        log.info("Organisation '{}' not found — creating on the fly during lead conversion",
+                                organisationName);
+                        return organisationService.create(
+                                new OrganisationCreateRequest(
+                                        organisationName.trim(),
+                                        null, null, null, null, null, null),
+                                actor);
+                    });
+        }
+
+        return null;
     }
 }

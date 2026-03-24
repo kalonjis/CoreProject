@@ -104,6 +104,26 @@ public class CrmContactController {
         return ResponseEntity.ok(ContactDetailResponse.fromEntity(contact));
     }
 
+    /**
+     * Returns the contact that was converted from a given lead.
+     *
+     * <p>Called immediately after lead conversion so the frontend can
+     * pre-fill a Deal creation form with the new contact's publicId.</p>
+     *
+     * <p><strong>Endpoint:</strong> GET /api/crm/contacts/from-lead/{leadPublicId}</p>
+     *
+     * @param leadPublicId the public UUID of the origin lead
+     * @return the contact detail
+     */
+    @GetMapping("/from-lead/{leadPublicId}")
+    @Operation(summary = "Get contact from lead", description = "Returns the contact created from a given lead conversion")
+    public ResponseEntity<ContactDetailResponse> getFromLead(@PathVariable String leadPublicId) {
+        log.debug("CRM contact by origin lead requested — leadPublicId: {}", leadPublicId);
+
+        Contact contact = contactService.getByOriginLeadPublicId(leadPublicId);
+        return ResponseEntity.ok(ContactDetailResponse.fromEntity(contact));
+    }
+
     // =========================================================================
     // Creation & update
     // =========================================================================

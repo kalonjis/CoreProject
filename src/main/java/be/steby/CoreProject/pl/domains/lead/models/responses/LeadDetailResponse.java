@@ -3,6 +3,8 @@ package be.steby.CoreProject.pl.domains.lead.models.responses;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Lead;
 import be.steby.CoreProject.dl.enums.LeadType;
+import be.steby.CoreProject.dl.enums.crm.Civility;
+import be.steby.CoreProject.dl.enums.crm.LeadSource;
 import be.steby.CoreProject.dl.enums.crm.LeadStatus;
 
 import java.time.Instant;
@@ -11,15 +13,22 @@ import java.util.Optional;
 /**
  * Full response model for the lead detail view.
  *
- * <p>Includes all fields available on a lead, including CRM lifecycle
- * data (assignment, rejection reason, conversion timestamp).
+ * <p>Includes all fields available on a lead, including enrichment data
+ * (firstName, lastName, phone, organisationName) and CRM lifecycle data
+ * (assignment, rejection reason, conversion timestamp).
  * For list views, use {@link LeadSummaryResponse} instead.</p>
  *
  * @param publicId           public UUID of the lead
  * @param email              email address of the visitor
- * @param name               name of the visitor, or {@code null} if not provided
+ * @param civility           salutation of the visitor, or {@code null}
+ * @param firstName          first name, or {@code null}
+ * @param lastName           enriched last name, or {@code null}
+ * @param phone              phone number, or {@code null}
+ * @param organisationName   name of the organisation, or {@code null}
  * @param subject            subject of the inquiry
+ * @param message            message body of the inquiry, or {@code null} for old leads
  * @param leadType           type of inquiry
+ * @param leadSource         acquisition source, or {@code null}
  * @param status             current CRM processing status
  * @param assignedToPublicId public UUID of the assigned commercial, or {@code null}
  * @param assignedToUsername username of the assigned commercial, or {@code null}
@@ -32,9 +41,15 @@ import java.util.Optional;
 public record LeadDetailResponse(
         String publicId,
         String email,
-        String name,
+        Civility civility,
+        String firstName,
+        String lastName,
+        String phone,
+        String organisationName,
         String subject,
+        String message,
         LeadType leadType,
+        LeadSource leadSource,
         LeadStatus status,
         String assignedToPublicId,
         String assignedToUsername,
@@ -59,9 +74,15 @@ public record LeadDetailResponse(
         return new LeadDetailResponse(
                 lead.getPublicId(),
                 lead.getEmail(),
-                lead.getName().orElse(null),
+                lead.getCivility(),
+                lead.getFirstName(),
+                lead.getLastName(),
+                lead.getPhone(),
+                lead.getOrganisationName(),
                 lead.getSubject(),
+                lead.getMessage(),
                 lead.getLeadType(),
+                lead.getLeadSource(),
                 lead.getStatus(),
                 Optional.ofNullable(assignedTo).map(User::getPublicId).orElse(null),
                 Optional.ofNullable(assignedTo).map(User::getUsername).orElse(null),

@@ -2,6 +2,7 @@ package be.steby.CoreProject.pl.domains.commercialaction.models.requests;
 
 import be.steby.CoreProject.bll.domains.commercialaction.models.CommercialActionCreateRequest;
 import be.steby.CoreProject.dl.enums.crm.CommercialActionPriority;
+import be.steby.CoreProject.dl.enums.crm.CommercialActionType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -18,8 +19,13 @@ import java.time.Instant;
  * @param priority           priority level; defaults to {@code MEDIUM} in the service if null (optional)
  * @param dueDate            deadline for the action (optional)
  * @param assignedToPublicId public UUID of the commercial responsible for the action (required)
- * @param dealPublicId       public UUID of the linked deal (optional — at least one of deal/contact required)
- * @param contactPublicId    public UUID of the linked contact (optional — at least one of deal/contact required)
+ * @param dealPublicId       public UUID of the linked deal (optional — at least one of lead/deal/contact required)
+ * @param contactPublicId    public UUID of the linked contact (optional — at least one of lead/deal/contact required)
+ * @param leadPublicId       public UUID of the linked lead (optional — at least one of lead/deal/contact required)
+ * @param reminderAt         when to send the reminder notification (optional)
+ * @param location           free-text location — visio link, room name… (optional)
+ * @param addressPublicId    public UUID of an existing Address entity for physical meetings (optional)
+ * @param durationMinutes    meeting duration in minutes — used to compute calendar end time; defaults to 60 (optional)
  */
 public record CreateCommercialActionRequest(
 
@@ -28,6 +34,8 @@ public record CreateCommercialActionRequest(
         String title,
 
         String description,
+
+        CommercialActionType type,
 
         CommercialActionPriority priority,
 
@@ -38,7 +46,17 @@ public record CreateCommercialActionRequest(
 
         String dealPublicId,
 
-        String contactPublicId
+        String contactPublicId,
+
+        String leadPublicId,
+
+        Instant reminderAt,
+
+        String location,
+
+        String addressPublicId,
+
+        Integer durationMinutes
 
 ) {
 
@@ -51,11 +69,17 @@ public record CreateCommercialActionRequest(
         return new CommercialActionCreateRequest(
                 title.trim(),
                 description != null ? description.trim() : null,
+                type,
                 priority,
                 dueDate,
                 assignedToPublicId,
                 dealPublicId,
-                contactPublicId
+                contactPublicId,
+                leadPublicId,
+                reminderAt,
+                location,
+                addressPublicId,
+                durationMinutes
         );
     }
 }

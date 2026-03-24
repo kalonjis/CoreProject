@@ -87,7 +87,9 @@ public record CreateEventRequest(
                 status != null ? status : EventStatus.CONFIRMED,
                 recurrence != null ? recurrence : EventRecurrence.NONE,
                 colorCode,
-                reminderMinutes
+                reminderMinutes,
+                null,
+                null
         );
     }
 }

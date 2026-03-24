@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.lead.models;
 
 import be.steby.CoreProject.dl.enums.LeadType;
+import be.steby.CoreProject.dl.enums.crm.LeadSource;
 import be.steby.CoreProject.dl.enums.crm.LeadStatus;
 
 import java.time.Instant;
@@ -16,8 +17,10 @@ import java.time.Instant;
  *
  * @param status             filter by CRM processing status
  * @param leadType           filter by inquiry type
+ * @param leadSource         filter by acquisition source
  * @param assignedToPublicId filter by assigned commercial (public UUID)
  * @param unassignedOnly     if {@code true}, returns only unassigned leads
+ * @param activeOnly         if {@code true}, returns only NEW and IN_REVIEW leads (hides CONVERTED and REJECTED)
  * @param keyword            search term matched against email and name (case-insensitive)
  * @param submittedFrom      start of submission date range (inclusive)
  * @param submittedTo        end of submission date range (inclusive)
@@ -26,8 +29,10 @@ public record LeadFilterRequest(
 
         LeadStatus status,
         LeadType leadType,
+        LeadSource leadSource,
         String assignedToPublicId,
         Boolean unassignedOnly,
+        Boolean activeOnly,
         String keyword,
         Instant submittedFrom,
         Instant submittedTo

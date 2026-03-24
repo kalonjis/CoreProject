@@ -7,6 +7,7 @@ import be.steby.CoreProject.bll.domains.supportticket.events.SupportTicketCreate
 import be.steby.CoreProject.bll.domains.supportticket.events.SupportTicketStatusChangedEvent;
 import be.steby.CoreProject.bll.domains.supportticket.events.SupportTicketUpdatedEvent;
 import be.steby.CoreProject.bll.domains.supportticket.exceptions.SupportTicketAlreadyClosedException;
+import be.steby.CoreProject.bll.domains.supportticket.exceptions.SupportTicketAssignNotAuthorizedException;
 import be.steby.CoreProject.bll.domains.supportticket.exceptions.SupportTicketNotFoundException;
 import be.steby.CoreProject.bll.domains.supportticket.exceptions.SupportTicketStatusTransitionException;
 import be.steby.CoreProject.bll.domains.supportticket.models.SupportTicketAssignRequest;
@@ -207,6 +208,10 @@ public class SupportTicketServiceImpl implements SupportTicketService {
 
         if (ticket.isClosed()) {
             throw SupportTicketAlreadyClosedException.forTicket(publicId);
+        }
+
+        if (!actor.hasAdminPrivileges() && !actor.getPublicId().equals(request.assignedToPublicId())) {
+            throw new SupportTicketAssignNotAuthorizedException();
         }
 
         User previousAssignee = ticket.getAssignedTo();

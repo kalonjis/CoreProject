@@ -81,7 +81,7 @@ public class InteractionValidationException extends InteractionDomainException {
      */
     public static InteractionValidationException neitherDealNorContact() {
         return new InteractionValidationException(
-                "At least one of dealPublicId or contactPublicId must be provided");
+                "At least one of leadPublicId, dealPublicId, or contactPublicId must be provided");
     }
 
     /**

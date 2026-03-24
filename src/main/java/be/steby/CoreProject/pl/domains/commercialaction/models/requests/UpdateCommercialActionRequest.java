@@ -2,6 +2,7 @@ package be.steby.CoreProject.pl.domains.commercialaction.models.requests;
 
 import be.steby.CoreProject.bll.domains.commercialaction.models.CommercialActionUpdateRequest;
 import be.steby.CoreProject.dl.enums.crm.CommercialActionPriority;
+import be.steby.CoreProject.dl.enums.crm.CommercialActionType;
 import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
@@ -22,6 +23,10 @@ import java.time.Instant;
  * @param priority           new priority level (optional)
  * @param dueDate            new deadline (optional)
  * @param assignedToPublicId public UUID of the new assignee — triggers reassignment if non-null (optional)
+ * @param reminderAt         new reminder timestamp — null leaves existing value unchanged (optional)
+ * @param location           new free-text location (optional)
+ * @param addressPublicId    new physical address public UUID (optional)
+ * @param durationMinutes    new meeting duration in minutes (optional)
  */
 public record UpdateCommercialActionRequest(
 
@@ -30,11 +35,21 @@ public record UpdateCommercialActionRequest(
 
         String description,
 
+        CommercialActionType type,
+
         CommercialActionPriority priority,
 
         Instant dueDate,
 
-        String assignedToPublicId
+        String assignedToPublicId,
+
+        Instant reminderAt,
+
+        String location,
+
+        String addressPublicId,
+
+        Integer durationMinutes
 
 ) {
 
@@ -47,9 +62,14 @@ public record UpdateCommercialActionRequest(
         return new CommercialActionUpdateRequest(
                 title       != null ? title.trim()       : null,
                 description != null ? description.trim() : null,
+                type,
                 priority,
                 dueDate,
-                assignedToPublicId
+                assignedToPublicId,
+                reminderAt,
+                location,
+                addressPublicId,
+                durationMinutes
         );
     }
 }

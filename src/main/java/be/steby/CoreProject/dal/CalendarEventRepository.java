@@ -399,4 +399,20 @@ public interface CalendarEventRepository extends JpaRepository<CalendarEvent, Lo
      * @throws IllegalArgumentException if any parameter is null
      */
     boolean existsByPublicIdAndOwnerPublicId(String publicId, String ownerPublicId);
+
+    // =========================================================================
+    // CRM Source Queries
+    // =========================================================================
+
+    /**
+     * Finds the calendar event linked to a specific CRM source entity.
+     *
+     * <p>Used by CRM domain listeners to locate and synchronise or cancel
+     * the CalendarEvent associated with a CommercialAction (or any other
+     * CRM source type) without coupling to the CRM domain.</p>
+     *
+     * @param sourcePublicId the public UUID of the CRM source entity
+     * @return the linked event if it exists
+     */
+    Optional<CalendarEvent> findBySourcePublicId(String sourcePublicId);
 }

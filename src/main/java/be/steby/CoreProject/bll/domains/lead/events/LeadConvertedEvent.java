@@ -22,14 +22,20 @@ import be.steby.CoreProject.dl.entities.crm.Lead;
  * that need to reference the newly created Contact without a direct
  * domain coupling.</p>
  *
- * @param lead            the lead that was converted
- * @param convertedBy     the commercial who performed the conversion
- * @param contactPublicId the public UUID of the Contact created from this lead
- * @param actorDevice     the device from which the conversion was performed
+ * @param lead                 the lead that was converted
+ * @param convertedBy          the commercial who performed the conversion
+ * @param contactPublicId      the public UUID of the Contact created from this lead
+ * @param actorDevice          the device from which the conversion was performed
+ * @param organisationPublicId public UUID of an existing organisation to link (may be null)
+ * @param organisationName     organisation name to find-or-create (may be null)
+ * @param emailOverride        optional email to use instead of the lead's email (may be null)
  */
 public record LeadConvertedEvent(
         Lead lead,
         User convertedBy,
         String contactPublicId,
-        Device actorDevice
+        Device actorDevice,
+        String organisationPublicId,
+        String organisationName,
+        String emailOverride
 ) {}

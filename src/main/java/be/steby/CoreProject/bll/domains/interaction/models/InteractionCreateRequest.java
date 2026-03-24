@@ -28,8 +28,9 @@ import java.time.Instant;
  * @param outcome          outcome classification — POSITIVE, NEUTRAL, NEGATIVE, NO_ANSWER (optional)
  * @param durationMinutes  duration of the interaction in minutes (optional)
  * @param occurredAt       when the interaction actually took place (required)
- * @param dealPublicId     public UUID of the linked deal (optional — at least one of deal/contact required)
- * @param contactPublicId  public UUID of the linked contact (optional — at least one of deal/contact required)
+ * @param dealPublicId     public UUID of the linked deal (optional — at least one of lead/deal/contact required)
+ * @param contactPublicId  public UUID of the linked contact (optional — at least one of lead/deal/contact required)
+ * @param leadPublicId     public UUID of the linked lead (optional — at least one of lead/deal/contact required)
  * @param callLogDetails   structured call details — required when type is CALL (optional otherwise)
  * @param emailLogDetails  structured email details — required when type is EMAIL (optional otherwise)
  */
@@ -43,6 +44,7 @@ public record InteractionCreateRequest(
         Instant occurredAt,
         String dealPublicId,
         String contactPublicId,
+        String leadPublicId,
         CallLogDetails callLogDetails,
         EmailLogDetails emailLogDetails
 ) {

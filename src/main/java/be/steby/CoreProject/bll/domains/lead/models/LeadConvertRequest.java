@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.lead.models;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -10,14 +11,21 @@ import jakarta.validation.constraints.Size;
  * At conversion time, the commercial must provide the structured
  * identity fields required to create a proper {@code Contact}.</p>
  *
- * <p>The {@code organisationPublicId} is optional — a contact can be
- * independent (e.g. sole trader) and linked to an organisation later.</p>
+ * <p>Organisation resolution priority (mutually exclusive):</p>
+ * <ol>
+ *   <li>{@code organisationPublicId} — links to an existing organisation directly</li>
+ *   <li>{@code organisationName} — finds an existing organisation by name (case-insensitive)
+ *       or creates a new one on the fly</li>
+ * </ol>
+ * <p>If neither is provided, the contact is created without an organisation link.</p>
  *
- * @param firstName           first name of the contact to create
- * @param lastName            last name of the contact to create
- * @param jobTitle            optional job title of the contact
- * @param phone               optional direct phone number of the contact
+ * @param firstName            first name of the contact to create
+ * @param lastName             last name of the contact to create
+ * @param email                optional email override — if provided, replaces the lead's email on the contact
+ * @param jobTitle             optional job title of the contact
+ * @param phone                optional direct phone number of the contact
  * @param organisationPublicId optional public UUID of an existing organisation to link
+ * @param organisationName     optional organisation name — used to find or create the organisation
  */
 public record LeadConvertRequest(
 
@@ -29,12 +37,19 @@ public record LeadConvertRequest(
         @Size(max = 50, message = "Last name must not exceed 50 characters")
         String lastName,
 
+        @Email(message = "Email must be a valid address")
+        @Size(max = 254, message = "Email must not exceed 254 characters")
+        String email,
+
         @Size(max = 100, message = "Job title must not exceed 100 characters")
         String jobTitle,
 
         @Size(max = 30, message = "Phone must not exceed 30 characters")
         String phone,
 
-        String organisationPublicId
+        String organisationPublicId,
+
+        @Size(max = 200, message = "Organisation name must not exceed 200 characters")
+        String organisationName
 
 ) {}
