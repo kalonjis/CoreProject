@@ -3,12 +3,15 @@ package be.steby.CoreProject.bll.domains.deal.services;
 import be.steby.CoreProject.bll.domains.deal.exceptions.DealAlreadyClosedException;
 import be.steby.CoreProject.bll.domains.deal.exceptions.DealNotFoundException;
 import be.steby.CoreProject.bll.domains.deal.exceptions.DealStageNotInPipelineException;
+import be.steby.CoreProject.bll.domains.deal.models.DealAddContactRoleRequest;
 import be.steby.CoreProject.bll.domains.deal.models.DealCreateRequest;
 import be.steby.CoreProject.bll.domains.deal.models.DealFilterRequest;
 import be.steby.CoreProject.bll.domains.deal.models.DealReassignRequest;
 import be.steby.CoreProject.bll.domains.deal.models.DealUpdateRequest;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Deal;
+import be.steby.CoreProject.dl.entities.crm.DealContactRole;
+import be.steby.CoreProject.dl.enums.crm.ContactRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -159,6 +162,62 @@ public interface DealService {
      * @throws DealStageNotInPipelineException  if the stage does not belong to the deal's pipeline
      */
     Deal moveToStage(String publicId, String stagePublicId, User actor);
+
+    // =========================================================================
+    // Contact roles
+    // =========================================================================
+
+    /**
+     * Adds a contact to a deal with the specified role.
+     *
+     * <p>If the deal currently has no contacts, the added contact is automatically
+     * set as primary. Otherwise, the caller controls primacy via
+     * {@link #setPrimaryContact}.</p>
+     *
+     * @param dealPublicId the public UUID of the deal
+     * @param request      the contact and role to add
+     * @param actor        the user performing the operation
+     * @return the newly created {@link DealContactRole}
+     * @throws IllegalArgumentException if the contact is already on this deal
+     */
+    DealContactRole addContactRole(String dealPublicId, DealAddContactRoleRequest request, User actor);
+
+    /**
+     * Removes a contact from a deal.
+     *
+     * <p>The primary contact cannot be removed unless another contact exists to
+     * take over primacy. The service enforces this constraint.</p>
+     *
+     * @param dealPublicId    the public UUID of the deal
+     * @param contactPublicId the public UUID of the contact to remove
+     * @param actor           the user performing the operation
+     * @throws IllegalStateException if attempting to remove the only/primary contact
+     */
+    void removeContactRole(String dealPublicId, String contactPublicId, User actor);
+
+    /**
+     * Changes the role of a contact on a deal.
+     *
+     * @param dealPublicId    the public UUID of the deal
+     * @param contactPublicId the public UUID of the contact
+     * @param role            the new role to assign
+     * @param actor           the user performing the operation
+     * @return the updated {@link DealContactRole}
+     */
+    DealContactRole updateContactRole(String dealPublicId, String contactPublicId, ContactRole role, User actor);
+
+    /**
+     * Sets a contact as the primary contact for a deal.
+     *
+     * <p>Atomically unsets the current primary and sets the new one
+     * within the same transaction.</p>
+     *
+     * @param dealPublicId    the public UUID of the deal
+     * @param contactPublicId the public UUID of the contact to promote
+     * @param actor           the user performing the operation
+     * @return the updated {@link DealContactRole}
+     */
+    DealContactRole setPrimaryContact(String dealPublicId, String contactPublicId, User actor);
 
     // =========================================================================
     // Assignment

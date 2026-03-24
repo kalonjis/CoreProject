@@ -1,5 +1,6 @@
 package be.steby.CoreProject.pl.domains.deal.models.responses;
 
+import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.entities.crm.Deal;
 import be.steby.CoreProject.dl.enums.crm.DealStatus;
 
@@ -50,6 +51,7 @@ public record DealSummaryResponse(
      * @return the summary response
      */
     public static DealSummaryResponse fromEntity(Deal deal) {
+        Contact primary = deal.getPrimaryContact();
         return new DealSummaryResponse(
                 deal.getPublicId(),
                 deal.getTitle(),
@@ -58,8 +60,8 @@ public record DealSummaryResponse(
                 deal.getStatus(),
                 deal.getPipelineStep() != null ? deal.getPipelineStep().getPublicId() : null,
                 deal.getPipelineStep() != null ? deal.getPipelineStep().getName()     : null,
-                deal.getContact()      != null ? deal.getContact().getPublicId()      : null,
-                deal.getContact()      != null ? deal.getContact().getFullName()      : null,
+                primary                != null ? primary.getPublicId()               : null,
+                primary                != null ? primary.getFullName()               : null,
                 deal.getAssignedTo()   != null ? deal.getAssignedTo().getPublicId()  : null,
                 deal.getAssignedTo()   != null ? deal.getAssignedTo().getUsername()  : null,
                 deal.isOverdue(),

@@ -36,10 +36,12 @@ public final class CrmDealRoutes {
     };
 
     private static final String[] WRITE_ROUTES = {
-            BASE,                // POST  — create deal
-            BASE + "/*",         // PATCH — update deal by publicId
-            BASE + "/*/stage",   // PATCH — move deal to a different stage
-            BASE + "/*/assign"   // PATCH — reassign/unassign commercial
+            BASE,                         // POST  — create deal
+            BASE + "/*",                  // PATCH — update deal by publicId
+            BASE + "/*/stage",            // PATCH — move deal to a different stage
+            BASE + "/*/assign",           // PATCH — reassign/unassign commercial
+            BASE + "/*/contacts",         // POST  — add contact to deal
+            BASE + "/*/contacts/**"       // DELETE/PATCH — remove contact or update role/primary
     };
 
     // ========================================

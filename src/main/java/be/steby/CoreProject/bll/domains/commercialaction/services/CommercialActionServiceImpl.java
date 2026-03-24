@@ -90,9 +90,13 @@ public class CommercialActionServiceImpl implements CommercialActionService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Deal not found with publicId: " + dealPublicId));
 
-        List<CommercialAction> all = deal.getContact() != null
-                ? commercialActionRepository.findByDealOrContactOrderByDueDateAsc(
-                        deal.getId(), deal.getContact().getId())
+        List<Long> contactIds = deal.getContactRoles().stream()
+                .map(cr -> cr.getContact().getId())
+                .toList();
+
+        List<CommercialAction> all = !contactIds.isEmpty()
+                ? commercialActionRepository.findByDealOrContactsOrderByDueDateAsc(
+                        deal.getId(), contactIds)
                 : commercialActionRepository.findByDealIdOrderByDueDateAsc(deal.getId());
 
         return all.stream()

@@ -3,11 +3,15 @@ package be.steby.CoreProject.pl.domains.deal.controllers;
 import be.steby.CoreProject.bll.domains.deal.services.DealService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Deal;
+import be.steby.CoreProject.dl.entities.crm.DealContactRole;
+import be.steby.CoreProject.pl.domains.deal.models.requests.AddDealContactRoleRequest;
 import be.steby.CoreProject.pl.domains.deal.models.requests.CreateDealRequest;
 import be.steby.CoreProject.pl.domains.deal.models.requests.DealListFilterRequest;
 import be.steby.CoreProject.pl.domains.deal.models.requests.MoveDealStageRequest;
 import be.steby.CoreProject.pl.domains.deal.models.requests.ReassignDealRequest;
+import be.steby.CoreProject.pl.domains.deal.models.requests.UpdateDealContactRoleRequest;
 import be.steby.CoreProject.pl.domains.deal.models.requests.UpdateDealRequest;
+import be.steby.CoreProject.pl.domains.deal.models.responses.DealContactRoleResponse;
 import be.steby.CoreProject.pl.domains.deal.models.responses.DealDetailResponse;
 import be.steby.CoreProject.pl.domains.deal.models.responses.DealSummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -214,5 +218,63 @@ public class CrmDealController {
 
         Deal deal = dealService.reassign(publicId, request.toBllModel(), actor);
         return ResponseEntity.ok(DealDetailResponse.fromEntity(deal));
+    }
+
+    // =========================================================================
+    // Contact roles
+    // =========================================================================
+
+    @PostMapping("/{publicId}/contacts")
+    @Operation(summary = "Add contact to deal", description = "Adds a contact to a deal with the specified role")
+    public ResponseEntity<DealContactRoleResponse> addContact(
+            @PathVariable String publicId,
+            @Valid @RequestBody AddDealContactRoleRequest request,
+            @AuthenticationPrincipal User actor) {
+
+        log.info("Adding contact {} to deal {}, by: {}", request.contactPublicId(), publicId, actor.getUsername());
+
+        DealContactRole role = dealService.addContactRole(publicId, request.toBllModel(), actor);
+        return ResponseEntity.ok(DealContactRoleResponse.fromEntity(role));
+    }
+
+    @DeleteMapping("/{publicId}/contacts/{contactPublicId}")
+    @Operation(summary = "Remove contact from deal", description = "Removes a contact from a deal")
+    public ResponseEntity<Void> removeContact(
+            @PathVariable String publicId,
+            @PathVariable String contactPublicId,
+            @AuthenticationPrincipal User actor) {
+
+        log.info("Removing contact {} from deal {}, by: {}", contactPublicId, publicId, actor.getUsername());
+
+        dealService.removeContactRole(publicId, contactPublicId, actor);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{publicId}/contacts/{contactPublicId}/role")
+    @Operation(summary = "Update contact role", description = "Changes a contact's role on a deal")
+    public ResponseEntity<DealContactRoleResponse> updateContactRole(
+            @PathVariable String publicId,
+            @PathVariable String contactPublicId,
+            @Valid @RequestBody UpdateDealContactRoleRequest request,
+            @AuthenticationPrincipal User actor) {
+
+        log.info("Updating role of contact {} on deal {} to {}, by: {}",
+                contactPublicId, publicId, request.role(), actor.getUsername());
+
+        DealContactRole role = dealService.updateContactRole(publicId, contactPublicId, request.role(), actor);
+        return ResponseEntity.ok(DealContactRoleResponse.fromEntity(role));
+    }
+
+    @PatchMapping("/{publicId}/contacts/{contactPublicId}/primary")
+    @Operation(summary = "Set primary contact", description = "Promotes a contact to primary on a deal")
+    public ResponseEntity<DealContactRoleResponse> setPrimaryContact(
+            @PathVariable String publicId,
+            @PathVariable String contactPublicId,
+            @AuthenticationPrincipal User actor) {
+
+        log.info("Setting contact {} as primary on deal {}, by: {}", contactPublicId, publicId, actor.getUsername());
+
+        DealContactRole role = dealService.setPrimaryContact(publicId, contactPublicId, actor);
+        return ResponseEntity.ok(DealContactRoleResponse.fromEntity(role));
     }
 }

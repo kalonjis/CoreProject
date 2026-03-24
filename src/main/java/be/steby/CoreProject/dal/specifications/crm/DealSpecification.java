@@ -1,8 +1,11 @@
 package be.steby.CoreProject.dal.specifications.crm;
 
 import be.steby.CoreProject.dl.entities.crm.Deal;
+import be.steby.CoreProject.dl.entities.crm.DealContactRole;
 import be.steby.CoreProject.dl.enums.crm.DealStatus;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
@@ -129,8 +132,13 @@ public class DealSpecification {
      */
     public static Specification<Deal> forContact(Long contactId) {
         if (contactId == null) return null;
-        return (root, query, cb) ->
-            cb.equal(root.get("contact").get("id"), contactId);
+        return (root, query, cb) -> {
+            Subquery<Long> sub = query.subquery(Long.class);
+            Root<DealContactRole> dcr = sub.from(DealContactRole.class);
+            sub.select(dcr.get("deal").get("id"))
+               .where(cb.equal(dcr.get("contact").get("id"), contactId));
+            return root.get("id").in(sub);
+        };
     }
 
     /**

@@ -9,6 +9,8 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Represents a commercial opportunity in the CRM pipeline.
@@ -29,7 +31,7 @@ import java.time.LocalDate;
  * <ul>
  *   <li>Many {@code Deal} → one {@link Pipeline}</li>
  *   <li>Many {@code Deal} → one {@link PipelineStep} (current stage)</li>
- *   <li>Many {@code Deal} → one {@link Contact} (primary contact)</li>
+ *   <li>Many {@code Deal} ↔ many {@link Contact} via {@link DealContactRole} (one marked primary)</li>
  *   <li>Many {@code Deal} → one {@link Organisation} (optional)</li>
  *   <li>Many {@code Deal} → one {@link User} (assigned commercial)</li>
  * </ul>
@@ -50,7 +52,6 @@ import java.time.LocalDate;
  * <h3>Database indexes</h3>
  * <ul>
  *   <li>{@code idx_deal_public_id}  — fast lookup by UUID (API)</li>
- *   <li>{@code idx_deal_contact}    — all deals for a contact</li>
  *   <li>{@code idx_deal_stage}      — all deals at a given stage (Kanban)</li>
  *   <li>{@code idx_deal_assigned}   — all deals assigned to a commercial</li>
  *   <li>{@code idx_deal_status}     — filter open / won / lost</li>
@@ -67,7 +68,6 @@ import java.time.LocalDate;
     name = "crm_deal",
     indexes = {
         @Index(name = "idx_deal_public_id", columnList = "public_id"),
-        @Index(name = "idx_deal_contact",   columnList = "contact_id"),
         @Index(name = "idx_deal_stage",     columnList = "stage_id"),
         @Index(name = "idx_deal_assigned",  columnList = "assigned_to_id"),
         @Index(name = "idx_deal_status",    columnList = "status")
@@ -186,14 +186,19 @@ public class Deal extends BaseEntity<Long> {
     private PipelineStep pipelineStep;
 
     /**
-     * Primary contact for this deal.
+     * Contacts involved in this deal, with their respective roles.
      *
-     * <p>Required. The person the commercial team communicates with
-     * to move the deal forward.</p>
+     * <p>At least one entry must have {@code primary = true} — this is the
+     * main point of contact. Additional entries capture other stakeholders
+     * (signer, technical evaluator, etc.).</p>
+     *
+     * <p>Managed with {@code orphanRemoval = true}: removing a role from this
+     * collection and saving the deal deletes the join record automatically.</p>
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "contact_id", nullable = false)
-    private Contact contact;
+    @OneToMany(mappedBy = "deal", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    @EqualsAndHashCode.Exclude
+    private Set<DealContactRole> contactRoles = new HashSet<>();
 
     /**
      * Organisation associated with this deal.
@@ -230,6 +235,23 @@ public class Deal extends BaseEntity<Long> {
     // =========================================================================
     // Utility methods
     // =========================================================================
+
+    /**
+     * Returns the primary contact for this deal, or {@code null} if none is set.
+     *
+     * <p>Convenience shortcut over iterating {@link #getContactRoles()}.
+     * Triggers lazy loading of {@code contactRoles} — call within a transaction.</p>
+     *
+     * @return the primary {@link Contact}, or {@code null}
+     */
+    public Contact getPrimaryContact() {
+        if (contactRoles == null || contactRoles.isEmpty()) return null;
+        return contactRoles.stream()
+                .filter(DealContactRole::isPrimary)
+                .map(DealContactRole::getContact)
+                .findFirst()
+                .orElse(null);
+    }
 
     /**
      * Returns {@code true} if this deal has been closed (won or lost).

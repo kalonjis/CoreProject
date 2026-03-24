@@ -96,8 +96,12 @@ public interface CommercialActionRepository extends JpaRepository<CommercialActi
      * @param contactId the internal ID of the deal's primary contact
      * @return all tasks for that deal or contact, soonest due first
      */
-    @Query("SELECT ca FROM CommercialAction ca LEFT JOIN ca.deal d LEFT JOIN ca.contact c WHERE d.id = :dealId OR c.id = :contactId ORDER BY ca.dueDate ASC NULLS LAST")
-    List<CommercialAction> findByDealOrContactOrderByDueDateAsc(@Param("dealId") Long dealId, @Param("contactId") Long contactId);
+    /**
+     * Finds all actions linked to a deal OR to any of the given contacts.
+     * Used for the deal action list with multi-contact support.
+     */
+    @Query("SELECT DISTINCT ca FROM CommercialAction ca LEFT JOIN ca.deal d LEFT JOIN ca.contact c WHERE d.id = :dealId OR c.id IN :contactIds ORDER BY ca.dueDate ASC NULLS LAST")
+    List<CommercialAction> findByDealOrContactsOrderByDueDateAsc(@Param("dealId") Long dealId, @Param("contactIds") java.util.Collection<Long> contactIds);
 
     /**
      * Finds all tasks linked to a specific contact, ordered by due date ascending.
@@ -119,7 +123,7 @@ public interface CommercialActionRepository extends JpaRepository<CommercialActi
      * @param contactId the internal ID of the contact
      * @return all tasks for that contact or their deals, soonest due first
      */
-    @Query("SELECT ca FROM CommercialAction ca LEFT JOIN ca.contact c LEFT JOIN ca.deal d LEFT JOIN d.contact dc WHERE c.id = :contactId OR dc.id = :contactId ORDER BY ca.dueDate ASC NULLS LAST")
+    @Query("SELECT DISTINCT ca FROM CommercialAction ca LEFT JOIN ca.contact c LEFT JOIN ca.deal d LEFT JOIN d.contactRoles dcr LEFT JOIN dcr.contact dc WHERE c.id = :contactId OR dc.id = :contactId ORDER BY ca.dueDate ASC NULLS LAST")
     List<CommercialAction> findByContactOrContactDealOrderByDueDateAsc(@Param("contactId") Long contactId);
 
     /**
@@ -210,8 +214,12 @@ public interface CommercialActionRepository extends JpaRepository<CommercialActi
      * @param status    must be {@code DONE}
      * @return merged completed actions, most recently completed first
      */
-    @Query("SELECT ca FROM CommercialAction ca LEFT JOIN ca.deal d LEFT JOIN ca.contact c WHERE (d.id = :dealId OR c.id = :contactId) AND ca.status = :status ORDER BY ca.completedAt DESC")
-    List<CommercialAction> findByDealOrContactAndStatus(@Param("dealId") Long dealId, @Param("contactId") Long contactId, @Param("status") CommercialActionStatus status);
+    /**
+     * Finds completed actions linked to a deal OR to any of the given contacts.
+     * Used for the unified deal timeline with multi-contact support.
+     */
+    @Query("SELECT DISTINCT ca FROM CommercialAction ca LEFT JOIN ca.deal d LEFT JOIN ca.contact c WHERE (d.id = :dealId OR c.id IN :contactIds) AND ca.status = :status ORDER BY ca.completedAt DESC")
+    List<CommercialAction> findByDealOrContactsAndStatus(@Param("dealId") Long dealId, @Param("contactIds") java.util.Collection<Long> contactIds, @Param("status") CommercialActionStatus status);
 
     /**
      * Finds all completed actions linked to a contact, ordered by completion date descending.
@@ -234,7 +242,7 @@ public interface CommercialActionRepository extends JpaRepository<CommercialActi
      * @param status must be {@code DONE}
      * @return completed actions for that contact or their deals, most recently completed first
      */
-    @Query("SELECT ca FROM CommercialAction ca LEFT JOIN ca.contact c LEFT JOIN ca.deal d LEFT JOIN d.contact dc WHERE (c.id = :contactId OR dc.id = :contactId) AND ca.status = :status ORDER BY ca.completedAt DESC")
+    @Query("SELECT DISTINCT ca FROM CommercialAction ca LEFT JOIN ca.contact c LEFT JOIN ca.deal d LEFT JOIN d.contactRoles dcr LEFT JOIN dcr.contact dc WHERE (c.id = :contactId OR dc.id = :contactId) AND ca.status = :status ORDER BY ca.completedAt DESC")
     List<CommercialAction> findByContactOrContactDealAndStatusOrderByCompletedAtDesc(@Param("contactId") Long contactId, @Param("status") CommercialActionStatus status);
 
     /**
