@@ -3,6 +3,7 @@ package be.steby.CoreProject.pl.domains.commercialaction.models.responses;
 import be.steby.CoreProject.dl.entities.crm.CommercialAction;
 import be.steby.CoreProject.dl.enums.crm.CommercialActionPriority;
 import be.steby.CoreProject.dl.enums.crm.CommercialActionStatus;
+import be.steby.CoreProject.dl.enums.crm.CommercialActionType;
 
 import java.time.Instant;
 
@@ -25,8 +26,11 @@ import java.time.Instant;
  * @param assignedToUsername username of the assigned commercial
  * @param dealPublicId       public UUID of the linked deal, or {@code null}
  * @param contactPublicId    public UUID of the linked contact, or {@code null}
+ * @param leadPublicId       public UUID of the linked lead, or {@code null}
  * @param reminderAt         scheduled reminder timestamp, or {@code null} if not set
  * @param reminderSentAt     timestamp when the reminder was dispatched, or {@code null} if not yet sent
+ * @param location           free-text location (visio link, room…), or {@code null} if not set
+ * @param durationMinutes    meeting duration in minutes, or {@code null} if not set
  * @param createdAt          timestamp of entity creation
  * @param updatedAt          timestamp of last update
  */
@@ -34,6 +38,7 @@ public record CommercialActionResponse(
         String publicId,
         String title,
         String description,
+        CommercialActionType type,
         CommercialActionPriority priority,
         CommercialActionStatus status,
         Instant dueDate,
@@ -43,8 +48,11 @@ public record CommercialActionResponse(
         String assignedToUsername,
         String dealPublicId,
         String contactPublicId,
+        String leadPublicId,
         Instant reminderAt,
         Instant reminderSentAt,
+        String location,
+        Integer durationMinutes,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -60,6 +68,7 @@ public record CommercialActionResponse(
                 action.getPublicId(),
                 action.getTitle(),
                 action.getDescription(),
+                action.getType(),
                 action.getPriority(),
                 action.getStatus(),
                 action.getDueDate(),
@@ -69,8 +78,11 @@ public record CommercialActionResponse(
                 action.getAssignedTo() != null ? action.getAssignedTo().getUsername() : null,
                 action.getDeal()       != null ? action.getDeal().getPublicId()       : null,
                 action.getContact()    != null ? action.getContact().getPublicId()    : null,
+                action.getLead()       != null ? action.getLead().getPublicId()       : null,
                 action.getReminderAt(),
                 action.getReminderSentAt(),
+                action.getLocation(),
+                action.getDurationMinutes(),
                 action.getCreatedAt(),
                 action.getUpdatedAt()
         );

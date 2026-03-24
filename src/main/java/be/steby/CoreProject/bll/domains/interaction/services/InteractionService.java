@@ -7,15 +7,13 @@ import be.steby.CoreProject.bll.domains.interaction.models.InteractionUpdateRequ
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Interaction;
 
-import java.util.List;
-
 /**
  * Service for managing CRM interactions (timeline touchpoints) across deals and contacts.
  *
  * <h3>Interaction model</h3>
  * <p>An {@link Interaction} records a single touchpoint in the CRM timeline — a call,
  * email, meeting, note, or visit. Every interaction must be linked to at least one
- * deal or contact, and always carries the commercial who performed it.</p>
+ * deal, contact, or lead, and always carries the commercial who performed it.</p>
  *
  * <h3>Type-specific sub-entities</h3>
  * <p>For structured data, {@code CALL} interactions carry a {@code CallLog} and
@@ -23,9 +21,10 @@ import java.util.List;
  * automatically by {@link #create(InteractionCreateRequest, User)} when the
  * appropriate detail record is present in the request.</p>
  *
- * <h3>Timeline queries</h3>
- * <p>Timelines are always fetched in reverse chronological order (most recent first)
- * via {@link #getTimelineByDeal(String)} and {@link #getTimelineByContact(String)}.</p>
+ * <h3>Unified timeline</h3>
+ * <p>To retrieve the unified timeline that merges interactions with completed
+ * commercial actions, use
+ * {@link be.steby.CoreProject.bll.domains.timeline.services.TimelineService}.</p>
  */
 public interface InteractionService {
 
@@ -42,34 +41,6 @@ public interface InteractionService {
      */
     Interaction getByPublicId(String publicId);
 
-    /**
-     * Returns the full interaction timeline for a deal, most recent first.
-     *
-     * @param dealPublicId the public UUID of the deal
-     * @return list of interactions linked to that deal (may be empty)
-     */
-    List<Interaction> getTimelineByDeal(String dealPublicId);
-
-    /**
-     * Returns the full interaction timeline for a contact, most recent first.
-     *
-     * <p>Includes interactions across all deals involving that contact.</p>
-     *
-     * @param contactPublicId the public UUID of the contact
-     * @return list of interactions linked to that contact (may be empty)
-     */
-    List<Interaction> getTimelineByContact(String contactPublicId);
-
-    /**
-     * Returns the full interaction timeline for a lead, most recent first.
-     *
-     * <p>Used during lead qualification — before conversion to a Contact.</p>
-     *
-     * @param leadPublicId the public UUID of the lead
-     * @return list of interactions linked to that lead (may be empty)
-     */
-    List<Interaction> getTimelineByLead(String leadPublicId);
-
     // =========================================================================
     // Write
     // =========================================================================
@@ -80,7 +51,7 @@ public interface InteractionService {
      *
      * <p>Business rules enforced:</p>
      * <ul>
-     *   <li>At least one of {@code dealPublicId} or {@code contactPublicId} must be set</li>
+     *   <li>At least one of {@code dealPublicId}, {@code contactPublicId}, or {@code leadPublicId} must be set</li>
      *   <li>{@code type == CALL} → {@code callLogDetails} required</li>
      *   <li>{@code type == EMAIL} → {@code emailLogDetails} required</li>
      * </ul>

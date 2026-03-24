@@ -131,6 +131,12 @@ public class ContactServiceImpl implements ContactService {
     }
 
     @Override
+    public Contact getByOriginLeadPublicId(String leadPublicId) {
+        return contactRepository.findByOriginLead_PublicId(leadPublicId)
+                .orElseThrow(() -> ContactNotFoundException.byOriginLeadPublicId(leadPublicId));
+    }
+
+    @Override
     public Page<Contact> findAll(ContactFilterRequest filter, Pageable pageable) {
         // Mutual exclusion: withoutOrganisation takes precedence over organisationPublicId
         Specification<Contact> organisationSpec;
@@ -179,11 +185,15 @@ public class ContactServiceImpl implements ContactService {
 
     @Override
     @Transactional
-    public Contact createFromLead(Lead lead, String organisationPublicId, String organisationName, User actor) {
-        log.debug("Creating contact from lead — email: {}", lead.getEmail());
+    public Contact createFromLead(Lead lead, String organisationPublicId, String organisationName, User actor, String emailOverride) {
+        String email = (emailOverride != null && !emailOverride.isBlank())
+                ? emailOverride.toLowerCase().trim()
+                : lead.getEmail();
+
+        log.debug("Creating contact from lead — email: {}", email);
 
         // If a contact with this email already exists, link it and return
-        return contactRepository.findByEmailIgnoreCase(lead.getEmail())
+        return contactRepository.findByEmailIgnoreCase(email)
                 .map(existing -> {
                     log.info("Contact with email {} already exists (publicId: {}), linking to lead",
                             lead.getEmail(), existing.getPublicId());
@@ -202,7 +212,7 @@ public class ContactServiceImpl implements ContactService {
                     Contact contact = Contact.builder()
                             .firstName(lead.getFirstName())
                             .lastName(lead.getLastName())
-                            .email(lead.getEmail().toLowerCase().trim())
+                            .email(email)
                             .phone(lead.getPhone())
                             .organisation(organisation)
                             .status(ContactStatus.NEW)
@@ -362,6 +372,11 @@ public class ContactServiceImpl implements ContactService {
                 contactPublicId, request.commercialPublicId(), actor.getUsername());
 
         Contact contact = getByPublicId(contactPublicId);
+
+        if (!actor.hasAdminPrivileges() && !actor.getPublicId().equals(request.commercialPublicId())) {
+            throw new ContactAssignNotAuthorizedException();
+        }
+
         User previousAssignee = contact.getAssignedTo();
 
         User newAssignee = null;

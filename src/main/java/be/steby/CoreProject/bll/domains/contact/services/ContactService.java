@@ -74,6 +74,18 @@ public interface ContactService {
     Contact getByEmail(String email);
 
     /**
+     * Finds the contact that was converted from a given lead.
+     *
+     * <p>Used after lead conversion to retrieve the created contact so that
+     * a Deal can be immediately associated to it.</p>
+     *
+     * @param leadPublicId the public UUID of the origin lead
+     * @return the contact created from that lead
+     * @throws ContactNotFoundException if not found
+     */
+    Contact getByOriginLeadPublicId(String leadPublicId);
+
+    /**
      * Returns a paginated, filtered list of contacts.
      *
      * <p>All filter fields in {@link ContactFilterRequest} are optional.
@@ -120,12 +132,14 @@ public interface ContactService {
      * @param organisationPublicId public UUID of an existing organisation (may be null)
      * @param organisationName     organisation name to find-or-create (may be null)
      * @param actor                the commercial who performed the conversion
+     * @param emailOverride        email to use instead of the lead's email (may be null)
      * @return the newly created (or existing) contact
      */
     Contact createFromLead(Lead lead,
                            @Nullable String organisationPublicId,
                            @Nullable String organisationName,
-                           User actor);
+                           User actor,
+                           @Nullable String emailOverride);
 
     /**
      * Creates a contact manually, without going through the lead flow.

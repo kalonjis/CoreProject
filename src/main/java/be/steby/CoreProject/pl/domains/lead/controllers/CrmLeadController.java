@@ -5,6 +5,7 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Lead;
 import be.steby.CoreProject.pl.domains.lead.models.requests.AssignLeadRequest;
 import be.steby.CoreProject.pl.domains.lead.models.requests.ConvertLeadRequest;
+import be.steby.CoreProject.pl.domains.lead.models.requests.CreateLeadRequest;
 import be.steby.CoreProject.pl.domains.lead.models.requests.EnrichLeadRequest;
 import be.steby.CoreProject.pl.domains.lead.models.requests.LeadQueueFilterRequest;
 import be.steby.CoreProject.pl.domains.lead.models.requests.RejectLeadRequest;
@@ -23,6 +24,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
 
 /**
  * REST controller for CRM lead management operations.
@@ -103,6 +106,34 @@ public class CrmLeadController {
 
         Lead lead = leadService.getByPublicId(publicId);
         return ResponseEntity.ok(LeadDetailResponse.fromEntity(lead));
+    }
+
+    // =========================================================================
+    // Manual creation
+    // =========================================================================
+
+    /**
+     * Creates a lead manually from the CRM (phone call, business card, etc.).
+     *
+     * <p>Bypasses honeypot and rate-limit guards. Source is always {@code MANUAL}.</p>
+     *
+     * <p><strong>Endpoint:</strong> POST /api/crm/leads</p>
+     *
+     * @param request the lead data
+     * @param actor   the authenticated commercial creating the lead
+     * @return 201 Created with the new lead detail
+     */
+    @PostMapping
+    @Operation(summary = "Create lead manually", description = "Creates a lead directly from the CRM, bypassing public submission guards")
+    public ResponseEntity<LeadDetailResponse> createManual(
+            @Valid @RequestBody CreateLeadRequest request,
+            @AuthenticationPrincipal User actor) {
+
+        log.info("Manual lead creation — email: {}, by: {}", request.email(), actor.getUsername());
+
+        Lead lead = leadService.createManual(request.toBllModel(), actor);
+        URI location = URI.create("/api/crm/leads/" + lead.getPublicId());
+        return ResponseEntity.created(location).body(LeadDetailResponse.fromEntity(lead));
     }
 
     // =========================================================================

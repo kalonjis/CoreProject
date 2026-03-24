@@ -79,7 +79,8 @@ import java.time.Instant;
     @Index(name = "idx_calendar_event_owner", columnList = "owner_public_id"),
     @Index(name = "idx_calendar_event_start", columnList = "start_date_time"),
     @Index(name = "idx_calendar_event_status", columnList = "status"),
-    @Index(name = "idx_calendar_event_address", columnList = "address_id")
+    @Index(name = "idx_calendar_event_address", columnList = "address_id"),
+    @Index(name = "idx_calendar_event_source",  columnList = "source_public_id")
 })
 @Getter
 @Setter
@@ -420,6 +421,32 @@ public class CalendarEvent extends BaseEntity<Long> {
     @Column(name = "reminder_minutes")
     private Integer reminderMinutes;
 
+
+    // =========================================================================
+    // CRM Source Link (Option B — CalendarEvent owns the reference)
+    // =========================================================================
+
+    /**
+     * Type of the CRM entity that triggered the creation of this event.
+     *
+     * <p>Examples: {@code "COMMERCIAL_ACTION"}. {@code null} for manually created events.
+     * Stored as a plain string to avoid coupling with CRM domain classes.</p>
+     */
+    @Column(name = "source_type", length = 50)
+    private String sourceType;
+
+    /**
+     * Public UUID of the CRM entity that owns this event.
+     *
+     * <p>When {@link #sourceType} is {@code "COMMERCIAL_ACTION"}, this holds the
+     * {@code publicId} of the linked {@code CommercialAction}.
+     * {@code null} for manually created events.</p>
+     *
+     * <p>Indexed via {@code idx_calendar_event_source} for fast lookup
+     * by source (used by CRM domain listeners for sync and cancellation).</p>
+     */
+    @Column(name = "source_public_id", length = 36)
+    private String sourcePublicId;
 
     // =========================================================================
     // Convenience Methods

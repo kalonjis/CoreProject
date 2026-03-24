@@ -542,4 +542,52 @@ public interface CalendarEventService {
      * @throws NullPointerException if event or user is null
      */
     void verifyOwnership(CalendarEvent event, User user);
+
+    // =========================================================================
+    // CRM Integration (internal — no ownership check)
+    // =========================================================================
+
+    /**
+     * Finds the calendar event linked to a CRM source entity.
+     *
+     * @param sourcePublicId the public UUID of the CRM source entity
+     * @return the linked event, or empty if none exists
+     */
+    java.util.Optional<CalendarEvent> findBySourcePublicId(String sourcePublicId);
+
+    /**
+     * Cancels the calendar event linked to a CRM source entity.
+     *
+     * <p>No ownership check — called internally by CRM domain listeners.
+     * Does nothing if no event is linked to this source.</p>
+     *
+     * @param sourcePublicId the public UUID of the CRM source entity
+     */
+    void cancelBySourcePublicId(String sourcePublicId);
+
+    /**
+     * Updates the calendar event linked to a CRM source entity.
+     *
+     * <p>No ownership check — called internally by CRM domain listeners.
+     * Also updates {@code ownerPublicId} to reflect potential reassignment.
+     * Does nothing if no event is linked to this source.</p>
+     *
+     * @param sourcePublicId  the public UUID of the CRM source entity
+     * @param title           new title (ignored if null)
+     * @param description     new description (may be null to clear)
+     * @param location        new location (may be null to clear)
+     * @param address         new physical address (may be null to clear)
+     * @param startDateTime   new start time (ignored if null)
+     * @param endDateTime     new end time (ignored if null)
+     * @param ownerPublicId   new owner public ID — updated on reassignment (ignored if null)
+     */
+    void updateBySourcePublicId(String sourcePublicId,
+                                String title,
+                                String description,
+                                String location,
+                                be.steby.CoreProject.dl.entities.Address address,
+                                java.time.Instant startDateTime,
+                                java.time.Instant endDateTime,
+                                String ownerPublicId,
+                                Integer reminderMinutes);
 }

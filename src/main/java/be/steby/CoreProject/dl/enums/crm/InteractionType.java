@@ -20,6 +20,9 @@ public enum InteractionType {
     /** In-person or video meeting. */
     MEETING,
 
+    /** Product or service demonstration. */
+    DEMO,
+
     /** Internal free-text note logged by the commercial. */
     NOTE,
 

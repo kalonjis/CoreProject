@@ -28,7 +28,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -36,7 +35,7 @@ import java.util.UUID;
  *
  * <h3>Creation flow</h3>
  * <p>{@link #create(InteractionCreateRequest, User)} validates the request,
- * resolves deal/contact references, persists the {@link Interaction}, then
+ * resolves deal/contact/lead references, persists the {@link Interaction}, then
  * conditionally creates a {@link CallLog} or {@link EmailLog} sub-entity based
  * on the interaction type before publishing {@code InteractionCreatedEvent}.</p>
  *
@@ -55,13 +54,13 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class InteractionServiceImpl implements InteractionService {
 
-    private final InteractionRepository interactionRepository;
-    private final CallLogRepository callLogRepository;
-    private final EmailLogRepository emailLogRepository;
-    private final DealRepository dealRepository;
-    private final ContactRepository contactRepository;
-    private final LeadRepository leadRepository;
-    private final DeviceService deviceService;
+    private final InteractionRepository    interactionRepository;
+    private final CallLogRepository        callLogRepository;
+    private final EmailLogRepository       emailLogRepository;
+    private final DealRepository           dealRepository;
+    private final ContactRepository        contactRepository;
+    private final LeadRepository           leadRepository;
+    private final DeviceService            deviceService;
     private final ApplicationEventPublisher eventPublisher;
 
     // =========================================================================
@@ -72,30 +71,6 @@ public class InteractionServiceImpl implements InteractionService {
     public Interaction getByPublicId(String publicId) {
         return interactionRepository.findByPublicId(publicId)
                 .orElseThrow(() -> InteractionNotFoundException.byPublicId(publicId));
-    }
-
-    @Override
-    public List<Interaction> getTimelineByDeal(String dealPublicId) {
-        Deal deal = dealRepository.findByPublicId(dealPublicId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Deal not found with publicId: " + dealPublicId));
-        return interactionRepository.findByDealIdOrderByOccurredAtDesc(deal.getId());
-    }
-
-    @Override
-    public List<Interaction> getTimelineByContact(String contactPublicId) {
-        Contact contact = contactRepository.findByPublicId(contactPublicId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Contact not found with publicId: " + contactPublicId));
-        return interactionRepository.findByContactIdOrderByOccurredAtDesc(contact.getId());
-    }
-
-    @Override
-    public List<Interaction> getTimelineByLead(String leadPublicId) {
-        Lead lead = leadRepository.findByPublicId(leadPublicId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Lead not found with publicId: " + leadPublicId));
-        return interactionRepository.findByLeadIdOrderByOccurredAtDesc(lead.getId());
     }
 
     // =========================================================================
@@ -121,12 +96,10 @@ public class InteractionServiceImpl implements InteractionService {
             throw InteractionValidationException.emailLogRequiredForEmailType();
         }
 
-        // Resolve optional references
-        Deal deal = resolveDeal(request.dealPublicId());
+        Deal    deal    = resolveDeal(request.dealPublicId());
         Contact contact = resolveContact(request.contactPublicId());
-        Lead lead = resolveLead(request.leadPublicId());
+        Lead    lead    = resolveLead(request.leadPublicId());
 
-        // Build and persist the interaction
         Interaction interaction = Interaction.builder()
                 .type(request.type())
                 .direction(request.direction())
@@ -147,7 +120,6 @@ public class InteractionServiceImpl implements InteractionService {
         log.info("Interaction created — publicId: {}, type: {}, by: {}",
                 saved.getPublicId(), saved.getType(), actor.getUsername());
 
-        // Persist type-specific sub-entity
         if (request.type() == InteractionType.CALL) {
             InteractionCreateRequest.CallLogDetails details = request.callLogDetails();
             CallLog callLog = CallLog.builder()
@@ -187,11 +159,11 @@ public class InteractionServiceImpl implements InteractionService {
 
         Interaction interaction = getByPublicId(publicId);
 
-        if (request.subject()          != null) interaction.setSubject(request.subject());
-        if (request.notes()            != null) interaction.setNotes(request.notes());
-        if (request.outcome()          != null) interaction.setOutcome(request.outcome());
-        if (request.durationMinutes()  != null) interaction.setDurationMinutes(request.durationMinutes());
-        if (request.occurredAt()       != null) interaction.setOccurredAt(request.occurredAt());
+        if (request.subject()         != null) interaction.setSubject(request.subject());
+        if (request.notes()           != null) interaction.setNotes(request.notes());
+        if (request.outcome()         != null) interaction.setOutcome(request.outcome());
+        if (request.durationMinutes() != null) interaction.setDurationMinutes(request.durationMinutes());
+        if (request.occurredAt()      != null) interaction.setOccurredAt(request.occurredAt());
 
         Interaction saved = interactionRepository.save(interaction);
         log.info("Interaction updated — publicId: {}, by: {}", publicId, actor.getUsername());
@@ -219,14 +191,6 @@ public class InteractionServiceImpl implements InteractionService {
     // Private helpers
     // =========================================================================
 
-    /**
-     * Resolves a deal entity from its public UUID.
-     * Returns {@code null} if {@code publicId} is null (interaction without deal).
-     *
-     * @param dealPublicId the public UUID of the deal, or {@code null}
-     * @return the deal entity, or {@code null}
-     * @throws IllegalArgumentException if the publicId is provided but yields no result
-     */
     private Deal resolveDeal(String dealPublicId) {
         if (dealPublicId == null) return null;
         return dealRepository.findByPublicId(dealPublicId)
@@ -234,14 +198,6 @@ public class InteractionServiceImpl implements InteractionService {
                         "Deal not found with publicId: " + dealPublicId));
     }
 
-    /**
-     * Resolves a contact entity from its public UUID.
-     * Returns {@code null} if {@code publicId} is null (interaction without contact).
-     *
-     * @param contactPublicId the public UUID of the contact, or {@code null}
-     * @return the contact entity, or {@code null}
-     * @throws IllegalArgumentException if the publicId is provided but yields no result
-     */
     private Contact resolveContact(String contactPublicId) {
         if (contactPublicId == null) return null;
         return contactRepository.findByPublicId(contactPublicId)
@@ -249,14 +205,6 @@ public class InteractionServiceImpl implements InteractionService {
                         "Contact not found with publicId: " + contactPublicId));
     }
 
-    /**
-     * Resolves a lead entity from its public UUID.
-     * Returns {@code null} if {@code publicId} is null (interaction without lead).
-     *
-     * @param leadPublicId the public UUID of the lead, or {@code null}
-     * @return the lead entity, or {@code null}
-     * @throws IllegalArgumentException if the publicId is provided but yields no result
-     */
     private Lead resolveLead(String leadPublicId) {
         if (leadPublicId == null) return null;
         return leadRepository.findByPublicId(leadPublicId)

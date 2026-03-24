@@ -3,6 +3,7 @@ package be.steby.CoreProject.bll.domains.lead.services;
 import be.steby.CoreProject.bll.domains.lead.models.*;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Lead;
+import be.steby.CoreProject.dl.enums.crm.LeadSource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -59,6 +60,34 @@ public interface LeadService {
      * @return a page of matching leads
      */
     Page<Lead> findAll(LeadFilterRequest filter, Pageable pageable);
+
+    // =========================================================================
+    // Manual creation
+    // =========================================================================
+
+    /**
+     * Creates a lead manually from the CRM, bypassing public submission guards.
+     *
+     * <p>No honeypot check, no rate limiting, no email domain validation.
+     * Source is always {@code MANUAL}. Status starts at {@code NEW}.</p>
+     *
+     * @param request the lead data entered by the commercial
+     * @param actor   the commercial creating the lead
+     * @return the newly created lead
+     */
+    Lead createManual(LeadManualCreateRequest request, User actor);
+
+    /**
+     * Creates a lead from an external platform webhook (Facebook, Typeform, etc.).
+     *
+     * <p>No honeypot check, no rate limiting, no actor required.
+     * The {@code source} parameter identifies the originating platform.</p>
+     *
+     * @param request the normalized lead data produced by the platform mapper
+     * @param source  the originating platform source
+     * @return the newly created lead
+     */
+    Lead createFromWebhook(LeadManualCreateRequest request, LeadSource source);
 
     // =========================================================================
     // CRM lifecycle

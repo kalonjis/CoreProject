@@ -3,9 +3,11 @@ package be.steby.CoreProject.bll.domains.commercialaction.services;
 import be.steby.CoreProject.bll.domains.commercialaction.exceptions.CommercialActionAlreadyTerminatedException;
 import be.steby.CoreProject.bll.domains.commercialaction.exceptions.CommercialActionNotFoundException;
 import be.steby.CoreProject.bll.domains.commercialaction.exceptions.CommercialActionValidationException;
+import be.steby.CoreProject.bll.domains.commercialaction.models.CommercialActionCompleteRequest;
 import be.steby.CoreProject.bll.domains.commercialaction.models.CommercialActionCreateRequest;
 import be.steby.CoreProject.bll.domains.commercialaction.models.CommercialActionFilterRequest;
 import be.steby.CoreProject.bll.domains.commercialaction.models.CommercialActionUpdateRequest;
+import be.steby.CoreProject.dl.entities.CalendarEvent;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.CommercialAction;
 import be.steby.CoreProject.dl.enums.crm.CommercialActionStatus;
@@ -132,13 +134,14 @@ public interface CommercialActionService {
      *
      * <p>Publishes a {@code CommercialActionCompletedEvent} on success.</p>
      *
-     * @param publicId the public UUID of the action to complete
-     * @param actor    the user performing the operation
+     * @param publicId          the public UUID of the action to complete
+     * @param completionDetails optional structured details (call or email) — null for other action types
+     * @param actor             the user performing the operation
      * @return the updated commercial action
      * @throws CommercialActionNotFoundException         if not found
      * @throws CommercialActionAlreadyTerminatedException if the action is not in {@code PENDING} status
      */
-    CommercialAction complete(String publicId, User actor);
+    CommercialAction complete(String publicId, CommercialActionCompleteRequest completionDetails, User actor);
 
     /**
      * Marks a commercial action as {@code CANCELLED}.
@@ -152,6 +155,22 @@ public interface CommercialActionService {
      * @throws CommercialActionAlreadyTerminatedException if the action is not in {@code PENDING} status
      */
     CommercialAction cancel(String publicId, User actor);
+
+    /**
+     * Syncs a commercial action's scheduling fields from an updated calendar event.
+     *
+     * <p>Called internally when the linked {@link CalendarEvent} is modified directly
+     * by the user. Updates {@code dueDate}, {@code durationMinutes}, {@code title},
+     * {@code description}, {@code location}, {@code address}, and {@code reminderAt}
+     * to reflect the new calendar state.</p>
+     *
+     * <p>Does <em>not</em> publish any domain event to avoid sync loops.</p>
+     * <p>Silently skips actions in terminal state ({@code DONE} or {@code CANCELLED}).</p>
+     *
+     * @param actionPublicId the public UUID of the commercial action to sync
+     * @param calendarEvent  the updated calendar event entity
+     */
+    void syncFromCalendarEvent(String actionPublicId, CalendarEvent calendarEvent);
 
     /**
      * Reassigns a commercial action to a different commercial.

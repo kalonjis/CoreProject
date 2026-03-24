@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.commercialaction.events;
 
+import be.steby.CoreProject.bll.domains.commercialaction.models.CommercialActionCompleteRequest;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.CommercialAction;
@@ -16,18 +17,21 @@ import java.time.Instant;
  *   <li>Notify the commercial's manager</li>
  * </ul>
  *
- * @param action      the completed commercial action
- * @param actor       the user who performed the action
- * @param actorDevice the device from which the action was initiated
- * @param timestamp   when the event occurred
+ * @param action            the completed commercial action
+ * @param actor             the user who performed the action
+ * @param actorDevice       the device from which the action was initiated
+ * @param completionDetails optional structured details (call or email) supplied at completion time
+ * @param timestamp         when the event occurred
  */
 public record CommercialActionCompletedEvent(
         CommercialAction action,
         User actor,
         Device actorDevice,
+        CommercialActionCompleteRequest completionDetails,
         Instant timestamp
 ) {
-    public CommercialActionCompletedEvent(CommercialAction action, User actor, Device actorDevice) {
-        this(action, actor, actorDevice, Instant.now());
+    public CommercialActionCompletedEvent(CommercialAction action, User actor, Device actorDevice,
+                                          CommercialActionCompleteRequest completionDetails) {
+        this(action, actor, actorDevice, completionDetails, Instant.now());
     }
 }

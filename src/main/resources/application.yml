@@ -32,6 +32,7 @@ spring:
       - classpath:config/lead.yml
       - classpath:config/notification.yml
       - classpath:config/gdpr.yml
+      - classpath:config/crm_webhooks.yml
 
 url:
   back_server: ${URL_BACK_SERVER}

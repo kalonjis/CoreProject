@@ -4,6 +4,7 @@ import be.steby.CoreProject.bll.domains.commercialaction.services.CommercialActi
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.CommercialAction;
 import be.steby.CoreProject.dl.enums.crm.CommercialActionStatus;
+import be.steby.CoreProject.pl.domains.commercialaction.models.requests.CompleteCommercialActionRequest;
 import be.steby.CoreProject.pl.domains.commercialaction.models.requests.CreateCommercialActionRequest;
 import be.steby.CoreProject.pl.domains.commercialaction.models.requests.ReassignCommercialActionRequest;
 import be.steby.CoreProject.pl.domains.commercialaction.models.requests.UpdateCommercialActionRequest;
@@ -235,14 +236,18 @@ public class CrmCommercialActionController {
      */
     @PatchMapping("/{publicId}/complete")
     @Operation(summary = "Complete commercial action",
-               description = "Marks a commercial action as DONE and records the completion timestamp")
+               description = "Marks a commercial action as DONE. For CALL/EMAIL types, supply structured details to create a proper interaction log.")
     public ResponseEntity<CommercialActionResponse> complete(
             @PathVariable String publicId,
+            @Valid @RequestBody(required = false) CompleteCommercialActionRequest request,
             @AuthenticationPrincipal User actor) {
 
         log.info("Commercial action completion requested — publicId: {}, by: {}", publicId, actor.getUsername());
 
-        CommercialAction action = commercialActionService.complete(publicId, actor);
+        CommercialAction action = commercialActionService.complete(
+                publicId,
+                request != null ? request.toBllModel() : null,
+                actor);
         return ResponseEntity.ok(CommercialActionResponse.fromEntity(action));
     }
 

@@ -1,0 +1,311 @@
+{
+  "info": {
+    "name": "CRM — Webhook Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Tests des endpoints d'ingestion de leads par webhook.\nURL de base : https://localhost:8443\n\nSources disponibles :\n  - generic   : PLAIN_TOKEN (le plus simple)\n  - typeform  : HMAC-SHA256\n  - linkedin  : HMAC-SHA256\n  - facebook  : challenge seulement (le POST nécessite Graph API)"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://localhost:8443",
+      "type": "string"
+    },
+    {
+      "key": "secret_generic",
+      "value": "changeme-generic",
+      "type": "string"
+    },
+    {
+      "key": "secret_typeform",
+      "value": "changeme-typeform",
+      "type": "string"
+    },
+    {
+      "key": "secret_linkedin",
+      "value": "changeme-linkedin",
+      "type": "string"
+    },
+    {
+      "key": "verify_token_facebook",
+      "value": "changeme-verify",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Generic",
+      "item": [
+        {
+          "name": "POST — Lead via generic (PLAIN_TOKEN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Webhook-Token",
+                "value": "{{secret_generic}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jean.dupont@test.com\",\n  \"first_name\": \"Jean\",\n  \"last_name\": \"Dupont\",\n  \"phone\": \"+32 470 00 00 00\",\n  \"company\": \"ACME\",\n  \"subject\": \"Demande de devis\",\n  \"message\": \"Bonjour, je souhaite un devis pour vos services.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/public/leads/ingest/generic",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "public", "leads", "ingest", "generic"]
+            },
+            "description": "Le plus simple à tester.\nL'header X-Webhook-Token doit correspondre exactement au secret configuré (PLAIN_TOKEN).\nAttend 200 OK → lead créé avec source OTHER."
+          }
+        },
+        {
+          "name": "POST — Generic signature invalide (doit être ignoré)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Webhook-Token",
+                "value": "mauvais-token"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"intrus@hack.com\",\n  \"first_name\": \"Hacker\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/public/leads/ingest/generic",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "public", "leads", "ingest", "generic"]
+            },
+            "description": "Signature invalide → doit retourner 200 (sécurité : ne pas révéler l'échec) mais aucun lead ne doit être créé."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Typeform",
+      "item": [
+        {
+          "name": "POST — Lead via Typeform (HMAC-SHA256)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Calcul de la signature HMAC-SHA256 du body",
+                  "const secret = pm.collectionVariables.get('secret_typeform');",
+                  "const body   = pm.request.body.raw;",
+                  "const sig    = CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex);",
+                  "pm.request.headers.upsert({ key: 'Typeform-Signature', value: 'sha256=' + sig });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"form_response\": {\n    \"answers\": [\n      { \"field\": { \"ref\": \"email\" },      \"type\": \"email\",       \"email\": \"marie.martin@test.com\" },\n      { \"field\": { \"ref\": \"first_name\" }, \"type\": \"short_text\", \"text\": \"Marie\" },\n      { \"field\": { \"ref\": \"last_name\" },  \"type\": \"short_text\", \"text\": \"Martin\" },\n      { \"field\": { \"ref\": \"phone\" },      \"type\": \"phone_number\",\"phone_number\": \"+32470123456\" },\n      { \"field\": { \"ref\": \"company\" },    \"type\": \"short_text\", \"text\": \"Société Test\" },\n      { \"field\": { \"ref\": \"subject\" },    \"type\": \"short_text\", \"text\": \"Question sur vos offres\" },\n      { \"field\": { \"ref\": \"message\" },    \"type\": \"long_text\",  \"text\": \"Bonjour, j'aimerais en savoir plus.\" }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/public/leads/ingest/typeform",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "public", "leads", "ingest", "typeform"]
+            },
+            "description": "Le Pre-request Script calcule automatiquement la signature HMAC-SHA256 et l'ajoute dans l'header Typeform-Signature.\nAttend 200 OK → lead créé avec source TYPEFORM."
+          }
+        },
+        {
+          "name": "POST — Typeform sans email (doit être ignoré)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const secret = pm.collectionVariables.get('secret_typeform');",
+                  "const body   = pm.request.body.raw;",
+                  "const sig    = CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex);",
+                  "pm.request.headers.upsert({ key: 'Typeform-Signature', value: 'sha256=' + sig });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"form_response\": {\n    \"answers\": [\n      { \"field\": { \"ref\": \"first_name\" }, \"type\": \"short_text\", \"text\": \"Sans\" },\n      { \"field\": { \"ref\": \"last_name\" },  \"type\": \"short_text\", \"text\": \"Email\" }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/public/leads/ingest/typeform",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "public", "leads", "ingest", "typeform"]
+            },
+            "description": "Payload valide mais sans email → le mapper retourne Optional.empty(), aucun lead créé. Retourne 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "LinkedIn",
+      "item": [
+        {
+          "name": "POST — Lead via LinkedIn (HMAC-SHA256)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Calcul de la signature HMAC-SHA256",
+                  "const secret = pm.collectionVariables.get('secret_linkedin');",
+                  "const body   = pm.request.body.raw;",
+                  "const sig    = CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex);",
+                  "pm.request.headers.upsert({ key: 'X-LinkedIn-Signature', value: 'sha256=' + sig });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"luc.bernard@linkedin.com\",\n  \"first_name\": \"Luc\",\n  \"last_name\": \"Bernard\",\n  \"phone\": \"+32 495 00 00 00\",\n  \"company\": \"LinkedIn Corp\",\n  \"subject\": \"Lead LinkedIn Ads\",\n  \"message\": \"Intéressé par vos services.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/public/leads/ingest/linkedin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "public", "leads", "ingest", "linkedin"]
+            },
+            "description": "HMAC-SHA256 calculé automatiquement par le Pre-request Script.\nAttend 200 OK → lead créé avec source LINKEDIN_ADS.\n\nNote : LinkedIn utilise le même GenericWebhookMapper (format flat JSON)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Facebook",
+      "item": [
+        {
+          "name": "GET — Challenge / vérification d'abonnement",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/leads/ingest/facebook?hub.mode=subscribe&hub.verify_token={{verify_token_facebook}}&hub.challenge=test-challenge-123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "public", "leads", "ingest", "facebook"],
+              "query": [
+                { "key": "hub.mode",          "value": "subscribe" },
+                { "key": "hub.verify_token",  "value": "{{verify_token_facebook}}" },
+                { "key": "hub.challenge",     "value": "test-challenge-123" }
+              ]
+            },
+            "description": "Simule la vérification d'abonnement que Facebook envoie lors de la configuration du webhook.\nAttend 200 OK avec 'test-challenge-123' dans le body."
+          }
+        },
+        {
+          "name": "GET — Challenge token invalide (doit retourner 403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/leads/ingest/facebook?hub.mode=subscribe&hub.verify_token=mauvais-token&hub.challenge=abc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "public", "leads", "ingest", "facebook"],
+              "query": [
+                { "key": "hub.mode",         "value": "subscribe" },
+                { "key": "hub.verify_token", "value": "mauvais-token" },
+                { "key": "hub.challenge",    "value": "abc" }
+              ]
+            },
+            "description": "Token invalide → doit retourner 403 Forbidden."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Source inconnue",
+      "item": [
+        {
+          "name": "POST — Source inexistante (doit retourner 404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"email\": \"test@test.com\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/public/leads/ingest/zapier",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "public", "leads", "ingest", "zapier"]
+            },
+            "description": "Source 'zapier' non configurée → doit retourner 404 Not Found."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import be.steby.CoreProject.dal.repositories.crm.InteractionRepository;
 import be.steby.CoreProject.dl.entities.crm.Interaction;
 import be.steby.CoreProject.dl.enums.crm.InteractionDirection;
 import be.steby.CoreProject.dl.enums.crm.InteractionType;
+import be.steby.CoreProject.dl.enums.crm.LeadSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -17,12 +18,14 @@ import java.time.Instant;
 /**
  * Listener that auto-creates the first CRM interaction when a lead is submitted.
  *
- * <p>Persists a {@code CONTACT_FORM} interaction linked to the lead so that the
- * visitor's original message is visible in the lead timeline — and later in the
- * contact or deal timeline after conversion.</p>
+ * <p>For web-form leads ({@code LeadSource != MANUAL}): persists a {@code CONTACT_FORM}
+ * interaction (direction INBOUND) so the visitor's original message is visible in the
+ * lead timeline.</p>
  *
- * <p>{@code performedBy} is intentionally {@code null}: the author is the anonymous
- * visitor, not a CRM user.</p>
+ * <p>For manually-created leads ({@code LeadSource.MANUAL}): persists a {@code NOTE}
+ * interaction (no direction) if the actor provided an initial note.</p>
+ *
+ * <p>{@code performedBy} is intentionally {@code null} in both cases.</p>
  */
 @Component
 @Order(5)
@@ -37,19 +40,24 @@ public class LeadInteractionListener {
     public void handleLeadSubmitted(LeadSubmittedEvent event) {
         if (event.message() == null || event.message().isBlank()) return;
 
-        Interaction interaction = Interaction.builder()
-                .type(InteractionType.CONTACT_FORM)
-                .direction(InteractionDirection.INBOUND)
+        boolean isManual = LeadSource.MANUAL == event.lead().getLeadSource();
+
+        Interaction.InteractionBuilder builder = Interaction.builder()
+                .type(isManual ? InteractionType.NOTE : InteractionType.CONTACT_FORM)
                 .subject(event.lead().getSubject())
                 .notes(event.message())
                 .occurredAt(event.lead().getSubmittedAt() != null
                         ? event.lead().getSubmittedAt()
                         : Instant.now())
-                .lead(event.lead())
-                .build();
+                .lead(event.lead());
 
-        interactionRepository.save(interaction);
+        if (!isManual) {
+            builder.direction(InteractionDirection.INBOUND);
+        }
 
-        log.info("CONTACT_FORM interaction created for lead {}", event.lead().getPublicId());
+        interactionRepository.save(builder.build());
+
+        log.info("{} interaction created for lead {}",
+                isManual ? "NOTE" : "CONTACT_FORM", event.lead().getPublicId());
     }
 }

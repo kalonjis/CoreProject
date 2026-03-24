@@ -17,24 +17,14 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.List;
 
 /**
- * REST controller for CRM interaction management operations.
+ * REST controller for CRM interaction management (CRUD).
  *
- * <p>Exposes the interaction timeline and logging capabilities to authenticated
- * users with {@code COMMERCIAL} or {@code ADMIN} authority:</p>
- * <ul>
- *   <li>Single interaction detail view</li>
- *   <li>Deal timeline — all interactions linked to a deal</li>
- *   <li>Contact timeline — all interactions linked to a contact</li>
- *   <li>Log a new interaction (with optional CallLog or EmailLog)</li>
- *   <li>Partial update of editable fields</li>
- *   <li>Permanent deletion (cascades to CallLog / EmailLog)</li>
- * </ul>
- *
- * <p>All business logic is delegated to {@link InteractionService}.
- * This controller only handles HTTP concerns.</p>
+ * <p>Handles single-interaction operations: creation, retrieval, partial update,
+ * and deletion. For the unified activity timeline (interactions + completed
+ * commercial actions), see
+ * {@link be.steby.CoreProject.pl.domains.timeline.controllers.CrmTimelineController}.</p>
  *
  * <h3>Base path</h3>
  * <pre>/api/crm/interactions</pre>
@@ -47,22 +37,15 @@ import java.util.List;
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyAuthority('COMMERCIAL', 'ADMIN')")
 @Slf4j
-@Tag(name = "CRM - Interactions", description = "Interaction timeline logging and management")
+@Tag(name = "CRM - Interactions", description = "Interaction logging and management (CRUD)")
 public class CrmInteractionController {
 
     private final InteractionService interactionService;
-
-    // =========================================================================
-    // Lookup
-    // =========================================================================
 
     /**
      * Returns the full detail of a single interaction.
      *
      * <p><strong>Endpoint:</strong> GET /api/crm/interactions/{publicId}</p>
-     *
-     * @param publicId the public UUID of the interaction
-     * @return the interaction detail
      */
     @GetMapping("/{publicId}")
     @Operation(summary = "Get interaction", description = "Returns the full detail of a single interaction")
@@ -74,90 +57,15 @@ public class CrmInteractionController {
     }
 
     /**
-     * Returns the interaction timeline for a deal, ordered most recent first.
-     *
-     * <p><strong>Endpoint:</strong> GET /api/crm/interactions/deal/{dealPublicId}</p>
-     *
-     * @param dealPublicId the public UUID of the deal
-     * @return list of interactions linked to that deal
-     */
-    @GetMapping("/deal/{dealPublicId}")
-    @Operation(summary = "Deal timeline", description = "Returns all interactions linked to a deal, most recent first")
-    public ResponseEntity<List<InteractionResponse>> getTimelineByDeal(@PathVariable String dealPublicId) {
-        log.debug("CRM deal timeline requested — dealPublicId: {}", dealPublicId);
-
-        List<InteractionResponse> timeline = interactionService.getTimelineByDeal(dealPublicId)
-                .stream()
-                .map(InteractionResponse::fromEntity)
-                .toList();
-
-        return ResponseEntity.ok(timeline);
-    }
-
-    /**
-     * Returns the interaction timeline for a contact, ordered most recent first.
-     *
-     * <p>Includes interactions across all deals involving that contact.</p>
-     *
-     * <p><strong>Endpoint:</strong> GET /api/crm/interactions/contact/{contactPublicId}</p>
-     *
-     * @param contactPublicId the public UUID of the contact
-     * @return list of interactions linked to that contact
-     */
-    @GetMapping("/contact/{contactPublicId}")
-    @Operation(summary = "Contact timeline", description = "Returns all interactions linked to a contact, most recent first")
-    public ResponseEntity<List<InteractionResponse>> getTimelineByContact(@PathVariable String contactPublicId) {
-        log.debug("CRM contact timeline requested — contactPublicId: {}", contactPublicId);
-
-        List<InteractionResponse> timeline = interactionService.getTimelineByContact(contactPublicId)
-                .stream()
-                .map(InteractionResponse::fromEntity)
-                .toList();
-
-        return ResponseEntity.ok(timeline);
-    }
-
-    /**
-     * Returns the interaction timeline for a lead, ordered most recent first.
-     *
-     * <p>Used during lead qualification — before conversion to a Contact.</p>
-     *
-     * <p><strong>Endpoint:</strong> GET /api/crm/interactions/lead/{leadPublicId}</p>
-     *
-     * @param leadPublicId the public UUID of the lead
-     * @return list of interactions linked to that lead
-     */
-    @GetMapping("/lead/{leadPublicId}")
-    @Operation(summary = "Lead timeline", description = "Returns all interactions linked to a lead, most recent first")
-    public ResponseEntity<List<InteractionResponse>> getTimelineByLead(@PathVariable String leadPublicId) {
-        log.debug("CRM lead timeline requested — leadPublicId: {}", leadPublicId);
-
-        List<InteractionResponse> timeline = interactionService.getTimelineByLead(leadPublicId)
-                .stream()
-                .map(InteractionResponse::fromEntity)
-                .toList();
-
-        return ResponseEntity.ok(timeline);
-    }
-
-    // =========================================================================
-    // Write
-    // =========================================================================
-
-    /**
-     * Logs a new interaction against a deal or contact.
+     * Logs a new interaction against a deal, contact, or lead.
      *
      * <p>For {@code CALL} interactions, provide {@code callLog} details.
      * For {@code EMAIL} interactions, provide {@code emailLog} details.</p>
      *
      * <p><strong>Endpoint:</strong> POST /api/crm/interactions</p>
-     *
-     * @param request the interaction creation data
-     * @param actor   the authenticated user performing the action
-     * @return 201 Created with the new interaction detail
      */
     @PostMapping
-    @Operation(summary = "Log interaction", description = "Logs a new interaction against a deal or contact")
+    @Operation(summary = "Log interaction", description = "Logs a new interaction against a deal, contact, or lead")
     public ResponseEntity<InteractionResponse> create(
             @Valid @RequestBody LogInteractionRequest request,
             @AuthenticationPrincipal User actor) {
@@ -174,11 +82,6 @@ public class CrmInteractionController {
      * Partially updates an existing interaction's editable fields.
      *
      * <p><strong>Endpoint:</strong> PATCH /api/crm/interactions/{publicId}</p>
-     *
-     * @param publicId the public UUID of the interaction to update
-     * @param request  the partial update request
-     * @param actor    the authenticated user performing the action
-     * @return the updated interaction detail
      */
     @PatchMapping("/{publicId}")
     @Operation(summary = "Update interaction", description = "Partially updates an existing interaction")
@@ -200,10 +103,6 @@ public class CrmInteractionController {
      * or {@code EmailLog} if present.</p>
      *
      * <p><strong>Endpoint:</strong> DELETE /api/crm/interactions/{publicId}</p>
-     *
-     * @param publicId the public UUID of the interaction to delete
-     * @param actor    the authenticated user performing the action
-     * @return 204 No Content
      */
     @DeleteMapping("/{publicId}")
     @Operation(summary = "Delete interaction", description = "Permanently deletes an interaction and its sub-entities")

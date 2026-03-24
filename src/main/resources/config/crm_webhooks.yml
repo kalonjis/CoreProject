@@ -1,0 +1,51 @@
+# ===================================================================
+# CRM EXTERNAL WEBHOOK CONFIGURATION
+# ===================================================================
+# Configures external platforms that can push leads into the CRM.
+#
+# For each source key (used in the URL: /api/public/leads/ingest/{source}):
+#   - secret          : shared secret for signature verification (env var)
+#   - signature-header: HTTP header carrying the signature
+#   - algorithm       : HMAC_SHA256 | PLAIN_TOKEN
+#   - verify-token    : challenge token (Facebook / Twitter only)
+#   - lead-source     : value of LeadSource enum to tag the created lead
+#   - default-lead-type: value of LeadType enum (default: COMMERCIAL)
+#   - extra           : platform-specific key/value pairs
+#
+# To add a new platform: add a block below and create a WebhookMapper bean.
+# ===================================================================
+
+crm:
+  webhooks:
+    sources:
+      facebook:
+        secret: ${WEBHOOK_SECRET_FACEBOOK:changeme-facebook}
+        signature-header: X-Hub-Signature-256
+        algorithm: HMAC_SHA256
+        verify-token: ${WEBHOOK_VERIFY_TOKEN_FACEBOOK:changeme-verify}
+        lead-source: FACEBOOK_ADS
+        default-lead-type: COMMERCIAL
+        extra:
+          pageAccessToken: ${FACEBOOK_PAGE_ACCESS_TOKEN:changeme-token}
+          graphApiVersion: v19.0
+
+      typeform:
+        secret: ${WEBHOOK_SECRET_TYPEFORM:changeme-typeform}
+        signature-header: Typeform-Signature
+        algorithm: HMAC_SHA256
+        lead-source: TYPEFORM
+        default-lead-type: COMMERCIAL
+
+      linkedin:
+        secret: ${WEBHOOK_SECRET_LINKEDIN:changeme-linkedin}
+        signature-header: X-LinkedIn-Signature
+        algorithm: HMAC_SHA256
+        lead-source: LINKEDIN_ADS
+        default-lead-type: COMMERCIAL
+
+      generic:
+        secret: ${WEBHOOK_SECRET_GENERIC:changeme-generic}
+        signature-header: X-Webhook-Token
+        algorithm: PLAIN_TOKEN
+        lead-source: OTHER
+        default-lead-type: COMMERCIAL

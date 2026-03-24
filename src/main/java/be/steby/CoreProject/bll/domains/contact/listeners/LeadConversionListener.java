@@ -46,7 +46,8 @@ public class LeadConversionListener {
                 event.lead(),
                 event.organisationPublicId(),
                 event.organisationName(),
-                event.convertedBy());
+                event.convertedBy(),
+                event.emailOverride());
 
         log.info("LeadConversionListener — Contact created/linked: publicId={}, email={}",
                 contact.getPublicId(), contact.getEmail());

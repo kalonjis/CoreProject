@@ -35,6 +35,15 @@ public enum LeadSource {
     /** Manually entered by the commercial team (no web submission). */
     MANUAL,
 
+    /** Submitted via a Facebook Lead Ad form (webhook ingest). */
+    FACEBOOK_ADS,
+
+    /** Submitted via a LinkedIn Lead Gen form (webhook ingest). */
+    LINKEDIN_ADS,
+
+    /** Submitted via a Typeform form (webhook ingest). */
+    TYPEFORM,
+
     /** Other or unknown source. */
     OTHER
 }

@@ -7,6 +7,7 @@ import be.steby.CoreProject.bll.domains.deal.events.DealStageChangedEvent;
 import be.steby.CoreProject.bll.domains.deal.events.DealUpdatedEvent;
 import be.steby.CoreProject.bll.domains.deal.events.DealWonEvent;
 import be.steby.CoreProject.bll.domains.deal.exceptions.DealAlreadyClosedException;
+import be.steby.CoreProject.bll.domains.deal.exceptions.DealAssignNotAuthorizedException;
 import be.steby.CoreProject.bll.domains.deal.exceptions.DealNotFoundException;
 import be.steby.CoreProject.bll.domains.deal.exceptions.DealStageNotInPipelineException;
 import be.steby.CoreProject.bll.domains.deal.models.DealCreateRequest;
@@ -319,6 +320,11 @@ public class DealServiceImpl implements DealService {
                 publicId, request.assignedToPublicId(), actor.getUsername());
 
         Deal deal = getByPublicId(publicId);
+
+        if (!actor.hasAdminPrivileges() && !actor.getPublicId().equals(request.assignedToPublicId())) {
+            throw new DealAssignNotAuthorizedException();
+        }
+
         User previousAssignee = deal.getAssignedTo();
 
         User newAssignee = null;

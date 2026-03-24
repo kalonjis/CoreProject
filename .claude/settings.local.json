@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(winget upgrade:*)",
+      "Bash(find /c/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/dal/repositories/crm -type f -name *.java)",
+      "Bash(./mvnw compile:*)",
+      "Bash(find C:UserskalonOneDriveDocumentsCoreProjectFrontLastCoreProject_Frontsrcapp -type d -name *crm* -o -type d -name *timeline* -o -type d -name *interaction*)",
+      "Bash(mkdir -p \"C:/Users/kalon/OneDrive/Documents/CoreProject/FrontLast/CoreProject_Front/src/app/features/crm/domains/timeline/models\")",
+      "Bash(mkdir -p \"C:/Users/kalon/OneDrive/Documents/CoreProject/FrontLast/CoreProject_Front/src/app/features/crm/domains/timeline/services\")",
+      "Bash(sed -i 's/\\\\[interactions\\\\]=\"\"interactionFacade\\\\.interactions\\(\\)\"\"/[entries]=\"\"interactionFacade.entries\\(\\)\"\"/g' \"C:/Users/kalon/OneDrive/Documents/CoreProject/FrontLast/CoreProject_Front/src/app/features/crm/domains/contact/pages/contact-detail/contact-detail.component.html\" \"C:/Users/kalon/OneDrive/Documents/CoreProject/FrontLast/CoreProject_Front/src/app/features/crm/domains/deal/pages/deal-detail/deal-detail.component.html\" \"C:/Users/kalon/OneDrive/Documents/CoreProject/FrontLast/CoreProject_Front/src/app/features/crm/domains/lead/pages/lead-detail/lead-detail.component.html\")",
+      "Bash(__NEW_LINE_9f9101caf23782a5__ sed:*)",
+      "Read(//c/Users/kalon/OneDrive/Documents/CoreProject/FrontLast/CoreProject_Front/**)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}

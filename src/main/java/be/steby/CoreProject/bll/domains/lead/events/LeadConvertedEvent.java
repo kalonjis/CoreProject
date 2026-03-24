@@ -28,6 +28,7 @@ import be.steby.CoreProject.dl.entities.crm.Lead;
  * @param actorDevice          the device from which the conversion was performed
  * @param organisationPublicId public UUID of an existing organisation to link (may be null)
  * @param organisationName     organisation name to find-or-create (may be null)
+ * @param emailOverride        optional email to use instead of the lead's email (may be null)
  */
 public record LeadConvertedEvent(
         Lead lead,
@@ -35,5 +36,6 @@ public record LeadConvertedEvent(
         String contactPublicId,
         Device actorDevice,
         String organisationPublicId,
-        String organisationName
+        String organisationName,
+        String emailOverride
 ) {}

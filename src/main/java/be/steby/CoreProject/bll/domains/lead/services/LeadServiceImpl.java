@@ -12,6 +12,7 @@ import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Lead;
+import be.steby.CoreProject.dl.enums.crm.LeadSource;
 import be.steby.CoreProject.dl.enums.crm.LeadStatus;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -102,6 +103,66 @@ public class LeadServiceImpl implements LeadService {
     }
 
     // =========================================================================
+    // Manual creation
+    // =========================================================================
+
+    @Override
+    @Transactional
+    public Lead createManual(LeadManualCreateRequest request, User actor) {
+        log.info("Manual lead creation — email: {}, by: {}", request.email(), actor.getUsername());
+
+        Lead lead = Lead.builder()
+                .email(request.email().toLowerCase().trim())
+                .civility(request.civility())
+                .firstName(request.firstName())
+                .lastName(request.lastName())
+                .phone(request.phone())
+                .organisationName(request.organisationName())
+                .subject(request.subject().trim())
+                .message(request.message() != null ? request.message().trim() : null)
+                .leadType(request.leadType())
+                .leadSource(be.steby.CoreProject.dl.enums.crm.LeadSource.MANUAL)
+                .submittedAt(Instant.now())
+                .build();
+
+        leadRepository.save(lead);
+
+        eventPublisher.publishEvent(new LeadSubmittedEvent(lead, lead.getMessage()));
+
+        return lead;
+    }
+
+    // =========================================================================
+    // Webhook creation
+    // =========================================================================
+
+    @Override
+    @Transactional
+    public Lead createFromWebhook(LeadManualCreateRequest request, LeadSource source) {
+        log.info("Webhook lead creation — source: {}, email: {}", source, request.email());
+
+        Lead lead = Lead.builder()
+                .email(request.email().toLowerCase().trim())
+                .civility(request.civility())
+                .firstName(request.firstName())
+                .lastName(request.lastName())
+                .phone(request.phone())
+                .organisationName(request.organisationName())
+                .subject(request.subject() != null ? request.subject().trim() : "")
+                .message(request.message() != null ? request.message().trim() : null)
+                .leadType(request.leadType())
+                .leadSource(source)
+                .submittedAt(Instant.now())
+                .build();
+
+        leadRepository.save(lead);
+
+        eventPublisher.publishEvent(new LeadSubmittedEvent(lead, lead.getMessage()));
+
+        return lead;
+    }
+
+    // =========================================================================
     // Lookup
     // =========================================================================
 
@@ -161,6 +222,10 @@ public class LeadServiceImpl implements LeadService {
     public Lead assign(String publicId, LeadAssignRequest request, User actor) {
         Lead lead = getByPublicId(publicId);
         guardTerminal(lead);
+
+        if (!actor.hasAdminPrivileges() && !actor.getPublicId().equals(request.commercialPublicId())) {
+            throw new LeadAssignNotAuthorizedException();
+        }
 
         Device device = deviceService.detectAndRegisterDevice(actor);
         User previousAssignee = lead.getAssignedTo();
@@ -222,7 +287,8 @@ public class LeadServiceImpl implements LeadService {
 
         eventPublisher.publishEvent(new LeadConvertedEvent(
                 lead, actor, contactPublicId, device,
-                request.organisationPublicId(), request.organisationName()));
+                request.organisationPublicId(), request.organisationName(),
+                request.email()));
 
         return lead;
     }
