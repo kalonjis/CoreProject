@@ -10,6 +10,7 @@ import be.steby.CoreProject.bll.domains.deal.exceptions.DealAlreadyClosedExcepti
 import be.steby.CoreProject.bll.domains.deal.exceptions.DealAssignNotAuthorizedException;
 import be.steby.CoreProject.bll.domains.deal.exceptions.DealNotFoundException;
 import be.steby.CoreProject.bll.domains.deal.exceptions.DealStageNotInPipelineException;
+import be.steby.CoreProject.bll.domains.deal.models.DealAddContactRoleRequest;
 import be.steby.CoreProject.bll.domains.deal.models.DealCreateRequest;
 import be.steby.CoreProject.bll.domains.deal.models.DealFilterRequest;
 import be.steby.CoreProject.bll.domains.deal.models.DealReassignRequest;
@@ -17,6 +18,7 @@ import be.steby.CoreProject.bll.domains.deal.models.DealUpdateRequest;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.dal.repositories.UserRepository;
 import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
+import be.steby.CoreProject.dal.repositories.crm.DealContactRoleRepository;
 import be.steby.CoreProject.dal.repositories.crm.DealRepository;
 import be.steby.CoreProject.dal.repositories.crm.OrganisationRepository;
 import be.steby.CoreProject.dal.repositories.crm.PipelineRepository;
@@ -25,9 +27,11 @@ import be.steby.CoreProject.dal.specifications.crm.DealSpecification;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.entities.crm.Deal;
+import be.steby.CoreProject.dl.entities.crm.DealContactRole;
 import be.steby.CoreProject.dl.entities.crm.Organisation;
 import be.steby.CoreProject.dl.entities.crm.Pipeline;
 import be.steby.CoreProject.dl.entities.crm.PipelineStep;
+import be.steby.CoreProject.dl.enums.crm.ContactRole;
 import be.steby.CoreProject.dl.enums.crm.DealStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of {@link DealService}.
@@ -66,6 +71,7 @@ import java.util.UUID;
 public class DealServiceImpl implements DealService {
 
     private final DealRepository dealRepository;
+    private final DealContactRoleRepository dealContactRoleRepository;
     private final PipelineRepository pipelineRepository;
     private final PipelineStepRepository pipelineStepRepository;
     private final ContactRepository contactRepository;
@@ -211,7 +217,6 @@ public class DealServiceImpl implements DealService {
                 .expectedCloseDate(request.expectedCloseDate())
                 .pipeline(pipeline)
                 .pipelineStep(step)
-                .contact(contact)
                 .organisation(organisation)
                 .assignedTo(assignedTo)
                 .notes(request.notes())
@@ -220,7 +225,17 @@ public class DealServiceImpl implements DealService {
         deal.setPublicId(UUID.randomUUID().toString());
 
         Deal saved = dealRepository.save(deal);
-        log.info("Deal created — publicId: {}, by: {}", saved.getPublicId(), actor.getUsername());
+
+        DealContactRole primaryRole = DealContactRole.builder()
+                .deal(saved)
+                .contact(contact)
+                .role(ContactRole.OTHER)
+                .primary(true)
+                .build();
+        dealContactRoleRepository.save(primaryRole);
+
+        log.info("Deal created — publicId: {}, primaryContact: {}, by: {}",
+                saved.getPublicId(), contact.getPublicId(), actor.getUsername());
 
         eventPublisher.publishEvent(new DealCreatedEvent(
                 saved, actor, deviceService.detectAndRegisterDevice(actor)));
@@ -306,6 +321,119 @@ public class DealServiceImpl implements DealService {
         log.info("Deal {} moved to stage {}, by: {}", publicId, stagePublicId, actor.getUsername());
         eventPublisher.publishEvent(new DealStageChangedEvent(
                 saved, previousStep, newStep, actor, deviceService.detectAndRegisterDevice(actor)));
+        return saved;
+    }
+
+    // =========================================================================
+    // Contact roles
+    // =========================================================================
+
+    @Override
+    @Transactional
+    public DealContactRole addContactRole(String dealPublicId, DealAddContactRoleRequest request, User actor) {
+        Deal deal = getByPublicId(dealPublicId);
+
+        Contact contact = contactRepository.findByPublicId(request.contactPublicId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Contact not found with publicId: " + request.contactPublicId()));
+
+        if (dealContactRoleRepository.existsByDealIdAndContactId(deal.getId(), contact.getId())) {
+            throw new IllegalArgumentException(
+                    "Contact " + request.contactPublicId() + " is already on deal " + dealPublicId);
+        }
+
+        boolean isFirst = dealContactRoleRepository.findByDealId(deal.getId()).isEmpty();
+
+        DealContactRole role = DealContactRole.builder()
+                .deal(deal)
+                .contact(contact)
+                .role(request.role() != null ? request.role() : ContactRole.OTHER)
+                .primary(isFirst)
+                .build();
+
+        DealContactRole saved = dealContactRoleRepository.save(role);
+        log.info("Contact {} added to deal {} (role: {}, primary: {}), by: {}",
+                contact.getPublicId(), dealPublicId, saved.getRole(), saved.isPrimary(), actor.getUsername());
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public void removeContactRole(String dealPublicId, String contactPublicId, User actor) {
+        Deal deal = getByPublicId(dealPublicId);
+
+        Contact contact = contactRepository.findByPublicId(contactPublicId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Contact not found with publicId: " + contactPublicId));
+
+        DealContactRole roleToRemove = dealContactRoleRepository
+                .findByDealIdAndContactId(deal.getId(), contact.getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Contact " + contactPublicId + " is not on deal " + dealPublicId));
+
+        List<DealContactRole> allRoles = dealContactRoleRepository.findByDealId(deal.getId());
+
+        if (allRoles.size() == 1) {
+            throw new IllegalStateException(
+                    "Cannot remove the last contact from a deal. Add another contact first.");
+        }
+
+        if (roleToRemove.isPrimary()) {
+            throw new IllegalStateException(
+                    "Cannot remove the primary contact. Promote another contact first via setPrimaryContact.");
+        }
+
+        dealContactRoleRepository.delete(roleToRemove);
+        log.info("Contact {} removed from deal {}, by: {}", contactPublicId, dealPublicId, actor.getUsername());
+    }
+
+    @Override
+    @Transactional
+    public DealContactRole updateContactRole(String dealPublicId, String contactPublicId, ContactRole role, User actor) {
+        Deal deal = getByPublicId(dealPublicId);
+
+        Contact contact = contactRepository.findByPublicId(contactPublicId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Contact not found with publicId: " + contactPublicId));
+
+        DealContactRole existing = dealContactRoleRepository
+                .findByDealIdAndContactId(deal.getId(), contact.getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Contact " + contactPublicId + " is not on deal " + dealPublicId));
+
+        existing.setRole(role);
+        DealContactRole saved = dealContactRoleRepository.save(existing);
+        log.info("Contact {} role on deal {} updated to {}, by: {}",
+                contactPublicId, dealPublicId, role, actor.getUsername());
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public DealContactRole setPrimaryContact(String dealPublicId, String contactPublicId, User actor) {
+        Deal deal = getByPublicId(dealPublicId);
+
+        Contact contact = contactRepository.findByPublicId(contactPublicId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Contact not found with publicId: " + contactPublicId));
+
+        DealContactRole newPrimary = dealContactRoleRepository
+                .findByDealIdAndContactId(deal.getId(), contact.getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Contact " + contactPublicId + " is not on deal " + dealPublicId));
+
+        // Unset current primary
+        dealContactRoleRepository.findPrimaryByDealId(deal.getId()).ifPresent(current -> {
+            if (!current.getId().equals(newPrimary.getId())) {
+                current.setPrimary(false);
+                dealContactRoleRepository.save(current);
+            }
+        });
+
+        newPrimary.setPrimary(true);
+        DealContactRole saved = dealContactRoleRepository.save(newPrimary);
+        log.info("Contact {} set as primary on deal {}, by: {}",
+                contactPublicId, dealPublicId, actor.getUsername());
         return saved;
     }
 

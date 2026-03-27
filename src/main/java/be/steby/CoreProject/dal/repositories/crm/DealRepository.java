@@ -90,14 +90,18 @@ public interface DealRepository extends JpaRepository<Deal, Long>,
     // =========================================================================
 
     /**
-     * Finds all deals linked to a specific contact.
+     * Finds all deals involving a specific contact (in any role).
+     *
+     * <p>Joins through {@code DealContactRole} — a contact may be the primary
+     * contact, signer, or any other role on a deal.</p>
      *
      * <p>Used to populate the deals tab in the contact detail view.</p>
      *
      * @param contactId the internal ID of the contact
-     * @return all deals for that contact, newest first
+     * @return all deals for that contact (any role), newest first
      */
-    List<Deal> findByContactIdOrderByCreatedAtDesc(Long contactId);
+    @Query("SELECT d FROM Deal d JOIN d.contactRoles cr WHERE cr.contact.id = :contactId ORDER BY d.createdAt DESC")
+    List<Deal> findByContactIdOrderByCreatedAtDesc(@Param("contactId") Long contactId);
 
     /**
      * Finds all deals linked to a specific organisation.

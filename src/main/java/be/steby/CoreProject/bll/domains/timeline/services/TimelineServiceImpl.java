@@ -54,13 +54,15 @@ public class TimelineServiceImpl implements TimelineService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Deal not found with publicId: " + dealPublicId));
 
-        Long contactId = deal.getContact() != null ? deal.getContact().getId() : null;
+        List<Long> contactIds = deal.getContactRoles().stream()
+                .map(cr -> cr.getContact().getId())
+                .toList();
 
-        if (contactId != null) {
+        if (!contactIds.isEmpty()) {
             return merge(
-                    interactionRepository.findByDealOrContact(deal.getId(), contactId),
-                    commercialActionRepository.findByDealOrContactAndStatus(
-                            deal.getId(), contactId, CommercialActionStatus.DONE)
+                    interactionRepository.findByDealOrContacts(deal.getId(), contactIds),
+                    commercialActionRepository.findByDealOrContactsAndStatus(
+                            deal.getId(), contactIds, CommercialActionStatus.DONE)
             );
         }
 

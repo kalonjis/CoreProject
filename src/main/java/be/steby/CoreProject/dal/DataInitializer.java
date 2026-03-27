@@ -8,6 +8,7 @@ import be.steby.CoreProject.dal.repositories.DeviceRepository;
 import be.steby.CoreProject.dal.repositories.UserAddressRepository;
 import be.steby.CoreProject.dal.repositories.UserRepository;
 import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
+import be.steby.CoreProject.dal.repositories.crm.DealContactRoleRepository;
 import be.steby.CoreProject.dal.repositories.crm.DealRepository;
 import be.steby.CoreProject.dal.repositories.crm.LeadRepository;
 import be.steby.CoreProject.dal.repositories.crm.OrganisationRepository;
@@ -18,10 +19,12 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.UserAddress;
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.entities.crm.Deal;
+import be.steby.CoreProject.dl.entities.crm.DealContactRole;
 import be.steby.CoreProject.dl.entities.crm.Lead;
 import be.steby.CoreProject.dl.entities.crm.Organisation;
 import be.steby.CoreProject.dl.entities.crm.Pipeline;
 import be.steby.CoreProject.dl.entities.crm.PipelineStep;
+import be.steby.CoreProject.dl.enums.crm.ContactRole;
 import be.steby.CoreProject.dl.enums.AddressType;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
 import be.steby.CoreProject.dl.enums.LeadType;
@@ -56,6 +59,7 @@ public class DataInitializer implements CommandLineRunner {
     private final LeadRepository leadRepository;
     private final ContactRepository contactRepository;
     private final DealRepository dealRepository;
+    private final DealContactRoleRepository dealContactRoleRepository;
 
 
     @Override
@@ -865,7 +869,6 @@ public class DataInitializer implements CommandLineRunner {
                 .status(DealStatus.OPEN)
                 .pipeline(pipeline)
                 .pipelineStep(stepDevis)
-                .contact(contactThomas)
                 .organisation(orgAcme)
                 .assignedTo(user1)
                 .expectedCloseDate(LocalDate.now().plusDays(15))
@@ -879,7 +882,6 @@ public class DataInitializer implements CommandLineRunner {
                 .status(DealStatus.OPEN)
                 .pipeline(pipeline)
                 .pipelineStep(stepNego)
-                .contact(contactMarc)
                 .organisation(orgImmo)
                 .assignedTo(user1)
                 .expectedCloseDate(LocalDate.now().plusDays(30))
@@ -893,7 +895,6 @@ public class DataInitializer implements CommandLineRunner {
                 .status(DealStatus.OPEN)
                 .pipeline(pipeline)
                 .pipelineStep(stepVisite)
-                .contact(contactPierre)
                 .organisation(orgLogistique)
                 .assignedTo(user1)
                 .expectedCloseDate(LocalDate.now().plusDays(7))
@@ -907,7 +908,6 @@ public class DataInitializer implements CommandLineRunner {
                 .status(DealStatus.OPEN)
                 .pipeline(pipeline)
                 .pipelineStep(stepQualif)
-                .contact(contactSophie)
                 .organisation(orgTechno)
                 .assignedTo(user2)
                 .expectedCloseDate(LocalDate.now().plusDays(45))
@@ -920,7 +920,6 @@ public class DataInitializer implements CommandLineRunner {
                 .status(DealStatus.OPEN)
                 .pipeline(pipeline)
                 .pipelineStep(stepQualif)
-                .contact(contactIsabelle)
                 .organisation(orgSante)
                 .assignedTo(user1)
                 .expectedCloseDate(LocalDate.now().plusDays(60))
@@ -933,7 +932,6 @@ public class DataInitializer implements CommandLineRunner {
                 .status(DealStatus.OPEN)
                 .pipeline(pipeline)
                 .pipelineStep(stepDevis)
-                .contact(contactNadia)
                 .assignedTo(user2)
                 .expectedCloseDate(LocalDate.now().minusDays(3))
                 .notes("Deal en retard — relance nécessaire.")
@@ -946,7 +944,6 @@ public class DataInitializer implements CommandLineRunner {
                 .status(DealStatus.WON)
                 .pipeline(pipeline)
                 .pipelineStep(stepWon)
-                .contact(contactJean)
                 .organisation(orgTechno)
                 .assignedTo(user2)
                 .expectedCloseDate(LocalDate.now().minusDays(10))
@@ -961,7 +958,6 @@ public class DataInitializer implements CommandLineRunner {
                 .status(DealStatus.LOST)
                 .pipeline(pipeline)
                 .pipelineStep(stepLost)
-                .contact(contactMarc)
                 .organisation(orgImmo)
                 .assignedTo(user1)
                 .expectedCloseDate(LocalDate.now().minusDays(20))
@@ -971,6 +967,19 @@ public class DataInitializer implements CommandLineRunner {
 
         dealRepository.saveAll(List.of(deal1, deal2, deal3, deal4, deal5, deal6, deal7, deal8));
         log.info("✅ Created 8 deals");
+
+        // Create primary contact roles for each deal
+        dealContactRoleRepository.saveAll(List.of(
+            DealContactRole.builder().deal(deal1).contact(contactThomas).role(ContactRole.DECISION_MAKER).primary(true).build(),
+            DealContactRole.builder().deal(deal2).contact(contactMarc).role(ContactRole.DECISION_MAKER).primary(true).build(),
+            DealContactRole.builder().deal(deal3).contact(contactPierre).role(ContactRole.DECISION_MAKER).primary(true).build(),
+            DealContactRole.builder().deal(deal4).contact(contactSophie).role(ContactRole.DECISION_MAKER).primary(true).build(),
+            DealContactRole.builder().deal(deal5).contact(contactIsabelle).role(ContactRole.DECISION_MAKER).primary(true).build(),
+            DealContactRole.builder().deal(deal6).contact(contactNadia).role(ContactRole.DECISION_MAKER).primary(true).build(),
+            DealContactRole.builder().deal(deal7).contact(contactJean).role(ContactRole.DECISION_MAKER).primary(true).build(),
+            DealContactRole.builder().deal(deal8).contact(contactMarc).role(ContactRole.DECISION_MAKER).primary(true).build()
+        ));
+        log.info("✅ Created 8 deal contact roles");
 
         log.info("🎉 CRM data initialization complete!");
 

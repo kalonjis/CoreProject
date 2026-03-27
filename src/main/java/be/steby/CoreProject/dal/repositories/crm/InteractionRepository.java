@@ -76,8 +76,14 @@ public interface InteractionRepository extends JpaRepository<Interaction, Long> 
      * @param contactId the internal ID of the deal's primary contact
      * @return merged interactions, most recent first
      */
-    @Query("SELECT i FROM Interaction i LEFT JOIN i.deal d LEFT JOIN i.contact c WHERE d.id = :dealId OR c.id = :contactId ORDER BY i.occurredAt DESC")
-    List<Interaction> findByDealOrContact(@Param("dealId") Long dealId, @Param("contactId") Long contactId);
+    /**
+     * Finds all interactions linked to a deal OR to any of the given contacts,
+     * ordered by occurrence date descending.
+     *
+     * <p>Used for the unified deal timeline with multi-contact support.</p>
+     */
+    @Query("SELECT DISTINCT i FROM Interaction i LEFT JOIN i.deal d LEFT JOIN i.contact c WHERE d.id = :dealId OR c.id IN :contactIds ORDER BY i.occurredAt DESC")
+    List<Interaction> findByDealOrContacts(@Param("dealId") Long dealId, @Param("contactIds") java.util.Collection<Long> contactIds);
 
     // =========================================================================
     // Contact timeline
@@ -103,7 +109,7 @@ public interface InteractionRepository extends JpaRepository<Interaction, Long> 
      * @param contactId the internal ID of the contact
      * @return interactions for that contact or their deals, most recent first
      */
-    @Query("SELECT i FROM Interaction i LEFT JOIN i.contact c LEFT JOIN i.deal d LEFT JOIN d.contact dc WHERE c.id = :contactId OR dc.id = :contactId ORDER BY i.occurredAt DESC")
+    @Query("SELECT DISTINCT i FROM Interaction i LEFT JOIN i.contact c LEFT JOIN i.deal d LEFT JOIN d.contactRoles dcr LEFT JOIN dcr.contact dc WHERE c.id = :contactId OR dc.id = :contactId ORDER BY i.occurredAt DESC")
     List<Interaction> findByContactOrContactDeal(@Param("contactId") Long contactId);
 
     // =========================================================================
