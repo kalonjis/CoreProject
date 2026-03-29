@@ -1,7 +1,10 @@
 package be.steby.CoreProject.dal.specifications.crm;
 
 import be.steby.CoreProject.dl.entities.crm.Organisation;
+import be.steby.CoreProject.dl.entities.crm.Tag;
 import be.steby.CoreProject.dl.enums.crm.OrganisationSize;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import org.springframework.data.jpa.domain.Specification;
 
 /**
@@ -98,5 +101,27 @@ public class OrganisationSpecification {
                 cb.lower(root.join("address").get("countryCode")),
                 countryCode.toLowerCase().trim()
             );
+    }
+
+    // =========================================================================
+    // Tags
+    // =========================================================================
+
+    /**
+     * Filters organisations that have a specific tag applied.
+     *
+     * <p>Uses an INNER JOIN on the {@code tags} collection. {@code query.distinct(true)}
+     * is applied to prevent duplicate rows when an organisation has multiple tags.</p>
+     *
+     * @param tagId the internal ID of the tag, or {@code null} to skip
+     * @return the specification, or {@code null}
+     */
+    public static Specification<Organisation> hasTag(Long tagId) {
+        if (tagId == null) return null;
+        return (root, query, cb) -> {
+            query.distinct(true);
+            Join<Organisation, Tag> tags = root.join("tags", JoinType.INNER);
+            return cb.equal(tags.get("id"), tagId);
+        };
     }
 }

@@ -2,7 +2,10 @@ package be.steby.CoreProject.dal.specifications.crm;
 
 import be.steby.CoreProject.dl.entities.crm.Deal;
 import be.steby.CoreProject.dl.entities.crm.DealContactRole;
+import be.steby.CoreProject.dl.entities.crm.Tag;
 import be.steby.CoreProject.dl.enums.crm.DealStatus;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -209,5 +212,27 @@ public class DealSpecification {
             cb.equal(root.get("status"), DealStatus.OPEN),
             cb.lessThan(root.get("expectedCloseDate"), LocalDate.now())
         );
+    }
+
+    // =========================================================================
+    // Tags
+    // =========================================================================
+
+    /**
+     * Filters deals that have a specific tag applied.
+     *
+     * <p>Uses an INNER JOIN on the {@code tags} collection. {@code query.distinct(true)}
+     * is applied to prevent duplicate rows when a deal has multiple tags.</p>
+     *
+     * @param tagId the internal ID of the tag, or {@code null} to skip
+     * @return the specification, or {@code null}
+     */
+    public static Specification<Deal> hasTag(Long tagId) {
+        if (tagId == null) return null;
+        return (root, query, cb) -> {
+            query.distinct(true);
+            Join<Deal, Tag> tags = root.join("tags", JoinType.INNER);
+            return cb.equal(tags.get("id"), tagId);
+        };
     }
 }

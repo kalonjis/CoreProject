@@ -1,6 +1,8 @@
 package be.steby.CoreProject.pl.domains.pipeline.models.requests;
 
 import be.steby.CoreProject.bll.domains.pipeline.models.PipelineStepCreateRequest;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -8,11 +10,12 @@ import jakarta.validation.constraints.Size;
 /**
  * PL request model for adding a new step to a pipeline.
  *
- * @param name     display name of the step (required)
- * @param color    hex color code for the Kanban column (optional, e.g. "#27ae60")
- * @param position zero-based display order within the pipeline (required)
- * @param isWon    marks this step as the terminal Won step
- * @param isLost   marks this step as the terminal Lost step
+ * @param name           display name of the step (required)
+ * @param color          hex color code for the Kanban column (optional, e.g. "#27ae60")
+ * @param position       zero-based display order within the pipeline (required)
+ * @param isWon          marks this step as the terminal Won step
+ * @param isLost         marks this step as the terminal Lost step
+ * @param winProbability estimated win probability 0–100 (optional, defaults to 50)
  */
 public record AddPipelineStepRequest(
 
@@ -27,7 +30,11 @@ public record AddPipelineStepRequest(
 
         boolean isWon,
 
-        boolean isLost
+        boolean isLost,
+
+        @Min(value = 0,   message = "Win probability must be between 0 and 100")
+        @Max(value = 100, message = "Win probability must be between 0 and 100")
+        Integer winProbability
 
 ) {
 
@@ -37,7 +44,8 @@ public record AddPipelineStepRequest(
                 color,
                 position,
                 isWon,
-                isLost
+                isLost,
+                winProbability != null ? winProbability : 50
         );
     }
 }

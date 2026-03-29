@@ -6,6 +6,9 @@ import be.steby.CoreProject.dl.enums.crm.OrganisationSize;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Represents a company or organisation linked to one or more CRM contacts.
  *
@@ -155,4 +158,18 @@ public class Organisation extends BaseEntity<Long> {
      */
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
+
+    // =========================================================================
+    // Tags
+    // =========================================================================
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "organisation_tag",
+        joinColumns        = @JoinColumn(name = "organisation_id"),
+        inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    @Builder.Default
+    @EqualsAndHashCode.Exclude
+    private Set<Tag> tags = new HashSet<>();
 }

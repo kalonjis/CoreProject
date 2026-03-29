@@ -30,6 +30,8 @@ import be.steby.CoreProject.il.routes.sport.SportRoutes;
 import be.steby.CoreProject.il.routes.storage.StorageRoutes;
 import be.steby.CoreProject.il.routes.swagger.SwaggerRoutes;
 import be.steby.CoreProject.il.routes.debug.DebugRoutes;
+import be.steby.CoreProject.il.routes.changelog.CrmChangeLogRoutes;
+import be.steby.CoreProject.il.routes.tag.CrmTagRoutes;
 import be.steby.CoreProject.il.routes.user.CrmUserRoutes;
 
 import static be.steby.CoreProject.il.routes.SecurityRoutes.concatenate;
@@ -121,7 +123,9 @@ public final class SecurityRoutesAggregator {
             CrmTimelineRoutes.COMMERCIAL,
             CrmCommercialActionRoutes.COMMERCIAL,
             CrmDashboardRoutes.COMMERCIAL,
-            CrmUserRoutes.COMMERCIAL
+            CrmUserRoutes.COMMERCIAL,
+            CrmTagRoutes.COMMERCIAL,
+            CrmChangeLogRoutes.COMMERCIAL
     );
 
     // ========== ADMIN ROUTES ==========
@@ -183,6 +187,8 @@ public final class SecurityRoutesAggregator {
             CrmCommercialActionRoutes.CSRF_IGNORE,
             CrmDashboardRoutes.CSRF_IGNORE,
             CrmUserRoutes.CSRF_IGNORE,
+            CrmTagRoutes.CSRF_IGNORE,
+            CrmChangeLogRoutes.CSRF_IGNORE,
             CalendarRoutes.CSRF_IGNORE,
             GdprRoutes.CSRF_IGNORE,
             NotificationRoutes.CSRF_IGNORE

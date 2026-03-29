@@ -17,6 +17,7 @@ import be.steby.CoreProject.dl.enums.crm.ContactStatus;
  * @param assignedToPublicId   filter contacts assigned to a specific commercial
  * @param hasLinkedUser        if {@code true}, returns only contacts linked to a platform account
  * @param convertedFromLead    if {@code true}, returns only contacts converted from a lead
+ * @param tagPublicId          filter contacts that have a specific tag applied
  */
 public record ContactListFilterRequest(
 
@@ -26,7 +27,8 @@ public record ContactListFilterRequest(
         Boolean withoutOrganisation,
         String assignedToPublicId,
         Boolean hasLinkedUser,
-        Boolean convertedFromLead
+        Boolean convertedFromLead,
+        String tagPublicId
 
 ) {
 
@@ -43,7 +45,8 @@ public record ContactListFilterRequest(
                 withoutOrganisation,
                 assignedToPublicId,
                 hasLinkedUser,
-                convertedFromLead
+                convertedFromLead,
+                tagPublicId
         );
     }
 }

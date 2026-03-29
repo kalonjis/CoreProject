@@ -42,19 +42,21 @@ public class CrmDashboardServiceImpl implements CrmDashboardService {
 
         Instant now = Instant.now();
 
-        BigDecimal pipelineValue = dealRepository.sumAmountByStatus(DealStatus.OPEN);
-        BigDecimal revenueWon   = dealRepository.sumAmountWonSince(startOfMonth);
+        BigDecimal pipelineValue  = dealRepository.sumAmountByStatus(DealStatus.OPEN);
+        BigDecimal revenueWon     = dealRepository.sumAmountWonSince(startOfMonth);
+        BigDecimal forecastRevenue = dealRepository.sumWeightedForecast();
 
         return new CrmStatsResponse(
                 leadRepository.countByStatus(LeadStatus.NEW),
                 leadRepository.countByStatus(LeadStatus.IN_REVIEW),
                 dealRepository.countByStatus(DealStatus.OPEN),
-                pipelineValue != null ? pipelineValue : BigDecimal.ZERO,
+                pipelineValue   != null ? pipelineValue   : BigDecimal.ZERO,
                 dealRepository.countWonSince(startOfMonth),
-                revenueWon    != null ? revenueWon    : BigDecimal.ZERO,
+                revenueWon      != null ? revenueWon      : BigDecimal.ZERO,
                 commercialActionRepository.countAllOverdue(now),
                 supportTicketRepository.countByStatus(SupportTicketStatus.OPEN),
-                supportTicketRepository.countByStatus(SupportTicketStatus.IN_PROGRESS)
+                supportTicketRepository.countByStatus(SupportTicketStatus.IN_PROGRESS),
+                forecastRevenue != null ? forecastRevenue : BigDecimal.ZERO
         );
     }
 }

@@ -1,10 +1,14 @@
 package be.steby.CoreProject.dal.repositories.crm;
 
 import be.steby.CoreProject.dl.entities.crm.Organisation;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -58,4 +62,7 @@ public interface OrganisationRepository extends JpaRepository<Organisation, Long
      * @return true if a matching organisation exists
      */
     boolean existsByNameIgnoreCase(String name);
+
+    @Query("SELECT o FROM Organisation o WHERE LOWER(o.name) LIKE :kw")
+    List<Organisation> searchByKeyword(@Param("kw") String keyword, Pageable pageable);
 }

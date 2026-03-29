@@ -16,10 +16,17 @@ import be.steby.CoreProject.dl.entities.User;
  *   <li>{@link AdminAction}    — admin operations (user management, roles, security, audit)</li>
  * </ul>
  *
- * <p>Future domains to add: {@code EmailAction}.
+ * <p>CRM domains:
+ * <ul>
+ *   <li>{@link ContactAction}      — CRM contact lifecycle</li>
+ *   <li>{@link DealAction}         — CRM deal pipeline</li>
+ *   <li>{@link LeadAction}         — CRM lead lifecycle</li>
+ *   <li>{@link OrganisationAction} — CRM organisation lifecycle</li>
+ * </ul>
  */
 public sealed interface ActionLogType
-        permits AuthAction, SecurityAction, AccountAction, DeviceAction, PasswordAction, AdminAction {
+        permits AuthAction, SecurityAction, AccountAction, DeviceAction, PasswordAction, AdminAction,
+                ContactAction, DealAction, LeadAction, OrganisationAction {
 
     /**
      * Enum constant name used for database storage — e.g. "LOGIN", "PASSWORD_CHANGED".

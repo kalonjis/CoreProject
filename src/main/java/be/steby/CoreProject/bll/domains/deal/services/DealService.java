@@ -149,19 +149,21 @@ public interface DealService {
      *   <li>{@code isWon = true} → sets status to {@code WON}, records {@code closedAt},
      *       publishes {@code DealWonEvent} and {@code DealStageChangedEvent}</li>
      *   <li>{@code isLost = true} → sets status to {@code LOST}, records {@code closedAt},
+     *       stores {@code lostReason},
      *       publishes {@code DealLostEvent} and {@code DealStageChangedEvent}</li>
      *   <li>Non-terminal → publishes {@code DealStageChangedEvent} only</li>
      * </ul>
      *
      * @param publicId      the public UUID of the deal
      * @param stagePublicId the public UUID of the target pipeline step
+     * @param lostReason    reason for loss — stored when the stage is a lost stage (may be null)
      * @param actor         the user performing the stage move
      * @return the updated deal
      * @throws DealNotFoundException            if not found
      * @throws DealAlreadyClosedException       if the deal is already closed
      * @throws DealStageNotInPipelineException  if the stage does not belong to the deal's pipeline
      */
-    Deal moveToStage(String publicId, String stagePublicId, User actor);
+    Deal moveToStage(String publicId, String stagePublicId, String lostReason, User actor);
 
     // =========================================================================
     // Contact roles

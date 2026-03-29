@@ -1,6 +1,8 @@
 package be.steby.CoreProject.bll.domains.organisation.services;
 
+import be.steby.CoreProject.bll.common.models.changelog.FieldChange;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
+import be.steby.CoreProject.dl.enums.crm.CrmEntityType;
 import be.steby.CoreProject.bll.domains.organisation.events.OrganisationCreatedEvent;
 import be.steby.CoreProject.bll.domains.organisation.events.OrganisationMergedEvent;
 import be.steby.CoreProject.bll.domains.organisation.events.OrganisationUpdatedEvent;
@@ -14,6 +16,7 @@ import be.steby.CoreProject.bll.domains.organisation.models.OrganisationUpdateRe
 import be.steby.CoreProject.dal.repositories.AddressRepository;
 import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
 import be.steby.CoreProject.dal.repositories.crm.OrganisationRepository;
+import be.steby.CoreProject.dal.repositories.crm.TagRepository;
 import be.steby.CoreProject.dal.specifications.crm.OrganisationSpecification;
 import be.steby.CoreProject.dl.entities.Address;
 import be.steby.CoreProject.dl.entities.User;
@@ -28,6 +31,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -53,8 +57,10 @@ public class OrganisationServiceImpl implements OrganisationService {
     private final OrganisationRepository organisationRepository;
     private final AddressRepository addressRepository;
     private final ContactRepository contactRepository;
+    private final TagRepository tagRepository;
     private final DeviceService deviceService;
     private final ApplicationEventPublisher eventPublisher;
+    private final OrganisationChangeLogService changeLogService;
 
     // =========================================================================
     // Lookup
@@ -80,11 +86,21 @@ public class OrganisationServiceImpl implements OrganisationService {
 
     @Override
     public Page<Organisation> findAll(OrganisationFilterRequest filter, Pageable pageable) {
-        Specification<Organisation> spec = Specification
-                .where(OrganisationSpecification.nameContains(filter.keyword()))
-                .and(OrganisationSpecification.hasIndustry(filter.industry()))
-                .and(OrganisationSpecification.hasSize(filter.size()))
-                .and(OrganisationSpecification.inCountry(filter.countryCode()));
+        Long tagId = null;
+        if (filter.tagPublicId() != null) {
+            tagId = tagRepository.findByPublicId(filter.tagPublicId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Tag not found with publicId: " + filter.tagPublicId()))
+                    .getId();
+        }
+
+        Specification<Organisation> spec = Specification.allOf(
+                OrganisationSpecification.nameContains(filter.keyword()),
+                OrganisationSpecification.hasIndustry(filter.industry()),
+                OrganisationSpecification.hasSize(filter.size()),
+                OrganisationSpecification.inCountry(filter.countryCode()),
+                OrganisationSpecification.hasTag(tagId)
+        );
 
         return organisationRepository.findAll(spec, pageable);
     }
@@ -133,23 +149,47 @@ public class OrganisationServiceImpl implements OrganisationService {
 
         Organisation organisation = getByPublicId(publicId);
 
+        List<FieldChange> changes = new ArrayList<>();
+
         if (request.name() != null && !request.name().equalsIgnoreCase(organisation.getName())) {
             if (organisationRepository.existsByNameIgnoreCase(request.name())) {
                 throw OrganisationNameAlreadyExistsException.onUpdate(request.name(), publicId);
             }
+            changes.add(new FieldChange("name", organisation.getName(), request.name().trim()));
             organisation.setName(request.name().trim());
         }
-        if (request.website()  != null) organisation.setWebsite(request.website());
-        if (request.industry() != null) organisation.setIndustry(request.industry());
-        if (request.size()     != null) organisation.setSize(request.size());
-        if (request.phone()    != null) organisation.setPhone(request.phone());
-        if (request.notes()    != null) organisation.setNotes(request.notes());
+        if (request.website() != null && !request.website().equals(organisation.getWebsite())) {
+            changes.add(new FieldChange("website", organisation.getWebsite(), request.website()));
+            organisation.setWebsite(request.website());
+        }
+        if (request.industry() != null && !request.industry().equals(organisation.getIndustry())) {
+            changes.add(new FieldChange("industry", organisation.getIndustry(), request.industry()));
+            organisation.setIndustry(request.industry());
+        }
+        if (request.size() != null && request.size() != organisation.getSize()) {
+            changes.add(new FieldChange("size",
+                    organisation.getSize() != null ? organisation.getSize().name() : null,
+                    request.size().name()));
+            organisation.setSize(request.size());
+        }
+        if (request.phone() != null && !request.phone().equals(organisation.getPhone())) {
+            changes.add(new FieldChange("phone", organisation.getPhone(), request.phone()));
+            organisation.setPhone(request.phone());
+        }
+        if (request.notes() != null && !request.notes().equals(organisation.getNotes())) {
+            changes.add(new FieldChange("notes", organisation.getNotes(), request.notes()));
+            organisation.setNotes(request.notes());
+        }
         if (request.addressPublicId() != null) {
             organisation.setAddress(resolveAddress(request.addressPublicId()));
         }
 
         Organisation saved = organisationRepository.save(organisation);
         log.info("Organisation updated — publicId: {}, by: {}", publicId, actor.getUsername());
+
+        if (!changes.isEmpty()) {
+            changeLogService.logChanges(CrmEntityType.ORGANISATION, saved.getPublicId(), changes, actor);
+        }
 
         eventPublisher.publishEvent(new OrganisationUpdatedEvent(
                 saved, actor, deviceService.detectAndRegisterDevice(actor)));

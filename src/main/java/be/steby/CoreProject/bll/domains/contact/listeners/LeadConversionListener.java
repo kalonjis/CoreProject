@@ -36,6 +36,18 @@ public class LeadConversionListener {
 
     private final ContactService contactService;
 
+    /**
+     * Handles a {@link LeadConvertedEvent} by creating the corresponding {@link Contact}.
+     *
+     * <p>Runs first ({@code @Order(1)}) to ensure the Contact is persisted before any
+     * downstream listener (e.g. notifications, data migration) references it.</p>
+     *
+     * <p>The actor and device carried by the event are forwarded to
+     * {@code ContactService#createFromLead} so the full audit context
+     * is preserved in the resulting {@code ContactCreatedFromLeadEvent}.</p>
+     *
+     * @param event the event published by {@code LeadServiceImpl} upon successful lead conversion
+     */
     @EventListener
     @Order(1)
     public void onLeadConverted(LeadConvertedEvent event) {
@@ -47,6 +59,7 @@ public class LeadConversionListener {
                 event.organisationPublicId(),
                 event.organisationName(),
                 event.convertedBy(),
+                event.actorDevice(),
                 event.emailOverride());
 
         log.info("LeadConversionListener — Contact created/linked: publicId={}, email={}",

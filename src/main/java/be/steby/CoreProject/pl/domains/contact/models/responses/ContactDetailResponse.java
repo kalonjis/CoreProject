@@ -2,8 +2,10 @@ package be.steby.CoreProject.pl.domains.contact.models.responses;
 
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.enums.crm.ContactStatus;
+import be.steby.CoreProject.pl.domains.tag.models.responses.TagResponse;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Full response model for the contact detail view.
@@ -44,6 +46,7 @@ public record ContactDetailResponse(
         boolean hasLinkedUser,
         String linkedUserPublicId,
         String notes,
+        List<TagResponse> tags,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -70,6 +73,7 @@ public record ContactDetailResponse(
                 contact.hasLinkedUser(),
                 contact.getLinkedUser()   != null ? contact.getLinkedUser().getPublicId()    : null,
                 contact.getNotes(),
+                contact.getTags().stream().map(TagResponse::fromEntity).toList(),
                 contact.getCreatedAt(),
                 contact.getUpdatedAt()
         );

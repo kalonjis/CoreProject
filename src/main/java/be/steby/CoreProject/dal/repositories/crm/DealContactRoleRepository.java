@@ -52,4 +52,15 @@ public interface DealContactRoleRepository extends JpaRepository<DealContactRole
      */
     @Query("SELECT dcr FROM DealContactRole dcr WHERE dcr.deal.id = :dealId AND dcr.primary = true")
     Optional<DealContactRole> findPrimaryByDealId(@Param("dealId") Long dealId);
+
+    /**
+     * Finds all deal roles involving a specific contact.
+     *
+     * <p>Used during contact merge to reassign all deal roles from
+     * the source contact to the target contact.</p>
+     *
+     * @param contactId the internal ID of the contact
+     * @return all roles for that contact across all deals
+     */
+    List<DealContactRole> findByContactId(Long contactId);
 }

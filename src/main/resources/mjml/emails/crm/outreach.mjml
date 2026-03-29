@@ -1,0 +1,64 @@
+<mjml>
+  <mj-head>
+    <mj-title>CRM Outreach</mj-title>
+    <mj-attributes>
+      <mj-all font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" />
+      <mj-text font-size="15px" color="#1a1a1a" line-height="1.7" padding="0" />
+      <mj-section padding="0 48px" background-color="#ffffff" />
+    </mj-attributes>
+
+    <!--
+      Rich-text body styles.
+      TipTap generates semantic HTML (<p>, <strong>, <em>, <a>, <ul>, <ol>, <li>).
+      These rules give email-client–friendly spacing to that injected content.
+      Note: Gmail strips <style> blocks in webmail — basic HTML tags still render
+      correctly via browser defaults, so formatting is preserved everywhere.
+    -->
+    <mj-style>
+      .rte-body p    { margin: 0 0 14px; }
+      .rte-body ul,
+      .rte-body ol   { margin: 0 0 14px; padding-left: 1.5em; }
+      .rte-body li   { margin-bottom: 4px; }
+      .rte-body a    { color: #6366f1; }
+      .rte-body strong { font-weight: 700; }
+      .rte-body em     { font-style: italic; }
+    </mj-style>
+  </mj-head>
+
+  <mj-body background-color="#ffffff">
+
+    <!-- Top spacer -->
+    <mj-section padding="40px 48px 0">
+      <mj-column>
+        <!-- Greeting -->
+        <mj-text padding-bottom="20px">
+          Bonjour <span th:text="${recipientFirstName}">Prénom</span>,
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Rich-text body injected by Thymeleaf at send time -->
+    <mj-section padding="0 48px">
+      <mj-column>
+        <mj-text padding-bottom="32px">
+          <div class="rte-body" th:utext="${body}">
+            <p>Corps de l'email.</p>
+          </div>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Signature — separated from body by a thin rule -->
+    <mj-section padding="0 48px 40px">
+      <mj-column border-top="1px solid #e5e7eb">
+        <mj-text padding-top="20px" font-size="14px" color="#555555">
+          <strong style="color:#1a1a1a;" th:text="${commercialName}">Nom Prénom</strong><br/>
+          <a th:href="'mailto:' + ${commercialEmail}"
+             th:text="${commercialEmail}"
+             style="color:#555555; text-decoration:none;">email@entreprise.com</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

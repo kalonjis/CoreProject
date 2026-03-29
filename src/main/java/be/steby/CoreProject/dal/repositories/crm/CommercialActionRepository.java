@@ -155,6 +155,15 @@ public interface CommercialActionRepository extends JpaRepository<CommercialActi
            "AND c.dueDate < :now")
     List<CommercialAction> findAllOverdue(@Param("now") Instant now);
 
+    @Query("SELECT c FROM CommercialAction c " +
+           "WHERE c.status = 'PENDING' " +
+           "AND c.dueDate IS NOT NULL " +
+           "AND c.dueDate >= :startOfDay " +
+           "AND c.dueDate < :endOfDay " +
+           "ORDER BY c.dueDate ASC")
+    List<CommercialAction> findDueToday(@Param("startOfDay") Instant startOfDay,
+                                        @Param("endOfDay")   Instant endOfDay);
+
     @Query("SELECT COUNT(c) FROM CommercialAction c " +
            "WHERE c.status = 'PENDING' " +
            "AND c.dueDate IS NOT NULL " +

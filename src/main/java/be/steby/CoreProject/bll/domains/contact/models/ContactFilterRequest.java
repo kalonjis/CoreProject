@@ -19,6 +19,7 @@ import be.steby.CoreProject.dl.enums.crm.ContactStatus;
  *   <li>{@code assignedToPublicId}    → resolved to internal ID by the service layer</li>
  *   <li>{@code hasLinkedUser}         → {@code ContactSpecification.hasLinkedUser}</li>
  *   <li>{@code convertedFromLead}     → {@code ContactSpecification.convertedFromLead}</li>
+ *   <li>{@code tagPublicId}           → resolved to internal ID → {@code ContactSpecification.hasTag}</li>
  * </ul>
  *
  * @param keyword              search term matched against first name, last name, and email (optional)
@@ -28,6 +29,7 @@ import be.steby.CoreProject.dl.enums.crm.ContactStatus;
  * @param assignedToPublicId   filter contacts assigned to a specific commercial (optional)
  * @param hasLinkedUser        if {@code true}, returns only contacts linked to a platform account (optional)
  * @param convertedFromLead    if {@code true}, returns only contacts converted from a lead (optional)
+ * @param tagPublicId          filter contacts that have a specific tag applied (optional)
  */
 public record ContactFilterRequest(
         String keyword,
@@ -36,5 +38,6 @@ public record ContactFilterRequest(
         Boolean withoutOrganisation,
         String assignedToPublicId,
         Boolean hasLinkedUser,
-        Boolean convertedFromLead
+        Boolean convertedFromLead,
+        String tagPublicId
 ) {}

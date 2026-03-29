@@ -35,5 +35,14 @@ public record CrmStatsResponse(
         long ticketsOpen,
 
         /** Support tickets with status IN_PROGRESS. */
-        long ticketsInProgress
+        long ticketsInProgress,
+
+        /**
+         * Weighted revenue forecast for all open deals.
+         *
+         * <p>Computed as {@code SUM(deal.amount × stage.winProbability / 100)}
+         * for open deals with a non-null amount. Reflects the expected
+         * revenue given current pipeline composition and per-stage probabilities.</p>
+         */
+        BigDecimal forecastRevenue
 ) {}

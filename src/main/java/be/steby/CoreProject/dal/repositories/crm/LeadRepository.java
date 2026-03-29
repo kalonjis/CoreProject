@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.domain.Pageable;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -103,4 +105,11 @@ public interface LeadRepository extends JpaRepository<Lead, Long>, JpaSpecificat
     // =========================================================================
 
     long countByStatus(LeadStatus status);
+
+    @Query("SELECT l FROM Lead l WHERE " +
+           "LOWER(l.firstName) LIKE :kw OR " +
+           "LOWER(l.lastName)  LIKE :kw OR " +
+           "LOWER(l.email)     LIKE :kw OR " +
+           "LOWER(CONCAT(COALESCE(l.firstName,''), ' ', COALESCE(l.lastName,''))) LIKE :kw")
+    List<Lead> searchByKeyword(@Param("kw") String keyword, Pageable pageable);
 }

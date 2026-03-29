@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.deal.services;
 
+import be.steby.CoreProject.bll.common.models.changelog.FieldChange;
 import be.steby.CoreProject.bll.domains.deal.events.DealCreatedEvent;
 import be.steby.CoreProject.bll.domains.deal.events.DealLostEvent;
 import be.steby.CoreProject.bll.domains.deal.events.DealReassignedEvent;
@@ -23,6 +24,7 @@ import be.steby.CoreProject.dal.repositories.crm.DealRepository;
 import be.steby.CoreProject.dal.repositories.crm.OrganisationRepository;
 import be.steby.CoreProject.dal.repositories.crm.PipelineRepository;
 import be.steby.CoreProject.dal.repositories.crm.PipelineStepRepository;
+import be.steby.CoreProject.dal.repositories.crm.TagRepository;
 import be.steby.CoreProject.dal.specifications.crm.DealSpecification;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Contact;
@@ -32,6 +34,7 @@ import be.steby.CoreProject.dl.entities.crm.Organisation;
 import be.steby.CoreProject.dl.entities.crm.Pipeline;
 import be.steby.CoreProject.dl.entities.crm.PipelineStep;
 import be.steby.CoreProject.dl.enums.crm.ContactRole;
+import be.steby.CoreProject.dl.enums.crm.CrmEntityType;
 import be.steby.CoreProject.dl.enums.crm.DealStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +46,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -77,8 +81,10 @@ public class DealServiceImpl implements DealService {
     private final ContactRepository contactRepository;
     private final OrganisationRepository organisationRepository;
     private final UserRepository userRepository;
+    private final TagRepository tagRepository;
     private final DeviceService deviceService;
     private final ApplicationEventPublisher eventPublisher;
+    private final DealChangeLogService dealChangeLogService;
 
     // =========================================================================
     // Lookup
@@ -145,6 +151,14 @@ public class DealServiceImpl implements DealService {
                     .getId();
         }
 
+        Long tagId = null;
+        if (filter.tagPublicId() != null) {
+            tagId = tagRepository.findByPublicId(filter.tagPublicId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Tag not found with publicId: " + filter.tagPublicId()))
+                    .getId();
+        }
+
         Specification<Deal> spec = Specification.allOf(
                 DealSpecification.titleContains(filter.keyword()),
                 DealSpecification.hasStatus(filter.status()),
@@ -153,6 +167,7 @@ public class DealServiceImpl implements DealService {
                 DealSpecification.assignedTo(assignedToId),
                 DealSpecification.forContact(contactId),
                 DealSpecification.forOrganisation(organisationId),
+                DealSpecification.hasTag(tagId),
                 DealSpecification.amountBetween(filter.amountMin(), filter.amountMax()),
                 DealSpecification.expectedCloseBetween(filter.expectedCloseFrom(), filter.expectedCloseTo())
         );
@@ -253,17 +268,40 @@ public class DealServiceImpl implements DealService {
             throw DealAlreadyClosedException.forDeal(publicId);
         }
 
-        if (request.title()             != null) deal.setTitle(request.title());
-        if (request.amount()            != null) deal.setAmount(request.amount());
-        if (request.currency()          != null) deal.setCurrency(request.currency());
-        if (request.expectedCloseDate() != null) deal.setExpectedCloseDate(request.expectedCloseDate());
-        if (request.notes()             != null) deal.setNotes(request.notes());
+        List<FieldChange> changes = new ArrayList<>();
+
+        if (request.title() != null && !request.title().equals(deal.getTitle())) {
+            changes.add(new FieldChange("title", deal.getTitle(), request.title()));
+            deal.setTitle(request.title());
+        }
+        if (request.amount() != null && !request.amount().equals(deal.getAmount())) {
+            changes.add(new FieldChange("amount",
+                    deal.getAmount() != null ? deal.getAmount().toPlainString() : null,
+                    request.amount().toPlainString()));
+            deal.setAmount(request.amount());
+        }
+        if (request.currency() != null && !request.currency().equals(deal.getCurrency())) {
+            changes.add(new FieldChange("currency", deal.getCurrency(), request.currency()));
+            deal.setCurrency(request.currency());
+        }
+        if (request.expectedCloseDate() != null && !request.expectedCloseDate().equals(deal.getExpectedCloseDate())) {
+            changes.add(new FieldChange("expectedCloseDate",
+                    deal.getExpectedCloseDate() != null ? deal.getExpectedCloseDate().toString() : null,
+                    request.expectedCloseDate().toString()));
+            deal.setExpectedCloseDate(request.expectedCloseDate());
+        }
+        if (request.notes() != null && !request.notes().equals(deal.getNotes())) {
+            changes.add(new FieldChange("notes", deal.getNotes(), request.notes()));
+            deal.setNotes(request.notes());
+        }
 
         Deal saved = dealRepository.save(deal);
         log.info("Deal updated — publicId: {}, by: {}", publicId, actor.getUsername());
 
         eventPublisher.publishEvent(new DealUpdatedEvent(
                 saved, actor, deviceService.detectAndRegisterDevice(actor)));
+
+        dealChangeLogService.logChanges(CrmEntityType.DEAL, saved.getPublicId(), changes, actor);
         return saved;
     }
 
@@ -273,7 +311,7 @@ public class DealServiceImpl implements DealService {
 
     @Override
     @Transactional
-    public Deal moveToStage(String publicId, String stagePublicId, User actor) {
+    public Deal moveToStage(String publicId, String stagePublicId, String lostReason, User actor) {
         log.debug("Moving deal {} to stage {}, by: {}", publicId, stagePublicId, actor.getUsername());
 
         Deal deal = getByPublicId(publicId);
@@ -295,6 +333,8 @@ public class DealServiceImpl implements DealService {
         PipelineStep previousStep = deal.getPipelineStep();
         deal.setPipelineStep(newStep);
 
+        String previousStageName = previousStep != null ? previousStep.getName() : null;
+
         if (newStep.isWon()) {
             deal.setStatus(DealStatus.WON);
             deal.setClosedAt(Instant.now());
@@ -303,17 +343,27 @@ public class DealServiceImpl implements DealService {
             var device = deviceService.detectAndRegisterDevice(actor);
             eventPublisher.publishEvent(new DealWonEvent(saved, actor, device));
             eventPublisher.publishEvent(new DealStageChangedEvent(saved, previousStep, newStep, actor, device));
+            dealChangeLogService.logChange(CrmEntityType.DEAL, saved.getPublicId(),
+                    "stage", previousStageName, newStep.getName(), actor);
             return saved;
         }
 
         if (newStep.isLost()) {
             deal.setStatus(DealStatus.LOST);
             deal.setClosedAt(Instant.now());
+            deal.setLostReason(lostReason);
             Deal saved = dealRepository.save(deal);
-            log.info("Deal {} lost — stage: {}, by: {}", publicId, stagePublicId, actor.getUsername());
+            log.info("Deal {} lost — stage: {}, reason: '{}', by: {}",
+                    publicId, stagePublicId, lostReason, actor.getUsername());
             var device = deviceService.detectAndRegisterDevice(actor);
             eventPublisher.publishEvent(new DealLostEvent(saved, actor, device));
             eventPublisher.publishEvent(new DealStageChangedEvent(saved, previousStep, newStep, actor, device));
+            dealChangeLogService.logChange(CrmEntityType.DEAL, saved.getPublicId(),
+                    "stage", previousStageName, newStep.getName(), actor);
+            if (lostReason != null) {
+                dealChangeLogService.logChange(CrmEntityType.DEAL, saved.getPublicId(),
+                        "lostReason", null, lostReason, actor);
+            }
             return saved;
         }
 
@@ -321,6 +371,8 @@ public class DealServiceImpl implements DealService {
         log.info("Deal {} moved to stage {}, by: {}", publicId, stagePublicId, actor.getUsername());
         eventPublisher.publishEvent(new DealStageChangedEvent(
                 saved, previousStep, newStep, actor, deviceService.detectAndRegisterDevice(actor)));
+        dealChangeLogService.logChange(CrmEntityType.DEAL, saved.getPublicId(),
+                "stage", previousStageName, newStep.getName(), actor);
         return saved;
     }
 

@@ -3,8 +3,11 @@ package be.steby.CoreProject.dal.repositories.crm;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.enums.crm.ContactStatus;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -122,4 +125,11 @@ public interface ContactRepository extends JpaRepository<Contact, Long>,
      * @return the contact if found
      */
     Optional<Contact> findByOriginLead_PublicId(String leadPublicId);
+
+    @Query("SELECT c FROM Contact c WHERE " +
+           "LOWER(CONCAT(c.firstName, ' ', c.lastName)) LIKE :kw OR " +
+           "LOWER(c.firstName) LIKE :kw OR " +
+           "LOWER(c.lastName)  LIKE :kw OR " +
+           "LOWER(c.email)     LIKE :kw")
+    List<Contact> searchByKeyword(@Param("kw") String keyword, Pageable pageable);
 }

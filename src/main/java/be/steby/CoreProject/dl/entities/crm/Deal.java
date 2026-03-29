@@ -232,6 +232,31 @@ public class Deal extends BaseEntity<Long> {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    /**
+     * Reason why this deal was lost.
+     *
+     * <p>Set when the deal enters a terminal {@link PipelineStep} with {@code isLost = true}.
+     * Null for open or won deals. Used for sales retrospectives and pipeline analysis.</p>
+     *
+     * <p>Examples: "Prix trop élevé", "Choix concurrent", "Budget annulé"</p>
+     */
+    @Column(name = "lost_reason", columnDefinition = "TEXT")
+    private String lostReason;
+
+    // =========================================================================
+    // Tags
+    // =========================================================================
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "deal_tag",
+        joinColumns        = @JoinColumn(name = "deal_id"),
+        inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    @Builder.Default
+    @EqualsAndHashCode.Exclude
+    private Set<Tag> tags = new HashSet<>();
+
     // =========================================================================
     // Utility methods
     // =========================================================================

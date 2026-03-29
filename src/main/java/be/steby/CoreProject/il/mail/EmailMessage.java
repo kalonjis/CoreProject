@@ -23,12 +23,16 @@ import java.util.Arrays;
 public record EmailMessage(
         String subject,
         String htmlContent,
+        String replyTo,
         String[] recipients,
         Instant createdAt
     ) implements Serializable {
 
     /**
      * Compact constructor with validation.
+     *
+     * <p>{@code replyTo} is optional — {@code null} means the mail client will use
+     * the system {@code From} address as the reply target.</p>
      */
     public EmailMessage {
         if (subject == null || subject.isBlank()) {
@@ -45,10 +49,22 @@ public record EmailMessage(
     }
 
     /**
-     * Factory method for convenience.
+     * Factory method — no Reply-To (system From address used).
      */
     public static EmailMessage of(String subject, String htmlContent, String... recipients) {
-        return new EmailMessage(subject, htmlContent, recipients, Instant.now());
+        return new EmailMessage(subject, htmlContent, null, recipients, Instant.now());
+    }
+
+    /**
+     * Factory method with explicit Reply-To address.
+     *
+     * <p>Use for human-initiated emails (e.g., CRM outreach) where replies should
+     * go to a specific person rather than the system no-reply address.</p>
+     *
+     * @param replyTo the address replies should be directed to (e.g., commercial's email)
+     */
+    public static EmailMessage withReplyTo(String subject, String htmlContent, String replyTo, String... recipients) {
+        return new EmailMessage(subject, htmlContent, replyTo, recipients, Instant.now());
     }
 
     /**

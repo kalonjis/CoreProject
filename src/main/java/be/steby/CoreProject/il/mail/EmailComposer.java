@@ -85,6 +85,27 @@ public class EmailComposer {
     }
 
     /**
+     * Composes and sends an email asynchronously with an explicit Reply-To address.
+     *
+     * <p>Use for human-initiated emails (e.g., CRM outreach) where the recipient
+     * should reply to a specific person rather than the system no-reply address.</p>
+     *
+     * @param subject      subject of the email
+     * @param templateName name of the Thymeleaf template (without "emails/" prefix)
+     * @param context      context data to fill the template
+     * @param replyTo      the address replies should be directed to
+     * @param to           recipient email addresses
+     */
+    @Async
+    public void sendMailWithReplyTo(String subject, String templateName, Context context, String replyTo, String... to) {
+        log.debug("Composing email '{}' for: {} with reply-to: {} (async)", subject, to, replyTo);
+        String htmlContent = templateEngine.process("emails/" + templateName, context);
+        EmailMessage message = EmailMessage.withReplyTo(subject, htmlContent, replyTo, to);
+        smtpMailSender.send(message);
+        log.debug("Email '{}' with reply-to composed and sent to SmtpMailSender (async)", subject);
+    }
+
+    /**
      * Composes an email message from a Thymeleaf template.
      *
      * @param subject      subject of the email

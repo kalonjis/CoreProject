@@ -6,6 +6,7 @@ import be.steby.CoreProject.dl.entities.crm.Pipeline;
 import be.steby.CoreProject.dl.entities.crm.PipelineStep;
 import be.steby.CoreProject.pl.domains.pipeline.models.requests.*;
 import be.steby.CoreProject.pl.domains.pipeline.models.responses.PipelineResponse;
+import be.steby.CoreProject.pl.domains.pipeline.models.responses.PipelineStatsResponse;
 import be.steby.CoreProject.pl.domains.pipeline.models.responses.PipelineStepResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -144,6 +145,22 @@ public class CrmPipelineController {
 
         pipelineService.delete(publicId, actor);
         return ResponseEntity.noContent().build();
+    }
+
+    // =========================================================================
+    // Stats
+    // =========================================================================
+
+    /**
+     * Returns conversion and velocity statistics for a pipeline.
+     *
+     * <p><strong>Endpoint:</strong> GET /api/crm/pipelines/{publicId}/stats</p>
+     */
+    @GetMapping("/{publicId}/stats")
+    @PreAuthorize("hasAnyAuthority('COMMERCIAL', 'ADMIN')")
+    @Operation(summary = "Pipeline stats", description = "Returns per-stage conversion rates and deal velocity for a pipeline")
+    public ResponseEntity<PipelineStatsResponse> getStats(@PathVariable String publicId) {
+        return ResponseEntity.ok(PipelineStatsResponse.from(pipelineService.getStats(publicId)));
     }
 
     // =========================================================================

@@ -1,8 +1,10 @@
 package be.steby.CoreProject.pl.domains.organisation.controllers;
 
+import be.steby.CoreProject.bll.domains.deal.services.DealService;
 import be.steby.CoreProject.bll.domains.organisation.services.OrganisationService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Organisation;
+import be.steby.CoreProject.pl.domains.deal.models.responses.DealSummaryResponse;
 import be.steby.CoreProject.pl.domains.organisation.models.requests.CreateOrganisationRequest;
 import be.steby.CoreProject.pl.domains.organisation.models.requests.MergeOrganisationRequest;
 import be.steby.CoreProject.pl.domains.organisation.models.requests.OrganisationListFilterRequest;
@@ -24,6 +26,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 
 /**
  * REST controller for CRM organisation management operations.
@@ -55,6 +58,7 @@ import java.net.URI;
 public class CrmOrganisationController {
 
     private final OrganisationService organisationService;
+    private final DealService dealService;
 
     // =========================================================================
     // Lookup
@@ -102,6 +106,27 @@ public class CrmOrganisationController {
 
         Organisation organisation = organisationService.getByPublicId(publicId);
         return ResponseEntity.ok(OrganisationDetailResponse.fromEntity(organisation));
+    }
+
+    /**
+     * Returns all deals linked to a given organisation.
+     *
+     * <p><strong>Endpoint:</strong> GET /api/crm/organisations/{publicId}/deals</p>
+     *
+     * @param publicId the public UUID of the organisation
+     * @return list of deal summaries for that organisation, newest first
+     */
+    @GetMapping("/{publicId}/deals")
+    @Operation(summary = "Get organisation deals", description = "Returns all deals linked to an organisation")
+    public ResponseEntity<List<DealSummaryResponse>> getDeals(@PathVariable String publicId) {
+        log.debug("CRM organisation deals requested — publicId: {}", publicId);
+
+        List<DealSummaryResponse> deals = dealService.findByOrganisation(publicId)
+                .stream()
+                .map(DealSummaryResponse::fromEntity)
+                .toList();
+
+        return ResponseEntity.ok(deals);
     }
 
     // =========================================================================
