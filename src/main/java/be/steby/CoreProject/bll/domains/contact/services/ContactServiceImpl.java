@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.contact.services;
 
+import be.steby.CoreProject.bll.common.models.changelog.FieldChange;
 import be.steby.CoreProject.bll.domains.contact.events.ContactAssignedEvent;
 import be.steby.CoreProject.bll.domains.contact.events.ContactCreatedEvent;
 import be.steby.CoreProject.bll.domains.contact.events.ContactCreatedFromLeadEvent;
@@ -7,6 +8,7 @@ import be.steby.CoreProject.bll.domains.contact.events.ContactMergedEvent;
 import be.steby.CoreProject.bll.domains.contact.events.ContactStatusChangedEvent;
 import be.steby.CoreProject.bll.domains.contact.events.ContactUpdatedEvent;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.bll.domains.contact.exceptions.*;
 import be.steby.CoreProject.bll.domains.contact.models.ContactAssignRequest;
 import be.steby.CoreProject.bll.domains.contact.models.ContactCreateRequest;
@@ -16,11 +18,19 @@ import be.steby.CoreProject.bll.domains.contact.models.ContactUpdateRequest;
 import be.steby.CoreProject.bll.domains.organisation.models.OrganisationCreateRequest;
 import be.steby.CoreProject.bll.domains.organisation.services.OrganisationService;
 import be.steby.CoreProject.dal.repositories.UserRepository;
+import be.steby.CoreProject.dal.repositories.crm.CommercialActionRepository;
+import be.steby.CoreProject.dl.enums.crm.CrmEntityType;
 import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
+import be.steby.CoreProject.dal.repositories.crm.DealContactRoleRepository;
+import be.steby.CoreProject.dal.repositories.crm.InteractionRepository;
 import be.steby.CoreProject.dal.repositories.crm.OrganisationRepository;
+import be.steby.CoreProject.dal.repositories.crm.TagRepository;
 import be.steby.CoreProject.dal.specifications.crm.ContactSpecification;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.entities.crm.CommercialAction;
 import be.steby.CoreProject.dl.entities.crm.Contact;
+import be.steby.CoreProject.dl.entities.crm.DealContactRole;
+import be.steby.CoreProject.dl.entities.crm.Interaction;
 import be.steby.CoreProject.dl.entities.crm.Lead;
 import be.steby.CoreProject.dl.entities.crm.Organisation;
 import be.steby.CoreProject.dl.enums.crm.ContactStatus;
@@ -33,6 +43,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
@@ -44,22 +55,30 @@ import java.util.UUID;
  * Implementation of {@link ContactService}.
  *
  * <h3>Creation flows</h3>
- * <p>Flow 1 (automatic) — {@link #createFromLead(Lead)} is triggered by
- * {@code ContactCreationListener} upon receiving a {@code LeadSubmittedEvent}.
+ * <p>Flow 1 (automatic) — {@link #createFromLead} is triggered by
+ * {@code LeadConversionListener} upon receiving a {@code LeadConvertedEvent}.
+ * The actor and device are forwarded from the originating lead conversion action
+ * so that the resulting {@code ContactCreatedFromLeadEvent} carries full audit context.
  * If a contact with the same email already exists, it is linked to the lead
  * and returned without creating a duplicate.</p>
  *
  * <p>Flow 2 (manual) — {@link #create(ContactCreateRequest, User)} is called
- * directly by the commercial team to encode a contact from any source.</p>
+ * directly by the commercial team to encode a contact from any source.
+ * The device is detected at call time via {@link DeviceService}.</p>
  *
  * <h3>Name handling from lead</h3>
- * <p>When creating a contact from a lead, the visitor's name (single field)
- * is stored in {@code firstName}. {@code lastName} is left null and a warning
- * is logged so the commercial team can complete the record manually.</p>
+ * <p>When creating a contact from a lead, the visitor's name fields ({@code firstName},
+ * {@code lastName}) are mapped directly from the lead. The commercial team
+ * can complete or correct the record manually via {@link #update}.</p>
  *
  * <h3>Status transition guard</h3>
- * <p>Valid transitions are defined in {@link #ALLOWED_TRANSITIONS}.
+ * <p>Valid transitions are enforced by {@link #ALLOWED_TRANSITIONS}.
  * Any attempt outside this map throws {@link ContactStatusTransitionException}.</p>
+ *
+ * <h3>Organisation resolution</h3>
+ * <p>During lead conversion, the organisation is resolved by
+ * {@link #resolveOrganisationForConversion}: first by public UUID, then by name
+ * (find-or-create). For manual creation, only public UUID resolution is supported.</p>
  */
 @Service
 @RequiredArgsConstructor
@@ -71,8 +90,13 @@ public class ContactServiceImpl implements ContactService {
     private final OrganisationRepository organisationRepository;
     private final OrganisationService organisationService;
     private final UserRepository userRepository;
+    private final TagRepository tagRepository;
+    private final InteractionRepository interactionRepository;
+    private final CommercialActionRepository commercialActionRepository;
+    private final DealContactRoleRepository dealContactRoleRepository;
     private final DeviceService deviceService;
     private final ApplicationEventPublisher eventPublisher;
+    private final ContactChangeLogService contactChangeLogService;
 
     // =========================================================================
     // Status transition rules
@@ -159,11 +183,20 @@ public class ContactServiceImpl implements ContactService {
                     .getId();
         }
 
+        Long tagId = null;
+        if (filter.tagPublicId() != null) {
+            tagId = tagRepository.findByPublicId(filter.tagPublicId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Tag not found with publicId: " + filter.tagPublicId()))
+                    .getId();
+        }
+
         Specification<Contact> spec = Specification.allOf(
                 ContactSpecification.nameOrEmailContains(filter.keyword()),
                 ContactSpecification.hasStatus(filter.status()),
                 ContactSpecification.hasLinkedUser(filter.hasLinkedUser()),
                 ContactSpecification.convertedFromLead(filter.convertedFromLead()),
+                ContactSpecification.hasTag(tagId),
                 organisationSpec,
                 ContactSpecification.assignedTo(assignedToId)
         );
@@ -183,9 +216,22 @@ public class ContactServiceImpl implements ContactService {
     // Creation
     // =========================================================================
 
+    /**
+     * Creates a contact from a converted lead.
+     *
+     * <p>If a contact with the same email already exists, no duplicate is created:
+     * the existing contact is linked to the lead via {@code originLead} and returned.</p>
+     *
+     * <p>The {@code actor} and {@code actorDevice} are forwarded from the
+     * {@code LeadConvertedEvent} so the published {@code ContactCreatedFromLeadEvent}
+     * carries the full audit trail of who triggered the conversion and from which device.</p>
+     *
+     * <p>The organisation is resolved via {@link #resolveOrganisationForConversion}:
+     * by public UUID first, then by name (find-or-create), or {@code null} for an independent contact.</p>
+     */
     @Override
     @Transactional
-    public Contact createFromLead(Lead lead, String organisationPublicId, String organisationName, User actor, String emailOverride) {
+    public Contact createFromLead(Lead lead, String organisationPublicId, String organisationName, User actor, Device actorDevice, String emailOverride) {
         String email = (emailOverride != null && !emailOverride.isBlank())
                 ? emailOverride.toLowerCase().trim()
                 : lead.getEmail();
@@ -227,7 +273,7 @@ public class ContactServiceImpl implements ContactService {
                             organisation != null ? organisation.getName() : "none");
 
                     eventPublisher.publishEvent(new ContactCreatedFromLeadEvent(
-                            saved, lead, null, null));
+                            saved, lead, actor, actorDevice));
                     return saved;
                 });
     }
@@ -279,23 +325,43 @@ public class ContactServiceImpl implements ContactService {
 
         Contact contact = getByPublicId(publicId);
 
+        List<FieldChange> changes = new ArrayList<>();
+
         if (request.email() != null && !request.email().equalsIgnoreCase(contact.getEmail())) {
             if (contactRepository.existsByEmailIgnoreCase(request.email())) {
                 throw ContactEmailAlreadyExistsException.forEmail(request.email());
             }
+            changes.add(new FieldChange("email", contact.getEmail(), request.email().toLowerCase().trim()));
             contact.setEmail(request.email().toLowerCase().trim());
         }
-        if (request.firstName() != null) contact.setFirstName(request.firstName().trim());
-        if (request.lastName()  != null) contact.setLastName(request.lastName().trim());
-        if (request.phone()     != null) contact.setPhone(request.phone());
-        if (request.jobTitle()  != null) contact.setJobTitle(request.jobTitle());
-        if (request.notes()     != null) contact.setNotes(request.notes());
+        if (request.firstName() != null && !request.firstName().trim().equals(contact.getFirstName())) {
+            changes.add(new FieldChange("firstName", contact.getFirstName(), request.firstName().trim()));
+            contact.setFirstName(request.firstName().trim());
+        }
+        if (request.lastName() != null && !request.lastName().trim().equals(contact.getLastName())) {
+            changes.add(new FieldChange("lastName", contact.getLastName(), request.lastName().trim()));
+            contact.setLastName(request.lastName().trim());
+        }
+        if (request.phone() != null && !request.phone().equals(contact.getPhone())) {
+            changes.add(new FieldChange("phone", contact.getPhone(), request.phone()));
+            contact.setPhone(request.phone());
+        }
+        if (request.jobTitle() != null && !request.jobTitle().equals(contact.getJobTitle())) {
+            changes.add(new FieldChange("jobTitle", contact.getJobTitle(), request.jobTitle()));
+            contact.setJobTitle(request.jobTitle());
+        }
+        if (request.notes() != null && !request.notes().equals(contact.getNotes())) {
+            changes.add(new FieldChange("notes", contact.getNotes(), request.notes()));
+            contact.setNotes(request.notes());
+        }
 
         Contact saved = contactRepository.save(contact);
         log.info("Contact updated — publicId: {}, by: {}", publicId, actor.getUsername());
 
         eventPublisher.publishEvent(new ContactUpdatedEvent(
                 saved, actor, deviceService.detectAndRegisterDevice(actor)));
+
+        contactChangeLogService.logChanges(CrmEntityType.CONTACT, saved.getPublicId(), changes, actor);
         return saved;
     }
 
@@ -318,6 +384,10 @@ public class ContactServiceImpl implements ContactService {
 
         eventPublisher.publishEvent(new ContactStatusChangedEvent(
                 saved, current, newStatus, actor, deviceService.detectAndRegisterDevice(actor)));
+
+        contactChangeLogService.logChange(
+                CrmEntityType.CONTACT, saved.getPublicId(),
+                "status", current.name(), newStatus.name(), actor);
         return saved;
     }
 
@@ -419,7 +489,38 @@ public class ContactServiceImpl implements ContactService {
         if (target.getOrganisation() == null && source.getOrganisation() != null) target.setOrganisation(source.getOrganisation());
         if (target.getOriginLead()   == null && source.getOriginLead()   != null) target.setOriginLead(source.getOriginLead());
 
-        // Note: Deal and Interaction reassignment deferred to Deal/Interaction domain implementation
+        // Reassign interactions from source to target
+        List<Interaction> interactions = interactionRepository.findByContactIdOrderByOccurredAtDesc(source.getId());
+        interactions.forEach(i -> i.setContact(target));
+        interactionRepository.saveAll(interactions);
+        log.info("Contact merge — {} interaction(s) reassigned from {} to {}",
+                interactions.size(), source.getPublicId(), target.getPublicId());
+
+        // Reassign commercial actions from source to target
+        List<CommercialAction> actions = commercialActionRepository.findByContactIdOrderByDueDateAsc(source.getId());
+        actions.forEach(a -> a.setContact(target));
+        commercialActionRepository.saveAll(actions);
+        log.info("Contact merge — {} commercial action(s) reassigned from {} to {}",
+                actions.size(), source.getPublicId(), target.getPublicId());
+
+        // Reassign deal contact roles from source to target
+        // If target is already on the same deal, drop the source role to avoid the unique constraint
+        List<DealContactRole> sourceRoles = dealContactRoleRepository.findByContactId(source.getId());
+        for (DealContactRole role : sourceRoles) {
+            Long dealId = role.getDeal().getId();
+            if (dealContactRoleRepository.existsByDealIdAndContactId(dealId, target.getId())) {
+                dealContactRoleRepository.delete(role);
+                log.debug("Contact merge — duplicate DealContactRole dropped (deal {}, source {})",
+                        dealId, source.getPublicId());
+            } else {
+                role.setContact(target);
+                dealContactRoleRepository.save(role);
+                log.debug("Contact merge — DealContactRole reassigned to target {} (deal {})",
+                        target.getPublicId(), dealId);
+            }
+        }
+        log.info("Contact merge — {} deal role(s) processed from {} to {}",
+                sourceRoles.size(), source.getPublicId(), target.getPublicId());
 
         // Archive source contact (soft delete)
         source.setStatus(ContactStatus.INACTIVE);

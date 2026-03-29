@@ -186,7 +186,7 @@ public class CrmDealController {
         log.info("Deal stage move requested — publicId: {}, stage: {}, by: {}",
                 publicId, request.stagePublicId(), actor.getUsername());
 
-        Deal deal = dealService.moveToStage(publicId, request.stagePublicId(), actor);
+        Deal deal = dealService.moveToStage(publicId, request.stagePublicId(), request.lostReason(), actor);
         return ResponseEntity.ok(DealDetailResponse.fromEntity(deal));
     }
 

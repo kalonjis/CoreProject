@@ -25,6 +25,7 @@ import java.time.LocalDate;
  *   <li>{@code overdueOnly}           → {@code DealSpecification.isOverdue} (takes precedence over date filters)</li>
  *   <li>{@code amountMin} / {@code amountMax} → {@code DealSpecification.amountBetween}</li>
  *   <li>{@code expectedCloseFrom} / {@code expectedCloseTo} → {@code DealSpecification.expectedCloseBetween}</li>
+ *   <li>{@code tagPublicId}           → resolved to internal ID → {@code DealSpecification.hasTag}</li>
  * </ul>
  *
  * @param keyword              search term matched against deal title (optional)
@@ -39,6 +40,7 @@ import java.time.LocalDate;
  * @param amountMax            maximum deal amount, inclusive (optional)
  * @param expectedCloseFrom    earliest expected close date, inclusive (optional)
  * @param expectedCloseTo      latest expected close date, inclusive (optional)
+ * @param tagPublicId          filter deals that have a specific tag applied (optional)
  */
 public record DealFilterRequest(
         String keyword,
@@ -52,5 +54,6 @@ public record DealFilterRequest(
         BigDecimal amountMin,
         BigDecimal amountMax,
         LocalDate expectedCloseFrom,
-        LocalDate expectedCloseTo
+        LocalDate expectedCloseTo,
+        String tagPublicId
 ) {}

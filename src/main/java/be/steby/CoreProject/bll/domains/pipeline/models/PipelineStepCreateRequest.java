@@ -22,16 +22,18 @@ package be.steby.CoreProject.bll.domains.pipeline.models;
  * falls back to a neutral default. The service layer does not validate the format —
  * validation is handled at the PL level.</p>
  *
- * @param name     display name of the step (required)
- * @param color    hex color code for the Kanban column (optional)
- * @param position zero-based display order within the pipeline (required)
- * @param isWon    marks this step as the terminal Won stage
- * @param isLost   marks this step as the terminal Lost stage
+ * @param name           display name of the step (required)
+ * @param color          hex color code for the Kanban column (optional)
+ * @param position       zero-based display order within the pipeline (required)
+ * @param isWon          marks this step as the terminal Won stage
+ * @param isLost         marks this step as the terminal Lost stage
+ * @param winProbability estimated win probability 0–100 (defaults to 50)
  */
 public record PipelineStepCreateRequest(
         String name,
         String color,
         int position,
         boolean isWon,
-        boolean isLost
+        boolean isLost,
+        int winProbability
 ) {}

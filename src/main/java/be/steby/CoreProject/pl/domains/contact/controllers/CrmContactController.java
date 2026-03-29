@@ -1,11 +1,15 @@
 package be.steby.CoreProject.pl.domains.contact.controllers;
 
 import be.steby.CoreProject.bll.domains.contact.services.ContactService;
+import be.steby.CoreProject.bll.domains.deal.services.DealService;
+import be.steby.CoreProject.bll.domains.outreach.services.CrmOutreachService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.pl.domains.contact.models.requests.*;
+import be.steby.CoreProject.pl.domains.contact.models.requests.SendContactEmailRequest;
 import be.steby.CoreProject.pl.domains.contact.models.responses.ContactDetailResponse;
 import be.steby.CoreProject.pl.domains.contact.models.responses.ContactSummaryResponse;
+import be.steby.CoreProject.pl.domains.deal.models.responses.DealSummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -21,6 +25,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 
 /**
  * REST controller for CRM contact management operations.
@@ -54,7 +59,9 @@ import java.net.URI;
 @Tag(name = "CRM - Contacts", description = "Contact management and CRM lifecycle")
 public class CrmContactController {
 
-    private final ContactService contactService;
+    private final ContactService      contactService;
+    private final DealService         dealService;
+    private final CrmOutreachService  outreachService;
 
     // =========================================================================
     // Lookup
@@ -122,6 +129,27 @@ public class CrmContactController {
 
         Contact contact = contactService.getByOriginLeadPublicId(leadPublicId);
         return ResponseEntity.ok(ContactDetailResponse.fromEntity(contact));
+    }
+
+    /**
+     * Returns all deals involving a given contact (in any role).
+     *
+     * <p><strong>Endpoint:</strong> GET /api/crm/contacts/{publicId}/deals</p>
+     *
+     * @param publicId the public UUID of the contact
+     * @return list of deal summaries for that contact, newest first
+     */
+    @GetMapping("/{publicId}/deals")
+    @Operation(summary = "Get contact deals", description = "Returns all deals involving a contact in any role")
+    public ResponseEntity<List<DealSummaryResponse>> getDeals(@PathVariable String publicId) {
+        log.debug("CRM contact deals requested — publicId: {}", publicId);
+
+        List<DealSummaryResponse> deals = dealService.findByContact(publicId)
+                .stream()
+                .map(DealSummaryResponse::fromEntity)
+                .toList();
+
+        return ResponseEntity.ok(deals);
     }
 
     // =========================================================================
@@ -251,6 +279,39 @@ public class CrmContactController {
 
         Contact contact = contactService.assign(publicId, request.toBllModel(), actor);
         return ResponseEntity.ok(ContactDetailResponse.fromEntity(contact));
+    }
+
+    // =========================================================================
+    // Outreach
+    // =========================================================================
+
+    /**
+     * Sends a CRM outreach email from the authenticated commercial to a contact,
+     * and automatically logs it as an {@code EMAIL} interaction in the timeline.
+     *
+     * <p>The email is sent with the commercial's email address as the {@code Reply-To}
+     * header, so the contact's reply goes directly to the commercial's inbox.</p>
+     *
+     * <p><strong>Endpoint:</strong> POST /api/crm/contacts/{publicId}/email</p>
+     *
+     * @param publicId the public UUID of the target contact
+     * @param request  the email subject and body
+     * @param actor    the authenticated commercial sending the email
+     * @return 204 No Content on success
+     */
+    @PostMapping("/{publicId}/email")
+    @Operation(summary = "Send email to contact",
+               description = "Sends an outreach email to a contact and logs it as an interaction")
+    public ResponseEntity<Void> sendEmail(
+            @PathVariable String publicId,
+            @Valid @RequestBody SendContactEmailRequest request,
+            @AuthenticationPrincipal User actor) {
+
+        log.info("CRM outreach requested — contact: {}, subject: '{}', by: {}",
+                publicId, request.subject(), actor.getUsername());
+
+        outreachService.send(request.toBllModel(publicId), actor);
+        return ResponseEntity.noContent().build();
     }
 
     // =========================================================================

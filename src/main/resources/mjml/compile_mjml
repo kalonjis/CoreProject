@@ -41,6 +41,9 @@ mjml src/main/resources/mjml/emails/notification/notification-generic.mjml -o sr
 mjml src/main/resources/mjml/emails/notification/notification-reminder.mjml -o src/main/resources/templates/emails/notification/notification-reminder.html
 mjml src/main/resources/mjml/emails/notification/notification-security.mjml -o src/main/resources/templates/emails/notification/notification-security.html
 
+# CRM
+mjml src/main/resources/mjml/emails/crm/outreach.mjml -o src/main/resources/templates/emails/crm/outreach.html
+
 # Passwords
 mjml src/main/resources/mjml/emails/passwords/NewPasswordRequest.mjml -o src/main/resources/templates/emails/passwords/NewPasswordRequest.html
 mjml src/main/resources/mjml/emails/passwords/PasswordResetRefresh.mjml -o src/main/resources/templates/emails/passwords/PasswordResetRefresh.html

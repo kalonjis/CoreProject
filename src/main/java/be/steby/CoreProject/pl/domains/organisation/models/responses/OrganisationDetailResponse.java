@@ -2,8 +2,10 @@ package be.steby.CoreProject.pl.domains.organisation.models.responses;
 
 import be.steby.CoreProject.dl.entities.crm.Organisation;
 import be.steby.CoreProject.dl.enums.crm.OrganisationSize;
+import be.steby.CoreProject.pl.domains.tag.models.responses.TagResponse;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Full response model for the organisation detail view.
@@ -19,6 +21,7 @@ import java.time.Instant;
  * @param phone           main switchboard phone number, or {@code null} if not set
  * @param addressPublicId public UUID of the linked address, or {@code null} if none
  * @param notes           internal notes, or {@code null} if none
+ * @param tags            tags applied to this organisation
  * @param createdAt       timestamp of entity creation
  * @param updatedAt       timestamp of last update
  */
@@ -31,6 +34,7 @@ public record OrganisationDetailResponse(
         String phone,
         String addressPublicId,
         String notes,
+        List<TagResponse> tags,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -51,6 +55,7 @@ public record OrganisationDetailResponse(
                 organisation.getPhone(),
                 organisation.getAddress() != null ? organisation.getAddress().getPublicId() : null,
                 organisation.getNotes(),
+                organisation.getTags().stream().map(TagResponse::fromEntity).toList(),
                 organisation.getCreatedAt(),
                 organisation.getUpdatedAt()
         );

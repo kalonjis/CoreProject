@@ -125,6 +125,19 @@ public class PipelineStep extends BaseEntity<Long> {
     private boolean isWon = false;
 
     /**
+     * Estimated probability (0–100) that a deal at this stage will be won.
+     *
+     * <p>Used for weighted revenue forecasting:
+     * {@code forecast = SUM(deal.amount × winProbability / 100)} across all open deals.</p>
+     *
+     * <p>Configured by admins in pipeline settings. Defaults to 50%.
+     * Terminal stages are typically set to 100 (Won) or 0 (Lost).</p>
+     */
+    @Column(name = "win_probability", nullable = false)
+    @Builder.Default
+    private int winProbability = 50;
+
+    /**
      * Marks this stage as the "Lost" terminal stage.
      *
      * <p>When a deal reaches this stage, its status is set to {@code LOST}

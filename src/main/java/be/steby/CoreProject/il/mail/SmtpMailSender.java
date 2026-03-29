@@ -100,6 +100,9 @@ public class SmtpMailSender {
             helper.setTo(message.recipients());
             helper.setSubject(message.subject());
             helper.setText(message.htmlContent(), true);
+            if (message.replyTo() != null && !message.replyTo().isBlank()) {
+                helper.setReplyTo(message.replyTo());
+            }
 
             mailSender.send(mimeMessage);
 

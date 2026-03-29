@@ -3,6 +3,7 @@ package be.steby.CoreProject.pl.domains.deal.models.responses;
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.entities.crm.Deal;
 import be.steby.CoreProject.dl.enums.crm.DealStatus;
+import be.steby.CoreProject.pl.domains.tag.models.responses.TagResponse;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -36,6 +37,7 @@ import java.util.List;
  * @param assignedToPublicId   public UUID of the assigned commercial
  * @param assignedToUsername   username of the assigned commercial
  * @param notes                internal notes, or {@code null} if none
+ * @param lostReason           reason for loss, or {@code null} if not lost
  * @param createdAt            timestamp of entity creation
  * @param updatedAt            timestamp of last update
  */
@@ -60,6 +62,8 @@ public record DealDetailResponse(
         String assignedToPublicId,
         String assignedToUsername,
         String notes,
+        String lostReason,
+        List<TagResponse> tags,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -92,6 +96,8 @@ public record DealDetailResponse(
                 deal.getAssignedTo()   != null ? deal.getAssignedTo().getPublicId()   : null,
                 deal.getAssignedTo()   != null ? deal.getAssignedTo().getUsername()   : null,
                 deal.getNotes(),
+                deal.getLostReason(),
+                deal.getTags().stream().map(TagResponse::fromEntity).toList(),
                 deal.getCreatedAt(),
                 deal.getUpdatedAt()
         );

@@ -6,11 +6,14 @@ import be.steby.CoreProject.bll.domains.pipeline.exceptions.PipelineNotFoundExce
 import be.steby.CoreProject.bll.domains.pipeline.exceptions.PipelineStepNotFoundException;
 import be.steby.CoreProject.bll.domains.pipeline.exceptions.PipelineValidationException;
 import be.steby.CoreProject.bll.domains.pipeline.models.PipelineCreateRequest;
+import be.steby.CoreProject.bll.domains.pipeline.models.PipelineStatsResult;
+import be.steby.CoreProject.bll.domains.pipeline.models.PipelineStatsResult.StageStats;
 import be.steby.CoreProject.bll.domains.pipeline.models.PipelineStepCreateRequest;
 import be.steby.CoreProject.bll.domains.pipeline.models.PipelineStepReorderRequest;
 import be.steby.CoreProject.bll.domains.pipeline.models.PipelineStepUpdateRequest;
 import be.steby.CoreProject.bll.domains.pipeline.models.PipelineUpdateRequest;
 import be.steby.CoreProject.dal.repositories.crm.DealRepository;
+import be.steby.CoreProject.dal.repositories.crm.DealStageHistoryRepository;
 import be.steby.CoreProject.dal.repositories.crm.PipelineRepository;
 import be.steby.CoreProject.dal.repositories.crm.PipelineStepRepository;
 import be.steby.CoreProject.dl.entities.User;
@@ -22,8 +25,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -54,6 +60,7 @@ public class PipelineServiceImpl implements PipelineService {
     private final PipelineRepository pipelineRepository;
     private final PipelineStepRepository pipelineStepRepository;
     private final DealRepository dealRepository;
+    private final DealStageHistoryRepository dealStageHistoryRepository;
 
     // =========================================================================
     // Lookup — Pipeline
@@ -90,6 +97,69 @@ public class PipelineServiceImpl implements PipelineService {
     public List<PipelineStep> getSteps(String pipelinePublicId) {
         Pipeline pipeline = getByPublicId(pipelinePublicId);
         return pipelineStepRepository.findByPipelineIdOrderByPositionAsc(pipeline.getId());
+    }
+
+    // =========================================================================
+    // Stats
+    // =========================================================================
+
+    @Override
+    public PipelineStatsResult getStats(String pipelinePublicId) {
+        Pipeline pipeline = getByPublicId(pipelinePublicId);
+        List<PipelineStep> steps = pipelineStepRepository.findByPipelineIdOrderByPositionAsc(pipeline.getId());
+
+        // Build a map of open deal counts per step from a single query
+        Map<Long, Long> openDealsByStep = new HashMap<>();
+        dealRepository.countOpenDealsByStage(pipeline.getId())
+                .forEach(row -> openDealsByStep.put((Long) row[0], (Long) row[1]));
+
+        // Collect dealsEntered per step (needed for conversion rate calculation)
+        List<Long> enteredByStep = new ArrayList<>(steps.size());
+        for (PipelineStep step : steps) {
+            enteredByStep.add(dealStageHistoryRepository.countDealsEnteredStep(step.getId()));
+        }
+
+        // Build per-stage stats
+        List<StageStats> stageStats = new ArrayList<>(steps.size());
+        for (int i = 0; i < steps.size(); i++) {
+            PipelineStep step = steps.get(i);
+            long dealsCurrently = openDealsByStep.getOrDefault(step.getId(), 0L);
+            long dealsEntered   = enteredByStep.get(i);
+            Double avgDays      = dealStageHistoryRepository.avgDaysInStep(step.getId());
+
+            Double conversionRate = null;
+            if (i < steps.size() - 1 && dealsEntered > 0) {
+                long nextEntered = enteredByStep.get(i + 1);
+                conversionRate = (nextEntered * 100.0) / dealsEntered;
+            }
+
+            stageStats.add(new StageStats(
+                    step.getPublicId(),
+                    step.getName(),
+                    step.getPosition(),
+                    step.isWon(),
+                    step.isLost(),
+                    dealsCurrently,
+                    dealsEntered,
+                    conversionRate,
+                    avgDays
+            ));
+        }
+
+        // Overall KPIs
+        long wonCount  = dealRepository.countByPipelineIdAndStatus(pipeline.getId(), DealStatus.WON);
+        long lostCount = dealRepository.countByPipelineIdAndStatus(pipeline.getId(), DealStatus.LOST);
+        long closedTotal = wonCount + lostCount;
+        Double winRate = closedTotal > 0 ? (wonCount * 100.0) / closedTotal : null;
+        Double avgDealCycleDays = dealRepository.avgDealCycleDaysForPipeline(pipeline.getId());
+
+        return new PipelineStatsResult(
+                pipeline.getPublicId(),
+                pipeline.getName(),
+                stageStats,
+                winRate,
+                avgDealCycleDays
+        );
     }
 
     // =========================================================================
@@ -203,6 +273,7 @@ public class PipelineServiceImpl implements PipelineService {
                 .position(request.position())
                 .isWon(request.isWon())
                 .isLost(request.isLost())
+                .winProbability(request.winProbability())
                 .pipeline(pipeline)
                 .build();
 
@@ -222,8 +293,9 @@ public class PipelineServiceImpl implements PipelineService {
 
         PipelineStep step = getStepByPublicId(stepPublicId);
 
-        if (request.name() != null)  step.setName(request.name().trim());
-        if (request.color() != null) step.setColor(request.color().isBlank() ? null : request.color().trim());
+        if (request.name() != null)            step.setName(request.name().trim());
+        if (request.color() != null)           step.setColor(request.color().isBlank() ? null : request.color().trim());
+        if (request.winProbability() != null)  step.setWinProbability(request.winProbability());
 
         PipelineStep saved = pipelineStepRepository.save(step);
         log.info("Step updated — publicId: {}, by: {}", stepPublicId, actor.getUsername());

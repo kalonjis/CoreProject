@@ -25,6 +25,7 @@ import java.time.LocalDate;
  * @param amountMax            maximum deal amount, inclusive
  * @param expectedCloseFrom    earliest expected close date, inclusive
  * @param expectedCloseTo      latest expected close date, inclusive
+ * @param tagPublicId          filter deals that have a specific tag applied
  */
 public record DealListFilterRequest(
 
@@ -39,7 +40,8 @@ public record DealListFilterRequest(
         BigDecimal amountMin,
         BigDecimal amountMax,
         LocalDate expectedCloseFrom,
-        LocalDate expectedCloseTo
+        LocalDate expectedCloseTo,
+        String tagPublicId
 
 ) {
 
@@ -61,7 +63,8 @@ public record DealListFilterRequest(
                 amountMin,
                 amountMax,
                 expectedCloseFrom,
-                expectedCloseTo
+                expectedCloseTo,
+                tagPublicId
         );
     }
 }

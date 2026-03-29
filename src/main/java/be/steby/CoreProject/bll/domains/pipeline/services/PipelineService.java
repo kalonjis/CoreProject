@@ -1,6 +1,7 @@
 package be.steby.CoreProject.bll.domains.pipeline.services;
 
 import be.steby.CoreProject.bll.domains.pipeline.models.PipelineCreateRequest;
+import be.steby.CoreProject.bll.domains.pipeline.models.PipelineStatsResult;
 import be.steby.CoreProject.bll.domains.pipeline.models.PipelineStepCreateRequest;
 import be.steby.CoreProject.bll.domains.pipeline.models.PipelineStepReorderRequest;
 import be.steby.CoreProject.bll.domains.pipeline.models.PipelineStepUpdateRequest;
@@ -87,6 +88,23 @@ public interface PipelineService {
      * @throws be.steby.CoreProject.bll.domains.pipeline.exceptions.PipelineNotFoundException if pipeline not found
      */
     List<PipelineStep> getSteps(String pipelinePublicId);
+
+    // =========================================================================
+    // Stats
+    // =========================================================================
+
+    /**
+     * Computes conversion and velocity statistics for a pipeline.
+     *
+     * <p>Returns per-stage funnel metrics (deals entered, conversion rate,
+     * average days in stage) computed from {@code DealStageHistory}, plus
+     * overall pipeline KPIs (win rate, average deal cycle).</p>
+     *
+     * @param pipelinePublicId the public UUID of the pipeline
+     * @return aggregated pipeline statistics
+     * @throws be.steby.CoreProject.bll.domains.pipeline.exceptions.PipelineNotFoundException if not found
+     */
+    PipelineStatsResult getStats(String pipelinePublicId);
 
     // =========================================================================
     // Pipeline — Create / Update / Delete

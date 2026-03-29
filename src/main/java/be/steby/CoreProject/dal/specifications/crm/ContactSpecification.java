@@ -1,7 +1,10 @@
 package be.steby.CoreProject.dal.specifications.crm;
 
 import be.steby.CoreProject.dl.entities.crm.Contact;
+import be.steby.CoreProject.dl.entities.crm.Tag;
 import be.steby.CoreProject.dl.enums.crm.ContactStatus;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import org.springframework.data.jpa.domain.Specification;
 
 /**
@@ -155,5 +158,27 @@ public class ContactSpecification {
     public static Specification<Contact> assignedTo(Long assignedToId) {
         if (assignedToId == null) return null;
         return (root, query, cb) -> cb.equal(root.get("assignedTo").get("id"), assignedToId);
+    }
+
+    // =========================================================================
+    // Tags
+    // =========================================================================
+
+    /**
+     * Filters contacts that have a specific tag applied.
+     *
+     * <p>Uses an INNER JOIN on the {@code tags} collection. {@code query.distinct(true)}
+     * is applied to prevent duplicate rows when a contact has multiple tags.</p>
+     *
+     * @param tagId the internal ID of the tag, or {@code null} to skip
+     * @return the specification, or {@code null}
+     */
+    public static Specification<Contact> hasTag(Long tagId) {
+        if (tagId == null) return null;
+        return (root, query, cb) -> {
+            query.distinct(true);
+            Join<Contact, Tag> tags = root.join("tags", JoinType.INNER);
+            return cb.equal(tags.get("id"), tagId);
+        };
     }
 }

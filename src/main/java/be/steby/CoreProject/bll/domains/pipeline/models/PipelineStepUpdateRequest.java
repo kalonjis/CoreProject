@@ -16,10 +16,12 @@ package be.steby.CoreProject.bll.domains.pipeline.models;
  *       deals and requires a dedicated service operation.</li>
  * </ul>
  *
- * @param name   new display name of the step (optional)
- * @param color  new hex color code for the Kanban column (optional, pass empty string to clear)
+ * @param name           new display name of the step (optional)
+ * @param color          new hex color code for the Kanban column (optional, pass empty string to clear)
+ * @param winProbability new win probability 0–100 (optional, null = don't update)
  */
 public record PipelineStepUpdateRequest(
         String name,
-        String color
+        String color,
+        Integer winProbability
 ) {}

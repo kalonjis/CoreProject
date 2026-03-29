@@ -16,16 +16,19 @@ import be.steby.CoreProject.dl.enums.crm.OrganisationSize;
  *   <li>{@code industry}    → {@code OrganisationSpecification.hasIndustry}</li>
  *   <li>{@code size}        → {@code OrganisationSpecification.hasSize}</li>
  *   <li>{@code countryCode} → {@code OrganisationSpecification.inCountry}</li>
+ *   <li>{@code tagPublicId} → {@code OrganisationSpecification.hasTag}</li>
  * </ul>
  *
  * @param keyword     search term matched against the organisation name (optional)
  * @param industry    filter by sector of activity keyword (optional)
  * @param size        filter by headcount size bucket (optional)
  * @param countryCode ISO 3166-1 alpha-2 country code to filter by address location (optional)
+ * @param tagPublicId public UUID of the tag to filter by (optional)
  */
 public record OrganisationFilterRequest(
         String keyword,
         String industry,
         OrganisationSize size,
-        String countryCode
+        String countryCode,
+        String tagPublicId
 ) {}

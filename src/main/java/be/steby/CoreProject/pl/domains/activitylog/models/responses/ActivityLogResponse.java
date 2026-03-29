@@ -25,6 +25,7 @@ import java.time.Instant;
  * @param successful      whether the action completed successfully
  * @param failureReason   human-readable reason when {@code successful} is false; null otherwise
  * @param actionDetails   contextual details when {@code successful} is true; null otherwise
+ * @param actorUsername   username of the user who performed the action; null for system or public events
  * @param actorDeviceId   public id of the device that initiated the action; null if not applicable
  * @param targetDeviceId  public id of the device targeted by the action; null if not applicable
  * @param ipAddress       IP address of the actor device at the time of the action; null if not applicable
@@ -38,6 +39,7 @@ public record ActivityLogResponse(
         boolean successful,
         String failureReason,
         String actionDetails,
+        String actorUsername,
         String actorDeviceId,
         String targetDeviceId,
         String ipAddress,
@@ -59,6 +61,7 @@ public record ActivityLogResponse(
                 log.isSuccessful(),
                 log.getFailureReason(),
                 log.getActionDetails(),
+                log.getUser()         != null ? log.getUser().getUsername()                    : null,
                 log.getDevice()       != null ? log.getDevice().getPublicId().toString()       : null,
                 log.getTargetDevice() != null ? log.getTargetDevice().getPublicId().toString() : null,
                 log.getIpAddress(),

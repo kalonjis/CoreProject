@@ -2,6 +2,7 @@ package be.steby.CoreProject.bll.domains.contact.services;
 
 import be.steby.CoreProject.bll.domains.contact.models.*;
 import be.steby.CoreProject.bll.domains.contact.exceptions.*;
+import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.entities.crm.Lead;
@@ -132,6 +133,7 @@ public interface ContactService {
      * @param organisationPublicId public UUID of an existing organisation (may be null)
      * @param organisationName     organisation name to find-or-create (may be null)
      * @param actor                the commercial who performed the conversion
+     * @param actorDevice          the device from which the conversion was performed (may be null)
      * @param emailOverride        email to use instead of the lead's email (may be null)
      * @return the newly created (or existing) contact
      */
@@ -139,6 +141,7 @@ public interface ContactService {
                            @Nullable String organisationPublicId,
                            @Nullable String organisationName,
                            User actor,
+                           @Nullable Device actorDevice,
                            @Nullable String emailOverride);
 
     /**

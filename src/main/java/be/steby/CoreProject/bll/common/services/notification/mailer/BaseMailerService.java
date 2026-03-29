@@ -152,6 +152,23 @@ public abstract class BaseMailerService {
     }
 
     /**
+     * Sends an email asynchronously with an explicit Reply-To address.
+     *
+     * <p>Use for human-initiated emails (e.g., CRM outreach) where the recipient
+     * should reply to a specific person rather than the system no-reply address.</p>
+     *
+     * @param subject      the email subject
+     * @param templateName the template name (without "emails/" prefix)
+     * @param context      the template context
+     * @param replyTo      the address replies should be directed to
+     * @param recipients   the recipient email addresses
+     */
+    protected void sendEmailWithReplyTo(String subject, String templateName, Context context,
+                                        String replyTo, String... recipients) {
+        emailComposer.sendMailWithReplyTo(subject, templateName, context, replyTo, recipients);
+    }
+
+    /**
      * Sends an email synchronously using the mailer utility.
      *
      * If delivery fails, throws immediately instead of queuing for retry.

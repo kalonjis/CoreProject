@@ -1,6 +1,8 @@
 package be.steby.CoreProject.pl.domains.pipeline.models.requests;
 
 import be.steby.CoreProject.bll.domains.pipeline.models.PipelineStepUpdateRequest;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -10,8 +12,9 @@ import jakarta.validation.constraints.Size;
  * <p>All fields are optional — only non-null values are applied.
  * Pass an empty string for {@code color} to clear it.</p>
  *
- * @param name   new display name (optional)
- * @param color  new hex color code (optional, pass empty string to clear)
+ * @param name           new display name (optional)
+ * @param color          new hex color code (optional, pass empty string to clear)
+ * @param winProbability new win probability 0–100 (optional)
  */
 public record UpdatePipelineStepRequest(
 
@@ -19,14 +22,19 @@ public record UpdatePipelineStepRequest(
         String name,
 
         @Pattern(regexp = "^(#[0-9A-Fa-f]{6})?$", message = "Color must be a valid hex code (e.g. #27ae60) or empty to clear")
-        String color
+        String color,
+
+        @Min(value = 0,   message = "Win probability must be between 0 and 100")
+        @Max(value = 100, message = "Win probability must be between 0 and 100")
+        Integer winProbability
 
 ) {
 
     public PipelineStepUpdateRequest toBllModel() {
         return new PipelineStepUpdateRequest(
                 name != null ? name.trim() : null,
-                color
+                color,
+                winProbability
         );
     }
 }

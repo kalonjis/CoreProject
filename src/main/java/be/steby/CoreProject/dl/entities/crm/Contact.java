@@ -6,6 +6,9 @@ import be.steby.CoreProject.dl.enums.crm.ContactStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Represents a physical person tracked in the CRM.
  *
@@ -221,6 +224,20 @@ public class Contact extends BaseEntity<Long> {
      */
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
+
+    // =========================================================================
+    // Tags
+    // =========================================================================
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "contact_tag",
+        joinColumns        = @JoinColumn(name = "contact_id"),
+        inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    @Builder.Default
+    @EqualsAndHashCode.Exclude
+    private Set<Tag> tags = new HashSet<>();
 
     // =========================================================================
     // Utility methods

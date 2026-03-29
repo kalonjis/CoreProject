@@ -129,6 +129,9 @@ public interface DealRepository extends JpaRepository<Deal, Long>,
      */
     List<Deal> findByExpectedCloseDateBeforeAndStatus(LocalDate today, DealStatus status);
 
+    List<Deal> findByExpectedCloseDateBetweenAndStatusOrderByExpectedCloseDateAsc(
+            LocalDate from, LocalDate to, DealStatus status);
+
     // =========================================================================
     // Reporting & forecasting
     // =========================================================================
@@ -180,4 +183,54 @@ public interface DealRepository extends JpaRepository<Deal, Long>,
 
     @Query("SELECT COALESCE(SUM(d.amount), 0) FROM Deal d WHERE d.status = 'WON' AND d.closedAt >= :since")
     java.math.BigDecimal sumAmountWonSince(@Param("since") java.time.Instant since);
+
+    /**
+     * Computes the weighted revenue forecast for all open deals.
+     *
+     * <p>Formula: {@code SUM(deal.amount × stage.winProbability / 100)}
+     * for all OPEN deals with a non-null amount.</p>
+     *
+     * <p>Used on the dashboard to show the expected revenue given the
+     * current pipeline composition and per-stage win probabilities.</p>
+     *
+     * @return weighted forecast revenue, or {@code 0} if no qualifying deals exist
+     */
+    @Query("SELECT COALESCE(SUM(d.amount * d.pipelineStep.winProbability / 100.0), 0) " +
+           "FROM Deal d WHERE d.status = 'OPEN' AND d.amount IS NOT NULL")
+    java.math.BigDecimal sumWeightedForecast();
+
+    @Query("SELECT d FROM Deal d WHERE LOWER(d.title) LIKE :kw")
+    List<Deal> searchByKeyword(@Param("kw") String keyword, org.springframework.data.domain.Pageable pageable);
+
+    // =========================================================================
+    // Pipeline stats
+    // =========================================================================
+
+    /**
+     * Counts deals in a pipeline by status.
+     *
+     * <p>Used to compute win/loss counts for overall pipeline conversion rate.</p>
+     *
+     * @param pipelineId the internal ID of the pipeline
+     * @param status     the deal status to filter by
+     * @return number of deals in that pipeline with the given status
+     */
+    long countByPipelineIdAndStatus(Long pipelineId, DealStatus status);
+
+    /**
+     * Computes the average deal cycle in days for won deals in a pipeline.
+     *
+     * <p>Cycle = {@code closedAt - createdAt}. Only WON deals are included.</p>
+     *
+     * @param pipelineId the internal ID of the pipeline
+     * @return average days from creation to close, or {@code null} if no WON deals exist
+     */
+    @Query(value = """
+            SELECT AVG(EXTRACT(EPOCH FROM (closed_at - created_at)) / 86400.0)
+            FROM crm_deal
+            WHERE pipeline_id = :pipelineId
+              AND status = 'WON'
+              AND closed_at IS NOT NULL
+            """, nativeQuery = true)
+    Double avgDealCycleDaysForPipeline(@Param("pipelineId") Long pipelineId);
 }
