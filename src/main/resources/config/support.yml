@@ -1,0 +1,9 @@
+support:
+  rate-limit:
+    ip:
+      max-requests: 5
+      window-minutes: 60
+  email:
+    # TODO (prod): replace with a dedicated support inbox (e.g. support@yourcompany.com)
+    # For now, falls back to the SMTP sender address so emails are visible during development.
+    admin-recipient: ${SUPPORT_ADMIN_EMAIL:${spring.mail.username}}

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="fr" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+
+<head>
+  <title>Votre demande de support a bien été reçue</title>
+  <!--[if !mso]><!-->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!--<![endif]-->
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style type="text/css">
+    #outlook a { padding: 0; }
+    body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+    p { display: block; margin: 13px 0; }
+  </style>
+  <style type="text/css">
+    @media only screen and (min-width:480px) {
+      .mj-column-per-100 { width: 100% !important; max-width: 100%; }
+    }
+  </style>
+</head>
+
+<body style="word-spacing:normal;background-color:#f4f4f4;">
+  <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">Votre ticket de support a bien été enregistré</div>
+  <div style="background-color:#f4f4f4;">
+
+    <!-- Header -->
+    <div style="background:#0ea5e9;background-color:#0ea5e9;margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#0ea5e9;background-color:#0ea5e9;width:100%;">
+        <tbody>
+          <tr>
+            <td style="padding:30px;text-align:center;">
+              <div style="font-family:Arial, sans-serif;font-size:28px;font-weight:bold;line-height:1.6;text-align:center;color:#ffffff;">🎫 Demande reçue</div>
+              <div style="font-family:Arial, sans-serif;font-size:14px;line-height:1.6;text-align:center;color:#e0f2fe;margin-top:8px;">Nous avons bien enregistré votre ticket de support</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Main Content -->
+    <div style="background:#ffffff;background-color:#ffffff;margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;">
+        <tbody>
+          <tr>
+            <td style="padding:40px 30px;">
+              <div style="font-family:Arial, sans-serif;font-size:18px;line-height:1.6;color:#333333;">
+                Bonjour <span th:text="${name}">Utilisateur</span>,
+              </div>
+              <div style="font-family:Arial, sans-serif;font-size:16px;line-height:1.6;color:#555555;margin-top:12px;">
+                Nous avons bien reçu votre demande de support et notre équipe va la traiter dans les plus brefs délais.
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Ticket Details -->
+    <div style="background:#ffffff;background-color:#ffffff;margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;">
+        <tbody>
+          <tr>
+            <td style="padding:0 30px 30px;">
+              <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%" style="border-collapse:separate;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd;">
+                <tbody>
+                  <tr>
+                    <td style="padding:20px 25px;">
+                      <div style="font-family:Arial, sans-serif;font-size:16px;font-weight:bold;color:#0369a1;margin-bottom:12px;">📋 Détails de votre demande</div>
+                      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:Arial, sans-serif;font-size:14px;color:#555555;">
+                        <tr>
+                          <td style="padding:5px 0;font-weight:bold;color:#374151;width:120px;">Référence :</td>
+                          <td style="padding:5px 0;" th:text="${publicId}">TKT-XXXXXXXX</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:5px 0;font-weight:bold;color:#374151;">Sujet :</td>
+                          <td style="padding:5px 0;" th:text="${subject}">Sujet du ticket</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:5px 0;font-weight:bold;color:#374151;">Soumis le :</td>
+                          <td style="padding:5px 0;" th:text="${submittedAt}">01/01/2025 10:00</td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Info box -->
+    <div style="background:#ffffff;background-color:#ffffff;margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;">
+        <tbody>
+          <tr>
+            <td style="padding:0 30px 40px;">
+              <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%" style="border-collapse:separate;background:#f0fdf4;border-radius:6px;border:1px solid #bbf7d0;">
+                <tbody>
+                  <tr>
+                    <td style="padding:16px 20px;">
+                      <div style="font-family:Arial, sans-serif;font-size:14px;line-height:1.6;color:#166534;">
+                        💡 Conservez votre numéro de référence <strong th:text="${publicId}">TKT-XXXXXXXX</strong> pour tout suivi de votre demande.
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#f8f9fa;background-color:#f8f9fa;margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#f8f9fa;background-color:#f8f9fa;width:100%;">
+        <tbody>
+          <tr>
+            <td style="padding:30px;text-align:center;">
+              <div style="font-family:Arial, sans-serif;font-size:14px;line-height:1.6;color:#6c757d;">
+                Cordialement,<br /><strong>L'équipe Support</strong>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</body>
+</html>

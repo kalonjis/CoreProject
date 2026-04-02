@@ -6,6 +6,7 @@ import be.steby.CoreProject.bll.domains.organisation.models.OrganisationMergeReq
 import be.steby.CoreProject.bll.domains.organisation.models.OrganisationUpdateRequest;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Organisation;
+import be.steby.CoreProject.dl.enums.crm.OrganisationStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -120,6 +121,20 @@ public interface OrganisationService {
      *         if a provided field value fails business validation
      */
     Organisation update(String publicId, OrganisationUpdateRequest request, User actor);
+
+    /**
+     * Manually sets the CRM lifecycle status of an organisation.
+     *
+     * <p>Both transitions are allowed (PROSPECT → CLIENT and CLIENT → PROSPECT).
+     * Publishes an {@code OrganisationUpdatedEvent} on success.</p>
+     *
+     * @param publicId  the public UUID of the organisation
+     * @param newStatus the target status
+     * @param actor     the user performing the change
+     * @return the updated organisation
+     * @throws be.steby.CoreProject.bll.domains.organisation.exceptions.OrganisationNotFoundException if not found
+     */
+    Organisation updateStatus(String publicId, OrganisationStatus newStatus, User actor);
 
     // =========================================================================
     // Merge

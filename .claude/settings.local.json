@@ -45,7 +45,19 @@
       "Bash(head -30 grep -n \"getLostReason\\\\|getTitle\\\\|getPublicId\" \"C:/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/dl/entities/crm/Deal.java\")",
       "Bash(head -20 grep -n \"getName\\\\|getPublicId\" \"C:/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/dl/entities/crm/Organisation.java\")",
       "Bash(head -20 echo \"---\" grep -n \"lostReason\\\\|private.*title\\\\|publicId\\\\|@Getter\\\\|@Data\" \"C:/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/dl/entities/crm/Deal.java\")",
-      "Bash(head -10 grep -n \"private.*name\\\\|@Getter\\\\|@Data\" \"C:/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/dl/entities/crm/PipelineStep.java\")"
+      "Bash(head -10 grep -n \"private.*name\\\\|@Getter\\\\|@Data\" \"C:/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/dl/entities/crm/PipelineStep.java\")",
+      "Bash(find C:/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/il/routes -name *upport* -o -name *ticket* 2)",
+      "Bash(/dev/null echo:*)",
+      "Bash(do)",
+      "Bash(echo \"=== $f ===\")",
+      "Read(//c/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/bll/domains/supportticket/events/**)",
+      "Bash(grep -n \"contactRepository\\\\|dealRepository\\\\|organisationRepository\\\\|endregion\\\\|//region\" \"C:/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/dal/DataInitializer.java\")",
+      "Bash(while read:*)",
+      "Read(//c/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/**)",
+      "Bash(grep -v '\\\\.ts$')",
+      "Bash(git -C /c/Users/kalon/OneDrive/Documents/CoreProject/FrontLast/CoreProject_Front diff --name-only HEAD)",
+      "Bash(git -C /c/Users/kalon/OneDrive/Documents/CoreProject/FrontLast/CoreProject_Front status --short)",
+      "Read(//tmp/**)"
     ]
   }
 }

@@ -2,6 +2,7 @@ package be.steby.CoreProject.dl.entities.crm;
 
 import be.steby.CoreProject.dl.entities.BaseEntity;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.crm.SupportTicketSource;
 import be.steby.CoreProject.dl.enums.crm.SupportTicketStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -88,6 +89,29 @@ public class SupportTicket extends BaseEntity<Long> {
     private String description;
 
     // =========================================================================
+    // Origin
+    // =========================================================================
+
+    /**
+     * How this ticket was created.
+     *
+     * <p>Defaults to {@link SupportTicketSource#INTERNAL} for tickets created by the team.
+     * Set to {@link SupportTicketSource#PUBLIC_FORM} when submitted via the public contact form.</p>
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", nullable = false, length = 20)
+    @Builder.Default
+    private SupportTicketSource source = SupportTicketSource.INTERNAL;
+
+    /**
+     * IP address of the submitter — populated only for {@link SupportTicketSource#PUBLIC_FORM} tickets.
+     *
+     * <p>Used for audit and rate limiting purposes. Null for internally created tickets.</p>
+     */
+    @Column(name = "ip_address", length = 45)
+    private String ipAddress;
+
+    // =========================================================================
     // Status
     // =========================================================================
 
@@ -112,11 +136,33 @@ public class SupportTicket extends BaseEntity<Long> {
     /**
      * Contact who submitted this ticket.
      *
-     * <p>Required. Identifies who is reporting the issue.</p>
+     * <p>Optional — null when the ticket was submitted via the public form by an
+     * unknown email address. In that case, {@link #reporterName} and
+     * {@link #reporterEmail} hold the submitter's identity instead.</p>
+     *
+     * <p>When non-null, takes precedence over the reporter fields for display.</p>
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "submitted_by_id", nullable = false)
+    @JoinColumn(name = "submitted_by_id")
     private Contact submittedBy;
+
+    /**
+     * Name of the reporter — populated only when {@link #submittedBy} is {@code null}.
+     *
+     * <p>Filled from the public form submission when the email does not match
+     * any existing Contact. Allows the team to see who reported the issue
+     * without creating a phantom Contact in the CRM.</p>
+     */
+    @Column(name = "reporter_name", length = 150)
+    private String reporterName;
+
+    /**
+     * Email of the reporter — populated only when {@link #submittedBy} is {@code null}.
+     *
+     * @see #reporterName
+     */
+    @Column(name = "reporter_email", length = 254)
+    private String reporterEmail;
 
     /**
      * Team member (User) currently assigned to handle this ticket.

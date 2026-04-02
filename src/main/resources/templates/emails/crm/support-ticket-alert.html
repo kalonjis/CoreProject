@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="fr" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+
+<head>
+  <title>Nouveau ticket de support reçu</title>
+  <!--[if !mso]><!-->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!--<![endif]-->
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style type="text/css">
+    #outlook a { padding: 0; }
+    body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+    p { display: block; margin: 13px 0; }
+  </style>
+  <style type="text/css">
+    @media only screen and (min-width:480px) {
+      .mj-column-per-100 { width: 100% !important; max-width: 100%; }
+    }
+  </style>
+</head>
+
+<body style="word-spacing:normal;background-color:#f4f4f4;">
+  <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">Nouveau ticket de support via le formulaire public</div>
+  <div style="background-color:#f4f4f4;">
+
+    <!-- Header -->
+    <div style="background:#7c3aed;background-color:#7c3aed;margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#7c3aed;background-color:#7c3aed;width:100%;">
+        <tbody>
+          <tr>
+            <td style="padding:30px;text-align:center;">
+              <div style="font-family:Arial, sans-serif;font-size:28px;font-weight:bold;line-height:1.6;text-align:center;color:#ffffff;">🔔 Nouveau Ticket Support</div>
+              <div style="font-family:Arial, sans-serif;font-size:14px;line-height:1.6;text-align:center;color:#ede9fe;margin-top:8px;">Un nouveau ticket vient d'être soumis via le formulaire public</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Details Table -->
+    <div style="background:#ffffff;background-color:#ffffff;margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;">
+        <tbody>
+          <tr>
+            <td style="padding:40px 30px;">
+              <table cellpadding="0" cellspacing="0" width="100%" border="0" style="font-family:Arial, sans-serif;font-size:13px;line-height:22px;width:100%;">
+                <tr style="background-color:#f5f5f5;">
+                  <td style="padding:10px;border:1px solid #ddd;font-weight:bold;width:130px;">Référence</td>
+                  <td style="padding:10px;border:1px solid #ddd;" th:text="${publicId}">TKT-XXXXXXXX</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px;border:1px solid #ddd;font-weight:bold;background-color:#f5f5f5;">De</td>
+                  <td style="padding:10px;border:1px solid #ddd;">
+                    <span th:text="${reporterName}">Nom Prénom</span>
+                    &lt;<span th:text="${reporterEmail}">email@exemple.com</span>&gt;
+                  </td>
+                </tr>
+                <tr style="background-color:#f5f5f5;">
+                  <td style="padding:10px;border:1px solid #ddd;font-weight:bold;">Sujet</td>
+                  <td style="padding:10px;border:1px solid #ddd;" th:text="${subject}">Sujet du ticket</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px;border:1px solid #ddd;font-weight:bold;background-color:#f5f5f5;">Soumis le</td>
+                  <td style="padding:10px;border:1px solid #ddd;" th:text="${submittedAt}">01/01/2025 10:00</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Description -->
+    <div style="background:#ffffff;background-color:#ffffff;margin:0px auto;max-width:600px;" th:if="${description != null and !#strings.isEmpty(description)}">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;">
+        <tbody>
+          <tr>
+            <td style="padding:0 30px 30px;">
+              <div style="font-family:Arial, sans-serif;font-size:16px;font-weight:bold;color:#333333;margin-bottom:10px;">📝 Description</div>
+              <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%" style="border-collapse:separate;background:#f9f9f9;border:1px solid #ddd;border-radius:8px;">
+                <tbody>
+                  <tr>
+                    <td style="padding:16px 20px;">
+                      <div style="font-family:Arial, sans-serif;font-size:14px;line-height:1.6;color:#333333;white-space:pre-line;" th:text="${description}">Description du problème...</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#f8f9fa;background-color:#f8f9fa;margin:0px auto;max-width:600px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#f8f9fa;background-color:#f8f9fa;width:100%;">
+        <tbody>
+          <tr>
+            <td style="padding:20px 30px;text-align:center;">
+              <div style="font-family:Arial, sans-serif;font-size:12px;line-height:1.6;color:#888888;">
+                Cet email est généré automatiquement — ne pas répondre directement.
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</body>
+</html>

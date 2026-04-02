@@ -10,9 +10,10 @@ import be.steby.CoreProject.bll.common.exceptions.CoreProjectException;
  * CoreProjectException
  * └── SupportTicketDomainException
  *     ├── SupportTicketNotFoundException
- *     ├── SupportTicketValidationException
  *     ├── SupportTicketAlreadyClosedException
- *     └── SupportTicketStatusTransitionException
+ *     ├── SupportTicketStatusTransitionException
+ *     ├── SupportTicketAssignNotAuthorizedException
+ *     └── SupportTicketRateLimitException
  * </pre>
  */
 public abstract class SupportTicketDomainException extends CoreProjectException {

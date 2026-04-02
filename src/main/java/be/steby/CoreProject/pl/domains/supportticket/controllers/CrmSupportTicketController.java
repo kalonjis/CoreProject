@@ -124,6 +124,21 @@ public class CrmSupportTicketController {
     }
 
     // =========================================================================
+    // Deletion
+    // =========================================================================
+
+    @DeleteMapping("/{publicId}")
+    @Operation(summary = "Delete support ticket", description = "Permanently deletes a support ticket (spam removal, data cleanup)")
+    public ResponseEntity<Void> delete(
+            @PathVariable String publicId,
+            @AuthenticationPrincipal User actor) {
+
+        log.info("Support ticket deletion requested — publicId: {}, by: {}", publicId, actor.getUsername());
+        supportTicketService.delete(publicId, actor);
+        return ResponseEntity.noContent().build();
+    }
+
+    // =========================================================================
     // Assignment
     // =========================================================================
 

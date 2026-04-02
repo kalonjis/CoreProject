@@ -13,6 +13,7 @@ import be.steby.CoreProject.bll.domains.organisation.models.OrganisationCreateRe
 import be.steby.CoreProject.bll.domains.organisation.models.OrganisationFilterRequest;
 import be.steby.CoreProject.bll.domains.organisation.models.OrganisationMergeRequest;
 import be.steby.CoreProject.bll.domains.organisation.models.OrganisationUpdateRequest;
+import be.steby.CoreProject.dl.enums.crm.OrganisationStatus;
 import be.steby.CoreProject.dal.repositories.AddressRepository;
 import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
 import be.steby.CoreProject.dal.repositories.crm.OrganisationRepository;
@@ -98,6 +99,7 @@ public class OrganisationServiceImpl implements OrganisationService {
                 OrganisationSpecification.nameContains(filter.keyword()),
                 OrganisationSpecification.hasIndustry(filter.industry()),
                 OrganisationSpecification.hasSize(filter.size()),
+                OrganisationSpecification.hasStatus(filter.status()),
                 OrganisationSpecification.inCountry(filter.countryCode()),
                 OrganisationSpecification.hasTag(tagId)
         );
@@ -190,6 +192,30 @@ public class OrganisationServiceImpl implements OrganisationService {
         if (!changes.isEmpty()) {
             changeLogService.logChanges(CrmEntityType.ORGANISATION, saved.getPublicId(), changes, actor);
         }
+
+        eventPublisher.publishEvent(new OrganisationUpdatedEvent(
+                saved, actor, deviceService.detectAndRegisterDevice(actor)));
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public Organisation updateStatus(String publicId, OrganisationStatus newStatus, User actor) {
+        Organisation organisation = getByPublicId(publicId);
+
+        OrganisationStatus previous = organisation.getStatus();
+        if (previous == newStatus) {
+            return organisation;
+        }
+
+        organisation.setStatus(newStatus);
+        Organisation saved = organisationRepository.save(organisation);
+
+        log.info("Organisation status updated — publicId: {}, {} → {}, by: {}",
+                publicId, previous, newStatus, actor.getUsername());
+
+        changeLogService.logChanges(CrmEntityType.ORGANISATION, saved.getPublicId(),
+                List.of(new FieldChange("status", previous.name(), newStatus.name())), actor);
 
         eventPublisher.publishEvent(new OrganisationUpdatedEvent(
                 saved, actor, deviceService.detectAndRegisterDevice(actor)));

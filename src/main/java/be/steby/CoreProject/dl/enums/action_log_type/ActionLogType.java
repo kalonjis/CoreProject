@@ -22,11 +22,12 @@ import be.steby.CoreProject.dl.entities.User;
  *   <li>{@link DealAction}         — CRM deal pipeline</li>
  *   <li>{@link LeadAction}         — CRM lead lifecycle</li>
  *   <li>{@link OrganisationAction} — CRM organisation lifecycle</li>
+ *   <li>{@link SupportTicketAction} — CRM support ticket lifecycle</li>
  * </ul>
  */
 public sealed interface ActionLogType
         permits AuthAction, SecurityAction, AccountAction, DeviceAction, PasswordAction, AdminAction,
-                ContactAction, DealAction, LeadAction, OrganisationAction {
+                ContactAction, DealAction, LeadAction, OrganisationAction, SupportTicketAction {
 
     /**
      * Enum constant name used for database storage — e.g. "LOGIN", "PASSWORD_CHANGED".

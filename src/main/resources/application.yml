@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE}
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
   config:
     import:
@@ -30,6 +30,7 @@ spring:
       - classpath:config/actuator.yml
       - classpath:config/storage.yml
       - classpath:config/lead.yml
+      - classpath:config/support.yml
       - classpath:config/notification.yml
       - classpath:config/gdpr.yml
       - classpath:config/crm_webhooks.yml

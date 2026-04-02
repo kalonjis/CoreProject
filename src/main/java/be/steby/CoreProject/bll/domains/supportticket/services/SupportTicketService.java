@@ -2,7 +2,9 @@ package be.steby.CoreProject.bll.domains.supportticket.services;
 
 import be.steby.CoreProject.bll.domains.supportticket.exceptions.SupportTicketAlreadyClosedException;
 import be.steby.CoreProject.bll.domains.supportticket.exceptions.SupportTicketNotFoundException;
+import be.steby.CoreProject.bll.domains.supportticket.exceptions.SupportTicketRateLimitException;
 import be.steby.CoreProject.bll.domains.supportticket.exceptions.SupportTicketStatusTransitionException;
+import be.steby.CoreProject.bll.domains.supportticket.models.PublicSupportTicketRequest;
 import be.steby.CoreProject.bll.domains.supportticket.models.SupportTicketAssignRequest;
 import be.steby.CoreProject.bll.domains.supportticket.models.SupportTicketChangeStatusRequest;
 import be.steby.CoreProject.bll.domains.supportticket.models.SupportTicketCreateRequest;
@@ -10,6 +12,7 @@ import be.steby.CoreProject.bll.domains.supportticket.models.SupportTicketFilter
 import be.steby.CoreProject.bll.domains.supportticket.models.SupportTicketUpdateRequest;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.SupportTicket;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -71,6 +74,29 @@ public interface SupportTicketService {
     List<SupportTicket> findByContact(String contactPublicId);
 
     // =========================================================================
+    // Public form submission
+    // =========================================================================
+
+    /**
+     * Submits a support ticket from the public contact form (no authentication required).
+     *
+     * <p>If the email matches an existing {@link be.steby.CoreProject.dl.entities.crm.Contact},
+     * the ticket is linked to it. Otherwise a minimal Contact is auto-created
+     * with {@code ContactStatus.NEW}.</p>
+     *
+     * <p>Applies honeypot and IP-based rate limiting before persisting.</p>
+     *
+     * <p>Publishes a {@code SupportTicketCreatedEvent} with {@code actor=null}
+     * and {@code actorDevice=null} (public flow, no authenticated user).</p>
+     *
+     * @param request     the public form data
+     * @param httpRequest HTTP request for IP extraction
+     * @return the newly created ticket
+     * @throws be.steby.CoreProject.bll.domains.supportticket.exceptions.SupportTicketRateLimitException if the IP is rate-limited
+     */
+    SupportTicket submitFromPublicForm(PublicSupportTicketRequest request, HttpServletRequest httpRequest);
+
+    // =========================================================================
     // Creation & update
     // =========================================================================
 
@@ -100,6 +126,22 @@ public interface SupportTicketService {
      * @throws SupportTicketAlreadyClosedException if the ticket is already closed
      */
     SupportTicket update(String publicId, SupportTicketUpdateRequest request, User actor);
+
+    // =========================================================================
+    // Deletion
+    // =========================================================================
+
+    /**
+     * Permanently deletes a support ticket.
+     *
+     * <p>Intended for spam removal and data cleanup. There is no soft-delete —
+     * the ticket is hard-deleted from the database.</p>
+     *
+     * @param publicId the public UUID of the ticket to delete
+     * @param actor    the user performing the deletion
+     * @throws SupportTicketNotFoundException if the ticket does not exist
+     */
+    void delete(String publicId, User actor);
 
     // =========================================================================
     // Status

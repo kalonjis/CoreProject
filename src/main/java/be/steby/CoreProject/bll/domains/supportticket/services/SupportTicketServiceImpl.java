@@ -4,12 +4,15 @@ import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.supportticket.events.SupportTicketAssignedEvent;
 import be.steby.CoreProject.bll.domains.supportticket.events.SupportTicketClosedEvent;
 import be.steby.CoreProject.bll.domains.supportticket.events.SupportTicketCreatedEvent;
+import be.steby.CoreProject.bll.domains.supportticket.events.SupportTicketDeletedEvent;
 import be.steby.CoreProject.bll.domains.supportticket.events.SupportTicketStatusChangedEvent;
 import be.steby.CoreProject.bll.domains.supportticket.events.SupportTicketUpdatedEvent;
 import be.steby.CoreProject.bll.domains.supportticket.exceptions.SupportTicketAlreadyClosedException;
 import be.steby.CoreProject.bll.domains.supportticket.exceptions.SupportTicketAssignNotAuthorizedException;
 import be.steby.CoreProject.bll.domains.supportticket.exceptions.SupportTicketNotFoundException;
+import be.steby.CoreProject.bll.domains.supportticket.exceptions.SupportTicketRateLimitException;
 import be.steby.CoreProject.bll.domains.supportticket.exceptions.SupportTicketStatusTransitionException;
+import be.steby.CoreProject.bll.domains.supportticket.models.PublicSupportTicketRequest;
 import be.steby.CoreProject.bll.domains.supportticket.models.SupportTicketAssignRequest;
 import be.steby.CoreProject.bll.domains.supportticket.models.SupportTicketChangeStatusRequest;
 import be.steby.CoreProject.bll.domains.supportticket.models.SupportTicketCreateRequest;
@@ -22,9 +25,12 @@ import be.steby.CoreProject.dal.specifications.crm.SupportTicketSpecification;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.entities.crm.SupportTicket;
+import be.steby.CoreProject.dl.enums.crm.SupportTicketSource;
 import be.steby.CoreProject.dl.enums.crm.SupportTicketStatus;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +38,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -45,6 +53,12 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     private final UserRepository userRepository;
     private final DeviceService deviceService;
     private final ApplicationEventPublisher eventPublisher;
+
+    @Value("${support.rate-limit.ip.max-requests:5}")
+    private int maxRequestsPerIp;
+
+    @Value("${support.rate-limit.ip.window-minutes:60}")
+    private int ipWindowMinutes;
 
     // =========================================================================
     // Lookup
@@ -84,9 +98,11 @@ public class SupportTicketServiceImpl implements SupportTicketService {
         Specification<SupportTicket> spec = Specification.allOf(
                 SupportTicketSpecification.subjectContains(filter.keyword()),
                 SupportTicketSpecification.hasStatus(filter.status()),
+                SupportTicketSpecification.hasSource(filter.source()),
                 SupportTicketSpecification.submittedBy(contactId),
                 SupportTicketSpecification.assignedTo(assignedToId),
-                SupportTicketSpecification.isUnassigned(filter.unassignedOnly())
+                SupportTicketSpecification.isUnassigned(filter.unassignedOnly()),
+                SupportTicketSpecification.submittedByOrganisation(filter.organisationPublicId())
         );
 
         return supportTicketRepository.findAll(spec, pageable);
@@ -98,6 +114,61 @@ public class SupportTicketServiceImpl implements SupportTicketService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Contact not found with publicId: " + contactPublicId));
         return supportTicketRepository.findBySubmittedByIdOrderByCreatedAtDesc(contact.getId());
+    }
+
+    // =========================================================================
+    // Public form submission
+    // =========================================================================
+
+    @Override
+    @Transactional
+    public SupportTicket submitFromPublicForm(PublicSupportTicketRequest request, HttpServletRequest httpRequest) {
+        log.debug("Public support ticket submission — email: {}", request.email());
+
+        // 1. Honeypot check (silent rejection for bots)
+        if (request.isHoneypotFilled()) {
+            log.warn("Honeypot triggered on public support form from email: {}", request.email());
+            // Return fake-success: don't reveal bot detection to the submitter
+            return buildFakeTicket();
+        }
+
+        String ipAddress = extractIpAddress(httpRequest);
+
+        // 2. Rate limit by IP
+        Instant since = Instant.now().minus(Duration.ofMinutes(ipWindowMinutes));
+        long count = supportTicketRepository.countByIpAddressAndCreatedAtAfter(ipAddress, since);
+        if (count >= maxRequestsPerIp) {
+            log.warn("IP rate limit exceeded for public support form — IP: {}, count: {}", ipAddress, count);
+            throw new SupportTicketRateLimitException("Too many submissions. Please try again later.");
+        }
+
+        // 3. Link to existing contact if email is known — no auto-create
+        String email = request.email().toLowerCase().trim();
+        Contact contact = contactRepository.findByEmailIgnoreCase(email).orElse(null);
+
+        // 4. Create the ticket
+        SupportTicket.SupportTicketBuilder builder = SupportTicket.builder()
+                .subject(request.subject().trim())
+                .description(request.description() != null ? request.description().trim() : null)
+                .status(SupportTicketStatus.OPEN)
+                .source(SupportTicketSource.PUBLIC_FORM)
+                .ipAddress(ipAddress);
+
+        if (contact != null) {
+            builder.submittedBy(contact);
+            log.info("Public support ticket linked to existing contact — email: {}", email);
+        } else {
+            builder.reporterName((request.firstName().trim() + " " + request.lastName().trim()).trim())
+                   .reporterEmail(email);
+            log.info("Public support ticket from unknown email '{}' — stored as reporter", email);
+        }
+
+        SupportTicket saved = supportTicketRepository.save(builder.build());
+        log.info("Public support ticket created — publicId: {}", saved.getPublicId());
+
+        // actor=null / device=null: public flow, no authenticated user
+        eventPublisher.publishEvent(new SupportTicketCreatedEvent(saved, null, null));
+        return saved;
     }
 
     // =========================================================================
@@ -147,8 +218,8 @@ public class SupportTicketServiceImpl implements SupportTicketService {
             throw SupportTicketAlreadyClosedException.forTicket(publicId);
         }
 
-        if (request.subject()     != null) ticket.setSubject(request.subject());
-        if (request.description() != null) ticket.setDescription(request.description());
+        if (request.subject() != null) ticket.setSubject(request.subject());
+        ticket.setDescription(request.description());
 
         SupportTicket saved = supportTicketRepository.save(ticket);
         log.info("Support ticket updated — publicId: {}, by: {}", publicId, actor.getUsername());
@@ -156,6 +227,22 @@ public class SupportTicketServiceImpl implements SupportTicketService {
         eventPublisher.publishEvent(new SupportTicketUpdatedEvent(
                 saved, actor, deviceService.detectAndRegisterDevice(actor)));
         return saved;
+    }
+
+    // =========================================================================
+    // Deletion
+    // =========================================================================
+
+    @Override
+    @Transactional
+    public void delete(String publicId, User actor) {
+        log.debug("Deleting support ticket — publicId: {}, by: {}", publicId, actor.getUsername());
+        SupportTicket ticket = getByPublicId(publicId);
+        supportTicketRepository.delete(ticket);
+        log.info("Support ticket deleted — publicId: {}, by: {}", publicId, actor.getUsername());
+
+        eventPublisher.publishEvent(new SupportTicketDeletedEvent(
+                ticket, actor, deviceService.detectAndRegisterDevice(actor)));
     }
 
     // =========================================================================
@@ -240,6 +327,30 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     // =========================================================================
     // Private helpers
     // =========================================================================
+
+    /**
+     * Extracts the real client IP address, respecting reverse-proxy headers.
+     */
+    private String extractIpAddress(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+
+    /**
+     * Returns a transient (unsaved) fake ticket for silent honeypot rejection.
+     *
+     * <p>The caller returns this to the client as if it were real — bots see success.</p>
+     */
+    private SupportTicket buildFakeTicket() {
+        SupportTicket fake = new SupportTicket();
+        fake.setSubject("honeypot");
+        fake.setStatus(SupportTicketStatus.OPEN);
+        fake.setSource(SupportTicketSource.PUBLIC_FORM);
+        return fake;
+    }
 
     /**
      * Validates that the requested status transition is allowed.

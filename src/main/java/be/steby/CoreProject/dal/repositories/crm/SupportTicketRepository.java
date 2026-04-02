@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -94,8 +95,9 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
      * @return number of open tickets for that person
      */
     @Query("SELECT COUNT(t) FROM SupportTicket t " +
-           "WHERE t.assignedTo.id = :assignedToId AND t.status != 'CLOSED'")
-    long countOpenByAssignedTo(@Param("assignedToId") Long assignedToId);
+           "WHERE t.assignedTo.id = :assignedToId AND t.status != :closedStatus")
+    long countOpenByAssignedTo(@Param("assignedToId") Long assignedToId,
+                               @Param("closedStatus") SupportTicketStatus closedStatus);
 
     // =========================================================================
     // Dashboard stats
@@ -104,4 +106,19 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
     long countByStatus(SupportTicketStatus status);
 
     List<SupportTicket> findByStatusInOrderByCreatedAtAsc(List<SupportTicketStatus> statuses);
+
+    // =========================================================================
+    // Rate limiting (public form)
+    // =========================================================================
+
+    /**
+     * Counts public-form tickets submitted from a given IP address after a given timestamp.
+     *
+     * <p>Used to rate-limit submissions from the public contact form.</p>
+     *
+     * @param ipAddress the IP address to check
+     * @param since     the start of the time window
+     * @return number of tickets submitted from that IP within the window
+     */
+    long countByIpAddressAndCreatedAtAfter(String ipAddress, Instant since);
 }

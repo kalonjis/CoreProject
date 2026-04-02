@@ -3,6 +3,7 @@ package be.steby.CoreProject.dl.entities.crm;
 import be.steby.CoreProject.dl.entities.BaseEntity;
 import be.steby.CoreProject.dl.entities.Address;
 import be.steby.CoreProject.dl.enums.crm.OrganisationSize;
+import be.steby.CoreProject.dl.enums.crm.OrganisationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -48,6 +49,7 @@ import java.util.Set;
  * @see Deal
  * @see Address
  * @see OrganisationSize
+ * @see OrganisationStatus
  */
 @Entity
 @Table(
@@ -158,6 +160,24 @@ public class Organisation extends BaseEntity<Long> {
      */
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
+
+    // =========================================================================
+    // Lifecycle status
+    // =========================================================================
+
+    /**
+     * Current relationship status of the organisation in the CRM lifecycle.
+     *
+     * <p>Defaults to {@link OrganisationStatus#PROSPECT} on creation.
+     * Automatically promoted to {@link OrganisationStatus#CLIENT} when a linked
+     * deal is marked WON.</p>
+     *
+     * @see OrganisationStatus
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    @Builder.Default
+    private OrganisationStatus status = OrganisationStatus.PROSPECT;
 
     // =========================================================================
     // Tags

@@ -2,6 +2,7 @@ package be.steby.CoreProject.pl.domains.organisation.models.responses;
 
 import be.steby.CoreProject.dl.entities.crm.Organisation;
 import be.steby.CoreProject.dl.enums.crm.OrganisationSize;
+import be.steby.CoreProject.dl.enums.crm.OrganisationStatus;
 import be.steby.CoreProject.pl.domains.tag.models.responses.TagResponse;
 
 import java.time.Instant;
@@ -15,6 +16,7 @@ import java.util.List;
  *
  * @param publicId        public UUID of the organisation
  * @param name            legal or commercial name
+ * @param status          lifecycle status (PROSPECT or CLIENT)
  * @param website         public website URL, or {@code null} if not set
  * @param industry        sector of activity, or {@code null} if not set
  * @param size            approximate headcount bucket, or {@code null} if not set
@@ -28,6 +30,7 @@ import java.util.List;
 public record OrganisationDetailResponse(
         String publicId,
         String name,
+        OrganisationStatus status,
         String website,
         String industry,
         OrganisationSize size,
@@ -49,6 +52,7 @@ public record OrganisationDetailResponse(
         return new OrganisationDetailResponse(
                 organisation.getPublicId(),
                 organisation.getName(),
+                organisation.getStatus(),
                 organisation.getWebsite(),
                 organisation.getIndustry(),
                 organisation.getSize(),

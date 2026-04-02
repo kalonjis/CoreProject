@@ -1,14 +1,17 @@
 package be.steby.CoreProject.pl.domains.organisation.controllers;
 
+import be.steby.CoreProject.bll.domains.contact.services.ContactService;
 import be.steby.CoreProject.bll.domains.deal.services.DealService;
 import be.steby.CoreProject.bll.domains.organisation.services.OrganisationService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Organisation;
+import be.steby.CoreProject.pl.domains.contact.models.responses.ContactSummaryResponse;
 import be.steby.CoreProject.pl.domains.deal.models.responses.DealSummaryResponse;
 import be.steby.CoreProject.pl.domains.organisation.models.requests.CreateOrganisationRequest;
 import be.steby.CoreProject.pl.domains.organisation.models.requests.MergeOrganisationRequest;
 import be.steby.CoreProject.pl.domains.organisation.models.requests.OrganisationListFilterRequest;
 import be.steby.CoreProject.pl.domains.organisation.models.requests.UpdateOrganisationRequest;
+import be.steby.CoreProject.pl.domains.organisation.models.requests.UpdateOrganisationStatusRequest;
 import be.steby.CoreProject.pl.domains.organisation.models.responses.OrganisationDetailResponse;
 import be.steby.CoreProject.pl.domains.organisation.models.responses.OrganisationSummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -58,7 +61,8 @@ import java.util.List;
 public class CrmOrganisationController {
 
     private final OrganisationService organisationService;
-    private final DealService dealService;
+    private final ContactService      contactService;
+    private final DealService         dealService;
 
     // =========================================================================
     // Lookup
@@ -106,6 +110,27 @@ public class CrmOrganisationController {
 
         Organisation organisation = organisationService.getByPublicId(publicId);
         return ResponseEntity.ok(OrganisationDetailResponse.fromEntity(organisation));
+    }
+
+    /**
+     * Returns all contacts linked to a given organisation.
+     *
+     * <p><strong>Endpoint:</strong> GET /api/crm/organisations/{publicId}/contacts</p>
+     *
+     * @param publicId the public UUID of the organisation
+     * @return list of contact summaries for that organisation
+     */
+    @GetMapping("/{publicId}/contacts")
+    @Operation(summary = "Get organisation contacts", description = "Returns all contacts linked to an organisation")
+    public ResponseEntity<List<ContactSummaryResponse>> getContacts(@PathVariable String publicId) {
+        log.debug("CRM organisation contacts requested — publicId: {}", publicId);
+
+        List<ContactSummaryResponse> contacts = contactService.findByOrganisation(publicId)
+                .stream()
+                .map(ContactSummaryResponse::fromEntity)
+                .toList();
+
+        return ResponseEntity.ok(contacts);
     }
 
     /**
@@ -175,6 +200,30 @@ public class CrmOrganisationController {
         log.info("Organisation update requested — publicId: {}, by: {}", publicId, actor.getUsername());
 
         Organisation organisation = organisationService.update(publicId, request.toBllModel(), actor);
+        return ResponseEntity.ok(OrganisationDetailResponse.fromEntity(organisation));
+    }
+
+    /**
+     * Manually updates the lifecycle status of an organisation.
+     *
+     * <p><strong>Endpoint:</strong> PATCH /api/crm/organisations/{publicId}/status</p>
+     *
+     * @param publicId the public UUID of the organisation
+     * @param request  the new status
+     * @param actor    the authenticated user performing the action
+     * @return the updated organisation detail
+     */
+    @PatchMapping("/{publicId}/status")
+    @Operation(summary = "Update organisation status", description = "Manually sets the lifecycle status of an organisation")
+    public ResponseEntity<OrganisationDetailResponse> updateStatus(
+            @PathVariable String publicId,
+            @Valid @RequestBody UpdateOrganisationStatusRequest request,
+            @AuthenticationPrincipal User actor) {
+
+        log.info("Organisation status update requested — publicId: {}, status: {}, by: {}",
+                publicId, request.status(), actor.getUsername());
+
+        Organisation organisation = organisationService.updateStatus(publicId, request.status(), actor);
         return ResponseEntity.ok(OrganisationDetailResponse.fromEntity(organisation));
     }
 

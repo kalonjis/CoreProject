@@ -13,6 +13,7 @@ import be.steby.CoreProject.dal.repositories.crm.DealRepository;
 import be.steby.CoreProject.dal.repositories.crm.LeadRepository;
 import be.steby.CoreProject.dal.repositories.crm.OrganisationRepository;
 import be.steby.CoreProject.dal.repositories.crm.PipelineRepository;
+import be.steby.CoreProject.dal.repositories.crm.SupportTicketRepository;
 import be.steby.CoreProject.dl.entities.Address;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
@@ -24,6 +25,7 @@ import be.steby.CoreProject.dl.entities.crm.Lead;
 import be.steby.CoreProject.dl.entities.crm.Organisation;
 import be.steby.CoreProject.dl.entities.crm.Pipeline;
 import be.steby.CoreProject.dl.entities.crm.PipelineStep;
+import be.steby.CoreProject.dl.entities.crm.SupportTicket;
 import be.steby.CoreProject.dl.enums.crm.ContactRole;
 import be.steby.CoreProject.dl.enums.AddressType;
 import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
@@ -31,8 +33,10 @@ import be.steby.CoreProject.dl.enums.LeadType;
 import be.steby.CoreProject.dl.enums.UserRole;
 import be.steby.CoreProject.dl.enums.crm.ContactStatus;
 import be.steby.CoreProject.dl.enums.crm.DealStatus;
+import be.steby.CoreProject.dl.enums.crm.SupportTicketStatus;
 import be.steby.CoreProject.dl.enums.crm.LeadStatus;
 import be.steby.CoreProject.dl.enums.crm.OrganisationSize;
+import be.steby.CoreProject.dl.enums.crm.OrganisationStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -60,6 +64,7 @@ public class DataInitializer implements CommandLineRunner {
     private final ContactRepository contactRepository;
     private final DealRepository dealRepository;
     private final DealContactRoleRepository dealContactRoleRepository;
+    private final SupportTicketRepository supportTicketRepository;
 
 
     @Override
@@ -652,6 +657,7 @@ public class DataInitializer implements CommandLineRunner {
                 .size(OrganisationSize.MEDIUM)
                 .phone("+32 2 456 78 90")
                 .notes("Client historique depuis 2019. Contrat annuel reconductible.")
+                .status(OrganisationStatus.CLIENT)
                 .build();
 
         Organisation orgTechno = Organisation.builder()
@@ -669,6 +675,7 @@ public class DataInitializer implements CommandLineRunner {
                 .size(OrganisationSize.LARGE)
                 .phone("+32 2 111 22 33")
                 .notes("Gestion de 50+ immeubles. Fort potentiel de contrats récurrents.")
+                .status(OrganisationStatus.CLIENT)
                 .build();
 
         Organisation orgSante = Organisation.builder()
@@ -984,6 +991,87 @@ public class DataInitializer implements CommandLineRunner {
         log.info("🎉 CRM data initialization complete!");
 
         //endregion
+
+
+        //region support tickets
+
+        SupportTicket ticket1 = SupportTicket.builder()
+                .subject("Impossible d'accéder à mon espace client")
+                .description("Depuis ce matin, j'obtiens une erreur 403 quand je tente de me connecter. "
+                        + "J'ai essayé de réinitialiser mon mot de passe mais le problème persiste.")
+                .status(SupportTicketStatus.OPEN)
+                .submittedBy(contactThomas)
+                .assignedTo(null)
+                .build();
+
+        SupportTicket ticket2 = SupportTicket.builder()
+                .subject("Facture incorrecte — juillet 2025")
+                .description("La facture n°2025-0712 affiche un montant de 2 400 € au lieu de 1 800 €. "
+                        + "Merci de corriger et de réémettre le document.")
+                .status(SupportTicketStatus.IN_PROGRESS)
+                .submittedBy(contactSophie)
+                .assignedTo(user1)
+                .build();
+
+        SupportTicket ticket3 = SupportTicket.builder()
+                .subject("Demande de devis pour extension de contrat")
+                .description("Nous souhaitons étendre notre contrat actuel de 12 mois supplémentaires "
+                        + "avec les mêmes conditions tarifaires. Pouvez-vous nous envoyer un devis ?")
+                .status(SupportTicketStatus.OPEN)
+                .submittedBy(contactMarc)
+                .assignedTo(null)
+                .build();
+
+        SupportTicket ticket4 = SupportTicket.builder()
+                .subject("Problème d'intégration API — timeout intermittent")
+                .description("Nos appels à l'endpoint /api/v1/sync retournent un timeout 504 de manière "
+                        + "aléatoire, environ 1 fois sur 10. Environnement : production, région EU-West.")
+                .status(SupportTicketStatus.IN_PROGRESS)
+                .submittedBy(contactPierre)
+                .assignedTo(user3)
+                .build();
+
+        SupportTicket ticket5 = SupportTicket.builder()
+                .subject("Mise à jour des coordonnées de facturation")
+                .description("Suite à notre déménagement, merci de mettre à jour l'adresse de facturation "
+                        + "avec : 14 Rue du Commerce, 69002 Lyon.")
+                .status(SupportTicketStatus.RESOLVED)
+                .submittedBy(contactIsabelle)
+                .assignedTo(user1)
+                .build();
+
+        SupportTicket ticket6 = SupportTicket.builder()
+                .subject("Export des données — format CSV")
+                .description("Je n'arrive pas à exporter mes données au format CSV depuis le tableau de bord. "
+                        + "Le bouton 'Exporter' reste grisé même avec les droits admin.")
+                .status(SupportTicketStatus.CLOSED)
+                .submittedBy(contactNadia)
+                .assignedTo(user3)
+                .build();
+
+        SupportTicket ticket7 = SupportTicket.builder()
+                .subject("Question sur les conditions de résiliation")
+                .description("Pourriez-vous m'indiquer le préavis requis pour résilier le contrat "
+                        + "ainsi que les éventuelles pénalités applicables ?")
+                .status(SupportTicketStatus.CLOSED)
+                .submittedBy(contactJean)
+                .assignedTo(user1)
+                .build();
+
+        SupportTicket ticket8 = SupportTicket.builder()
+                .subject("Rapport mensuel non reçu — août 2025")
+                .description("Je n'ai pas reçu le rapport mensuel automatique d'août. "
+                        + "Merci de vérifier si l'envoi a bien été effectué à l'adresse marc.dupont@acme.com.")
+                .status(SupportTicketStatus.OPEN)
+                .submittedBy(contactMarc)
+                .assignedTo(null)
+                .build();
+
+        supportTicketRepository.saveAll(List.of(ticket1, ticket2, ticket3, ticket4, ticket5, ticket6, ticket7, ticket8));
+        log.info("✅ Created 8 support tickets");
+
+        //endregion
+
 
             }
 
