@@ -1,7 +1,7 @@
 package be.steby.CoreProject.pl.domains.commercialaction.models.requests;
 
 import be.steby.CoreProject.bll.domains.commercialaction.models.CommercialActionCompleteRequest;
-import be.steby.CoreProject.bll.domains.interaction.models.InteractionCreateRequest;
+import be.steby.CoreProject.bll.domains.crm.interaction.models.InteractionCreateRequest;
 import be.steby.CoreProject.dl.enums.crm.CallStatus;
 import be.steby.CoreProject.dl.enums.crm.InteractionOutcome;
 import jakarta.validation.Valid;

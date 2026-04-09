@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.interaction.models.requests;
 
-import be.steby.CoreProject.bll.domains.interaction.models.InteractionCreateRequest;
+import be.steby.CoreProject.bll.domains.crm.interaction.models.InteractionCreateRequest;
 import be.steby.CoreProject.dl.enums.crm.CallStatus;
 import be.steby.CoreProject.dl.enums.crm.InteractionDirection;
 import be.steby.CoreProject.dl.enums.crm.InteractionOutcome;

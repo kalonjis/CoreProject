@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.lead.models.requests;
 
-import be.steby.CoreProject.bll.domains.lead.models.LeadAssignRequest;
+import be.steby.CoreProject.bll.domains.crm.lead.models.LeadAssignRequest;
 import jakarta.validation.constraints.NotBlank;
 
 /**

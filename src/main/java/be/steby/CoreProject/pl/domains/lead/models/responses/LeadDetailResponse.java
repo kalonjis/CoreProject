@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.lead.models.responses;
 
-import be.steby.CoreProject.bll.domains.lead.models.LeadDetailModel;
+import be.steby.CoreProject.bll.domains.crm.lead.models.LeadDetailModel;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Lead;
 import be.steby.CoreProject.dl.enums.LeadType;

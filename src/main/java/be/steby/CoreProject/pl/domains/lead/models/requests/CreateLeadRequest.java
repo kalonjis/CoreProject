@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.lead.models.requests;
 
-import be.steby.CoreProject.bll.domains.lead.models.LeadManualCreateRequest;
+import be.steby.CoreProject.bll.domains.crm.lead.models.LeadManualCreateRequest;
 import be.steby.CoreProject.dl.enums.LeadType;
 import be.steby.CoreProject.dl.enums.crm.Civility;
 import jakarta.validation.constraints.Email;

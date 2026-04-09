@@ -1,6 +1,6 @@
 package be.steby.CoreProject.il.webhook.mapper;
 
-import be.steby.CoreProject.bll.domains.lead.models.LeadManualCreateRequest;
+import be.steby.CoreProject.bll.domains.crm.lead.models.LeadManualCreateRequest;
 import be.steby.CoreProject.il.webhook.config.WebhookProperties.WebhookSourceConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 

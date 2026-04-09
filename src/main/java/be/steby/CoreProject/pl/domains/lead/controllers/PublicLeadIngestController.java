@@ -1,7 +1,7 @@
 package be.steby.CoreProject.pl.domains.lead.controllers;
 
-import be.steby.CoreProject.bll.domains.lead.models.LeadManualCreateRequest;
-import be.steby.CoreProject.bll.domains.lead.services.LeadService;
+import be.steby.CoreProject.bll.domains.crm.lead.models.LeadManualCreateRequest;
+import be.steby.CoreProject.bll.domains.crm.lead.services.LeadService;
 import be.steby.CoreProject.dl.enums.crm.LeadSource;
 import be.steby.CoreProject.il.webhook.config.WebhookProperties.WebhookSourceConfig;
 import be.steby.CoreProject.il.webhook.registry.WebhookHandlerRegistry;

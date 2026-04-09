@@ -1,5 +1,6 @@
 package be.steby.CoreProject.bll.domains.outreach.services;
 
+import be.steby.CoreProject.bll.domains.crm.interaction.listeners.OutreachEmailInteractionListener;
 import be.steby.CoreProject.bll.domains.outreach.events.OutreachEmailSentEvent;
 import be.steby.CoreProject.bll.domains.outreach.exceptions.OutreachContactNoEmailException;
 import be.steby.CoreProject.bll.domains.outreach.exceptions.OutreachContactNotFoundException;
@@ -27,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <h3>Decoupling — events over direct calls</h3>
  * <p>Interaction logging is handled by
- * {@link be.steby.CoreProject.bll.domains.interaction.listeners.OutreachEmailInteractionListener}
+ * {@link OutreachEmailInteractionListener}
  * in the {@code interaction} domain, which reacts to {@link OutreachEmailSentEvent}
  * and delegates to {@code InteractionService}. This service therefore has
  * <em>zero knowledge</em> of the interaction domain (SoC / DDD).</p>

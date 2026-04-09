@@ -1,5 +1,7 @@
 package be.steby.CoreProject.dl.enums.crm;
 
+import be.steby.CoreProject.bll.domains.crm.contact.listeners.DealWonContactUpgradeListener;
+
 /**
  * Lifecycle status of an {@link be.steby.CoreProject.dl.entities.crm.Organisation}
  * in the CRM relationship pipeline.
@@ -11,7 +13,7 @@ package be.steby.CoreProject.dl.enums.crm;
  * </ul>
  *
  * <p>Transition: {@code PROSPECT → CLIENT} is triggered automatically by
- * {@link be.steby.CoreProject.bll.domains.contact.listeners.DealWonContactUpgradeListener}
+ * {@link DealWonContactUpgradeListener}
  * when a deal linked to this organisation passes to a WON stage.</p>
  */
 public enum OrganisationStatus {

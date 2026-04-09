@@ -1,11 +1,13 @@
 package be.steby.CoreProject.bll.domains.outreach.exceptions;
 
+import be.steby.CoreProject.bll.domains.crm.contact.exceptions.ContactNotFoundException;
+
 /**
  * Thrown when the target contact of a CRM outreach send cannot be resolved.
  *
  * <p>Raised by {@link be.steby.CoreProject.bll.domains.outreach.services.CrmOutreachServiceImpl}
  * when no contact exists for the provided public UUID. This is distinct from
- * {@link be.steby.CoreProject.bll.domains.contact.exceptions.ContactNotFoundException}:
+ * {@link ContactNotFoundException}:
  * the failure is reported from the perspective of the outreach domain, not the
  * contact CRUD domain.</p>
  *

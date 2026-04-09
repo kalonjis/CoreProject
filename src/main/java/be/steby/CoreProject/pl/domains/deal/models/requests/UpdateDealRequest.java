@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.deal.models.requests;
 
-import be.steby.CoreProject.bll.domains.deal.models.DealUpdateRequest;
+import be.steby.CoreProject.bll.domains.crm.deal.models.DealUpdateRequest;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;

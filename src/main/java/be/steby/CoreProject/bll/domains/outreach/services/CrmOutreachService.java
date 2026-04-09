@@ -1,5 +1,7 @@
 package be.steby.CoreProject.bll.domains.outreach.services;
 
+import be.steby.CoreProject.bll.domains.crm.interaction.listeners.OutreachEmailInteractionListener;
+import be.steby.CoreProject.bll.domains.crm.interaction.services.InteractionService;
 import be.steby.CoreProject.bll.domains.outreach.models.CrmOutreachRequest;
 import be.steby.CoreProject.dl.entities.User;
 
@@ -18,9 +20,9 @@ import be.steby.CoreProject.dl.entities.User;
  *
  * <h3>Design — event-driven decoupling</h3>
  * <p>Interaction logging is handled by
- * {@link be.steby.CoreProject.bll.domains.interaction.listeners.OutreachEmailInteractionListener}
+ * {@link OutreachEmailInteractionListener}
  * in the {@code interaction} domain, which reacts to the published event and delegates
- * to {@link be.steby.CoreProject.bll.domains.interaction.services.InteractionService#create}.
+ * to {@link InteractionService#create}.
  * The {@code outreach} domain has zero knowledge of interaction storage (SoC / DDD).</p>
  */
 public interface CrmOutreachService {

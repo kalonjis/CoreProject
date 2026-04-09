@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.contact.models.requests;
 
-import be.steby.CoreProject.bll.domains.contact.models.ContactFilterRequest;
+import be.steby.CoreProject.bll.domains.crm.contact.models.ContactFilterRequest;
 import be.steby.CoreProject.dl.enums.crm.ContactStatus;
 
 /**

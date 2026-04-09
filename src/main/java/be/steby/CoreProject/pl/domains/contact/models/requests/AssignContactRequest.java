@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.contact.models.requests;
 
-import be.steby.CoreProject.bll.domains.contact.models.ContactAssignRequest;
+import be.steby.CoreProject.bll.domains.crm.contact.models.ContactAssignRequest;
 
 /**
  * PL request model for assigning or unassigning a commercial to a contact.

@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.lead.models.requests;
 
-import be.steby.CoreProject.bll.domains.lead.models.LeadEnrichRequest;
+import be.steby.CoreProject.bll.domains.crm.lead.models.LeadEnrichRequest;
 import be.steby.CoreProject.dl.enums.LeadType;
 import be.steby.CoreProject.dl.enums.crm.Civility;
 import be.steby.CoreProject.dl.enums.crm.LeadSource;

@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.deal.models.requests;
 
-import be.steby.CoreProject.bll.domains.deal.models.DealFilterRequest;
+import be.steby.CoreProject.bll.domains.crm.deal.models.DealFilterRequest;
 import be.steby.CoreProject.dl.enums.crm.DealStatus;
 
 import java.math.BigDecimal;

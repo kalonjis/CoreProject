@@ -1,7 +1,7 @@
 package be.steby.CoreProject.pl.domains.contact.controllers;
 
-import be.steby.CoreProject.bll.domains.contact.services.ContactService;
-import be.steby.CoreProject.bll.domains.deal.services.DealService;
+import be.steby.CoreProject.bll.domains.crm.contact.services.ContactService;
+import be.steby.CoreProject.bll.domains.crm.deal.services.DealService;
 import be.steby.CoreProject.bll.domains.outreach.services.CrmOutreachService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Contact;
