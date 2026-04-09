@@ -53,6 +53,20 @@ public interface LeadService {
     Lead getByPublicId(String publicId);
 
     /**
+     * Returns the full detail context for a lead, including deduplication info.
+     *
+     * <p>In addition to the lead entity, checks whether a Contact with the same
+     * email address already exists in the CRM. If so, the contact's public UUID
+     * is included so the frontend can disable the "Convert" action and link
+     * directly to the existing contact.</p>
+     *
+     * @param publicId the public UUID of the lead
+     * @return the lead wrapped with its optional existing-contact reference
+     * @throws be.steby.CoreProject.bll.domains.lead.exceptions.LeadNotFoundException if not found
+     */
+    LeadDetailModel getDetail(String publicId);
+
+    /**
      * Returns a paginated, filtered list of leads for the admin queue.
      *
      * @param filter   the filter criteria (all fields optional)

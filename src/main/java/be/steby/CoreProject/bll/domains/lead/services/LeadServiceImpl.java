@@ -6,11 +6,13 @@ import be.steby.CoreProject.bll.domains.lead.events.*;
 import be.steby.CoreProject.bll.domains.lead.exceptions.*;
 import be.steby.CoreProject.bll.domains.lead.models.*;
 import be.steby.CoreProject.bll.domains.user.services.UserService;
+import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
 import be.steby.CoreProject.dal.repositories.crm.LeadRepository;
 import be.steby.CoreProject.dal.specifications.crm.LeadSpecification;
 import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.entities.crm.Lead;
 import be.steby.CoreProject.dl.enums.crm.LeadSource;
 import be.steby.CoreProject.dl.enums.crm.LeadStatus;
@@ -25,6 +27,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -50,11 +54,15 @@ import java.util.UUID;
 public class LeadServiceImpl implements LeadService {
 
     private final LeadRepository leadRepository;
+    private final ContactRepository contactRepository;
     private final LeadRateLimitService rateLimitService;
     private final EmailPolicyService emailPolicyService;
     private final UserService userService;
     private final DeviceService deviceService;
     private final ApplicationEventPublisher eventPublisher;
+
+    /** Active statuses — a lead in one of these states can be deduplicated. */
+    private static final List<LeadStatus> ACTIVE_STATUSES = List.of(LeadStatus.NEW, LeadStatus.IN_REVIEW);
 
     // =========================================================================
     // Public submission
@@ -89,14 +97,25 @@ public class LeadServiceImpl implements LeadService {
             throw new LeadRateLimitException("Too many inquiries. Please try again later.");
         }
 
-        // 5. Build and save lead
+        // 5. Deduplication — return existing active lead, notify interaction domain
+        Optional<Lead> existing = leadRepository
+                .findFirstByEmailIgnoreCaseAndStatusInOrderBySubmittedAtDesc(email, ACTIVE_STATUSES);
+        if (existing.isPresent()) {
+            log.info("Deduplication (public) — returning existing active lead {} for email: {}",
+                    existing.get().getPublicId(), email);
+            eventPublisher.publishEvent(new LeadResubmittedEvent(
+                    existing.get(), request.subject(), request.message()));
+            return LeadResult.success(existing.get().getPublicId());
+        }
+
+        // 6. Build and save lead
         Lead lead = buildInquiry(request, email, ipAddress);
         leadRepository.save(lead);
 
         log.info("Public lead saved - publicId: {}, email: {}, type: {}",
                 lead.getPublicId(), email, request.leadType());
 
-        // 6. Publish event for email notification
+        // 7. Publish event for email notification
         eventPublisher.publishEvent(new LeadSubmittedEvent(lead, request.message()));
 
         return LeadResult.success(lead.getPublicId());
@@ -109,10 +128,21 @@ public class LeadServiceImpl implements LeadService {
     @Override
     @Transactional
     public Lead createManual(LeadManualCreateRequest request, User actor) {
-        log.info("Manual lead creation — email: {}, by: {}", request.email(), actor.getUsername());
+        String email = request.email().toLowerCase().trim();
+
+        // Deduplication — if an active lead exists for this email, return it
+        Optional<Lead> existing = leadRepository
+                .findFirstByEmailIgnoreCaseAndStatusInOrderBySubmittedAtDesc(email, ACTIVE_STATUSES);
+        if (existing.isPresent()) {
+            log.info("Deduplication (manual) — returning existing active lead {} for email: {}, by: {}",
+                    existing.get().getPublicId(), email, actor.getUsername());
+            return existing.get();
+        }
+
+        log.info("Manual lead creation — email: {}, by: {}", email, actor.getUsername());
 
         Lead lead = Lead.builder()
-                .email(request.email().toLowerCase().trim())
+                .email(email)
                 .civility(request.civility())
                 .firstName(request.firstName())
                 .lastName(request.lastName())
@@ -121,7 +151,7 @@ public class LeadServiceImpl implements LeadService {
                 .subject(request.subject().trim())
                 .message(request.message() != null ? request.message().trim() : null)
                 .leadType(request.leadType())
-                .leadSource(be.steby.CoreProject.dl.enums.crm.LeadSource.MANUAL)
+                .leadSource(LeadSource.MANUAL)
                 .submittedAt(Instant.now())
                 .build();
 
@@ -170,6 +200,16 @@ public class LeadServiceImpl implements LeadService {
     public Lead getByPublicId(String publicId) {
         return leadRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new LeadNotFoundException(publicId));
+    }
+
+    @Override
+    public LeadDetailModel getDetail(String publicId) {
+        Lead lead = getByPublicId(publicId);
+        String existingContactPublicId = contactRepository
+                .findByEmailIgnoreCase(lead.getEmail())
+                .map(Contact::getPublicId)
+                .orElse(null);
+        return new LeadDetailModel(lead, existingContactPublicId);
     }
 
     @Override

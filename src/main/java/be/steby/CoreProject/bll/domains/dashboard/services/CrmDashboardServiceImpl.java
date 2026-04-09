@@ -8,6 +8,7 @@ import be.steby.CoreProject.dl.enums.crm.DealStatus;
 import be.steby.CoreProject.dl.enums.crm.LeadStatus;
 import be.steby.CoreProject.dl.enums.crm.SupportTicketStatus;
 import be.steby.CoreProject.pl.domains.dashboard.models.responses.CrmStatsResponse;
+import be.steby.CoreProject.pl.domains.dashboard.models.responses.RevenueMonthResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Implementation of {@link CrmDashboardService}.
@@ -58,5 +61,28 @@ public class CrmDashboardServiceImpl implements CrmDashboardService {
                 supportTicketRepository.countByStatus(SupportTicketStatus.IN_PROGRESS),
                 forecastRevenue != null ? forecastRevenue : BigDecimal.ZERO
         );
+    }
+
+    @Override
+    public List<RevenueMonthResponse> getRevenueHistory(int months) {
+        ZoneId zone = ZoneId.systemDefault();
+        YearMonth current = YearMonth.now();
+        List<RevenueMonthResponse> result = new ArrayList<>(months);
+
+        for (int i = months - 1; i >= 0; i--) {
+            YearMonth ym = current.minusMonths(i);
+            Instant from = ym.atDay(1).atStartOfDay(zone).toInstant();
+            Instant to   = ym.plusMonths(1).atDay(1).atStartOfDay(zone).toInstant();
+
+            BigDecimal revenue = dealRepository.sumAmountWonBetween(from, to);
+            long count         = dealRepository.countWonBetween(from, to);
+
+            result.add(new RevenueMonthResponse(
+                    ym.toString(),
+                    revenue != null ? revenue : BigDecimal.ZERO,
+                    count
+            ));
+        }
+        return result;
     }
 }

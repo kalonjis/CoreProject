@@ -45,6 +45,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -972,8 +973,153 @@ public class DataInitializer implements CommandLineRunner {
                 .notes("Client a choisi un concurrent moins cher.")
                 .build();
 
-        dealRepository.saveAll(List.of(deal1, deal2, deal3, deal4, deal5, deal6, deal7, deal8));
-        log.info("✅ Created 8 deals");
+        // -----------------------------------------------------------------------
+        // HISTORICAL WON DEALS — 12 mois glissants (pour le graphique revenus)
+        // -----------------------------------------------------------------------
+
+        // Mois -12 : 1 500 €
+        Deal h1 = Deal.builder()
+                .title("Contrat nettoyage — ACME (renouvellement)")
+                .amount(new BigDecimal("1500.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgAcme).assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().minusMonths(12))
+                .closedAt(wonAt(12)).build();
+
+        // Mois -11 : 2 700 €
+        Deal h2 = Deal.builder()
+                .title("Entretien espaces communs — Immo Prestige (T1)")
+                .amount(new BigDecimal("2700.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgImmo).assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().minusMonths(11))
+                .closedAt(wonAt(11)).build();
+
+        // Mois -10 : 900 €
+        Deal h3 = Deal.builder()
+                .title("Prestation ponctuelle — Centre du Parc")
+                .amount(new BigDecimal("900.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgSante).assignedTo(user2)
+                .expectedCloseDate(LocalDate.now().minusMonths(10))
+                .closedAt(wonAt(10)).build();
+
+        // Mois -9 : 5 800 € (2 deals)
+        Deal h4 = Deal.builder()
+                .title("Nettoyage industriel — BelExpress site Liège")
+                .amount(new BigDecimal("4100.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgLogistique).assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().minusMonths(9))
+                .closedAt(wonAt(9)).build();
+
+        Deal h5 = Deal.builder()
+                .title("Maintenance mensuelle — TechnoPlus")
+                .amount(new BigDecimal("1700.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgTechno).assignedTo(user2)
+                .expectedCloseDate(LocalDate.now().minusMonths(9))
+                .closedAt(wonAt(9)).build();
+
+        // Mois -8 : 2 100 €
+        Deal h6 = Deal.builder()
+                .title("Devis accepté — ACME bureaux annexe")
+                .amount(new BigDecimal("2100.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgAcme).assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().minusMonths(8))
+                .closedAt(wonAt(8)).build();
+
+        // Mois -7 : 7 200 € (2 deals — pic estival)
+        Deal h7 = Deal.builder()
+                .title("Contrat annuel — BelExpress site Anvers")
+                .amount(new BigDecimal("5500.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgLogistique).assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().minusMonths(7))
+                .closedAt(wonAt(7)).build();
+
+        Deal h8 = Deal.builder()
+                .title("Extension contrat — Immo Prestige résidences nord")
+                .amount(new BigDecimal("1700.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgImmo).assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().minusMonths(7))
+                .closedAt(wonAt(7)).build();
+
+        // Mois -6 : 3 400 €
+        Deal h9 = Deal.builder()
+                .title("Nettoyage post-travaux — Immo Prestige")
+                .amount(new BigDecimal("3400.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgImmo).assignedTo(user2)
+                .expectedCloseDate(LocalDate.now().minusMonths(6))
+                .closedAt(wonAt(6)).build();
+
+        // Mois -5 : 4 900 €
+        Deal h10 = Deal.builder()
+                .title("Contrat semestriel — Centre du Parc")
+                .amount(new BigDecimal("4900.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgSante).assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().minusMonths(5))
+                .closedAt(wonAt(5)).build();
+
+        // Mois -4 : 6 300 € (2 deals)
+        Deal h11 = Deal.builder()
+                .title("Renouvellement annuel — BelExpress")
+                .amount(new BigDecimal("4800.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgLogistique).assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().minusMonths(4))
+                .closedAt(wonAt(4)).build();
+
+        Deal h12 = Deal.builder()
+                .title("Prestation urgente — TechnoPlus déménagement")
+                .amount(new BigDecimal("1500.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgTechno).assignedTo(user2)
+                .expectedCloseDate(LocalDate.now().minusMonths(4))
+                .closedAt(wonAt(4)).build();
+
+        // Mois -3 : 7 800 €
+        Deal h13 = Deal.builder()
+                .title("Contrat premium — Immo Prestige 15 résidences")
+                .amount(new BigDecimal("7800.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgImmo).assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().minusMonths(3))
+                .closedAt(wonAt(3)).build();
+
+        // Mois -2 : 5 600 € (2 deals)
+        Deal h14 = Deal.builder()
+                .title("Multi-sites — BelExpress extension")
+                .amount(new BigDecimal("3800.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgLogistique).assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().minusMonths(2))
+                .closedAt(wonAt(2)).build();
+
+        Deal h15 = Deal.builder()
+                .title("Contrat trimestriel — ACME Cleaning")
+                .amount(new BigDecimal("1800.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgAcme).assignedTo(user2)
+                .expectedCloseDate(LocalDate.now().minusMonths(2))
+                .closedAt(wonAt(2)).build();
+
+        // Mois -1 : 6 500 €
+        Deal h16 = Deal.builder()
+                .title("Contrat annuel — BelExpress site Bruxelles")
+                .amount(new BigDecimal("6500.00")).currency("EUR")
+                .status(DealStatus.WON).pipeline(pipeline).pipelineStep(stepWon)
+                .organisation(orgLogistique).assignedTo(user1)
+                .expectedCloseDate(LocalDate.now().minusMonths(1))
+                .closedAt(wonAt(1)).build();
+
+        dealRepository.saveAll(List.of(deal1, deal2, deal3, deal4, deal5, deal6, deal7, deal8,
+                h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16));
+        log.info("✅ Created 8 deals + 16 historical WON deals");
 
         // Create primary contact roles for each deal
         dealContactRoleRepository.saveAll(List.of(
@@ -1075,6 +1221,15 @@ public class DataInitializer implements CommandLineRunner {
 
             }
 
+
+        /** Returns an Instant corresponding to the 15th of the month N months ago (UTC). */
+        private Instant wonAt(int monthsAgo) {
+            return LocalDate.now()
+                    .minusMonths(monthsAgo)
+                    .withDayOfMonth(15)
+                    .atStartOfDay(ZoneOffset.UTC)
+                    .toInstant();
+        }
 
         // Méthode helper pour extraire la version majeure proprement
         private String extractMajorVersion(String osVersion) {

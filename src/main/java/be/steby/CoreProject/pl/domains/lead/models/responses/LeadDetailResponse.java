@@ -1,5 +1,6 @@
 package be.steby.CoreProject.pl.domains.lead.models.responses;
 
+import be.steby.CoreProject.bll.domains.lead.models.LeadDetailModel;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Lead;
 import be.steby.CoreProject.dl.enums.LeadType;
@@ -35,8 +36,9 @@ import java.util.Optional;
  * @param rejectionReason    reason for rejection, or {@code null} if not rejected
  * @param submittedAt        timestamp of the original submission
  * @param convertedAt        timestamp of conversion, or {@code null} if not converted
- * @param createdAt          timestamp of entity creation
- * @param updatedAt          timestamp of last update
+ * @param createdAt                timestamp of entity creation
+ * @param updatedAt                timestamp of last update
+ * @param existingContactPublicId  public UUID of a Contact already sharing this email, or {@code null}
  */
 public record LeadDetailResponse(
         String publicId,
@@ -57,7 +59,8 @@ public record LeadDetailResponse(
         Instant submittedAt,
         Instant convertedAt,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        String existingContactPublicId
 ) {
 
     /**
@@ -90,7 +93,41 @@ public record LeadDetailResponse(
                 lead.getSubmittedAt(),
                 lead.getConvertedAt(),
                 lead.getCreatedAt(),
-                lead.getUpdatedAt()
+                lead.getUpdatedAt(),
+                null
+        );
+    }
+
+    /**
+     * Maps a {@link LeadDetailModel} (lead + deduplication context) to a response.
+     *
+     * @param model the BLL detail model
+     * @return the detail response including existingContactPublicId if applicable
+     */
+    public static LeadDetailResponse fromDetail(LeadDetailModel model) {
+        Lead lead = model.lead();
+        User assignedTo = lead.getAssignedTo();
+        return new LeadDetailResponse(
+                lead.getPublicId(),
+                lead.getEmail(),
+                lead.getCivility(),
+                lead.getFirstName(),
+                lead.getLastName(),
+                lead.getPhone(),
+                lead.getOrganisationName(),
+                lead.getSubject(),
+                lead.getMessage(),
+                lead.getLeadType(),
+                lead.getLeadSource(),
+                lead.getStatus(),
+                Optional.ofNullable(assignedTo).map(User::getPublicId).orElse(null),
+                Optional.ofNullable(assignedTo).map(User::getUsername).orElse(null),
+                lead.getRejectionReason(),
+                lead.getSubmittedAt(),
+                lead.getConvertedAt(),
+                lead.getCreatedAt(),
+                lead.getUpdatedAt(),
+                model.existingContactPublicId()
         );
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,6 +47,20 @@ public interface LeadRepository extends JpaRepository<Lead, Long>, JpaSpecificat
      * @return the lead if found
      */
     Optional<Lead> findByPublicId(String publicId);
+
+    /**
+     * Finds the most recent active (NEW or IN_REVIEW) lead for a given email address.
+     *
+     * <p>Used for deduplication: before creating a new lead, callers check whether
+     * an open lead for this email already exists and return it instead of creating
+     * a duplicate.</p>
+     *
+     * @param email    the email address (case-insensitive)
+     * @param statuses the set of active statuses to match against
+     * @return the most recently submitted active lead for this email, if any
+     */
+    Optional<Lead> findFirstByEmailIgnoreCaseAndStatusInOrderBySubmittedAtDesc(
+            String email, Collection<LeadStatus> statuses);
 
     // =========================================================================
     // CRM queue
