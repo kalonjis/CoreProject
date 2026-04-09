@@ -17,10 +17,11 @@ public final class CrmDashboardRoutes {
         throw new UnsupportedOperationException("Utility class - cannot be instantiated");
     }
 
-    public static final String BASE = "/api/crm/stats";
+    public static final String BASE            = "/api/crm/stats";
+    public static final String REVENUE_HISTORY = BASE + "/revenue-history";
 
-    public static final String[] COMMERCIAL = { BASE };
+    public static final String[] COMMERCIAL = { BASE, REVENUE_HISTORY };
 
     /** ⚠️ DEV ONLY — set to {@code {}} in production. */
-    public static final String[] CSRF_IGNORE = { BASE };
+    public static final String[] CSRF_IGNORE = { BASE, REVENUE_HISTORY };
 }

@@ -184,6 +184,12 @@ public interface DealRepository extends JpaRepository<Deal, Long>,
     @Query("SELECT COALESCE(SUM(d.amount), 0) FROM Deal d WHERE d.status = 'WON' AND d.closedAt >= :since")
     java.math.BigDecimal sumAmountWonSince(@Param("since") java.time.Instant since);
 
+    @Query("SELECT COALESCE(SUM(d.amount), 0) FROM Deal d WHERE d.status = 'WON' AND d.closedAt >= :from AND d.closedAt < :to")
+    java.math.BigDecimal sumAmountWonBetween(@Param("from") java.time.Instant from, @Param("to") java.time.Instant to);
+
+    @Query("SELECT COUNT(d) FROM Deal d WHERE d.status = 'WON' AND d.closedAt >= :from AND d.closedAt < :to")
+    long countWonBetween(@Param("from") java.time.Instant from, @Param("to") java.time.Instant to);
+
     /**
      * Computes the weighted revenue forecast for all open deals.
      *

@@ -1,5 +1,6 @@
 package be.steby.CoreProject.pl.domains.lead.controllers;
 
+import be.steby.CoreProject.bll.domains.lead.models.LeadDetailModel;
 import be.steby.CoreProject.bll.domains.lead.services.LeadService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Lead;
@@ -100,12 +101,12 @@ public class CrmLeadController {
      * @return the lead detail
      */
     @GetMapping("/{publicId}")
-    @Operation(summary = "Get lead", description = "Returns the full detail of a lead")
+    @Operation(summary = "Get lead", description = "Returns the full detail of a lead, including deduplication context")
     public ResponseEntity<LeadDetailResponse> getByPublicId(@PathVariable String publicId) {
         log.debug("CRM lead detail requested — publicId: {}", publicId);
 
-        Lead lead = leadService.getByPublicId(publicId);
-        return ResponseEntity.ok(LeadDetailResponse.fromEntity(lead));
+        LeadDetailModel detail = leadService.getDetail(publicId);
+        return ResponseEntity.ok(LeadDetailResponse.fromDetail(detail));
     }
 
     // =========================================================================

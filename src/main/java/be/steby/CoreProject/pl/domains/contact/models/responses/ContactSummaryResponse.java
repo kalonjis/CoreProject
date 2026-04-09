@@ -17,6 +17,7 @@ import be.steby.CoreProject.dl.enums.crm.ContactStatus;
  * @param jobTitle             job title, or {@code null} if not set
  * @param status               current CRM lifecycle status
  * @param organisationPublicId public UUID of the linked organisation, or {@code null}
+ * @param organisationName     name of the linked organisation, or {@code null}
  * @param assignedTo           username of the assigned commercial, or {@code null}
  * @param hasLinkedUser        {@code true} if the contact has a linked platform account
  */
@@ -28,6 +29,7 @@ public record ContactSummaryResponse(
         String jobTitle,
         ContactStatus status,
         String organisationPublicId,
+        String organisationName,
         String assignedTo,
         boolean hasLinkedUser
 ) {
@@ -47,6 +49,7 @@ public record ContactSummaryResponse(
                 contact.getJobTitle(),
                 contact.getStatus(),
                 contact.getOrganisation() != null ? contact.getOrganisation().getPublicId() : null,
+                contact.getOrganisation() != null ? contact.getOrganisation().getName()     : null,
                 contact.getAssignedTo()   != null ? contact.getAssignedTo().getUsername()   : null,
                 contact.hasLinkedUser()
         );
