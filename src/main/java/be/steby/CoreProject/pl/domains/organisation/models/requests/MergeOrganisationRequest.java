@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.organisation.models.requests;
 
-import be.steby.CoreProject.bll.domains.organisation.models.OrganisationMergeRequest;
+import be.steby.CoreProject.bll.domains.crm.organisation.models.OrganisationMergeRequest;
 import jakarta.validation.constraints.NotBlank;
 
 /**

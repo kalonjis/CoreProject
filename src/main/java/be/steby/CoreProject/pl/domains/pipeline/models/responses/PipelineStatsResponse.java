@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.pipeline.models.responses;
 
-import be.steby.CoreProject.bll.domains.pipeline.models.PipelineStatsResult;
+import be.steby.CoreProject.bll.domains.crm.pipeline.models.PipelineStatsResult;
 
 import java.util.List;
 

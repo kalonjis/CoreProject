@@ -4,6 +4,7 @@ import be.steby.CoreProject.bll.domains.crm.interaction.exceptions.InteractionNo
 import be.steby.CoreProject.bll.domains.crm.interaction.exceptions.InteractionValidationException;
 import be.steby.CoreProject.bll.domains.crm.interaction.models.InteractionCreateRequest;
 import be.steby.CoreProject.bll.domains.crm.interaction.models.InteractionUpdateRequest;
+import be.steby.CoreProject.bll.domains.crm.timeline.services.TimelineService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Interaction;
 
@@ -24,7 +25,7 @@ import be.steby.CoreProject.dl.entities.crm.Interaction;
  * <h3>Unified timeline</h3>
  * <p>To retrieve the unified timeline that merges interactions with completed
  * commercial actions, use
- * {@link be.steby.CoreProject.bll.domains.timeline.services.TimelineService}.</p>
+ * {@link TimelineService}.</p>
  */
 public interface InteractionService {
 

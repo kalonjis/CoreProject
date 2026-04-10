@@ -2,7 +2,7 @@ package be.steby.CoreProject.bll.domains.crm.interaction.listeners;
 
 import be.steby.CoreProject.bll.domains.crm.interaction.models.InteractionCreateRequest;
 import be.steby.CoreProject.bll.domains.crm.interaction.services.InteractionService;
-import be.steby.CoreProject.bll.domains.outreach.events.OutreachEmailSentEvent;
+import be.steby.CoreProject.bll.domains.crm.outreach.events.OutreachEmailSentEvent;
 import be.steby.CoreProject.dl.enums.crm.InteractionDirection;
 import be.steby.CoreProject.dl.enums.crm.InteractionOutcome;
 import be.steby.CoreProject.dl.enums.crm.InteractionType;

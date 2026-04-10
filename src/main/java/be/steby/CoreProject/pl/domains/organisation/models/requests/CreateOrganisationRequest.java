@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.organisation.models.requests;
 
-import be.steby.CoreProject.bll.domains.organisation.models.OrganisationCreateRequest;
+import be.steby.CoreProject.bll.domains.crm.organisation.models.OrganisationCreateRequest;
 import be.steby.CoreProject.dl.enums.crm.OrganisationSize;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

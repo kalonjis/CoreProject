@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.supportticket.models.requests;
 
-import be.steby.CoreProject.bll.domains.supportticket.models.SupportTicketAssignRequest;
+import be.steby.CoreProject.bll.domains.crm.supportticket.models.SupportTicketAssignRequest;
 
 /**
  * PL request model for assigning a support ticket to a team member.

@@ -2,7 +2,7 @@ package be.steby.CoreProject.pl.domains.organisation.controllers;
 
 import be.steby.CoreProject.bll.domains.crm.contact.services.ContactService;
 import be.steby.CoreProject.bll.domains.crm.deal.services.DealService;
-import be.steby.CoreProject.bll.domains.organisation.services.OrganisationService;
+import be.steby.CoreProject.bll.domains.crm.organisation.services.OrganisationService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Organisation;
 import be.steby.CoreProject.pl.domains.contact.models.responses.ContactSummaryResponse;

@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.tag.controllers;
 
-import be.steby.CoreProject.bll.domains.tag.services.TagService;
+import be.steby.CoreProject.bll.domains.crm.tag.services.TagService;
 import be.steby.CoreProject.pl.domains.tag.models.requests.CreateTagRequest;
 import be.steby.CoreProject.pl.domains.tag.models.requests.UpdateTagRequest;
 import be.steby.CoreProject.pl.domains.tag.models.responses.TagResponse;
