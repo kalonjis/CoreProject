@@ -17,6 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Default implementation of {@link TagService}.
+ *
+ * <p>Manages the full lifecycle of {@link be.steby.CoreProject.dl.entities.crm.Tag} entities,
+ * including creation, update, deletion, and association with contacts, deals, and organisations.
+ * Deletion cascades to all join tables via native bulk-delete queries before removing the tag itself.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class TagServiceImpl implements TagService {
@@ -26,12 +33,14 @@ public class TagServiceImpl implements TagService {
     private final DealRepository         dealRepository;
     private final OrganisationRepository organisationRepository;
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
     public List<Tag> findAll() {
         return tagRepository.findAllByOrderByNameAsc();
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public Tag create(CreateTagRequest request) {
@@ -42,6 +51,7 @@ public class TagServiceImpl implements TagService {
         return tagRepository.save(tag);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public Tag update(String publicId, UpdateTagRequest request) {
@@ -51,6 +61,7 @@ public class TagServiceImpl implements TagService {
         return tagRepository.save(tag);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void delete(String publicId) {
@@ -61,6 +72,7 @@ public class TagServiceImpl implements TagService {
         tagRepository.delete(tag);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void addToContact(String tagPublicId, String contactPublicId) {
@@ -71,6 +83,7 @@ public class TagServiceImpl implements TagService {
         contactRepository.save(contact);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void removeFromContact(String tagPublicId, String contactPublicId) {
@@ -81,6 +94,7 @@ public class TagServiceImpl implements TagService {
         contactRepository.save(contact);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void addToDeal(String tagPublicId, String dealPublicId) {
@@ -91,6 +105,7 @@ public class TagServiceImpl implements TagService {
         dealRepository.save(deal);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void removeFromDeal(String tagPublicId, String dealPublicId) {
@@ -101,6 +116,7 @@ public class TagServiceImpl implements TagService {
         dealRepository.save(deal);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void addToOrganisation(String tagPublicId, String organisationPublicId) {
@@ -111,6 +127,7 @@ public class TagServiceImpl implements TagService {
         organisationRepository.save(org);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void removeFromOrganisation(String tagPublicId, String organisationPublicId) {
@@ -121,6 +138,13 @@ public class TagServiceImpl implements TagService {
         organisationRepository.save(org);
     }
 
+    /**
+     * Resolves a {@link Tag} by its public UUID or throws {@link TagNotFoundException}.
+     *
+     * @param publicId the public UUID of the tag
+     * @return the matching tag entity
+     * @throws TagNotFoundException if no tag exists for the given {@code publicId}
+     */
     private Tag findByPublicId(String publicId) {
         return tagRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new TagNotFoundException(publicId));

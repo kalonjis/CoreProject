@@ -57,7 +57,13 @@
       "Bash(grep -v '\\\\.ts$')",
       "Bash(git -C /c/Users/kalon/OneDrive/Documents/CoreProject/FrontLast/CoreProject_Front diff --name-only HEAD)",
       "Bash(git -C /c/Users/kalon/OneDrive/Documents/CoreProject/FrontLast/CoreProject_Front status --short)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(xargs cat:*)",
+      "Bash(find \"/c/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/dl/entities/crm\" -name \"*.java\" -type f)",
+      "Bash(find \"/c/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/dl/enums/crm\" -name \"*.java\" -type f)",
+      "Bash(find \"/c/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/dal/repositories/crm\" -name \"*.java\" -type f)",
+      "Bash(find \"/c/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/dal/specifications/crm\" -name \"*.java\" -type f)",
+      "Bash(npm audit *)"
     ]
   }
 }

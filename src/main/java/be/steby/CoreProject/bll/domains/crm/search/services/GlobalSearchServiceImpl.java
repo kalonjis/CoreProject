@@ -18,11 +18,19 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Default implementation of {@link GlobalSearchService}.
+ *
+ * <p>Executes four parallel LIKE queries (contacts, organisations, deals, leads)
+ * each capped at {@link #MAX_PER_CATEGORY} results, then merges them into a single flat list.
+ * The keyword is lowercased and wrapped in SQL wildcards before querying.</p>
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class GlobalSearchServiceImpl implements GlobalSearchService {
 
+    /** Maximum number of results returned per entity category. */
     private static final int MAX_PER_CATEGORY = 5;
 
     private final ContactRepository      contactRepository;
@@ -30,6 +38,7 @@ public class GlobalSearchServiceImpl implements GlobalSearchService {
     private final DealRepository         dealRepository;
     private final LeadRepository         leadRepository;
 
+    /** {@inheritDoc} */
     @Override
     public GlobalSearchResponse search(String query) {
         if (query == null || query.isBlank()) return new GlobalSearchResponse(List.of());
@@ -54,6 +63,12 @@ public class GlobalSearchServiceImpl implements GlobalSearchService {
         return new GlobalSearchResponse(results);
     }
 
+    /**
+     * Maps a {@link Contact} entity to a {@link SearchResult} of type {@code CONTACT}.
+     *
+     * @param c the contact entity
+     * @return the corresponding search result
+     */
     private SearchResult toContactResult(Contact c) {
         return new SearchResult(
                 "CONTACT",
@@ -63,6 +78,12 @@ public class GlobalSearchServiceImpl implements GlobalSearchService {
         );
     }
 
+    /**
+     * Maps an {@link Organisation} entity to a {@link SearchResult} of type {@code ORGANISATION}.
+     *
+     * @param o the organisation entity
+     * @return the corresponding search result
+     */
     private SearchResult toOrganisationResult(Organisation o) {
         return new SearchResult(
                 "ORGANISATION",
@@ -72,6 +93,12 @@ public class GlobalSearchServiceImpl implements GlobalSearchService {
         );
     }
 
+    /**
+     * Maps a {@link Deal} entity to a {@link SearchResult} of type {@code DEAL}.
+     *
+     * @param d the deal entity
+     * @return the corresponding search result
+     */
     private SearchResult toDealResult(Deal d) {
         return new SearchResult(
                 "DEAL",
@@ -81,6 +108,12 @@ public class GlobalSearchServiceImpl implements GlobalSearchService {
         );
     }
 
+    /**
+     * Maps a {@link Lead} entity to a {@link SearchResult} of type {@code LEAD}.
+     *
+     * @param l the lead entity
+     * @return the corresponding search result
+     */
     private SearchResult toLeadResult(Lead l) {
         return new SearchResult(
                 "LEAD",

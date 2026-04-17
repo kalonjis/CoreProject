@@ -89,18 +89,21 @@ public class DealServiceImpl implements DealService {
     // Lookup
     // =========================================================================
 
+    /** {@inheritDoc} */
     @Override
     public Deal getById(Long id) {
         return dealRepository.findById(id)
                 .orElseThrow(() -> DealNotFoundException.byId(id));
     }
 
+    /** {@inheritDoc} */
     @Override
     public Deal getByPublicId(String publicId) {
         return dealRepository.findByPublicId(publicId)
                 .orElseThrow(() -> DealNotFoundException.byPublicId(publicId));
     }
 
+    /** {@inheritDoc} */
     @Override
     public Page<Deal> findAll(DealFilterRequest filter, Pageable pageable) {
 
@@ -174,6 +177,7 @@ public class DealServiceImpl implements DealService {
         return dealRepository.findAll(spec, pageable);
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<Deal> findByContact(String contactPublicId) {
         Contact contact = contactRepository.findByPublicId(contactPublicId)
@@ -182,6 +186,7 @@ public class DealServiceImpl implements DealService {
         return dealRepository.findByContactIdOrderByCreatedAtDesc(contact.getId());
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<Deal> findByOrganisation(String organisationPublicId) {
         Organisation organisation = organisationRepository.findByPublicId(organisationPublicId)
@@ -194,6 +199,7 @@ public class DealServiceImpl implements DealService {
     // Creation & update
     // =========================================================================
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public Deal create(DealCreateRequest request, User actor) {
@@ -256,6 +262,7 @@ public class DealServiceImpl implements DealService {
         return saved;
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public Deal update(String publicId, DealUpdateRequest request, User actor) {
@@ -308,6 +315,7 @@ public class DealServiceImpl implements DealService {
     // Stage & lifecycle
     // =========================================================================
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public Deal moveToStage(String publicId, String stagePublicId, String lostReason, User actor) {
@@ -379,6 +387,7 @@ public class DealServiceImpl implements DealService {
     // Contact roles
     // =========================================================================
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public DealContactRole addContactRole(String dealPublicId, DealAddContactRoleRequest request, User actor) {
@@ -408,6 +417,7 @@ public class DealServiceImpl implements DealService {
         return saved;
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void removeContactRole(String dealPublicId, String contactPublicId, User actor) {
@@ -438,6 +448,7 @@ public class DealServiceImpl implements DealService {
         log.info("Contact {} removed from deal {}, by: {}", contactPublicId, dealPublicId, actor.getUsername());
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public DealContactRole updateContactRole(String dealPublicId, String contactPublicId, ContactRole role, User actor) {
@@ -459,6 +470,7 @@ public class DealServiceImpl implements DealService {
         return saved;
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public DealContactRole setPrimaryContact(String dealPublicId, String contactPublicId, User actor) {
@@ -492,6 +504,7 @@ public class DealServiceImpl implements DealService {
     // Assignment
     // =========================================================================
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public Deal reassign(String publicId, DealReassignRequest request, User actor) {

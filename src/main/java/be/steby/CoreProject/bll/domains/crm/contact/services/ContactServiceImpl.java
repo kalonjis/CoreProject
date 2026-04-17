@@ -136,30 +136,35 @@ public class ContactServiceImpl implements ContactService {
     // Lookup
     // =========================================================================
 
+    /** {@inheritDoc} */
     @Override
     public Contact getById(Long id) {
         return contactRepository.findById(id)
                 .orElseThrow(() -> ContactNotFoundException.byId(id));
     }
 
+    /** {@inheritDoc} */
     @Override
     public Contact getByPublicId(String publicId) {
         return contactRepository.findByPublicId(publicId)
                 .orElseThrow(() -> ContactNotFoundException.byPublicId(publicId));
     }
 
+    /** {@inheritDoc} */
     @Override
     public Contact getByEmail(String email) {
         return contactRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> ContactNotFoundException.byEmail(email));
     }
 
+    /** {@inheritDoc} */
     @Override
     public Contact getByOriginLeadPublicId(String leadPublicId) {
         return contactRepository.findByOriginLead_PublicId(leadPublicId)
                 .orElseThrow(() -> ContactNotFoundException.byOriginLeadPublicId(leadPublicId));
     }
 
+    /** {@inheritDoc} */
     @Override
     public Page<Contact> findAll(ContactFilterRequest filter, Pageable pageable) {
         // Mutual exclusion: withoutOrganisation takes precedence over organisationPublicId
@@ -204,6 +209,7 @@ public class ContactServiceImpl implements ContactService {
         return contactRepository.findAll(spec, pageable);
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<Contact> findByOrganisation(String organisationPublicId) {
         Organisation org = organisationRepository.findByPublicId(organisationPublicId)
@@ -278,6 +284,7 @@ public class ContactServiceImpl implements ContactService {
                 });
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public Contact create(ContactCreateRequest request, User actor) {
@@ -318,6 +325,7 @@ public class ContactServiceImpl implements ContactService {
     // Update
     // =========================================================================
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public Contact update(String publicId, ContactUpdateRequest request, User actor) {
@@ -365,6 +373,7 @@ public class ContactServiceImpl implements ContactService {
         return saved;
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public Contact updateStatus(String publicId, ContactStatus newStatus, User actor) {
@@ -395,6 +404,7 @@ public class ContactServiceImpl implements ContactService {
     // Relations
     // =========================================================================
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public Contact linkUser(String contactPublicId, User user) {
@@ -417,6 +427,7 @@ public class ContactServiceImpl implements ContactService {
         return saved;
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public Contact linkOrganisation(String contactPublicId, String organisationPublicId, User actor) {
@@ -435,6 +446,7 @@ public class ContactServiceImpl implements ContactService {
         return saved;
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public Contact assign(String contactPublicId, ContactAssignRequest request, User actor) {
@@ -469,6 +481,7 @@ public class ContactServiceImpl implements ContactService {
         return saved;
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public Contact merge(ContactMergeRequest request, User actor) {

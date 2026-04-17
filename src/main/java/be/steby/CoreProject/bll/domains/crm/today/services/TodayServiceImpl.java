@@ -18,6 +18,20 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 
+/**
+ * Default implementation of {@link TodayService}.
+ *
+ * <p>All queries are read-only and scoped to the server's default timezone.
+ * Day boundaries are computed at runtime so the view always reflects the actual calendar day.</p>
+ *
+ * <ul>
+ *   <li><b>Overdue actions</b> — commercial actions whose due date is before now and are not yet completed.</li>
+ *   <li><b>Today's actions</b> — commercial actions due between start-of-day and end-of-day.</li>
+ *   <li><b>Overdue deals</b> — open deals whose expected close date has passed.</li>
+ *   <li><b>Deals closing soon</b> — open deals closing within the next 7 days.</li>
+ *   <li><b>Open tickets</b> — support tickets in {@code OPEN} or {@code IN_PROGRESS} status.</li>
+ * </ul>
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -27,6 +41,7 @@ public class TodayServiceImpl implements TodayService {
     private final DealRepository             dealRepository;
     private final SupportTicketRepository    supportTicketRepository;
 
+    /** {@inheritDoc} */
     @Override
     public TodaySummaryResponse getSummary() {
 

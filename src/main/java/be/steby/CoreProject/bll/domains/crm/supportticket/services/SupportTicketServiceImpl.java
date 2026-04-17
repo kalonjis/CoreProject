@@ -42,6 +42,25 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * Default implementation of {@link SupportTicketService}.
+ *
+ * <h3>Public form submission</h3>
+ * <p>{@link #submitFromPublicForm} handles unauthenticated ticket creation from the public-facing form.
+ * It applies two anti-abuse layers: a honeypot field check (silent rejection) and an IP-based
+ * rate limit configured via {@code support.rate-limit.ip.*} properties.
+ * If the submitter's email matches an existing contact, the ticket is linked automatically;
+ * otherwise it is stored with anonymous reporter fields.</p>
+ *
+ * <h3>Status transitions</h3>
+ * <p>Allowed transitions are enforced by {@link #validateTransition}:
+ * OPEN → IN_PROGRESS | CLOSED, IN_PROGRESS → RESOLVED | CLOSED, RESOLVED → CLOSED.
+ * Closed tickets are immutable — any write operation on them throws
+ * {@link be.steby.CoreProject.bll.domains.crm.supportticket.exceptions.SupportTicketAlreadyClosedException}.</p>
+ *
+ * <h3>Assignment authorization</h3>
+ * <p>Non-admin users can only assign tickets to themselves. Admin users may assign to any agent.</p>
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -64,18 +83,21 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     // Lookup
     // =========================================================================
 
+    /** {@inheritDoc} */
     @Override
     public SupportTicket getById(Long id) {
         return supportTicketRepository.findById(id)
                 .orElseThrow(() -> SupportTicketNotFoundException.byId(id));
     }
 
+    /** {@inheritDoc} */
     @Override
     public SupportTicket getByPublicId(String publicId) {
         return supportTicketRepository.findByPublicId(publicId)
                 .orElseThrow(() -> SupportTicketNotFoundException.byPublicId(publicId));
     }
 
+    /** {@inheritDoc} */
     @Override
     public Page<SupportTicket> findAll(SupportTicketFilterRequest filter, Pageable pageable) {
 
@@ -108,6 +130,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
         return supportTicketRepository.findAll(spec, pageable);
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<SupportTicket> findByContact(String contactPublicId) {
         Contact contact = contactRepository.findByPublicId(contactPublicId)
@@ -120,6 +143,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     // Public form submission
     // =========================================================================
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public SupportTicket submitFromPublicForm(PublicSupportTicketRequest request, HttpServletRequest httpRequest) {
@@ -175,6 +199,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     // Creation & update
     // =========================================================================
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public SupportTicket create(SupportTicketCreateRequest request, User actor) {
@@ -207,6 +232,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
         return saved;
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public SupportTicket update(String publicId, SupportTicketUpdateRequest request, User actor) {
@@ -233,6 +259,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     // Deletion
     // =========================================================================
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void delete(String publicId, User actor) {
@@ -249,6 +276,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     // Status
     // =========================================================================
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public SupportTicket changeStatus(String publicId, SupportTicketChangeStatusRequest request, User actor) {
@@ -285,6 +313,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     // Assignment
     // =========================================================================
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public SupportTicket assign(String publicId, SupportTicketAssignRequest request, User actor) {
