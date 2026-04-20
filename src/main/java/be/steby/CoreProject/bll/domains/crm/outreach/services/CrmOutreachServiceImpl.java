@@ -1,13 +1,15 @@
 package be.steby.CoreProject.bll.domains.crm.outreach.services;
 
+import be.steby.CoreProject.bll.domains.crm.contact.services.ContactService;
 import be.steby.CoreProject.bll.domains.crm.interaction.listeners.OutreachEmailInteractionListener;
+import be.steby.CoreProject.bll.domains.crm.lead.services.LeadService;
+import be.steby.CoreProject.bll.domains.crm.outreach.events.LeadOutreachEmailSentEvent;
 import be.steby.CoreProject.bll.domains.crm.outreach.events.OutreachEmailSentEvent;
 import be.steby.CoreProject.bll.domains.crm.outreach.exceptions.OutreachContactNoEmailException;
-import be.steby.CoreProject.bll.domains.crm.outreach.exceptions.OutreachContactNotFoundException;
 import be.steby.CoreProject.bll.domains.crm.outreach.models.CrmOutreachRequest;
-import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Contact;
+import be.steby.CoreProject.dl.entities.crm.Lead;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -45,14 +47,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class CrmOutreachServiceImpl implements CrmOutreachService {
 
-    private final ContactRepository        contactRepository;
-    private final CrmOutreachMailerService outreachMailerService;
+    private final ContactService            contactService;
+    private final LeadService               leadService;
+    private final CrmOutreachMailerService  outreachMailerService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public void send(CrmOutreachRequest request, User commercial) {
-        Contact contact = contactRepository.findByPublicId(request.contactPublicId())
-                .orElseThrow(() -> OutreachContactNotFoundException.byPublicId(request.contactPublicId()));
+        Contact contact = contactService.getByPublicId(request.contactPublicId());
 
         if (contact.getEmail() == null || contact.getEmail().isBlank()) {
             throw OutreachContactNoEmailException.forContact(request.contactPublicId());
@@ -74,5 +76,19 @@ public class CrmOutreachServiceImpl implements CrmOutreachService {
         ));
 
         log.info("CRM outreach dispatched — contact: {}, event published", contact.getPublicId());
+    }
+
+    @Override
+    public void sendToLead(String leadPublicId, String subject, String body, User commercial) {
+        Lead lead = leadService.getByPublicId(leadPublicId);
+
+        log.info("CRM outreach to lead — to: {}, by: {}, subject: '{}'",
+                lead.getEmail(), commercial.getUsername(), subject);
+
+        outreachMailerService.sendOutreachToLead(lead, subject, body, commercial);
+
+        eventPublisher.publishEvent(new LeadOutreachEmailSentEvent(lead, commercial, subject, body));
+
+        log.info("CRM outreach dispatched — lead: {}, event published", lead.getPublicId());
     }
 }

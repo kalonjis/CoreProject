@@ -15,6 +15,7 @@ import be.steby.CoreProject.dl.enums.crm.LeadSource;
  * @param firstName        first name of the visitor (optional)
  * @param lastName         last name of the visitor (optional)
  * @param phone            phone number of the visitor (optional)
+ * @param jobTitle         job title of the visitor (optional)
  * @param organisationName name of the organisation the visitor represents (optional)
  * @param subject          subject of the inquiry (required)
  * @param message          content of the message (required, not persisted in DB)
@@ -28,6 +29,7 @@ public record LeadRequest(
         String firstName,
         String lastName,
         String phone,
+        String jobTitle,
         String organisationName,
         String subject,
         String message,

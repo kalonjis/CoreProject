@@ -32,7 +32,7 @@ public record PublicSupportTicketSubmitRequest(
         @Size(max = 255, message = "Subject cannot exceed 255 characters")
         String subject,
 
-        @Size(max = 5000, message = "Description cannot exceed 5000 characters")
+        @Size(max = 3000, message = "Description cannot exceed 3000 characters")
         String description,
 
         // Honeypot field — must be empty

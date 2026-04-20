@@ -38,4 +38,15 @@ public interface CrmOutreachService {
      *                   is set as the Reply-To header so replies land in their inbox
      */
     void send(CrmOutreachRequest request, User commercial);
+
+    /**
+     * Sends an outreach email to the specified lead and logs it as an EMAIL interaction
+     * against the lead's timeline.
+     *
+     * @param leadPublicId public UUID of the target lead
+     * @param subject      email subject
+     * @param body         rich-text HTML body
+     * @param commercial   the authenticated commercial performing the send
+     */
+    void sendToLead(String leadPublicId, String subject, String body, User commercial);
 }

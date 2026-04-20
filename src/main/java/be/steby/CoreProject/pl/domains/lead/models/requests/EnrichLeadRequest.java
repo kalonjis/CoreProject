@@ -16,6 +16,7 @@ import jakarta.validation.constraints.Size;
  * @param firstName        first name of the prospect
  * @param lastName         last name of the prospect
  * @param phone            phone number of the prospect
+ * @param jobTitle         job title of the prospect
  * @param organisationName name of the organisation the prospect represents
  * @param leadType         corrected inquiry type
  * @param leadSource       corrected acquisition source
@@ -25,11 +26,12 @@ public record EnrichLeadRequest(
         @Size(max = 100) String firstName,
         @Size(max = 100) String lastName,
         @Size(max = 20)  String phone,
+        @Size(max = 150) String jobTitle,
         @Size(max = 200) String organisationName,
         LeadType leadType,
         LeadSource leadSource
 ) {
     public LeadEnrichRequest toBllModel() {
-        return new LeadEnrichRequest(civility, firstName, lastName, phone, organisationName, leadType, leadSource);
+        return new LeadEnrichRequest(civility, firstName, lastName, phone, jobTitle, organisationName, leadType, leadSource);
     }
 }

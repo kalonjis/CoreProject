@@ -94,4 +94,20 @@ public interface TagService {
      * @param organisationPublicId   the public UUID of the organisation
      */
     void removeFromOrganisation(String tagPublicId, String organisationPublicId);
+
+    /**
+     * Attaches a tag to a lead.
+     *
+     * @param tagPublicId  the public UUID of the tag
+     * @param leadPublicId the public UUID of the lead
+     */
+    void addToLead(String tagPublicId, String leadPublicId);
+
+    /**
+     * Detaches a tag from a lead.
+     *
+     * @param tagPublicId  the public UUID of the tag
+     * @param leadPublicId the public UUID of the lead
+     */
+    void removeFromLead(String tagPublicId, String leadPublicId);
 }

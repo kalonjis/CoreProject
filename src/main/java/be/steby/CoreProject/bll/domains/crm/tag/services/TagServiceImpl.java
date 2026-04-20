@@ -1,13 +1,11 @@
 package be.steby.CoreProject.bll.domains.crm.tag.services;
 
+import be.steby.CoreProject.bll.domains.crm.contact.services.ContactService;
+import be.steby.CoreProject.bll.domains.crm.deal.services.DealService;
+import be.steby.CoreProject.bll.domains.crm.lead.services.LeadService;
+import be.steby.CoreProject.bll.domains.crm.organisation.services.OrganisationService;
 import be.steby.CoreProject.bll.domains.crm.tag.exceptions.TagNotFoundException;
-import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
-import be.steby.CoreProject.dal.repositories.crm.DealRepository;
-import be.steby.CoreProject.dal.repositories.crm.OrganisationRepository;
 import be.steby.CoreProject.dal.repositories.crm.TagRepository;
-import be.steby.CoreProject.dl.entities.crm.Contact;
-import be.steby.CoreProject.dl.entities.crm.Deal;
-import be.steby.CoreProject.dl.entities.crm.Organisation;
 import be.steby.CoreProject.dl.entities.crm.Tag;
 import be.steby.CoreProject.pl.domains.tag.models.requests.CreateTagRequest;
 import be.steby.CoreProject.pl.domains.tag.models.requests.UpdateTagRequest;
@@ -28,10 +26,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TagServiceImpl implements TagService {
 
-    private final TagRepository          tagRepository;
-    private final ContactRepository      contactRepository;
-    private final DealRepository         dealRepository;
-    private final OrganisationRepository organisationRepository;
+    private final TagRepository      tagRepository;
+    private final ContactService     contactService;
+    private final DealService        dealService;
+    private final OrganisationService organisationService;
+    private final LeadService        leadService;
 
     /** {@inheritDoc} */
     @Override
@@ -69,6 +68,7 @@ public class TagServiceImpl implements TagService {
         tagRepository.removeFromAllContacts(tag.getId());
         tagRepository.removeFromAllDeals(tag.getId());
         tagRepository.removeFromAllOrganisations(tag.getId());
+        tagRepository.removeFromAllLeads(tag.getId());
         tagRepository.delete(tag);
     }
 
@@ -76,66 +76,64 @@ public class TagServiceImpl implements TagService {
     @Override
     @Transactional
     public void addToContact(String tagPublicId, String contactPublicId) {
-        Tag     tag     = findByPublicId(tagPublicId);
-        Contact contact = contactRepository.findByPublicId(contactPublicId)
-                .orElseThrow(() -> new IllegalArgumentException("Contact not found: " + contactPublicId));
-        contact.getTags().add(tag);
-        contactRepository.save(contact);
+        Tag tag = findByPublicId(tagPublicId);
+        contactService.getByPublicId(contactPublicId).getTags().add(tag);
     }
 
     /** {@inheritDoc} */
     @Override
     @Transactional
     public void removeFromContact(String tagPublicId, String contactPublicId) {
-        Tag     tag     = findByPublicId(tagPublicId);
-        Contact contact = contactRepository.findByPublicId(contactPublicId)
-                .orElseThrow(() -> new IllegalArgumentException("Contact not found: " + contactPublicId));
-        contact.getTags().remove(tag);
-        contactRepository.save(contact);
+        Tag tag = findByPublicId(tagPublicId);
+        contactService.getByPublicId(contactPublicId).getTags().remove(tag);
     }
 
     /** {@inheritDoc} */
     @Override
     @Transactional
     public void addToDeal(String tagPublicId, String dealPublicId) {
-        Tag  tag  = findByPublicId(tagPublicId);
-        Deal deal = dealRepository.findByPublicId(dealPublicId)
-                .orElseThrow(() -> new IllegalArgumentException("Deal not found: " + dealPublicId));
-        deal.getTags().add(tag);
-        dealRepository.save(deal);
+        Tag tag = findByPublicId(tagPublicId);
+        dealService.getByPublicId(dealPublicId).getTags().add(tag);
     }
 
     /** {@inheritDoc} */
     @Override
     @Transactional
     public void removeFromDeal(String tagPublicId, String dealPublicId) {
-        Tag  tag  = findByPublicId(tagPublicId);
-        Deal deal = dealRepository.findByPublicId(dealPublicId)
-                .orElseThrow(() -> new IllegalArgumentException("Deal not found: " + dealPublicId));
-        deal.getTags().remove(tag);
-        dealRepository.save(deal);
+        Tag tag = findByPublicId(tagPublicId);
+        dealService.getByPublicId(dealPublicId).getTags().remove(tag);
     }
 
     /** {@inheritDoc} */
     @Override
     @Transactional
     public void addToOrganisation(String tagPublicId, String organisationPublicId) {
-        Tag          tag  = findByPublicId(tagPublicId);
-        Organisation org  = organisationRepository.findByPublicId(organisationPublicId)
-                .orElseThrow(() -> new IllegalArgumentException("Organisation not found: " + organisationPublicId));
-        org.getTags().add(tag);
-        organisationRepository.save(org);
+        Tag tag = findByPublicId(tagPublicId);
+        organisationService.getByPublicId(organisationPublicId).getTags().add(tag);
     }
 
     /** {@inheritDoc} */
     @Override
     @Transactional
     public void removeFromOrganisation(String tagPublicId, String organisationPublicId) {
-        Tag          tag  = findByPublicId(tagPublicId);
-        Organisation org  = organisationRepository.findByPublicId(organisationPublicId)
-                .orElseThrow(() -> new IllegalArgumentException("Organisation not found: " + organisationPublicId));
-        org.getTags().remove(tag);
-        organisationRepository.save(org);
+        Tag tag = findByPublicId(tagPublicId);
+        organisationService.getByPublicId(organisationPublicId).getTags().remove(tag);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional
+    public void addToLead(String tagPublicId, String leadPublicId) {
+        Tag tag = findByPublicId(tagPublicId);
+        leadService.getByPublicId(leadPublicId).getTags().add(tag);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional
+    public void removeFromLead(String tagPublicId, String leadPublicId) {
+        Tag tag = findByPublicId(tagPublicId);
+        leadService.getByPublicId(leadPublicId).getTags().remove(tag);
     }
 
     /**

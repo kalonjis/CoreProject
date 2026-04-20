@@ -3,6 +3,7 @@ package be.steby.CoreProject.bll.domains.crm.outreach.services;
 import be.steby.CoreProject.bll.common.services.notification.mailer.BaseMailerService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Contact;
+import be.steby.CoreProject.dl.entities.crm.Lead;
 import be.steby.CoreProject.il.mail.EmailComposer;
 import be.steby.CoreProject.il.sanitizer.RichTextSanitizer;
 import lombok.extern.slf4j.Slf4j;
@@ -78,6 +79,40 @@ public class CrmOutreachMailerService extends BaseMailerService {
         );
 
         log.debug("CRM outreach email dispatched to SmtpMailSender — subject: '{}'", subject);
+    }
+
+    /**
+     * Sends a CRM outreach email from a commercial to a lead.
+     *
+     * <p>Same SMTP strategy as {@link #sendOutreach(Contact, String, String, User)}:
+     * system {@code From}, commercial {@code Reply-To}.</p>
+     *
+     * @param lead       the CRM lead receiving the email
+     * @param subject    the email subject written by the commercial
+     * @param body       rich-text HTML body from TipTap; sanitized before use
+     * @param commercial the commercial sending the email (provides Reply-To address)
+     */
+    public void sendOutreachToLead(Lead lead, String subject, String body, User commercial) {
+        log.info("Sending CRM outreach to lead — to: {}, from commercial: {}, reply-to: {}",
+                lead.getEmail(), commercial.getUsername(), commercial.getEmail());
+
+        String sanitizedBody = richTextSanitizer.sanitize(body);
+
+        Context context = new Context();
+        context.setVariable("recipientFirstName", lead.getFirstName());
+        context.setVariable("body",               sanitizedBody);
+        context.setVariable("commercialName",     fullName(commercial));
+        context.setVariable("commercialEmail",    commercial.getEmail());
+
+        sendEmailWithReplyTo(
+                subject,
+                "crm/outreach",
+                context,
+                commercial.getEmail(),
+                lead.getEmail()
+        );
+
+        log.debug("CRM outreach email dispatched to lead — subject: '{}'", subject);
     }
 
     // =========================================================================

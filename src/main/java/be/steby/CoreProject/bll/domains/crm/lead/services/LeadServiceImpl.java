@@ -245,6 +245,7 @@ public class LeadServiceImpl implements LeadService {
         if (request.firstName()        != null) lead.setFirstName(request.firstName().isBlank()        ? null : request.firstName().trim());
         if (request.lastName()         != null) lead.setLastName(request.lastName().isBlank()          ? null : request.lastName().trim());
         if (request.phone()            != null) lead.setPhone(request.phone().isBlank()                ? null : request.phone().trim());
+        if (request.jobTitle()         != null) lead.setJobTitle(request.jobTitle().isBlank()          ? null : request.jobTitle().trim());
         if (request.organisationName() != null) lead.setOrganisationName(request.organisationName().isBlank() ? null : request.organisationName().trim());
         if (request.leadType()         != null) lead.setLeadType(request.leadType());
         if (request.leadSource()       != null) lead.setLeadSource(request.leadSource());
@@ -405,6 +406,7 @@ public class LeadServiceImpl implements LeadService {
                 .firstName(request.firstName())
                 .lastName(request.lastName())
                 .phone(request.phone())
+                .jobTitle(request.jobTitle())
                 .organisationName(request.organisationName())
                 .subject(request.subject().trim())
                 .message(request.message() != null ? request.message().trim() : null)

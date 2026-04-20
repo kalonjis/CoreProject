@@ -4,12 +4,14 @@ import be.steby.CoreProject.bll.domains.crm.lead.models.LeadDetailModel;
 import be.steby.CoreProject.bll.domains.crm.lead.services.LeadService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Lead;
+import be.steby.CoreProject.bll.domains.crm.outreach.services.CrmOutreachService;
 import be.steby.CoreProject.pl.domains.lead.models.requests.AssignLeadRequest;
 import be.steby.CoreProject.pl.domains.lead.models.requests.ConvertLeadRequest;
 import be.steby.CoreProject.pl.domains.lead.models.requests.CreateLeadRequest;
 import be.steby.CoreProject.pl.domains.lead.models.requests.EnrichLeadRequest;
 import be.steby.CoreProject.pl.domains.lead.models.requests.LeadQueueFilterRequest;
 import be.steby.CoreProject.pl.domains.lead.models.requests.RejectLeadRequest;
+import be.steby.CoreProject.pl.domains.lead.models.requests.SendLeadEmailRequest;
 import be.steby.CoreProject.pl.domains.lead.models.responses.LeadDetailResponse;
 import be.steby.CoreProject.pl.domains.lead.models.responses.LeadSummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -59,7 +61,8 @@ import java.net.URI;
 @Tag(name = "CRM - Leads", description = "Lead queue and lifecycle management")
 public class CrmLeadController {
 
-    private final LeadService leadService;
+    private final LeadService          leadService;
+    private final CrmOutreachService   outreachService;
 
     // =========================================================================
     // Queue & lookup
@@ -250,5 +253,38 @@ public class CrmLeadController {
 
         Lead lead = leadService.reject(publicId, request.toBllModel(), actor);
         return ResponseEntity.ok(LeadDetailResponse.fromEntity(lead));
+    }
+
+    // =========================================================================
+    // Outreach
+    // =========================================================================
+
+    /**
+     * Sends a CRM outreach email from the authenticated commercial to a lead,
+     * and automatically logs it as an {@code EMAIL} interaction in the timeline.
+     *
+     * <p>The email is sent with the commercial's email address as the {@code Reply-To}
+     * header, so the lead's reply goes directly to the commercial's inbox.</p>
+     *
+     * <p><strong>Endpoint:</strong> POST /api/crm/leads/{publicId}/email</p>
+     *
+     * @param publicId the public UUID of the target lead
+     * @param request  the email subject and body
+     * @param actor    the authenticated commercial sending the email
+     * @return 204 No Content on success
+     */
+    @PostMapping("/{publicId}/email")
+    @Operation(summary = "Send email to lead",
+               description = "Sends an outreach email to a lead and logs it as an interaction")
+    public ResponseEntity<Void> sendEmail(
+            @PathVariable String publicId,
+            @Valid @RequestBody SendLeadEmailRequest request,
+            @AuthenticationPrincipal User actor) {
+
+        log.info("CRM lead outreach requested — lead: {}, subject: '{}', by: {}",
+                publicId, request.subject(), actor.getUsername());
+
+        outreachService.sendToLead(publicId, request.subject(), request.body(), actor);
+        return ResponseEntity.noContent().build();
     }
 }

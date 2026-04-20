@@ -2,6 +2,7 @@ package be.steby.CoreProject.bll.domains.crm.interaction.listeners;
 
 import be.steby.CoreProject.bll.domains.crm.interaction.models.InteractionCreateRequest;
 import be.steby.CoreProject.bll.domains.crm.interaction.services.InteractionService;
+import be.steby.CoreProject.bll.domains.crm.outreach.events.LeadOutreachEmailSentEvent;
 import be.steby.CoreProject.bll.domains.crm.outreach.events.OutreachEmailSentEvent;
 import be.steby.CoreProject.dl.enums.crm.InteractionDirection;
 import be.steby.CoreProject.dl.enums.crm.InteractionOutcome;
@@ -59,6 +60,37 @@ public class OutreachEmailInteractionListener {
 
         log.info("EMAIL interaction logged via outreach event — contact: {}, deal: {}",
                 event.contact().getPublicId(), event.dealPublicId());
+    }
+
+    @EventListener
+    @Transactional
+    public void handleLeadOutreachEmailSent(LeadOutreachEmailSentEvent event) {
+        log.debug("Lead outreach event received — logging EMAIL interaction for lead: {}",
+                event.lead().getPublicId());
+
+        InteractionCreateRequest request = new InteractionCreateRequest(
+                InteractionType.EMAIL,
+                InteractionDirection.OUTBOUND,
+                event.subject(),
+                event.body(),
+                InteractionOutcome.NEUTRAL,
+                null,
+                event.timestamp(),
+                null,
+                null,
+                event.lead().getPublicId(),
+                null,
+                new InteractionCreateRequest.EmailLogDetails(
+                        event.subject(),
+                        buildSnippet(event.body()),
+                        null
+                )
+        );
+
+        interactionService.create(request, event.commercial());
+
+        log.info("EMAIL interaction logged via lead outreach event — lead: {}",
+                event.lead().getPublicId());
     }
 
     private String buildSnippet(String body) {

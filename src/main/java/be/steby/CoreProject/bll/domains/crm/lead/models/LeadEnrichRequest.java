@@ -14,6 +14,7 @@ import be.steby.CoreProject.dl.enums.crm.LeadSource;
  * @param firstName        first name of the prospect
  * @param lastName         last name of the prospect
  * @param phone            phone number of the prospect
+ * @param jobTitle         job title of the prospect
  * @param organisationName name of the organisation the prospect represents
  * @param leadType         corrected inquiry type (if the visitor mis-classified their request)
  * @param leadSource       corrected acquisition source
@@ -23,6 +24,7 @@ public record LeadEnrichRequest(
         String firstName,
         String lastName,
         String phone,
+        String jobTitle,
         String organisationName,
         LeadType leadType,
         LeadSource leadSource

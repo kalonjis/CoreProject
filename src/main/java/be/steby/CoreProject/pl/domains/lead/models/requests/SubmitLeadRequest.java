@@ -48,11 +48,14 @@ public record SubmitLeadRequest(
         @Size(max = 20, message = "Phone cannot exceed 20 characters")
         String phone,
 
+        @Size(max = 150, message = "Job title cannot exceed 150 characters")
+        String jobTitle,
+
         @Size(max = 200, message = "Organisation name cannot exceed 200 characters")
         String organisationName,
 
         @NotBlank(message = "Message is required")
-        @Size(min = 10, max = 5000, message = "Message must be between 10 and 5000 characters")
+        @Size(min = 10, max = 1000, message = "Message must be between 10 and 1000 characters")
         String message,
 
         @NotNull(message = "Inquiry type is required")
@@ -77,6 +80,7 @@ public record SubmitLeadRequest(
                 firstName != null ? firstName.trim() : null,
                 lastName  != null ? lastName.trim()  : null,
                 phone     != null ? phone.trim()     : null,
+                jobTitle  != null ? jobTitle.trim()  : null,
                 organisationName != null ? organisationName.trim() : null,
                 subjectFromLeadType(leadType),
                 message.trim(),

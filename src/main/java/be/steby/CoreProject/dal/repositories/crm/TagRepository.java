@@ -71,4 +71,14 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
     @Modifying
     @Query(value = "DELETE FROM organisation_tag WHERE tag_id = :tagId", nativeQuery = true)
     void removeFromAllOrganisations(@Param("tagId") Long tagId);
+
+    /**
+     * Removes all lead–tag associations for the given tag.
+     * Must be called before deleting the tag to avoid FK constraint violations.
+     *
+     * @param tagId the internal database ID of the tag
+     */
+    @Modifying
+    @Query(value = "DELETE FROM lead_tag WHERE tag_id = :tagId", nativeQuery = true)
+    void removeFromAllLeads(@Param("tagId") Long tagId);
 }
