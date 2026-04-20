@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.pipeline.controllers;
 
-import be.steby.CoreProject.bll.domains.pipeline.services.PipelineService;
+import be.steby.CoreProject.bll.domains.crm.pipeline.services.PipelineService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Pipeline;
 import be.steby.CoreProject.dl.entities.crm.PipelineStep;

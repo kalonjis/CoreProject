@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.timeline.controllers;
 
-import be.steby.CoreProject.bll.domains.timeline.services.TimelineService;
+import be.steby.CoreProject.bll.domains.crm.timeline.services.TimelineService;
 import be.steby.CoreProject.pl.domains.timeline.models.responses.TimelineEntryResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

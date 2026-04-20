@@ -2,9 +2,9 @@ package be.steby.CoreProject.bll.domains.calendar.listeners;
 
 import be.steby.CoreProject.bll.domains.calendar.models.CalendarEventCreateRequest;
 import be.steby.CoreProject.bll.domains.calendar.services.CalendarEventService;
-import be.steby.CoreProject.bll.domains.commercialaction.events.CommercialActionCancelledEvent;
-import be.steby.CoreProject.bll.domains.commercialaction.events.CommercialActionCreatedEvent;
-import be.steby.CoreProject.bll.domains.commercialaction.events.CommercialActionUpdatedEvent;
+import be.steby.CoreProject.bll.domains.crm.commercialaction.events.CommercialActionCancelledEvent;
+import be.steby.CoreProject.bll.domains.crm.commercialaction.events.CommercialActionCreatedEvent;
+import be.steby.CoreProject.bll.domains.crm.commercialaction.events.CommercialActionUpdatedEvent;
 import be.steby.CoreProject.dl.entities.crm.CommercialAction;
 import be.steby.CoreProject.dl.enums.EventRecurrence;
 import be.steby.CoreProject.dl.enums.EventStatus;

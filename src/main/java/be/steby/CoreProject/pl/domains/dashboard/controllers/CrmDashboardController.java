@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.dashboard.controllers;
 
-import be.steby.CoreProject.bll.domains.dashboard.services.CrmDashboardService;
+import be.steby.CoreProject.bll.domains.crm.dashboard.services.CrmDashboardService;
 import be.steby.CoreProject.pl.domains.dashboard.models.responses.CrmStatsResponse;
 import be.steby.CoreProject.pl.domains.dashboard.models.responses.RevenueMonthResponse;
 import io.swagger.v3.oas.annotations.Operation;

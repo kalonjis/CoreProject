@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.contact.models.requests;
 
-import be.steby.CoreProject.bll.domains.outreach.models.CrmOutreachRequest;
+import be.steby.CoreProject.bll.domains.crm.outreach.models.CrmOutreachRequest;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.deser.std.StringDeserializer;
 import jakarta.validation.constraints.NotBlank;

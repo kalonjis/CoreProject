@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.deal.controllers;
 
-import be.steby.CoreProject.bll.domains.deal.services.DealService;
+import be.steby.CoreProject.bll.domains.crm.deal.services.DealService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Deal;
 import be.steby.CoreProject.dl.entities.crm.DealContactRole;

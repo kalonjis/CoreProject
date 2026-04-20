@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.lead.models.responses;
 
-import be.steby.CoreProject.bll.domains.lead.models.LeadResult;
+import be.steby.CoreProject.bll.domains.crm.lead.models.LeadResult;
 
 /**
  * Response model for public inquiry operations.

@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.pipeline.models.requests;
 
-import be.steby.CoreProject.bll.domains.pipeline.models.PipelineStepReorderRequest;
+import be.steby.CoreProject.bll.domains.crm.pipeline.models.PipelineStepReorderRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;

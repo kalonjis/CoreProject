@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.interaction.models.requests;
 
-import be.steby.CoreProject.bll.domains.interaction.models.InteractionUpdateRequest;
+import be.steby.CoreProject.bll.domains.crm.interaction.models.InteractionUpdateRequest;
 import be.steby.CoreProject.dl.enums.crm.InteractionOutcome;
 import jakarta.validation.constraints.Size;
 

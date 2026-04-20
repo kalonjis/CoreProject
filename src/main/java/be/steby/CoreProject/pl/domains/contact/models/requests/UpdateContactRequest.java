@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.contact.models.requests;
 
-import be.steby.CoreProject.bll.domains.contact.models.ContactUpdateRequest;
+import be.steby.CoreProject.bll.domains.crm.contact.models.ContactUpdateRequest;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 

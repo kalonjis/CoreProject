@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.tag.controllers;
 
-import be.steby.CoreProject.bll.domains.tag.services.TagService;
+import be.steby.CoreProject.bll.domains.crm.tag.services.TagService;
 import be.steby.CoreProject.pl.domains.tag.models.requests.CreateTagRequest;
 import be.steby.CoreProject.pl.domains.tag.models.requests.UpdateTagRequest;
 import be.steby.CoreProject.pl.domains.tag.models.responses.TagResponse;
@@ -100,6 +100,26 @@ public class CrmTagController {
     public ResponseEntity<Void> removeFromDeal(@PathVariable String tagPublicId,
                                                @PathVariable String dealPublicId) {
         tagService.removeFromDeal(tagPublicId, dealPublicId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ─── Lead associations ───────────────────────────────────────────────────
+
+    @PostMapping("/{tagPublicId}/leads/{leadPublicId}")
+    @PreAuthorize("hasAnyAuthority('COMMERCIAL', 'ADMIN')")
+    @Operation(summary = "Add a tag to a lead")
+    public ResponseEntity<Void> addToLead(@PathVariable String tagPublicId,
+                                          @PathVariable String leadPublicId) {
+        tagService.addToLead(tagPublicId, leadPublicId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{tagPublicId}/leads/{leadPublicId}")
+    @PreAuthorize("hasAnyAuthority('COMMERCIAL', 'ADMIN')")
+    @Operation(summary = "Remove a tag from a lead")
+    public ResponseEntity<Void> removeFromLead(@PathVariable String tagPublicId,
+                                               @PathVariable String leadPublicId) {
+        tagService.removeFromLead(tagPublicId, leadPublicId);
         return ResponseEntity.noContent().build();
     }
 

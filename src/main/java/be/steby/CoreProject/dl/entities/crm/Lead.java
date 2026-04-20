@@ -2,6 +2,7 @@ package be.steby.CoreProject.dl.entities.crm;
 
 import be.steby.CoreProject.dl.entities.BaseEntity;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.entities.crm.Tag;
 import be.steby.CoreProject.dl.enums.LeadType;
 import be.steby.CoreProject.dl.enums.crm.Civility;
 import be.steby.CoreProject.dl.enums.crm.LeadSource;
@@ -10,7 +11,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Entity representing a public inquiry submitted through the contact form
@@ -100,6 +103,14 @@ public class Lead extends BaseEntity<Long> {
      */
     @Column(name = "last_name", length = 100)
     private String lastName;
+
+    /**
+     * Job title of the person submitting the inquiry.
+     *
+     * <p>Optional. Enriched by the commercial team after lead submission.</p>
+     */
+    @Column(name = "job_title", length = 150)
+    private String jobTitle;
 
     /**
      * Name of the organisation the visitor represents.
@@ -222,6 +233,16 @@ public class Lead extends BaseEntity<Long> {
      */
     @Column(name = "submitted_at", nullable = false)
     private Instant submittedAt;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "lead_tag",
+            joinColumns        = @JoinColumn(name = "lead_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    @Builder.Default
+    @EqualsAndHashCode.Exclude
+    private Set<Tag> tags = new HashSet<>();
 
     // ========================================
     // Utility methods

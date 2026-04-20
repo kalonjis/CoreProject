@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.organisation.models.requests;
 
-import be.steby.CoreProject.bll.domains.organisation.models.OrganisationFilterRequest;
+import be.steby.CoreProject.bll.domains.crm.organisation.models.OrganisationFilterRequest;
 import be.steby.CoreProject.dl.enums.crm.OrganisationSize;
 import be.steby.CoreProject.dl.enums.crm.OrganisationStatus;
 

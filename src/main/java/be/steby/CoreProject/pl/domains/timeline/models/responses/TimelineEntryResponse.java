@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.timeline.models.responses;
 
-import be.steby.CoreProject.bll.domains.timeline.models.TimelineEntry;
+import be.steby.CoreProject.bll.domains.crm.timeline.models.TimelineEntry;
 import be.steby.CoreProject.dl.entities.crm.CallLog;
 import be.steby.CoreProject.dl.entities.crm.CommercialAction;
 import be.steby.CoreProject.dl.entities.crm.EmailLog;

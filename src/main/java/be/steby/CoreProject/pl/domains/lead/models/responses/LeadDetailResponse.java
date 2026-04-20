@@ -1,14 +1,16 @@
 package be.steby.CoreProject.pl.domains.lead.models.responses;
 
-import be.steby.CoreProject.bll.domains.lead.models.LeadDetailModel;
+import be.steby.CoreProject.bll.domains.crm.lead.models.LeadDetailModel;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Lead;
 import be.steby.CoreProject.dl.enums.LeadType;
 import be.steby.CoreProject.dl.enums.crm.Civility;
 import be.steby.CoreProject.dl.enums.crm.LeadSource;
 import be.steby.CoreProject.dl.enums.crm.LeadStatus;
+import be.steby.CoreProject.pl.domains.tag.models.responses.TagResponse;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -25,6 +27,7 @@ import java.util.Optional;
  * @param firstName          first name, or {@code null}
  * @param lastName           enriched last name, or {@code null}
  * @param phone              phone number, or {@code null}
+ * @param jobTitle           job title of the prospect, or {@code null}
  * @param organisationName   name of the organisation, or {@code null}
  * @param subject            subject of the inquiry
  * @param message            message body of the inquiry, or {@code null} for old leads
@@ -39,6 +42,7 @@ import java.util.Optional;
  * @param createdAt                timestamp of entity creation
  * @param updatedAt                timestamp of last update
  * @param existingContactPublicId  public UUID of a Contact already sharing this email, or {@code null}
+ * @param tags                     tags attached to this lead
  */
 public record LeadDetailResponse(
         String publicId,
@@ -47,6 +51,7 @@ public record LeadDetailResponse(
         String firstName,
         String lastName,
         String phone,
+        String jobTitle,
         String organisationName,
         String subject,
         String message,
@@ -60,7 +65,8 @@ public record LeadDetailResponse(
         Instant convertedAt,
         Instant createdAt,
         Instant updatedAt,
-        String existingContactPublicId
+        String existingContactPublicId,
+        List<TagResponse> tags
 ) {
 
     /**
@@ -81,6 +87,7 @@ public record LeadDetailResponse(
                 lead.getFirstName(),
                 lead.getLastName(),
                 lead.getPhone(),
+                lead.getJobTitle(),
                 lead.getOrganisationName(),
                 lead.getSubject(),
                 lead.getMessage(),
@@ -94,7 +101,8 @@ public record LeadDetailResponse(
                 lead.getConvertedAt(),
                 lead.getCreatedAt(),
                 lead.getUpdatedAt(),
-                null
+                null,
+                lead.getTags().stream().map(TagResponse::fromEntity).toList()
         );
     }
 
@@ -114,6 +122,7 @@ public record LeadDetailResponse(
                 lead.getFirstName(),
                 lead.getLastName(),
                 lead.getPhone(),
+                lead.getJobTitle(),
                 lead.getOrganisationName(),
                 lead.getSubject(),
                 lead.getMessage(),
@@ -127,7 +136,8 @@ public record LeadDetailResponse(
                 lead.getConvertedAt(),
                 lead.getCreatedAt(),
                 lead.getUpdatedAt(),
-                model.existingContactPublicId()
+                model.existingContactPublicId(),
+                lead.getTags().stream().map(TagResponse::fromEntity).toList()
         );
     }
 }

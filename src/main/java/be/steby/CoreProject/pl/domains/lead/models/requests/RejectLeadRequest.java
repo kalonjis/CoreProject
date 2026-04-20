@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.lead.models.requests;
 
-import be.steby.CoreProject.bll.domains.lead.models.LeadRejectRequest;
+import be.steby.CoreProject.bll.domains.crm.lead.models.LeadRejectRequest;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 

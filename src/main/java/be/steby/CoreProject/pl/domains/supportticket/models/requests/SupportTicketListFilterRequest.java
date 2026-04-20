@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.supportticket.models.requests;
 
-import be.steby.CoreProject.bll.domains.supportticket.models.SupportTicketFilterRequest;
+import be.steby.CoreProject.bll.domains.crm.supportticket.models.SupportTicketFilterRequest;
 import be.steby.CoreProject.dl.enums.crm.SupportTicketSource;
 import be.steby.CoreProject.dl.enums.crm.SupportTicketStatus;
 

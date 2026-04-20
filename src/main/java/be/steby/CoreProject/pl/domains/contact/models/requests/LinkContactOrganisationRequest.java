@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.contact.models.requests;
 
-import be.steby.CoreProject.bll.domains.contact.models.ContactLinkOrganisationRequest;
+import be.steby.CoreProject.bll.domains.crm.contact.models.ContactLinkOrganisationRequest;
 
 /**
  * PL request model for linking or unlinking an organisation to a contact.

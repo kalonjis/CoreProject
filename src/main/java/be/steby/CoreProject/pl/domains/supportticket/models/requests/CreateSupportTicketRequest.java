@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.supportticket.models.requests;
 
-import be.steby.CoreProject.bll.domains.supportticket.models.SupportTicketCreateRequest;
+import be.steby.CoreProject.bll.domains.crm.supportticket.models.SupportTicketCreateRequest;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 

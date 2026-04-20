@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.commercialaction.controllers;
 
-import be.steby.CoreProject.bll.domains.commercialaction.services.CommercialActionService;
+import be.steby.CoreProject.bll.domains.crm.commercialaction.services.CommercialActionService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.CommercialAction;
 import be.steby.CoreProject.dl.enums.crm.CommercialActionStatus;

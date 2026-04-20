@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.today.controllers;
 
-import be.steby.CoreProject.bll.domains.today.services.TodayService;
+import be.steby.CoreProject.bll.domains.crm.today.services.TodayService;
 import be.steby.CoreProject.pl.domains.today.models.responses.TodaySummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

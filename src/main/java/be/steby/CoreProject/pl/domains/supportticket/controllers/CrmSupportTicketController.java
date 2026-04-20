@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.supportticket.controllers;
 
-import be.steby.CoreProject.bll.domains.supportticket.services.SupportTicketService;
+import be.steby.CoreProject.bll.domains.crm.supportticket.services.SupportTicketService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.SupportTicket;
 import be.steby.CoreProject.pl.domains.supportticket.models.requests.AssignSupportTicketRequest;

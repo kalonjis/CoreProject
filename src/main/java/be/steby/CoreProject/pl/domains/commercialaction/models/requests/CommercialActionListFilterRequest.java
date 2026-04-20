@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.commercialaction.models.requests;
 
-import be.steby.CoreProject.bll.domains.commercialaction.models.CommercialActionFilterRequest;
+import be.steby.CoreProject.bll.domains.crm.commercialaction.models.CommercialActionFilterRequest;
 import be.steby.CoreProject.dl.enums.crm.CommercialActionPriority;
 import be.steby.CoreProject.dl.enums.crm.CommercialActionStatus;
 

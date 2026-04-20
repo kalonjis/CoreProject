@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.search.controllers;
 
-import be.steby.CoreProject.bll.domains.search.services.GlobalSearchService;
+import be.steby.CoreProject.bll.domains.crm.search.services.GlobalSearchService;
 import be.steby.CoreProject.pl.domains.search.models.responses.GlobalSearchResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

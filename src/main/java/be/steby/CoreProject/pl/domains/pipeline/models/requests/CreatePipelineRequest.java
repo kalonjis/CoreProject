@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.pipeline.models.requests;
 
-import be.steby.CoreProject.bll.domains.pipeline.models.PipelineCreateRequest;
+import be.steby.CoreProject.bll.domains.crm.pipeline.models.PipelineCreateRequest;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 

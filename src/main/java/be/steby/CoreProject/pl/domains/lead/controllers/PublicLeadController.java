@@ -1,10 +1,10 @@
 package be.steby.CoreProject.pl.domains.lead.controllers;
 
-import be.steby.CoreProject.bll.domains.lead.exceptions.HoneypotDetectedException;
-import be.steby.CoreProject.bll.domains.lead.exceptions.LeadRateLimitException;
-import be.steby.CoreProject.bll.domains.lead.exceptions.LeadValidationException;
-import be.steby.CoreProject.bll.domains.lead.models.LeadResult;
-import be.steby.CoreProject.bll.domains.lead.services.LeadService;
+import be.steby.CoreProject.bll.domains.crm.lead.exceptions.HoneypotDetectedException;
+import be.steby.CoreProject.bll.domains.crm.lead.exceptions.LeadRateLimitException;
+import be.steby.CoreProject.bll.domains.crm.lead.exceptions.LeadValidationException;
+import be.steby.CoreProject.bll.domains.crm.lead.models.LeadResult;
+import be.steby.CoreProject.bll.domains.crm.lead.services.LeadService;
 import be.steby.CoreProject.pl.domains.lead.models.requests.SubmitLeadRequest;
 import be.steby.CoreProject.pl.domains.lead.models.responses.LeadOperationResponse;
 import jakarta.servlet.http.HttpServletRequest;

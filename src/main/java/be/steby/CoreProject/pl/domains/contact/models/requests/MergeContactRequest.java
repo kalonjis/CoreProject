@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.contact.models.requests;
 
-import be.steby.CoreProject.bll.domains.contact.models.ContactMergeRequest;
+import be.steby.CoreProject.bll.domains.crm.contact.models.ContactMergeRequest;
 import jakarta.validation.constraints.NotBlank;
 
 /**

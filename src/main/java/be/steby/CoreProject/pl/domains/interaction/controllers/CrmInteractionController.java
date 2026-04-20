@@ -1,6 +1,6 @@
 package be.steby.CoreProject.pl.domains.interaction.controllers;
 
-import be.steby.CoreProject.bll.domains.interaction.services.InteractionService;
+import be.steby.CoreProject.bll.domains.crm.interaction.services.InteractionService;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.Interaction;
 import be.steby.CoreProject.pl.domains.interaction.models.requests.LogInteractionRequest;
