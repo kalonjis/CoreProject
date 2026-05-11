@@ -51,4 +51,17 @@ public interface TimelineService {
      * @throws IllegalArgumentException if the lead is not found
      */
     List<TimelineEntry> getTimelineByLead(String leadPublicId);
+
+    /**
+     * Returns the aggregated activity timeline for all contacts of an organisation, most recent first.
+     *
+     * <p>Aggregates interactions and completed commercial actions from every contact
+     * belonging to the organisation — giving a full picture of the company's activity
+     * without having to navigate each contact individually.</p>
+     *
+     * @param organisationPublicId the public UUID of the organisation
+     * @return merged timeline entries across all org contacts (may be empty)
+     * @throws IllegalArgumentException if the organisation is not found
+     */
+    List<TimelineEntry> getTimelineByOrganisation(String organisationPublicId);
 }

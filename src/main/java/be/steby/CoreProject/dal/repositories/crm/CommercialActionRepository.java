@@ -264,4 +264,19 @@ public interface CommercialActionRepository extends JpaRepository<CommercialActi
      * @return completed actions for that lead, most recently completed first
      */
     List<CommercialAction> findByLeadIdAndStatusOrderByCompletedAtDesc(Long leadId, CommercialActionStatus status);
+
+    /**
+     * Finds all completed actions linked to any of the given contacts, ordered by completion date descending.
+     *
+     * <p>Used to populate the aggregated organisation timeline — merges completed activity
+     * from all contacts belonging to the organisation.</p>
+     *
+     * @param contactIds the internal IDs of the organisation's contacts
+     * @param status     must be {@code DONE}
+     * @return completed actions for those contacts, most recently completed first
+     */
+    List<CommercialAction> findByContactIdInAndStatusOrderByCompletedAtDesc(
+            java.util.Collection<Long> contactIds,
+            CommercialActionStatus status
+    );
 }

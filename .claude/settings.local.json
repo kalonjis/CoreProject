@@ -64,7 +64,10 @@
       "Bash(find \"/c/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/dal/repositories/crm\" -name \"*.java\" -type f)",
       "Bash(find \"/c/Users/kalon/OneDrive/Documents/CoreProject/COREPROJECT_NOV25/CoreProject/src/main/java/be/steby/CoreProject/dal/specifications/crm\" -name \"*.java\" -type f)",
       "Bash(npm audit *)",
-      "Bash(bash *)"
+      "Bash(bash *)",
+      "Bash(xargs -I {} sh -c 'echo \"=== {} ===\"; head -1 \"{}\"')",
+      "Bash(xargs -0 grep -L \"/\\\\*\\\\*\")",
+      "PowerShell(Set-Location *)"
     ]
   }
 }

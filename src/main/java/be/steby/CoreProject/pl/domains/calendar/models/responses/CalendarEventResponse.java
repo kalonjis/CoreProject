@@ -67,7 +67,9 @@ public record CalendarEventResponse(
         String colorCode,
         Integer reminderMinutes,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        String sourceType,
+        String sourcePublicId
 ) {
 
     /**
@@ -93,7 +95,9 @@ public record CalendarEventResponse(
                 event.getColorCode(),
                 event.getReminderMinutes(),
                 event.getCreatedAt(),
-                event.getUpdatedAt()
+                event.getUpdatedAt(),
+                event.getSourceType(),
+                event.getSourcePublicId()
         );
     }
 }
