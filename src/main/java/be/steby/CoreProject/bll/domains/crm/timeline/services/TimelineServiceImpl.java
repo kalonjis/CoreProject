@@ -6,11 +6,13 @@ import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
 import be.steby.CoreProject.dal.repositories.crm.DealRepository;
 import be.steby.CoreProject.dal.repositories.crm.InteractionRepository;
 import be.steby.CoreProject.dal.repositories.crm.LeadRepository;
+import be.steby.CoreProject.dal.repositories.crm.OrganisationRepository;
 import be.steby.CoreProject.dl.entities.crm.CommercialAction;
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.entities.crm.Deal;
 import be.steby.CoreProject.dl.entities.crm.Interaction;
 import be.steby.CoreProject.dl.entities.crm.Lead;
+import be.steby.CoreProject.dl.entities.crm.Organisation;
 import be.steby.CoreProject.dl.enums.crm.CommercialActionStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +49,7 @@ public class TimelineServiceImpl implements TimelineService {
     private final DealRepository             dealRepository;
     private final ContactRepository          contactRepository;
     private final LeadRepository             leadRepository;
+    private final OrganisationRepository     organisationRepository;
 
     @Override
     public List<TimelineEntry> getTimelineByDeal(String dealPublicId) {
@@ -96,6 +99,28 @@ public class TimelineServiceImpl implements TimelineService {
                 interactionRepository.findByLeadIdOrderByOccurredAtDesc(lead.getId()),
                 commercialActionRepository.findByLeadIdAndStatusOrderByCompletedAtDesc(
                         lead.getId(), CommercialActionStatus.DONE)
+        );
+    }
+
+    @Override
+    public List<TimelineEntry> getTimelineByOrganisation(String organisationPublicId) {
+        Organisation org = organisationRepository.findByPublicId(organisationPublicId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Organisation not found with publicId: " + organisationPublicId));
+
+        List<Long> contactIds = contactRepository.findByOrganisationId(org.getId())
+                .stream()
+                .map(Contact::getId)
+                .toList();
+
+        if (contactIds.isEmpty()) {
+            return List.of();
+        }
+
+        return merge(
+                interactionRepository.findByContactIdInOrderByOccurredAtDesc(contactIds),
+                commercialActionRepository.findByContactIdInAndStatusOrderByCompletedAtDesc(
+                        contactIds, CommercialActionStatus.DONE)
         );
     }
 

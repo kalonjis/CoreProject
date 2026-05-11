@@ -112,4 +112,29 @@ public class CrmTimelineController {
 
         return ResponseEntity.ok(timeline);
     }
+
+    /**
+     * Returns the aggregated activity timeline for all contacts of an organisation, most recent first.
+     *
+     * <p><strong>Endpoint:</strong> GET /api/crm/timeline/organisation/{organisationPublicId}</p>
+     *
+     * @param organisationPublicId the public UUID of the organisation
+     * @return merged timeline entries across all org contacts
+     */
+    @GetMapping("/organisation/{organisationPublicId}")
+    @Operation(
+            summary = "Organisation timeline",
+            description = "Aggregated timeline across all contacts of an organisation: interactions + completed commercial actions, most recent first"
+    )
+    public ResponseEntity<List<TimelineEntryResponse>> getTimelineByOrganisation(
+            @PathVariable String organisationPublicId) {
+        log.debug("CRM timeline requested for organisation: {}", organisationPublicId);
+
+        List<TimelineEntryResponse> timeline = timelineService.getTimelineByOrganisation(organisationPublicId)
+                .stream()
+                .map(TimelineEntryResponse::fromEntry)
+                .toList();
+
+        return ResponseEntity.ok(timeline);
+    }
 }
