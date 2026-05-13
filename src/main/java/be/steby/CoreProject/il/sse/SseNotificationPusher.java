@@ -91,7 +91,7 @@ public class SseNotificationPusher {
      */
     public boolean pushToUser(String userPublicId, Object payload) {
         return emitterManager.getEmitter(userPublicId)
-                .map(emitter -> sendEvent(userPublicId, emitter, EVENT_NOTIFICATION, payload))
+                .map(emitter -> sendEvent(userPublicId, emitter, null, EVENT_NOTIFICATION, payload))
                 .orElseGet(() -> {
                     log.debug("User {} not connected via SSE, notification not pushed",
                             userPublicId);
@@ -100,16 +100,19 @@ public class SseNotificationPusher {
     }
 
     /**
-     * Pushes a notification to a single user with custom event type.
+     * Pushes a notification to a single user with a specific SSE event ID.
+     *
+     * <p>The event ID is sent as the SSE {@code id:} field, enabling the browser
+     * to track the last received event via {@code Last-Event-ID} on reconnect.</p>
      *
      * @param userPublicId the user's public ID
-     * @param eventType    the SSE event type
+     * @param eventId      the SSE event ID (e.g. createdAt epoch millis as string)
      * @param payload      the notification payload
      * @return true if sent successfully
      */
-    public boolean pushToUser(String userPublicId, String eventType, Object payload) {
+    public boolean pushToUser(String userPublicId, String eventId, Object payload) {
         return emitterManager.getEmitter(userPublicId)
-                .map(emitter -> sendEvent(userPublicId, emitter, eventType, payload))
+                .map(emitter -> sendEvent(userPublicId, emitter, eventId, EVENT_NOTIFICATION, payload))
                 .orElse(false);
     }
 
@@ -196,7 +199,7 @@ public class SseNotificationPusher {
      */
     public boolean sendHeartbeat(String userPublicId) {
         return emitterManager.getEmitter(userPublicId)
-                .map(emitter -> sendEvent(userPublicId, emitter, EVENT_HEARTBEAT, "ping"))
+                .map(emitter -> sendEvent(userPublicId, emitter, null, EVENT_HEARTBEAT, "ping"))
                 .orElse(false);
     }
 
@@ -230,15 +233,20 @@ public class SseNotificationPusher {
     /**
      * Sends an SSE event to an emitter.
      *
+     * @param eventId optional SSE id field (null = no id set)
      * @return true if sent successfully
      */
-    private boolean sendEvent(String userPublicId, SseEmitter emitter, String eventType, Object payload) {
+    private boolean sendEvent(String userPublicId, SseEmitter emitter, String eventId, String eventType, Object payload) {
         try {
             String jsonData = serializePayload(payload);
 
             SseEmitter.SseEventBuilder event = SseEmitter.event()
                     .name(eventType)
                     .data(jsonData);
+
+            if (eventId != null) {
+                event.id(eventId);
+            }
 
             emitter.send(event);
 

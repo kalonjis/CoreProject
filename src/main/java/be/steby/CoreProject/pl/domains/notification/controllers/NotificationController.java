@@ -1,10 +1,12 @@
 package be.steby.CoreProject.pl.domains.notification.controllers;
 
+import be.steby.CoreProject.bll.domains.notification.listeners.InAppNotificationListener;
 import be.steby.CoreProject.bll.domains.notification.services.NotificationService;
 import be.steby.CoreProject.dl.entities.Notification;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.il.sse.SseConfig;
 import be.steby.CoreProject.il.sse.SseEmitterManager;
+import be.steby.CoreProject.il.sse.SseNotificationPusher;
 import be.steby.CoreProject.pl.domains.notification.models.requests.BulkNotificationIdsRequest;
 import be.steby.CoreProject.pl.domains.notification.models.responses.NotificationResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,6 +26,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -59,6 +63,7 @@ public class NotificationController {
 
     private final NotificationService notificationService;
     private final SseEmitterManager sseEmitterManager;
+    private final SseNotificationPusher ssePusher;
     private final SseConfig sseConfig;
 
     // =========================================================================
@@ -93,7 +98,9 @@ public class NotificationController {
      * @return SSE emitter for the connection
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamNotifications(@AuthenticationPrincipal User user) {
+    public SseEmitter streamNotifications(
+            @AuthenticationPrincipal User user,
+            @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId) {
         log.info("🔗 [SSE] Stream requested by user: {}", user.getPublicId());
 
         // Create emitter with configured timeout
@@ -131,7 +138,58 @@ public class NotificationController {
                     user.getPublicId(), e.getMessage(), e);
         }
 
+        // Flush missed notifications on reconnect
+        try {
+            List<Notification> missed = resolveMissedNotifications(user, lastEventId);
+            if (!missed.isEmpty()) {
+                log.info("📬 [SSE] Flushing {} missed notification(s) to user {} (lastEventId={})",
+                        missed.size(), user.getPublicId(), lastEventId);
+                List<String> deliveredIds = new ArrayList<>();
+                for (Notification n : missed) {
+                    String eventId = String.valueOf(n.getCreatedAt().toEpochMilli());
+                    InAppNotificationListener.SseNotificationPayload payload =
+                            new InAppNotificationListener.SseNotificationPayload(
+                                    n.getPublicId(),
+                                    n.getType().name(),
+                                    n.getPriority().name(),
+                                    n.getTitle(),
+                                    n.getBody(),
+                                    n.getActionUrl(),
+                                    n.getIcon(),
+                                    n.getCreatedAt().toString()
+                            );
+                    if (ssePusher.pushToUser(user.getPublicId(), eventId, payload)) {
+                        deliveredIds.add(n.getPublicId());
+                    }
+                }
+                if (!deliveredIds.isEmpty()) {
+                    notificationService.markInAppDelivered(deliveredIds);
+                    log.info("✅ [SSE] {} missed notification(s) delivered and marked", deliveredIds.size());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("⚠️ [SSE] Failed to flush pending notifications to user {}: {}",
+                    user.getPublicId(), e.getMessage());
+        }
+
         return emitter;
+    }
+
+    // =========================================================================
+    // SSE Private Helpers
+    // =========================================================================
+
+    private List<Notification> resolveMissedNotifications(User user, String lastEventId) {
+        if (lastEventId != null) {
+            try {
+                Instant since = Instant.ofEpochMilli(Long.parseLong(lastEventId));
+                return notificationService.getMissedSince(user, since);
+            } catch (NumberFormatException e) {
+                log.warn("⚠️ [SSE] Invalid Last-Event-ID '{}' for user {}, falling back to SENT query",
+                        lastEventId, user.getPublicId());
+            }
+        }
+        return notificationService.getPendingSentNotifications(user);
     }
 
     // =========================================================================

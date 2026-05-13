@@ -179,6 +179,44 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     // =========================================================================
 
     /**
+     * Finds notifications sent but not yet delivered via SSE for a recipient.
+     *
+     * <p>These are notifications where the user was offline when the event fired.
+     * They should be flushed when the user reconnects to the SSE stream.</p>
+     *
+     * @param recipient the notification recipient
+     * @return list of sent-but-undelivered notifications, oldest first
+     */
+    @Query("""
+            SELECT n FROM Notification n
+            WHERE n.recipient = :recipient
+              AND n.status = 'SENT'
+              AND (n.expiresAt IS NULL OR n.expiresAt > CURRENT_TIMESTAMP)
+            ORDER BY n.createdAt ASC
+            """)
+    List<Notification> findSentByRecipient(@Param("recipient") User recipient);
+
+    /**
+     * Finds notifications created after a given timestamp for Last-Event-ID replay.
+     *
+     * <p>Returns notifications in status SENT or DELIVERED (not yet read/dismissed)
+     * that may have been missed during an SSE disconnect.</p>
+     *
+     * @param recipient the notification recipient
+     * @param since     replay events created after this timestamp
+     * @return list of notifications, oldest first
+     */
+    @Query("""
+            SELECT n FROM Notification n
+            WHERE n.recipient = :recipient
+              AND n.createdAt > :since
+              AND n.status IN ('SENT', 'DELIVERED')
+              AND (n.expiresAt IS NULL OR n.expiresAt > CURRENT_TIMESTAMP)
+            ORDER BY n.createdAt ASC
+            """)
+    List<Notification> findMissedSince(@Param("recipient") User recipient, @Param("since") Instant since);
+
+    /**
      * Finds notifications pending delivery.
      *
      * <p>Returns notifications that are ready to be sent: PENDING status,

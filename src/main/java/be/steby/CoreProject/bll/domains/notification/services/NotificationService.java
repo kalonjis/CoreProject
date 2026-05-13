@@ -7,6 +7,7 @@ import be.steby.CoreProject.dl.enums.notification.NotificationType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -293,4 +294,39 @@ public interface NotificationService {
      * @return true if notification was cancelled, false if already sent
      */
     boolean cancelScheduled(String publicId, User user);
+
+    // =========================================================================
+    // SSE Reconnect Support
+    // =========================================================================
+
+    /**
+     * Returns notifications sent while the user was disconnected (status = SENT).
+     *
+     * <p>Fallback used on SSE reconnect when no {@code Last-Event-ID} is available.</p>
+     *
+     * @param user the notification recipient
+     * @return list of sent-but-undelivered notifications, oldest first
+     */
+    List<Notification> getPendingSentNotifications(User user);
+
+    /**
+     * Returns notifications created after a given timestamp for Last-Event-ID replay.
+     *
+     * <p>Used on SSE reconnect when the client sends a {@code Last-Event-ID} header.
+     * Returns SENT and DELIVERED notifications that may have been missed during disconnect.</p>
+     *
+     * @param user  the notification recipient
+     * @param since replay notifications created after this timestamp
+     * @return list of missed notifications, oldest first
+     */
+    List<Notification> getMissedSince(User user, Instant since);
+
+    /**
+     * Marks a list of notifications as delivered (SSE confirmed).
+     *
+     * <p>Only transitions SENT → DELIVERED; already-delivered notifications are skipped.</p>
+     *
+     * @param publicIds the notification public UUIDs to mark as delivered
+     */
+    void markInAppDelivered(List<String> publicIds);
 }

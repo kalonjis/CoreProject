@@ -74,8 +74,9 @@ public class InAppNotificationListener {
             // Build SSE payload
             SseNotificationPayload payload = toPayload(notification);
 
-            // Push via SSE
-            boolean delivered = ssePusher.pushToUser(recipientId, payload);
+            // Push via SSE — event ID = createdAt epoch millis (used by Last-Event-ID on reconnect)
+            String eventId = String.valueOf(notification.getCreatedAt().toEpochMilli());
+            boolean delivered = ssePusher.pushToUser(recipientId, eventId, payload);
 
             // Update notification status
             Instant now = Instant.now();

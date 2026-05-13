@@ -2,6 +2,8 @@ package be.steby.CoreProject.bll.domains.calendar.listeners;
 
 import be.steby.CoreProject.bll.domains.calendar.events.CalendarEventCancelledEvent;
 import be.steby.CoreProject.bll.domains.calendar.events.CalendarEventCreatedEvent;
+import be.steby.CoreProject.bll.domains.calendar.events.CalendarEventUpdatedEvent;
+import be.steby.CoreProject.dl.enums.EventStatus;
 import be.steby.CoreProject.bll.domains.notification.models.NotificationRequest;
 import be.steby.CoreProject.bll.domains.notification.services.NotificationService;
 import be.steby.CoreProject.dl.entities.CalendarEvent;
@@ -129,6 +131,39 @@ public class CalendarNotificationListener {
         } else {
             return String.format("Commence dans %d heure(s) (à %s)",
                     event.getReminderMinutes() / 60, time);
+        }
+    }
+
+    @EventListener
+    @Async("notificationExecutor")
+    @Order(20)
+    public void handleCalendarEventUpdated(CalendarEventUpdatedEvent event) {
+        CalendarEvent calendarEvent = event.event();
+        String eventPublicId = calendarEvent.getPublicId();
+
+        log.info("Calendar event updated: {}, rescheduling reminder if needed", eventPublicId);
+
+        try {
+            // Always delete the old reminder — it may have the wrong time or no longer be needed
+            int deleted = notificationService.deleteBySource(SOURCE_DOMAIN, eventPublicId);
+            if (deleted > 0) {
+                log.info("Deleted {} old reminder(s) for updated event {}", deleted, eventPublicId);
+            }
+
+            // Reschedule if still relevant
+            if (calendarEvent.getStatus() == EventStatus.CANCELLED) {
+                log.debug("Event {} is cancelled, no reminder rescheduled", eventPublicId);
+                return;
+            }
+
+            if (calendarEvent.getReminderMinutes() != null && calendarEvent.getReminderMinutes() > 0) {
+                scheduleReminderNotification(calendarEvent, event.updatedBy());
+            } else {
+                log.debug("No reminder configured for updated event {}", eventPublicId);
+            }
+        } catch (Exception e) {
+            log.error("Failed to reschedule reminder for updated event {}: {}",
+                    eventPublicId, e.getMessage(), e);
         }
     }
 

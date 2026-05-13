@@ -412,6 +412,37 @@ public class NotificationServiceImpl implements NotificationService {
      * {@inheritDoc}
      */
     @Override
+    public List<Notification> getPendingSentNotifications(User user) {
+        return notificationRepository.findSentByRecipient(user);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<Notification> getMissedSince(User user, Instant since) {
+        return notificationRepository.findMissedSince(user, since);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public void markInAppDelivered(List<String> publicIds) {
+        Instant now = Instant.now();
+        publicIds.forEach(id -> notificationRepository.findByPublicId(id).ifPresent(n -> {
+            if (n.getStatus() == NotificationStatus.SENT) {
+                n.markAsDelivered(now);
+                notificationRepository.save(n);
+            }
+        }));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     @Transactional
     public boolean cancelScheduled(String publicId, User user) {
         Notification notification = getByPublicIdAndUser(publicId, user);
