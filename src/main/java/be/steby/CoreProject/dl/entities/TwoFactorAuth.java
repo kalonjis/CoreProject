@@ -32,7 +32,7 @@ import java.time.Instant;
         )
     },
     indexes = {
-        @Index(name = "idx_user_enabled", columnList = "user_id, enabled"),
+        @Index(name = "idx_tfa_user_enabled", columnList = "user_id, enabled"),
         @Index(name = "idx_type", columnList = "type")
     }
 )
