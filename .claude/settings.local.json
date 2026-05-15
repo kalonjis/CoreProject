@@ -76,7 +76,9 @@
       "Bash(Find C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\\\\COREPROJECT_NOV25\\\\CoreProject\\\\src\\\\main\\\\java\\\\be\\\\steby\\\\CoreProject\\\\bll\\\\domains\\\\notification *)",
       "Bash(git push *)",
       "Bash(grep \"\\\\.ts$\\\\|\\\\.html$\\\\|\\\\.scss$\")",
-      "Bash(grep \"\\\\.ts$\")"
+      "Bash(grep \"\\\\.ts$\")",
+      "PowerShell(\\(Get-Content \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\\\\COREPROJECT_NOV25\\\\CoreProject\\\\src\\\\main\\\\resources\\\\db\\\\migration\\\\V1__init_schema.sql\" | Measure-Object -Line\\).Lines)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\" -Depth 3 | Where-Object { $_.Name -match \"Front|front|angular\" } | Select-Object FullName)"
     ]
   }
 }
