@@ -67,7 +67,16 @@
       "Bash(bash *)",
       "Bash(xargs -I {} sh -c 'echo \"=== {} ===\"; head -1 \"{}\"')",
       "Bash(xargs -0 grep -L \"/\\\\*\\\\*\")",
-      "PowerShell(Set-Location *)"
+      "PowerShell(Set-Location *)",
+      "Bash(Copy-Item *)",
+      "PowerShell(Copy-Item *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(Get-ChildItem *)",
+      "Bash(Find C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\\\\COREPROJECT_NOV25\\\\CoreProject\\\\src\\\\main\\\\java\\\\be\\\\steby\\\\CoreProject\\\\bll\\\\domains\\\\notification *)",
+      "Bash(git push *)",
+      "Bash(grep \"\\\\.ts$\\\\|\\\\.html$\\\\|\\\\.scss$\")",
+      "Bash(grep \"\\\\.ts$\")"
     ]
   }
 }
