@@ -109,15 +109,15 @@ public class DeviceServiceImpl implements DeviceService {
             throw new InvalidDeviceArgumentException("User must be persisted (ID required)");
         }
 
-        log.debug("Fetching devices for user: {} (ID: {})", user.getUsername(), user.getId());
+        log.debug("Fetching devices for user ID: {}", user.getId());
         List<Device> devices = deviceRepository.findAllByUser(user);
 
         if (devices.isEmpty()) {
-            log.info("No devices found for user {}", user.getUsername());
+            log.info("No devices found for user ID {}", user.getId());
             return Collections.emptyList();
         }
 
-        log.debug("Found {} devices for user {}", devices.size(), user.getUsername());
+        log.debug("Found {} devices for user ID {}", devices.size(), user.getId());
 
         return devices;
     }
