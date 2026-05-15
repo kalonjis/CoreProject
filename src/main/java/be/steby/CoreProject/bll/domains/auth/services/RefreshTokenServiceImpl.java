@@ -127,8 +127,8 @@ public class RefreshTokenServiceImpl extends BaseTokenServiceImpl<RefreshToken> 
         // ✅ 1 seule query UPDATE groupée
         int revokedCount = refreshTokenRepository.revokeAllByUserAndDevice(user, device);
 
-        log.info("Révocation de {} tokens pour l'appareil {} de l'utilisateur {}",
-                revokedCount, device.getId(), user.getUsername());
+        log.info("Révocation de {} tokens pour l'appareil {} de l'utilisateur ID {}",
+                revokedCount, device.getId(), user.getId());
     }
 
 
