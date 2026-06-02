@@ -78,7 +78,22 @@
       "Bash(grep \"\\\\.ts$\\\\|\\\\.html$\\\\|\\\\.scss$\")",
       "Bash(grep \"\\\\.ts$\")",
       "PowerShell(\\(Get-Content \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\\\\COREPROJECT_NOV25\\\\CoreProject\\\\src\\\\main\\\\resources\\\\db\\\\migration\\\\V1__init_schema.sql\" | Measure-Object -Line\\).Lines)",
-      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\" -Depth 3 | Where-Object { $_.Name -match \"Front|front|angular\" } | Select-Object FullName)"
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\" -Depth 3 | Where-Object { $_.Name -match \"Front|front|angular\" } | Select-Object FullName)",
+      "PowerShell(git *)",
+      "Bash(./mvnw clean *)",
+      "PowerShell(docker run *)",
+      "PowerShell(docker compose *)",
+      "PowerShell(Out-Null *)",
+      "PowerShell(docker exec asterisk-crm-local *)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\\\\COREPROJECT_NOV25\\\\CoreProject\\\\src\\\\main\\\\java\\\\be\\\\steby\\\\CoreProject\\\\il\\\\routes\\\\\" -Recurse | Where-Object { -not $_.PSIsContainer })",
+      "PowerShell(cd \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\\\\COREPROJECT_NOV25\\\\CoreProject\"; Get-Content .env | Where-Object { $_ -notmatch '^#' -and $_ -match '=' } | ForEach-Object { $parts = $_ -split '=', 2; [System.Environment]::SetEnvironmentVariable\\($parts[0].Trim\\(\\), $parts[1].Trim\\(\\)\\) }; Write-Output \"Vars chargées\")",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\\\\FrontLast\\\\CoreProject_Front\\\\src\\\\app\\\\core\\\\telephony\" -Recurse | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\\\\FrontLast\\\\CoreProject_Front\\\\src\\\\app\\\\core\\\\telephony\" -Recurse -File | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\\\\FrontLast\\\\CoreProject_Front\\\\src\\\\app\\\\shared\\\\call-widget\" -Recurse -File | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\\\\FrontLast\\\\CoreProject_Front\\\\src\\\\app\\\\shared\\\\phone-link\" -Recurse -File | ForEach-Object { $_.FullName })",
+      "Bash(docker exec asterisk-local *)",
+      "Bash(docker exec asterisk-crm-local *)"
     ]
   }
 }

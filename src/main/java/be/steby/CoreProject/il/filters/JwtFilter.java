@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * JWT authentication filter with enhanced device security validation.
@@ -42,6 +43,11 @@ public class JwtFilter extends OncePerRequestFilter {
 
     // NO @Value annotations here - we use authJwtService.getAccessTokenCookieName()
 
+    private static final List<String> LOGIN_ENDPOINTS = List.of(
+            "/api/auth/initiate-login",
+            "/api/auth/login"
+    );
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -49,6 +55,14 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String token = extractTokenFromCookie(request);
         String requestURI = request.getRequestURI();
+
+        // If the user hits a login endpoint with existing auth cookies, clear them
+        // so they appear anonymous — required by @PreAuthorize("isAnonymous()") on login methods.
+        if (token != null && LOGIN_ENDPOINTS.contains(requestURI)) {
+            clearAuthCookies(response);
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         if (token != null) {
             try {

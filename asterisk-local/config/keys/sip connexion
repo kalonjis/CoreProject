@@ -1,0 +1,44 @@
+  Étape 1 — Crée la config SIP globale
+
+  Dans la console du navigateur (sur l'onglet CRM connecté) :
+
+  fetch('/api/crm/telephony/configs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      provider: 'SIP',
+      credentialsJson: JSON.stringify({
+        wsUrl: 'wss://localhost:8089/ws',
+        sipDomain: 'localhost',
+        outboundContext: 'from-internal'
+      }),
+      callerId: null,
+      active: true
+    })
+  }).then(r => r.json()).then(console.log)
+
+  Étape 2 — Récupère ton publicId
+
+  fetch('/api/account').then(r => r.json()).then(u => console.log(u.publicId))
+
+  Copie le publicId affiché, puis :
+
+  Étape 3 — Assigne l'extension 1001 à ton compte
+
+  fetch('/api/crm/telephony/sip', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      targetUserPublicId: '15d3f5f5-225a-40fa-a755-3b1def299965',
+      sipUsername: '1001',
+      sipPassword: 'test1234',
+      displayName: 'Commercial Test'
+    })
+  }).then(r => r.json()).then(console.log)
+
+  Une fois les deux appels OK, rafraîchis la page — le SipService va tenter de s'enregistrer sur wss://localhost:8089/ws. Vérifie dans la console qu'il n'y a pas d'erreur SIP.
+  Pour confirmer côté Asterisk :
+
+  docker exec asterisk-crm-local asterisk -rx "pjsip show endpoints"
+
+  L'extension 1001 doit passer de Unavail à Avail.

@@ -25,6 +25,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Set;
 
 /**
@@ -93,7 +94,7 @@ public class    CallServiceImpl implements CallService {
         Contact contact = resolveContact(request.contactPublicId());
         Lead    lead    = resolveLead(request.leadPublicId());
 
-        TelephonyPort adapter = adapterResolver.resolve();
+        TelephonyPort adapter = adapterResolver.resolve(actor);
 
         CallSession session = adapter.initiate(new InitiateCallCommand(
                 request.phoneNumber(), contact, lead, actor));
@@ -104,6 +105,28 @@ public class    CallServiceImpl implements CallService {
         log.info("Call initiated — session: {}, provider: {}, number: {}, actor: {}",
                 session.getPublicId(), session.getProvider(), request.phoneNumber(), actor.getId());
 
+        return session;
+    }
+
+    @Override
+    @Transactional
+    public CallSession answer(String publicId, User actor) {
+        CallSession session = getByPublicId(publicId);
+
+        if (TERMINAL_STATUSES.contains(session.getStatus())) {
+            throw new CallValidationException(
+                    "CallSession '" + publicId + "' is already terminated — cannot mark as answered");
+        }
+        if (session.getStatus() == CallSessionStatus.ACTIVE) {
+            throw new CallValidationException(
+                    "CallSession '" + publicId + "' is already active");
+        }
+
+        session.setAnsweredAt(Instant.now());
+        session.setStatus(CallSessionStatus.ACTIVE);
+        callSessionRepository.save(session);
+
+        log.info("Call answered — session: {}, actor: {}", session.getPublicId(), actor.getId());
         return session;
     }
 
@@ -121,7 +144,7 @@ public class    CallServiceImpl implements CallService {
                     "Status '" + request.status() + "' is not a terminal status. Expected one of: " + TERMINAL_STATUSES);
         }
 
-        TelephonyPort adapter = adapterResolver.resolve();
+        TelephonyPort adapter = adapterResolver.resolveByProvider(session.getProvider());
         adapter.terminate(session, new TerminateCallCommand(request.status(), request.durationSeconds()));
 
         callSessionRepository.save(session);
@@ -129,6 +152,32 @@ public class    CallServiceImpl implements CallService {
 
         log.info("Call terminated — session: {}, status: {}, duration: {}s, actor: {}",
                 session.getPublicId(), session.getStatus(), session.getDurationSeconds(), actor.getId());
+    }
+
+    @Override
+    @Transactional
+    public CallSession ring(String publicId, User actor) {
+        CallSession session = getByPublicId(publicId);
+
+        // Idempotent — skip if already past INITIATED
+        if (session.getStatus() != CallSessionStatus.INITIATED) {
+            return session;
+        }
+
+        session.setStatus(CallSessionStatus.RINGING);
+        callSessionRepository.save(session);
+
+        log.debug("Call ringing — session: {}, actor: {}", session.getPublicId(), actor.getId());
+        return session;
+    }
+
+    @Override
+    @Transactional
+    public void registerExternalCallId(String publicId, String externalCallId) {
+        CallSession session = getByPublicId(publicId);
+        session.setExternalCallId(externalCallId);
+        callSessionRepository.save(session);
+        log.debug("ExternalCallId registered — session: {}, callSid: {}", publicId, externalCallId);
     }
 
     // =========================================================================

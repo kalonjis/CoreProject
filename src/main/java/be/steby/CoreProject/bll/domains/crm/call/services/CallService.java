@@ -61,6 +61,20 @@ public interface CallService {
     CallSession initiate(InitiateCallRequest request, User actor);
 
     /**
+     * Records the moment the remote party answered the call.
+     *
+     * <p>Transitions the session from {@code INITIATED} or {@code RINGING} to {@code ACTIVE}
+     * and sets {@code answeredAt} to the current server time. Called by the frontend
+     * when SIP.js receives a {@code 200 OK} from Asterisk.</p>
+     *
+     * @param publicId the public UUID of the session
+     * @param actor    the commercial who owns the session
+     * @throws CallSessionNotFoundException if the session is not found
+     * @throws CallValidationException      if the session is already active or terminal
+     */
+    CallSession answer(String publicId, User actor);
+
+    /**
      * Terminates an active call session and triggers interaction logging.
      *
      * <p>Business rules enforced:</p>
@@ -80,4 +94,29 @@ public interface CallService {
      * @throws CallValidationException      if the status is not terminal or session is already closed
      */
     void terminate(String publicId, TerminateCallRequest request, User actor);
+
+    /**
+     * Transitions the session from {@code INITIATED} to {@code RINGING}.
+     *
+     * <p>Called by the Twilio webhook handler when the customer's phone starts ringing.
+     * Idempotent — silently returns if the session is already past {@code RINGING}.</p>
+     *
+     * @param publicId the public UUID of the session
+     * @param actor    the commercial who owns the session
+     * @throws CallSessionNotFoundException if the session is not found
+     */
+    CallSession ring(String publicId, User actor);
+
+    /**
+     * Stores the provider-assigned call identifier (e.g. Twilio CallSid) on the session.
+     *
+     * <p>Called by the TwiML endpoint when Twilio POSTs the call params, before any
+     * status webhook arrives. Required so that subsequent webhooks can correlate
+     * the {@code CallSid} back to a CRM {@link be.steby.CoreProject.dl.entities.crm.CallSession}.</p>
+     *
+     * @param publicId       the CRM session public UUID (passed as a custom param by the frontend)
+     * @param externalCallId the provider call identifier (Twilio {@code CallSid})
+     * @throws CallSessionNotFoundException if the session is not found
+     */
+    void registerExternalCallId(String publicId, String externalCallId);
 }

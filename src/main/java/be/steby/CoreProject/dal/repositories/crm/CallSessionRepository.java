@@ -3,6 +3,8 @@ package be.steby.CoreProject.dal.repositories.crm;
 import be.steby.CoreProject.dl.entities.crm.CallSession;
 import be.steby.CoreProject.dl.enums.crm.CallSessionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -102,6 +104,25 @@ public interface CallSessionRepository extends JpaRepository<CallSession, Long> 
      * @return sessions for that lead, most recent first
      */
     List<CallSession> findByLeadIdOrderByStartedAtDesc(Long leadId);
+
+    // =========================================================================
+    // Startup cleanup
+    // =========================================================================
+
+    /**
+     * Bulk-marks all non-terminal sessions as {@code FAILED}.
+     *
+     * <p>Called once at application startup to recover from sessions that were
+     * left open when the server was stopped (e.g. during local development).
+     * No events are published — these sessions never reached a real terminal state.</p>
+     *
+     * @param activeStatuses statuses to replace (INITIATED, RINGING, ACTIVE)
+     * @param endedAt        timestamp to stamp as the end time
+     * @return number of rows updated
+     */
+    @Modifying
+    @Query("UPDATE CallSession s SET s.status = be.steby.CoreProject.dl.enums.crm.CallSessionStatus.FAILED, s.endedAt = :endedAt WHERE s.status IN :activeStatuses")
+    int failAllActiveSessionsAt(Collection<CallSessionStatus> activeStatuses, Instant endedAt);
 
     // =========================================================================
     // Reporting

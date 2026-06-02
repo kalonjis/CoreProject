@@ -79,6 +79,26 @@ public class CrmCallController {
     }
 
     /**
+     * Records the moment the remote party answered the call.
+     *
+     * <p>Called by the frontend when SIP.js receives a {@code 200 OK}.
+     * Sets {@code answeredAt} to the current server time and transitions status to {@code ACTIVE}.</p>
+     *
+     * <p><strong>Endpoint:</strong> PATCH /api/crm/calls/{publicId}/answer</p>
+     */
+    @PatchMapping("/{publicId}/answer")
+    @Operation(summary = "Mark call as answered", description = "Records the answer timestamp when the remote party picks up (SIP 200 OK event)")
+    public ResponseEntity<CallSessionResponse> answer(
+            @PathVariable String publicId,
+            @AuthenticationPrincipal User actor) {
+
+        log.info("Call answered — publicId: {}, by: {}", publicId, actor.getId());
+
+        CallSession session = callService.answer(publicId, actor);
+        return ResponseEntity.ok(CallSessionResponse.fromEntity(session));
+    }
+
+    /**
      * Terminates an active call session and triggers interaction logging.
      *
      * <p>The {@code CallTerminatedInteractionListener} automatically creates the
