@@ -34,7 +34,11 @@ import be.steby.CoreProject.il.routes.changelog.CrmChangeLogRoutes;
 import be.steby.CoreProject.il.routes.tag.CrmTagRoutes;
 import be.steby.CoreProject.il.routes.user.CrmUserRoutes;
 import be.steby.CoreProject.il.routes.supportticket.CrmSupportTicketRoutes;
+import be.steby.CoreProject.il.routes.call.CrmCallRoutes;
 import be.steby.CoreProject.il.routes.supportticket.PublicSupportTicketRoutes;
+import be.steby.CoreProject.il.routes.telephony.CrmTwilioRoutes;
+import be.steby.CoreProject.il.routes.telephony.CrmSipConfigRoutes;
+import be.steby.CoreProject.il.routes.telephony.CrmTelephonyRoutes;
 
 import static be.steby.CoreProject.il.routes.SecurityRoutes.concatenate;
 
@@ -81,7 +85,8 @@ public final class SecurityRoutesAggregator {
             CalendarRoutes.PUBLIC,
             GdprRoutes.PUBLIC,
             NotificationRoutes.PUBLIC,
-            PublicSupportTicketRoutes.PUBLIC
+            PublicSupportTicketRoutes.PUBLIC,
+            CrmTwilioRoutes.PUBLIC
     );
 
     // ========== AUTHENTICATED ROUTES ==========
@@ -129,7 +134,11 @@ public final class SecurityRoutesAggregator {
             CrmUserRoutes.COMMERCIAL,
             CrmTagRoutes.COMMERCIAL,
             CrmChangeLogRoutes.COMMERCIAL,
-            CrmSupportTicketRoutes.COMMERCIAL
+            CrmSupportTicketRoutes.COMMERCIAL,
+            CrmCallRoutes.COMMERCIAL,
+            CrmTwilioRoutes.COMMERCIAL,
+            CrmSipConfigRoutes.COMMERCIAL,
+            CrmTelephonyRoutes.COMMERCIAL
     );
 
     // ========== ADMIN ROUTES ==========
@@ -138,8 +147,8 @@ public final class SecurityRoutesAggregator {
             AdminRoutes.ADMIN,
             ActuatorRoutes.ADMIN,
             CalendarRoutes.ADMIN,
-            ActivityLogRoutes.ADMIN
-
+            ActivityLogRoutes.ADMIN,
+            CrmSipConfigRoutes.ADMIN
     );
 
     // ========== MONITORING ROUTES ==========
@@ -194,7 +203,11 @@ public final class SecurityRoutesAggregator {
             CrmTagRoutes.CSRF_IGNORE,
             CrmChangeLogRoutes.CSRF_IGNORE,
             CrmSupportTicketRoutes.CSRF_IGNORE,
+            CrmCallRoutes.CSRF_IGNORE,
             PublicSupportTicketRoutes.CSRF_IGNORE,
+            CrmTwilioRoutes.CSRF_IGNORE,
+            CrmSipConfigRoutes.CSRF_IGNORE,
+            CrmTelephonyRoutes.CSRF_IGNORE,
             CalendarRoutes.CSRF_IGNORE,
             GdprRoutes.CSRF_IGNORE,
             NotificationRoutes.CSRF_IGNORE

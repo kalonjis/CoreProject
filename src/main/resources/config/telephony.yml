@@ -1,0 +1,14 @@
+telephony:
+  encryption-key: ${TELEPHONY_ENCRYPTION_KEY:local-dev-key-not-for-production}
+  global-provider: ${TELEPHONY_GLOBAL_PROVIDER:TEL_URI}
+  twilio:
+    base-url: ${TWILIO_WEBHOOK_BASE_URL:}
+    account-sid: ${TWILIO_ACCOUNT_SID:}
+    auth-token: ${TWILIO_AUTH_TOKEN:}
+    api-key-sid: ${TWILIO_API_KEY_SID:}
+    api-key-secret: ${TWILIO_API_KEY_SECRET:}
+    twiml-app-sid: ${TWILIO_TWIML_APP_SID:}
+    caller-id: ${TWILIO_CALLER_ID:}
+  sip:
+    ws-url: ${SIP_WS_URL:ws://localhost:8088/ws}
+    domain: ${SIP_DOMAIN:localhost}

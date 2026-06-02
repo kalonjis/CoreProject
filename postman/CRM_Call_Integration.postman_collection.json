@@ -1,0 +1,447 @@
+{
+  "info": {
+    "name": "CRM — Appels Téléphoniques",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Tests du cycle de vie des appels téléphoniques CRM.\nURL de base : https://localhost:8443\n\nPré-requis :\n  1. Désactiver la vérification SSL dans Postman (Settings → SSL certificate verification → OFF)\n  2. Exécuter 'Login' pour obtenir les cookies access_token + refresh_token\n  3. Renseigner contactPublicId (ou leadPublicId) avec un UUID valide\n\nFlux nominal :\n  Login → Initier appel → (appel Windows Phone) → Terminer → Vérifier interaction créée"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://localhost:8443",
+      "type": "string"
+    },
+    {
+      "key": "username",
+      "value": "votre_username",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "votre_password",
+      "type": "string"
+    },
+    {
+      "key": "contactPublicId",
+      "value": "REMPLACER_PAR_UUID_CONTACT",
+      "type": "string",
+      "description": "UUID public d'un contact existant dans la base"
+    },
+    {
+      "key": "leadPublicId",
+      "value": "REMPLACER_PAR_UUID_LEAD",
+      "type": "string",
+      "description": "UUID public d'un lead existant (alternatif au contact)"
+    },
+    {
+      "key": "callSessionPublicId",
+      "value": "",
+      "type": "string",
+      "description": "Rempli automatiquement après 'Initier un appel'"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST — Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login réussi (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "// Les cookies access_token et refresh_token sont gérés automatiquement par Postman.",
+                  "// Ils seront envoyés sur toutes les requêtes suivantes vers localhost:8443."
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Authentification — les cookies httpOnly access_token et refresh_token sont stockés automatiquement par Postman et renvoyés sur les requêtes suivantes."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Flux nominal",
+      "item": [
+        {
+          "name": "1. POST — Initier un appel (contact)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Session créée (201)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Status = INITIATED', function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('INITIATED');",
+                  "});",
+                  "pm.test('Provider = TEL_URI (pas de config active)', function () {",
+                  "    pm.expect(pm.response.json().provider).to.eql('TEL_URI');",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    const publicId = pm.response.json().publicId;",
+                  "    pm.collectionVariables.set('callSessionPublicId', publicId);",
+                  "    console.log('callSessionPublicId capturé :', publicId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+32 475 12 34 56\",\n  \"contactPublicId\": \"{{contactPublicId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/calls",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crm", "calls"]
+            },
+            "description": "Crée une CallSession avec status INITIATED.\nLe publicId est capturé dans la variable callSessionPublicId pour les requêtes suivantes.\n\nÀ ce stade, le frontend déclencherait le tel: URI → Windows Phone Link ouvre le dialler."
+          }
+        },
+        {
+          "name": "2. GET — Détail de la session en cours",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Session trouvée (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Status toujours INITIATED', function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('INITIATED');",
+                  "});",
+                  "pm.test('endedAt est null (appel en cours)', function () {",
+                  "    pm.expect(pm.response.json().endedAt).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/calls/{{callSessionPublicId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crm", "calls", "{{callSessionPublicId}}"]
+            },
+            "description": "Vérifie l'état de la session pendant l'appel.\nendedAt et durationSeconds doivent être null."
+          }
+        },
+        {
+          "name": "3. PATCH — Terminer l'appel (ENDED — répondu, 90s)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Session terminée (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Status = ENDED', function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('ENDED');",
+                  "});",
+                  "pm.test('durationSeconds = 90', function () {",
+                  "    pm.expect(pm.response.json().durationSeconds).to.eql(90);",
+                  "});",
+                  "pm.test('endedAt renseigné', function () {",
+                  "    pm.expect(pm.response.json().endedAt).to.not.be.null;",
+                  "});",
+                  "console.log('Interaction + CallLog créés automatiquement par le listener.');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ENDED\",\n  \"durationSeconds\": 90\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/calls/{{callSessionPublicId}}/terminate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crm", "calls", "{{callSessionPublicId}}", "terminate"]
+            },
+            "description": "Simule la confirmation utilisateur depuis la modal post-appel.\nDéclenche CallTerminatedEvent → CallTerminatedInteractionListener crée automatiquement :\n  - Une Interaction (type=CALL, direction=OUTBOUND, outcome=NEUTRAL)\n  - Un CallLog (status=ANSWERED, durationSeconds=90)"
+          }
+        },
+        {
+          "name": "4. POST — Initier un appel (lead)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Session créée (201)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('callSessionPublicId', pm.response.json().publicId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+32 477 98 76 54\",\n  \"leadPublicId\": \"{{leadPublicId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/calls",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crm", "calls"]
+            },
+            "description": "Même flux mais lié à un lead (avant conversion en contact)."
+          }
+        },
+        {
+          "name": "5. PATCH — Terminer (MISSED — pas de réponse)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Session terminée (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Status = MISSED', function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('MISSED');",
+                  "});",
+                  "pm.test('durationSeconds null (pas répondu)', function () {",
+                  "    pm.expect(pm.response.json().durationSeconds).to.be.null;",
+                  "});",
+                  "console.log('Interaction créée avec outcome=NO_ANSWER, CallLog status=NO_ANSWER.');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"MISSED\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/calls/{{callSessionPublicId}}/terminate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crm", "calls", "{{callSessionPublicId}}", "terminate"]
+            },
+            "description": "Appel non répondu — durationSeconds absent (null).\nL'interaction est créée avec outcome=NO_ANSWER et CallLog status=NO_ANSWER."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cas d'erreur",
+      "item": [
+        {
+          "name": "POST — Sans contact ni lead (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validation échouée (400)', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+32 475 00 00 00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/calls",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crm", "calls"]
+            },
+            "description": "Ni contactPublicId ni leadPublicId → CallValidationException → 400."
+          }
+        },
+        {
+          "name": "POST — phoneNumber manquant (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validation Bean (400)', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contactPublicId\": \"{{contactPublicId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/calls",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crm", "calls"]
+            },
+            "description": "@NotBlank sur phoneNumber → 400 avant même d'atteindre le service."
+          }
+        },
+        {
+          "name": "PATCH — Status non terminal (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status invalide (400)', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\",\n  \"durationSeconds\": 60\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/calls/{{callSessionPublicId}}/terminate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crm", "calls", "{{callSessionPublicId}}", "terminate"]
+            },
+            "description": "ACTIVE n'est pas un status terminal → CallValidationException → 400.\nSeuls ENDED, MISSED et FAILED sont acceptés."
+          }
+        },
+        {
+          "name": "PATCH — Session déjà terminée (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Double terminaison (400)', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ENDED\",\n  \"durationSeconds\": 30\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/calls/{{callSessionPublicId}}/terminate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crm", "calls", "{{callSessionPublicId}}", "terminate"]
+            },
+            "description": "Appeler terminate sur une session déjà ENDED/MISSED/FAILED → CallValidationException → 400.\nExécuter après le flux nominal (requête 3 ou 5)."
+          }
+        },
+        {
+          "name": "GET — Session inexistante (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Session introuvable (404)', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/calls/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crm", "calls", "00000000-0000-0000-0000-000000000000"]
+            },
+            "description": "UUID inexistant → CallSessionNotFoundException → 404."
+          }
+        }
+      ]
+    }
+  ]
+}

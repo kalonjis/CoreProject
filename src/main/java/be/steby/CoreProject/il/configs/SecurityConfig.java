@@ -132,7 +132,9 @@ public class SecurityConfig {
                                                 "style-src 'self' 'unsafe-inline'; " +
                                                 "img-src 'self' data: https:; " +
                                                 "font-src 'self' https://fonts.gstatic.com; " +
-                                                "connect-src 'self' " + BACK_URL + "; " +
+                                                "connect-src 'self' " + BACK_URL + " https://*.twilio.com wss://*.twilio.com ws://localhost:8088 wss://localhost:8089; " +
+                                                "media-src 'self' blob:; " +
+                                                "worker-src blob:; " +
                                                 "frame-ancestors 'none'; " +
                                                 "form-action 'self';"
                                 )

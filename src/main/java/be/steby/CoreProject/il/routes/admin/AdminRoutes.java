@@ -94,6 +94,11 @@ public final class AdminRoutes {
             "/api/admin/circuit-breaker/**"
     };
 
+    private static final String[] TELEPHONY_MANAGEMENT = {
+            "/api/admin/telephony/users",
+            "/api/admin/telephony/users/**"
+    };
+
     /**
      * All admin routes aggregated.
      */
@@ -107,7 +112,8 @@ public final class AdminRoutes {
             CACHE_USER_MANAGEMENT,
             SECURITY_LOGS,
             MONITORING,
-            CIRCUIT_BREAKER
+            CIRCUIT_BREAKER,
+            TELEPHONY_MANAGEMENT
     );
 
     // ========== CSRF CONFIGURATION ==========
@@ -131,7 +137,8 @@ public final class AdminRoutes {
             CACHE_USER_MANAGEMENT,
             SECURITY_LOGS,
             MONITORING,
-            CIRCUIT_BREAKER
+            CIRCUIT_BREAKER,
+            TELEPHONY_MANAGEMENT
     );
 
     // Production version (uncomment and replace CSRF_IGNORE above)

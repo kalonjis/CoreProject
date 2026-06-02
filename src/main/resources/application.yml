@@ -34,6 +34,7 @@ spring:
       - classpath:config/notification.yml
       - classpath:config/gdpr.yml
       - classpath:config/crm_webhooks.yml
+      - classpath:config/telephony.yml
 
 url:
   back_server: ${URL_BACK_SERVER}
