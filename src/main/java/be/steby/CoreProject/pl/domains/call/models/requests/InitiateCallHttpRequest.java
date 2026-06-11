@@ -7,12 +7,15 @@ import jakarta.validation.constraints.Size;
 /**
  * PL request model for initiating a call from the CRM.
  *
- * <p>At least one of {@code contactPublicId} or {@code leadPublicId} must be provided.
- * This constraint is enforced at the service layer to produce a domain-specific error.</p>
+ * <p>For OUTBOUND calls, at least one of {@code contactPublicId} or {@code leadPublicId}
+ * must be provided. This constraint is enforced at the service layer.</p>
+ * <p>For INBOUND calls ({@code direction = "INBOUND"}), contact/lead may be unknown
+ * at answer time — the service layer skips the constraint.</p>
  *
- * @param phoneNumber     the number to dial (required)
- * @param contactPublicId public UUID of the contact being called; {@code null} if calling a lead
- * @param leadPublicId    public UUID of the lead being called; {@code null} if calling a contact
+ * @param phoneNumber     the number to dial / caller number (required)
+ * @param contactPublicId public UUID of the contact being called; {@code null} if lead or inbound
+ * @param leadPublicId    public UUID of the lead being called; {@code null} if contact or inbound
+ * @param direction       {@code "INBOUND"} or {@code "OUTBOUND"} (default when null)
  */
 public record InitiateCallHttpRequest(
 
@@ -22,16 +25,13 @@ public record InitiateCallHttpRequest(
 
         String contactPublicId,
 
-        String leadPublicId
+        String leadPublicId,
+
+        String direction
 
 ) {
 
-    /**
-     * Converts this PL request to the BLL model.
-     *
-     * @return {@link InitiateCallRequest} for the service layer
-     */
     public InitiateCallRequest toBllModel() {
-        return new InitiateCallRequest(phoneNumber, contactPublicId, leadPublicId);
+        return new InitiateCallRequest(phoneNumber, contactPublicId, leadPublicId, direction);
     }
 }
