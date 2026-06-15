@@ -3,6 +3,7 @@ package be.steby.CoreProject.bll.domains.crm.call.services;
 import be.steby.CoreProject.bll.domains.crm.call.exceptions.CallAlreadyActiveException;
 import be.steby.CoreProject.bll.domains.crm.call.exceptions.CallSessionNotFoundException;
 import be.steby.CoreProject.bll.domains.crm.call.exceptions.CallValidationException;
+import be.steby.CoreProject.bll.domains.crm.call.models.CallerInfo;
 import be.steby.CoreProject.bll.domains.crm.call.models.InitiateCallRequest;
 import be.steby.CoreProject.bll.domains.crm.call.models.TerminateCallRequest;
 import be.steby.CoreProject.dl.entities.User;
@@ -119,4 +120,18 @@ public interface CallService {
      * @throws CallSessionNotFoundException if the session is not found
      */
     void registerExternalCallId(String publicId, String externalCallId);
+
+    /**
+     * Resolves the identity of an inbound caller from a phone number or SIP extension.
+     *
+     * <p>Lookup order:</p>
+     * <ol>
+     *   <li>SIP extension — checks {@code CommercialSipConfig.sipUsername}</li>
+     *   <li>CRM contact  — checks {@code Contact.phone} (exact match)</li>
+     * </ol>
+     * <p>Returns {@link CallerInfo#unknown()} when nothing matches.</p>
+     *
+     * @param number the raw caller ID from the SIP From header (extension or E.164)
+     */
+    CallerInfo resolveCallerInfo(String number);
 }
