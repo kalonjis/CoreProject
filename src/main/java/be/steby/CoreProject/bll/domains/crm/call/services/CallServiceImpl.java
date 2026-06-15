@@ -185,6 +185,7 @@ public class    CallServiceImpl implements CallService {
     // =========================================================================
 
     private void validate(InitiateCallRequest request) {
+        if ("INBOUND".equalsIgnoreCase(request.direction())) return;
         if (request.contactPublicId() == null && request.leadPublicId() == null) {
             throw new CallValidationException("At least one of contactPublicId or leadPublicId must be provided");
         }

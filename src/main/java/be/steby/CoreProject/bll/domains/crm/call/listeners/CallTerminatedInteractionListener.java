@@ -46,6 +46,13 @@ public class    CallTerminatedInteractionListener {
         log.debug("Call terminated event received — session: {}, status: {}",
                 session.getPublicId(), session.getStatus());
 
+        // Inbound call with no linked contact or lead — skip interaction (caller unknown)
+        if (session.getContact() == null && session.getLead() == null) {
+            log.info("Skipping interaction for call session {} — no contact or lead linked (inbound/unknown caller)",
+                    session.getPublicId());
+            return;
+        }
+
         InteractionCreateRequest request = new InteractionCreateRequest(
                 InteractionType.CALL,
                 InteractionDirection.OUTBOUND,
