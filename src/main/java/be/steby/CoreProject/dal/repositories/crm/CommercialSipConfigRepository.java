@@ -18,5 +18,7 @@ public interface CommercialSipConfigRepository extends JpaRepository<CommercialS
 
     boolean existsByUserId(Long userId);
 
+    Optional<CommercialSipConfig> findBySipUsername(String sipUsername);
+
     boolean existsBySipUsername(String sipUsername);
 }

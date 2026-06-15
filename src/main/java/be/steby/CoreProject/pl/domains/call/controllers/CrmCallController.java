@@ -5,6 +5,7 @@ import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.CallSession;
 import be.steby.CoreProject.pl.domains.call.models.requests.InitiateCallHttpRequest;
 import be.steby.CoreProject.pl.domains.call.models.requests.TerminateCallHttpRequest;
+import be.steby.CoreProject.pl.domains.call.models.responses.CallerInfoResponse;
 import be.steby.CoreProject.pl.domains.call.models.responses.CallSessionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,6 +43,20 @@ import java.net.URI;
 public class CrmCallController {
 
     private final CallService callService;
+
+    /**
+     * Resolves the display name and CRM identity of an inbound caller.
+     *
+     * <p>Checks SIP extensions first (internal users), then CRM contacts by phone number.
+     * Returns {@code displayName: null} when the caller is unknown.</p>
+     *
+     * <p><strong>Endpoint:</strong> GET /api/crm/calls/caller-info?number=</p>
+     */
+    @GetMapping("/caller-info")
+    @Operation(summary = "Resolve caller info", description = "Matches an inbound number against SIP extensions and CRM contacts")
+    public ResponseEntity<CallerInfoResponse> getCallerInfo(@RequestParam String number) {
+        return ResponseEntity.ok(CallerInfoResponse.from(callService.resolveCallerInfo(number)));
+    }
 
     /**
      * Returns the detail of a single call session.

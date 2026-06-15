@@ -126,6 +126,8 @@ public interface ContactRepository extends JpaRepository<Contact, Long>,
      */
     Optional<Contact> findByOriginLead_PublicId(String leadPublicId);
 
+    Optional<Contact> findByPhone(String phone);
+
     @Query("SELECT c FROM Contact c WHERE " +
            "LOWER(CONCAT(c.firstName, ' ', c.lastName)) LIKE :kw OR " +
            "LOWER(c.firstName) LIKE :kw OR " +

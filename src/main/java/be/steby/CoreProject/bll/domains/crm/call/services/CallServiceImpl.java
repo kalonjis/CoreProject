@@ -5,13 +5,17 @@ import be.steby.CoreProject.bll.domains.crm.call.events.CallTerminatedEvent;
 import be.steby.CoreProject.bll.domains.crm.call.exceptions.CallAlreadyActiveException;
 import be.steby.CoreProject.bll.domains.crm.call.exceptions.CallSessionNotFoundException;
 import be.steby.CoreProject.bll.domains.crm.call.exceptions.CallValidationException;
+import be.steby.CoreProject.bll.domains.crm.call.models.CallerInfo;
 import be.steby.CoreProject.bll.domains.crm.call.models.InitiateCallRequest;
 import be.steby.CoreProject.bll.domains.crm.call.models.TerminateCallRequest;
 import be.steby.CoreProject.bll.domains.crm.contact.services.ContactService;
 import be.steby.CoreProject.bll.domains.crm.lead.services.LeadService;
 import be.steby.CoreProject.dal.repositories.crm.CallSessionRepository;
+import be.steby.CoreProject.dal.repositories.crm.CommercialSipConfigRepository;
+import be.steby.CoreProject.dal.repositories.crm.ContactRepository;
 import be.steby.CoreProject.dl.entities.User;
 import be.steby.CoreProject.dl.entities.crm.CallSession;
+import be.steby.CoreProject.dl.entities.crm.CommercialSipConfig;
 import be.steby.CoreProject.dl.entities.crm.Contact;
 import be.steby.CoreProject.dl.entities.crm.Lead;
 import be.steby.CoreProject.dl.enums.crm.CallSessionStatus;
@@ -65,11 +69,13 @@ public class    CallServiceImpl implements CallService {
             CallSessionStatus.FAILED
     );
 
-    private final CallSessionRepository      callSessionRepository;
-    private final ContactService             contactService;
-    private final LeadService                leadService;
-    private final TelephonyAdapterResolver   adapterResolver;
-    private final ApplicationEventPublisher  eventPublisher;
+    private final CallSessionRepository          callSessionRepository;
+    private final CommercialSipConfigRepository  sipConfigRepository;
+    private final ContactRepository              contactRepository;
+    private final ContactService                 contactService;
+    private final LeadService                    leadService;
+    private final TelephonyAdapterResolver       adapterResolver;
+    private final ApplicationEventPublisher      eventPublisher;
 
     // =========================================================================
     // Lookup
@@ -183,6 +189,28 @@ public class    CallServiceImpl implements CallService {
     // =========================================================================
     // Private helpers
     // =========================================================================
+
+    @Override
+    public CallerInfo resolveCallerInfo(String number) {
+        if (number == null || number.isBlank()) return CallerInfo.unknown();
+
+        String normalized = number.trim();
+
+        // 1. SIP extension match
+        return sipConfigRepository.findBySipUsername(normalized)
+                .map(cfg -> {
+                    String name = (cfg.getDisplayName() != null && !cfg.getDisplayName().isBlank())
+                            ? cfg.getDisplayName()
+                            : cfg.getUser().getFirstname() + " " + cfg.getUser().getLastname();
+                    return new CallerInfo(name, null, true);
+                })
+                // 2. CRM contact phone match
+                .or(() -> contactRepository.findByPhone(normalized)
+                        .map(c -> new CallerInfo(c.getFirstName() + " " + c.getLastName(),
+                                c.getPublicId(), false)))
+                // 3. Unknown — fall back to the raw number
+                .orElseGet(() -> new CallerInfo(normalized, null, false));
+    }
 
     private void validate(InitiateCallRequest request) {
         if ("INBOUND".equalsIgnoreCase(request.direction())) return;
