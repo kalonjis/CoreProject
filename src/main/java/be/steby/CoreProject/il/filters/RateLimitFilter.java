@@ -200,19 +200,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Extracts the client's IP address from the request.
-     *
-     * <p>Checks {@code X-Forwarded-For} header first (for proxied requests),
-     * then falls back to {@code RemoteAddr}.</p>
-     *
-     * @param request the HTTP request
-     * @return client IP address
+     * Returns the client IP address.
+     * X-Forwarded-For is handled upstream by Tomcat's RemoteIpValve
+     * (server.forward-headers-strategy=native), so getRemoteAddr() already
+     * reflects the real client IP when behind a trusted proxy.
      */
     private String getClientIP(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
         return request.getRemoteAddr();
     }
 

@@ -24,6 +24,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -69,10 +70,31 @@ public class SecurityConfig {
     @Value("${url.back_server}")
     private String BACK_URL;
 
+    @Value("${security.hsts.enabled:false}")
+    private boolean hstsEnabled;
+
+    @Value("${asterisk.csp-connect-src:}")
+    private String asteriskCspConnectSrc;
+
     private final OAuth2AuthenticationSuccessHandler oauth2SuccessHandler;
 
     public SecurityConfig(OAuth2AuthenticationSuccessHandler oauth2SuccessHandler) {
         this.oauth2SuccessHandler = oauth2SuccessHandler;
+    }
+
+    private CookieCsrfTokenRepository csrfTokenRepository() {
+        CookieCsrfTokenRepository repo = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repo.setCookieCustomizer(builder -> builder.sameSite("Strict"));
+        return repo;
+    }
+
+    // Spring Security 6 change: CSRF token is deferred by default (written only when consumed).
+    // Setting csrfRequestAttributeName to null forces eager loading so the XSRF-TOKEN cookie
+    // is written on every response — required for SPAs that read it via JavaScript.
+    private CsrfTokenRequestAttributeHandler csrfRequestHandler() {
+        CsrfTokenRequestAttributeHandler handler = new CsrfTokenRequestAttributeHandler();
+        handler.setCsrfRequestAttributeName(null);
+        return handler;
     }
 
     @Bean
@@ -98,7 +120,8 @@ public class SecurityConfig {
         http
                 // ========== CSRF Configuration ==========
                 .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRepository(csrfTokenRepository())
+                        .csrfTokenRequestHandler(csrfRequestHandler())
                         .ignoringRequestMatchers(CSRF_IGNORE)
                 )
 
@@ -117,22 +140,25 @@ public class SecurityConfig {
                         // Enables browser XSS protection (legacy browsers)
                         .xssProtection(xss -> xss.headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
 
-                        // Forces HTTPS for 1 year (HSTS)
-                        // Uncomment in production with valid SSL certificate
-                        // .httpStrictTransportSecurity(hsts -> hsts
-                        //     .includeSubDomains(true)
-                        //     .maxAgeInSeconds(31536000)
-                        // )
+                        // Forces HTTPS for 1 year (HSTS) — enabled via security.hsts.enabled=true in prod
+                        .httpStrictTransportSecurity(hsts -> {
+                            if (hstsEnabled) {
+                                hsts.includeSubDomains(true).maxAgeInSeconds(31536000);
+                            } else {
+                                hsts.disable();
+                            }
+                        })
 
                         // Content Security Policy - adjust according to your needs
                         .contentSecurityPolicy(csp -> csp
                                 .policyDirectives(
                                         "default-src 'self'; " +
                                                 "script-src 'self'; " +
-                                                "style-src 'self' 'unsafe-inline'; " +
-                                                "img-src 'self' data: https:; " +
-                                                "font-src 'self' https://fonts.gstatic.com; " +
-                                                "connect-src 'self' " + BACK_URL + " https://*.twilio.com wss://*.twilio.com ws://localhost:8088 wss://localhost:8089; " +
+                                                "style-src 'self'; " +
+                                                "img-src 'self' data:; " +
+                                                "font-src 'self'; " +
+                                                "connect-src 'self' " + BACK_URL + " https://*.twilio.com wss://*.twilio.com" +
+                                                (asteriskCspConnectSrc.isBlank() ? "" : " " + asteriskCspConnectSrc) + "; " +
                                                 "media-src 'self' blob:; " +
                                                 "worker-src blob:; " +
                                                 "frame-ancestors 'none'; " +

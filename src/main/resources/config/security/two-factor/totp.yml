@@ -8,4 +8,4 @@ security:
       time-step-seconds: 30      # Standard 30-second time step
       window-tolerance: 1        # ±30 seconds tolerance for clock drift
       hmac-algorithm: "HmacSHA1" # RFC 6238 standard algorithm
-      encryption-key: "StebyTOTPKey2025!"  # Exactly 16 characters for AES-128aut of QR code in pixels
+      encryption-key: ${TOTP_ENCRYPTION_KEY}  # 16+ chars, AES-128 minimum

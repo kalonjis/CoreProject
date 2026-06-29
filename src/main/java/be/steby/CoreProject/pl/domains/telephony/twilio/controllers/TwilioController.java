@@ -68,17 +68,6 @@ public class TwilioController {
         return ResponseEntity.ok(new TwilioTokenResponse(jwt));
     }
 
-    /**
-     * Issues a Twilio Access Token for the test-receiver HTML page (dev only).
-     * The token grants incoming calls with identity "test-receiver".
-     */
-    @GetMapping("/token/test")
-    @Operation(summary = "Get test-receiver Twilio token (dev only)")
-    public ResponseEntity<TwilioTokenResponse> getTestToken() {
-        String jwt = tokenService.generateTestReceiverToken();
-        return ResponseEntity.ok(new TwilioTokenResponse(jwt));
-    }
-
     // =========================================================================
     // TwiML (public — verified by Twilio signature)
     // =========================================================================

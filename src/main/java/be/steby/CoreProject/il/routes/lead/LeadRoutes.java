@@ -24,11 +24,10 @@ public final class LeadRoutes {
 
     /**
      * Routes accessible without authentication.
-     * Public inquiry form is accessible to everyone.
+     * Only the inquiry submission endpoint is public.
      */
     public static final String[] PUBLIC = {
-            BASE,           // POST - Submit inquiry
-            BASE + "/**"    // Future endpoints
+            BASE   // POST /api/lead — submit inquiry (anonymous)
     };
 
     // ========================================

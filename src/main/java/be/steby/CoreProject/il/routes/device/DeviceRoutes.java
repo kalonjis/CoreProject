@@ -40,19 +40,8 @@ public final class DeviceRoutes {
      * Only keep: /confirm, /reject
      */
     public static final String[] CSRF_IGNORE = {
-            // ✅ Safe - Email tokens, no cookies
             "/api/device/confirm",
-            "/api/device/reject",
-
-            // ⚠️ DEV ONLY - Remove in production (uses cookies)
-            "/api/device/current",
-            "/api/device/session",
-            "/api/device/my-devices",
-            "/api/device/request-confirmation",
-            "/api/device/disconnect-all-others",
-            "/api/device/trust-level/*",
-            "/api/device/disconnect/*",
-            "/api/device/*"
+            "/api/device/reject"
     };
 
     private DeviceRoutes() {

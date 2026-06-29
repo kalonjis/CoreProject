@@ -22,6 +22,5 @@ public final class CrmDashboardRoutes {
 
     public static final String[] COMMERCIAL = { BASE, REVENUE_HISTORY };
 
-    /** ⚠️ DEV ONLY — set to {@code {}} in production. */
-    public static final String[] CSRF_IGNORE = { BASE, REVENUE_HISTORY };
+    public static final String[] CSRF_IGNORE = {};
 }

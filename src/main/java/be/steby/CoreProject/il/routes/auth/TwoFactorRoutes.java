@@ -59,36 +59,12 @@ public final class TwoFactorRoutes {
      * Only keep the PUBLIC routes.
      */
     public static final String[] CSRF_IGNORE = {
-            // ✅ Safe - Login phase, temporary tokens, no cookies
             "/api/auth/verify-2fa",
             "/api/auth/resend-2fa-code",
             "/api/auth/2fa-status",
             "/api/auth/2fa/choose-method",
             "/api/auth/2fa/login/methods",
-            "/api/auth/2fa/methods",  // Alias
-
-            // ⚠️ DEV ONLY - Remove in production (uses cookies)
-            "/api/auth/2fa/settings",
-            "/api/auth/2fa/available-methods",
-            "/api/auth/2fa/email/setup/initiate",
-            "/api/auth/2fa/email/setup/verify",
-            "/api/auth/2fa/enable-email",  // Legacy route
-            "/api/auth/2fa/email/enable",
-            "/api/auth/2fa/email/disable",
-            "/api/auth/2fa/sms/enable",
-            "/api/auth/2fa/sms/disable",
-            "/api/auth/2fa/totp/enable",
-            "/api/auth/2fa/totp/disable",
-            "/api/auth/2fa/totp/test-code",
-            "/api/auth/2fa/totp/setup/initiate",
-            "/api/auth/2fa/totp/setup/verify",
-            "/api/auth/2fa/backup-codes/enable",
-            "/api/auth/2fa/backup-codes/disable",
-            "/api/profile/SMS/request-verification",
-            "/api/profile/SMS/verify",
-            "/api/auth/2fa/sms/setup/initiate",
-            "/api/auth/2fa/sms/setup/verify"
-
+            "/api/auth/2fa/methods"
     };
 
     private TwoFactorRoutes() {

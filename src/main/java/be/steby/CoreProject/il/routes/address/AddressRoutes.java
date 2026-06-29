@@ -30,15 +30,7 @@ public final class AddressRoutes {
      * ⚠️ TODO PRODUCTION: This should be EMPTY!
      * All address routes use cookies and need CSRF protection.
      */
-    public static final String[] CSRF_IGNORE = {
-            // ⚠️ DEV ONLY - Remove ALL in production (uses cookies)
-            "/api/profile/addresses",
-            "/api/profile/addresses/*",
-            "/api/profile/addresses/*/default",
-            "/api/profile/addresses/*/primary",
-            "/api/profile/addresses/*/type",
-            "/api/profile/addresses/*/permanent"
-    };
+    public static final String[] CSRF_IGNORE = {};
 
     private AddressRoutes() {
         throw new UnsupportedOperationException("Configuration class - cannot be instantiated");

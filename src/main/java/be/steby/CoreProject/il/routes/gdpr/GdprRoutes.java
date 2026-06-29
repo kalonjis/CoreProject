@@ -40,8 +40,6 @@ public final class GdprRoutes {
     // =========================================================================
 
     public static final String[] CSRF_IGNORE = {
-            "/api/privacy/export/request",   // POST — initiates an export request
-            "/api/privacy/export/status" ,
             "/api/privacy/export/confirm",
             "/api/privacy/export/download"
     };

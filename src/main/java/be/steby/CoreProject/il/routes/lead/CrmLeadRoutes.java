@@ -65,11 +65,5 @@ public final class CrmLeadRoutes {
      *
      * <p>⚠️ TODO PRODUCTION: Set this to empty array: {@code {}}</p>
      */
-    public static final String[] CSRF_IGNORE = concatenate(
-            QUEUE_ROUTES,
-            LIFECYCLE_ROUTES
-    );
-
-    // Production version (uncomment and replace CSRF_IGNORE above)
-    // public static final String[] CSRF_IGNORE = {};
+    public static final String[] CSRF_IGNORE = {};
 }

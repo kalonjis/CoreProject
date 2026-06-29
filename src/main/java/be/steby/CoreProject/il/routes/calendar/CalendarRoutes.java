@@ -85,17 +85,7 @@ public final class CalendarRoutes {
      * state-changing operations (POST, PUT, DELETE). Consider enabling
      * CSRF for better security if frontend can handle it.</p>
      */
-    public static final String[] CSRF_IGNORE = {
-            "/api/calendar/events",           // POST, GET
-            "/api/calendar/events/range",     // GET
-            "/api/calendar/events/status/*",     // GET
-            "/api/calendar/events/upcoming",  // GET
-            "/api/calendar/events/*",         // PUT, DELETE, GET
-            "/api/calendar/events/*/cancel",  // POST
-            "/api/calendar/events/*/export",  // GET (download)
-            "/api/calendar/events/*/urls",    // GET
-            "/api/calendar/export-all"        // GET (download)
-    };
+    public static final String[] CSRF_IGNORE = {};
 
     private CalendarRoutes() {
         throw new UnsupportedOperationException("Configuration class - cannot be instantiated");

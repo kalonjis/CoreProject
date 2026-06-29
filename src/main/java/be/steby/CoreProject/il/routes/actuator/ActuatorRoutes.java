@@ -76,7 +76,7 @@ public final class ActuatorRoutes {
         "/actuator/health",           // Overall health
         "/actuator/health/**",        // Detailed health (liveness, readiness)
         "/actuator/info",             // Application info
-        "/actuator/prometheus"        // Prometheus metrics
+        "/actuator/prometheus"        // Prometheus scraping — public in Spring, restricted at nginx/firewall level (VPS internal only)
     };
     
     // ========== AUTHENTICATED ROUTES ==========
@@ -252,7 +252,7 @@ public final class ActuatorRoutes {
         "/actuator/health",
         "/actuator/health/**",
         "/actuator/info",
-        "/actuator/prometheus"
+        "/actuator/prometheus"        // Prometheus scraping — restricted at nginx/firewall level (VPS internal only)
         
         // ❌ NEVER ADD:
         // "/actuator/metrics"         - Uses cookies, needs CSRF

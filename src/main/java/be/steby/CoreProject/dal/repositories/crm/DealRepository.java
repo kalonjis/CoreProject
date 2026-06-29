@@ -205,7 +205,7 @@ public interface DealRepository extends JpaRepository<Deal, Long>,
            "FROM Deal d WHERE d.status = 'OPEN' AND d.amount IS NOT NULL")
     java.math.BigDecimal sumWeightedForecast();
 
-    @Query("SELECT d FROM Deal d WHERE LOWER(d.title) LIKE :kw")
+    @Query("SELECT d FROM Deal d WHERE LOWER(d.title) LIKE :kw ESCAPE '\\'")
     List<Deal> searchByKeyword(@Param("kw") String keyword, org.springframework.data.domain.Pageable pageable);
 
     // =========================================================================

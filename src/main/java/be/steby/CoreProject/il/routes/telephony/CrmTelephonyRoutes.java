@@ -17,5 +17,5 @@ public final class CrmTelephonyRoutes {
     };
 
     public static final String[] COMMERCIAL  = COMMERCIAL_ROUTES;
-    public static final String[] CSRF_IGNORE = COMMERCIAL_ROUTES;
+    public static final String[] CSRF_IGNORE = {};
 }

@@ -129,9 +129,9 @@ public interface ContactRepository extends JpaRepository<Contact, Long>,
     Optional<Contact> findByPhone(String phone);
 
     @Query("SELECT c FROM Contact c WHERE " +
-           "LOWER(CONCAT(c.firstName, ' ', c.lastName)) LIKE :kw OR " +
-           "LOWER(c.firstName) LIKE :kw OR " +
-           "LOWER(c.lastName)  LIKE :kw OR " +
-           "LOWER(c.email)     LIKE :kw")
+           "LOWER(CONCAT(c.firstName, ' ', c.lastName)) LIKE :kw ESCAPE '\\' OR " +
+           "LOWER(c.firstName) LIKE :kw ESCAPE '\\' OR " +
+           "LOWER(c.lastName)  LIKE :kw ESCAPE '\\' OR " +
+           "LOWER(c.email)     LIKE :kw ESCAPE '\\'")
     List<Contact> searchByKeyword(@Param("kw") String keyword, Pageable pageable);
 }

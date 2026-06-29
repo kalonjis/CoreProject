@@ -46,5 +46,5 @@ public final class CrmSipConfigRoutes {
      *
      * <p>⚠️ TODO PRODUCTION: Set this to empty array: {@code {}}</p>
      */
-    public static final String[] CSRF_IGNORE = concatenate(COMMERCIAL_ROUTES, ADMIN_ROUTES);
+    public static final String[] CSRF_IGNORE = {};
 }

@@ -59,41 +59,7 @@ public final class NotificationRoutes {
      *
      * ⚠️ TODO PRODUCTION: Remove all routes - notifications use cookies.
      */
-    public static final String[] CSRF_IGNORE = {
-            // SSE Stream
-            "/api/notifications/stream",
-
-            // List & Query
-            "/api/notifications",
-            "/api/notifications/active",
-            "/api/notifications/unread",
-            "/api/notifications/unread/count",
-            "/api/notifications/*",
-
-            // Actions - Single
-            "/api/notifications/*/read",
-            "/api/notifications/*/dismiss",
-
-            // Actions - Bulk
-            "/api/notifications/read",           // POST: Mark multiple as read
-            "/api/notifications/read-all",
-            "/api/notifications/delete",         // POST: Delete multiple
-            "/api/notifications/dismiss-all",
-
-            // Preferences - Read
-            "/api/notifications/preferences",
-            "/api/notifications/preferences/matrix",
-            "/api/notifications/preferences/channel/*",     // GET: By channel
-            "/api/notifications/preferences/quiet-hours/*", // GET & DELETE
-
-            // Preferences - Update
-            "/api/notifications/preferences/bulk",
-            "/api/notifications/preferences/quiet-hours",
-            "/api/notifications/preferences/mute",
-            "/api/notifications/preferences/type/*/enable-all",   // POST
-            "/api/notifications/preferences/type/*/disable-all",  // POST
-            "/api/notifications/preferences/reset"
-    };
+    public static final String[] CSRF_IGNORE = {};
 
     private NotificationRoutes() {
         throw new UnsupportedOperationException("Configuration class - cannot be instantiated");

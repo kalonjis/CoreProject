@@ -55,5 +55,5 @@ public final class CrmCallRoutes {
      *
      * <p>⚠️ TODO PRODUCTION: Set this to empty array: {@code {}}</p>
      */
-    public static final String[] CSRF_IGNORE = concatenate(READ_ROUTES, WRITE_ROUTES);
+    public static final String[] CSRF_IGNORE = {};
 }
