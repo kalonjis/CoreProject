@@ -38,5 +38,5 @@ public final class CrmTimelineRoutes {
      *
      * <p>⚠️ TODO PRODUCTION: Set this to empty array: {@code {}}</p>
      */
-    public static final String[] CSRF_IGNORE = concatenate(LIST_ROUTES);
+    public static final String[] CSRF_IGNORE = {};
 }

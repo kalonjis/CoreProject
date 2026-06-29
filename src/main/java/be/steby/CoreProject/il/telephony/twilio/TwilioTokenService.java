@@ -61,31 +61,6 @@ public class TwilioTokenService {
         return token.toJwt();
     }
 
-    /**
-     * Generates a Twilio Access Token for the test-receiver HTML page (dev only).
-     * Incoming calls are allowed so the page can receive calls from the CRM.
-     */
-    public String generateTestReceiverToken() {
-        ensureConfigured();
-
-        VoiceGrant grant = new VoiceGrant();
-        grant.setOutgoingApplicationSid(twimlAppSid);
-        grant.setIncomingAllow(true);
-
-        AccessToken token = new AccessToken.Builder(
-                accountSid,
-                apiKeySid,
-                apiKeySecret.getBytes(StandardCharsets.UTF_8)
-        )
-        .identity("test-receiver")
-        .ttl(TOKEN_TTL_SECONDS)
-        .grant(grant)
-        .build();
-
-        log.debug("Twilio test-receiver token generated");
-        return token.toJwt();
-    }
-
     private void ensureConfigured() {
         if (accountSid == null || accountSid.isBlank()) {
             throw new IllegalStateException(

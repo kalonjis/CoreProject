@@ -33,18 +33,12 @@ public final class AccountRoutes {
      * ⚠️ TODO PRODUCTION: Remove request-deactivation and confirm-deactivation!
      */
     public static final String[] CSRF_IGNORE = {
-            // ✅ Safe - Email tokens, no cookies
             "/api/account/signup",
             "/api/account/activate/**",
             "/api/account/resend-activation/**",
             "/api/account/resend-activation-by-identifier",
             "/api/account/request-reactivation",
             "/api/account/confirm-reactivation/**",
-
-            // ⚠️ DEV ONLY - Remove in production
-            "/api/account/request-deactivation",
-            "/api/account/confirm-deactivation/**",
-            "/api/account/request-deletion",
             "/api/account/confirm-deletion"
     };
 

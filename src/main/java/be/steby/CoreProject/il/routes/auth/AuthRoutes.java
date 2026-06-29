@@ -31,16 +31,9 @@ public final class AuthRoutes {
      * Only keep: login, initiate-login, refresh-token
      */
     public static final String[] CSRF_IGNORE = {
-            // ✅ Safe - No cookies, credentials in body
             "/api/auth/login",
             "/api/auth/initiate-login",
-            "/api/auth/refresh-token",
-
-            // ⚠️ DEV ONLY - Remove in production (uses cookies)
-            "/api/auth/logout",
-            "/api/auth/me",
-            "/api/auth/session",
-            "/api/auth/status"
+            "/api/auth/refresh-token"
     };
 
     private AuthRoutes() {

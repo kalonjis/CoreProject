@@ -38,11 +38,7 @@ public final class PasswordRoutes {
             "/api/password/verify-code",
             "/api/password/reset",
             "/api/password/reset-with-permission",
-            "/api/password/reset/resend",
-
-            // ⚠️ DEV ONLY - Remove in production (uses cookies)
-            "/api/password/change",
-            "/api/password/define"
+            "/api/password/reset/resend"
     };
 
     private PasswordRoutes() {

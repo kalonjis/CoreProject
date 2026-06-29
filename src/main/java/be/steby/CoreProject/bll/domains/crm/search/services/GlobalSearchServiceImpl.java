@@ -43,7 +43,7 @@ public class GlobalSearchServiceImpl implements GlobalSearchService {
     public GlobalSearchResponse search(String query) {
         if (query == null || query.isBlank()) return new GlobalSearchResponse(List.of());
 
-        String kw = "%" + query.toLowerCase().trim() + "%";
+        String kw = "%" + escapeLike(query.toLowerCase().trim()) + "%";
         var page  = PageRequest.of(0, MAX_PER_CATEGORY);
 
         List<SearchResult> results = new ArrayList<>();
@@ -61,6 +61,11 @@ public class GlobalSearchServiceImpl implements GlobalSearchService {
                 .map(this::toLeadResult).forEach(results::add);
 
         return new GlobalSearchResponse(results);
+    }
+
+    /** Escapes LIKE special characters so user input cannot act as wildcards. */
+    private String escapeLike(String value) {
+        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     /**

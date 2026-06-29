@@ -25,6 +25,5 @@ public final class CrmUserRoutes {
     /** All CRM user routes — require {@code COMMERCIAL} or {@code ADMIN} authority. */
     public static final String[] COMMERCIAL = concatenate(LOOKUP_ROUTES);
 
-    /** ⚠️ DEV ONLY — TODO PRODUCTION: set to {@code {}}. */
-    public static final String[] CSRF_IGNORE = concatenate(LOOKUP_ROUTES);
+    public static final String[] CSRF_IGNORE = {};
 }

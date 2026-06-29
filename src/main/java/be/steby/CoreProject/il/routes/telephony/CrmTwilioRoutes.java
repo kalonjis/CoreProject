@@ -28,8 +28,7 @@ public final class CrmTwilioRoutes {
 
     private static final String[] TWILIO_PUBLIC_ROUTES = {
             BASE + "/twiml",
-            BASE + "/webhook",
-            BASE + "/token/test"   // TODO dev-only — remove before prod
+            BASE + "/webhook"
     };
 
     // ── Commercial routes (frontend, JWT required) ──
@@ -52,5 +51,5 @@ public final class CrmTwilioRoutes {
      *
      * <p>⚠️ TODO PRODUCTION: Set CSRF_IGNORE to {@code TWILIO_PUBLIC_ROUTES} only.</p>
      */
-    public static final String[] CSRF_IGNORE = concatenate(TWILIO_PUBLIC_ROUTES, TWILIO_COMMERCIAL_ROUTES);
+    public static final String[] CSRF_IGNORE = TWILIO_PUBLIC_ROUTES;
 }

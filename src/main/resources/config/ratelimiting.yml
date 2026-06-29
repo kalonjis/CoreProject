@@ -41,4 +41,3 @@ rate-limit:
     - /actuator/**        # Spring Boot Actuator endpoints
     - /swagger-ui/**      # Swagger API documentation UI
     - /v3/api-docs/**     # OpenAPI specification
-    - /api/public/**      # Public API endpoints (if any)

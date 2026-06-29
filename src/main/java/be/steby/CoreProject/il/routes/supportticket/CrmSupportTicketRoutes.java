@@ -54,8 +54,5 @@ public final class CrmSupportTicketRoutes {
      *
      * <p>⚠️ TODO PRODUCTION: Set this to empty array: {@code {}}</p>
      */
-    public static final String[] CSRF_IGNORE = ALL_ROUTES;
-
-    // Production version (uncomment and replace CSRF_IGNORE above)
-    // public static final String[] CSRF_IGNORE = {};
+    public static final String[] CSRF_IGNORE = {};
 }

@@ -126,23 +126,7 @@ public final class AdminRoutes {
      *
      * ⚠️ TODO PRODUCTION: Set this to empty array: {}
      */
-    public static final String[] CSRF_IGNORE = concatenate(
-            // ⚠️ DEV ONLY - Remove ALL in production!
-            ADMIN_USER_ROUTES,
-            USER_ADDRESS_MANAGEMENT,
-            ADDRESS_MANAGEMENT,
-            DEVICE_MANAGEMENT,
-            PASSWORD_MANAGEMENT,
-            CACHE_DEVICE_MANAGEMENT,
-            CACHE_USER_MANAGEMENT,
-            SECURITY_LOGS,
-            MONITORING,
-            CIRCUIT_BREAKER,
-            TELEPHONY_MANAGEMENT
-    );
-
-    // Production version (uncomment and replace CSRF_IGNORE above)
-    // public static final String[] CSRF_IGNORE = {};
+    public static final String[] CSRF_IGNORE = {};
 
     private AdminRoutes() {
         throw new UnsupportedOperationException("Configuration class - cannot be instantiated");

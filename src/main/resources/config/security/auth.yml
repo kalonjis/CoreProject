@@ -1,4 +1,8 @@
 security:
+  # Set to true in production (requires a valid SSL certificate)
+  hsts:
+    enabled: false
+
   login-attempts:
     username:
       max-attempts: 5
@@ -9,3 +13,4 @@ security:
     combined:
       max-attempts: 3
       lockout-minutes: 5
+

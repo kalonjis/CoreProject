@@ -145,7 +145,7 @@ public class JwtFilter extends OncePerRequestFilter {
     private void handleSecurityViolation(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
-        response.getWriter().write("{\"error\": \"" + message + "\"}");
+        response.getWriter().write("{\"error\": \"Unauthorized\"}");
     }
 
     private void handleBlacklistedDeviceRequest(HttpServletResponse response) throws IOException {

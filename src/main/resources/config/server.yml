@@ -1,5 +1,9 @@
 server:
   port: ${APP_SERVER_SECURE_PORT} #HTTPS
+  # Delegate X-Forwarded-For processing to Tomcat's RemoteIpValve.
+  # Only trusts XFF from loopback (127.0.0.1, ::1) by default — i.e. nginx on the same VPS.
+  # If nginx is on a separate server, add: server.tomcat.remoteip.trusted-proxies=<nginx-ip>
+  forward-headers-strategy: native
   ssl:
     key-store: classpath:keystore.p12
     key-store-password: ${APP_SSL_PASSWORD}

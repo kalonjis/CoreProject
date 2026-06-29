@@ -1,0 +1,12 @@
+asterisk:
+  # WebSocket origins allowed in CSP connect-src for SIP.js ↔ Asterisk communication.
+  # Empty in prod — set via env var or prod profile override.
+  csp-connect-src: ${ASTERISK_CSP_CONNECT_SRC:}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+asterisk:
+  csp-connect-src: "ws://localhost:8088 wss://localhost:8089"

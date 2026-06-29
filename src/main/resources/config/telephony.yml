@@ -1,5 +1,5 @@
 telephony:
-  encryption-key: ${TELEPHONY_ENCRYPTION_KEY:local-dev-key-not-for-production}
+  encryption-key: ${TELEPHONY_ENCRYPTION_KEY}
   global-provider: ${TELEPHONY_GLOBAL_PROVIDER:TEL_URI}
   twilio:
     base-url: ${TWILIO_WEBHOOK_BASE_URL:}

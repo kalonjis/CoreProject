@@ -3,6 +3,7 @@ package be.steby.CoreProject.bll.domains.device.listeners;
 import be.steby.CoreProject.bll.domains.device.events.DeviceConfirmationLinkRequestedEvent;
 import be.steby.CoreProject.bll.domains.device.events.DeviceSecurityEvent;
 import be.steby.CoreProject.bll.domains.device.services.DeviceMailerService;
+import be.steby.CoreProject.bll.domains.device.services.DeviceService;
 import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.DeviceConfirmationTokenServiceImpl;
 import be.steby.CoreProject.bll.common.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dl.entities.Device;
@@ -30,6 +31,7 @@ public class DeviceNotificationListener {
 
     private final DeviceMailerService mailerService;
     private final DeviceConfirmationTokenServiceImpl deviceConfirmationTokenService;
+    private final DeviceService deviceService;
 
     @EventListener
     @Async("emailExecutor")
@@ -71,7 +73,12 @@ public class DeviceNotificationListener {
                         event.user().getUsername(), event.device().getId());
             }
         } else {
-            log.info("Device security notification skipped for unconfirmed device: {}", event.device().getId());
+            Device device = event.device();
+            device.setConfirmed(true);
+            device.setDeviceTrustLevel(DeviceTrustLevel.TRUSTED);
+            deviceService.saveDevice(device);
+            log.info("Device {} auto-confirmed - recent account activation for user: {}",
+                    device.getId(), event.user().getUsername());
         }
     }
 

@@ -122,9 +122,9 @@ public interface LeadRepository extends JpaRepository<Lead, Long>, JpaSpecificat
     long countByStatus(LeadStatus status);
 
     @Query("SELECT l FROM Lead l WHERE " +
-           "LOWER(l.firstName) LIKE :kw OR " +
-           "LOWER(l.lastName)  LIKE :kw OR " +
-           "LOWER(l.email)     LIKE :kw OR " +
-           "LOWER(CONCAT(COALESCE(l.firstName,''), ' ', COALESCE(l.lastName,''))) LIKE :kw")
+           "LOWER(l.firstName) LIKE :kw ESCAPE '\\' OR " +
+           "LOWER(l.lastName)  LIKE :kw ESCAPE '\\' OR " +
+           "LOWER(l.email)     LIKE :kw ESCAPE '\\' OR " +
+           "LOWER(CONCAT(COALESCE(l.firstName,''), ' ', COALESCE(l.lastName,''))) LIKE :kw ESCAPE '\\'")
     List<Lead> searchByKeyword(@Param("kw") String keyword, Pageable pageable);
 }

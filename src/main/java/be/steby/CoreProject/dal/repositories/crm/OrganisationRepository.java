@@ -63,6 +63,6 @@ public interface OrganisationRepository extends JpaRepository<Organisation, Long
      */
     boolean existsByNameIgnoreCase(String name);
 
-    @Query("SELECT o FROM Organisation o WHERE LOWER(o.name) LIKE :kw")
+    @Query("SELECT o FROM Organisation o WHERE LOWER(o.name) LIKE :kw ESCAPE '\\'")
     List<Organisation> searchByKeyword(@Param("kw") String keyword, Pageable pageable);
 }
