@@ -32,10 +32,14 @@
 
 		<!-- External Libraries -->
 		<springdoc.version>2.8.14</springdoc.version>
-		<jjwt.version>0.11.5</jjwt.version>
-		<twilio.version>11.0.1</twilio.version>
-		<yauaa.version>7.29.0</yauaa.version>
-		<resilience4j.version>2.3.0</resilience4j.version>
+		<jjwt.version>0.13.0</jjwt.version>
+		<twilio.version>12.1.1</twilio.version>
+		<yauaa.version>8.1.1</yauaa.version>
+		<resilience4j.version>2.4.0</resilience4j.version>
+
+		<!-- BOM overrides (patch updates) -->
+		<postgresql.version>42.7.11</postgresql.version>
+		<lombok.version>1.18.46</lombok.version>
 	</properties>
 
 	<!-- =========================================================== -->
@@ -239,7 +243,7 @@
 		<dependency>
 			<groupId>org.jsoup</groupId>
 			<artifactId>jsoup</artifactId>
-			<version>1.18.3</version>
+			<version>1.22.2</version>
 		</dependency>
 
 	</dependencies>

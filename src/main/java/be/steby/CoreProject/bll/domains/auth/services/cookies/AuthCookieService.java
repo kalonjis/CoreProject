@@ -126,6 +126,7 @@ public class AuthCookieService {
         baseCookieService.deleteHttpOnlyCookie(response, accessTokenCookieName);
         baseCookieService.deleteHttpOnlyCookie(response, refreshTokenCookieName);
         baseCookieService.deleteHttpOnlyCookie(response, twoFactorTokenCookieName);
+        baseCookieService.deleteStandardCookie(response, "XSRF-TOKEN");
         log.info("Authentication cookies cleared");
     }
 

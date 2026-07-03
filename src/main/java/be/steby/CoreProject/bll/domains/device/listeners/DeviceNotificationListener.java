@@ -8,6 +8,7 @@ import be.steby.CoreProject.bll.domains.device.services.tokens.confirmation.Devi
 import be.steby.CoreProject.bll.common.exceptions.MaxAttemptsReachedException;
 import be.steby.CoreProject.dl.entities.Device;
 import be.steby.CoreProject.dl.entities.User;
+import be.steby.CoreProject.dl.enums.DeviceTrustLevel;
 import be.steby.CoreProject.dl.entities.tokens.DeviceConfirmationToken;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
