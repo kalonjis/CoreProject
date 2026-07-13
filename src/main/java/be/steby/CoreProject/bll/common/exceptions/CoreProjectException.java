@@ -80,6 +80,9 @@ public class CoreProjectException extends RuntimeException {
     /**
      * Returns a string representation of this exception.
      * Includes class name, method, file, line number, status, error code, and message.
+     *
+     * <p>Reads the error code via {@link #getErrorCode()} (not the field) so that
+     * subclasses overriding it log their own code instead of {@code INTERNAL_ERROR}.
      */
     @Override
     public String toString() {
@@ -90,8 +93,8 @@ public class CoreProjectException extends RuntimeException {
                 el.getMethodName(),
                 el.getFileName(),
                 el.getLineNumber(),
-                this.status,
-                this.errorCode,
+                this.getStatus(),
+                this.getErrorCode(),
                 this.getMessage()
         );
     }
