@@ -12,10 +12,10 @@ public class InvalidRefreshTokenException extends InvalidTokenException {
     }
     // ────────────────────────────────────────────────────────────────
     public InvalidRefreshTokenException(String message) {
-        super(message);
+        super(message, 401);
     }
 
     public InvalidRefreshTokenException() {
-        super("Invalid or expired refresh token");
+        super("Invalid or expired refresh token", 401);
     }
 }
