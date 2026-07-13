@@ -94,7 +94,13 @@
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\\\\FrontLast\\\\CoreProject_Front\\\\src\\\\app\\\\shared\\\\phone-link\" -Recurse -File | ForEach-Object { $_.FullName })",
       "Bash(docker exec asterisk-local *)",
       "Bash(docker exec asterisk-crm-local *)",
-      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\\" -Depth 1 | Where-Object { $_.PSIsContainer } | Select-Object Name)"
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\\" -Depth 1 | Where-Object { $_.PSIsContainer } | Select-Object Name)",
+      "PowerShell(.\\\\mvnw.cmd test -Dtest=AuthFlowIntegrationTest 2>&1 | Select-Object -Last 20)",
+      "PowerShell(./mvnw test \"-Dtest=CallerInfoIntegrationTest\" 2>&1 | Select-Object -Last 60)",
+      "PowerShell(./mvnw test \"-Dtest=CallerInfoIntegrationTest\" 2>&1 | Select-Object -Last 50)",
+      "PowerShell(./mvnw test 2>&1 | Select-Object -Last 40)",
+      "PowerShell(./mvnw test \"-Dtest=CallLifecycleIntegrationTest\" 2>&1 | Select-Object -Last 45)",
+      "PowerShell(./mvnw test 2>&1 | Select-Object -Last 12)"
     ]
   }
 }
