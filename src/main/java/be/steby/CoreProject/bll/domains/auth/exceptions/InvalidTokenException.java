@@ -19,6 +19,10 @@ public class InvalidTokenException extends AuthDomainException {
         super(message, 400);
     }
 
+    protected InvalidTokenException(String message, int status) {
+        super(message, status);
+    }
+
     public InvalidTokenException() {
         super("Invalid or malformed token", 400);
     }
