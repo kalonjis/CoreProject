@@ -5,6 +5,7 @@ import be.steby.CoreProject.bll.domains.crm.call.services.CallService;
 import be.steby.CoreProject.dal.repositories.crm.CallSessionRepository;
 import be.steby.CoreProject.dl.entities.crm.CallSession;
 import be.steby.CoreProject.dl.enums.crm.CallSessionStatus;
+import be.steby.CoreProject.il.telephony.twilio.exceptions.InvalidTwilioSignatureException;
 import com.twilio.security.RequestValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -66,16 +67,16 @@ public class TwilioWebhookHandler {
      * @param requestUrl      full URL of the endpoint (as Twilio sees it)
      * @param twilioSignature value of the {@code X-Twilio-Signature} header
      * @param params          POST parameters from the request body
-     * @throws SecurityException if the signature is invalid
+     * @throws InvalidTwilioSignatureException if the header is missing or the signature is invalid (HTTP 403)
      */
     public void verifySignature(String requestUrl, String twilioSignature, Map<String, String> params) {
         if (twilioSignature == null || twilioSignature.isBlank()) {
-            throw new SecurityException("Missing X-Twilio-Signature header");
+            throw new InvalidTwilioSignatureException("Missing X-Twilio-Signature header");
         }
         RequestValidator validator = new RequestValidator(authToken);
         if (!validator.validate(requestUrl, params, twilioSignature)) {
             log.warn("Twilio signature validation failed for URL: {}", requestUrl);
-            throw new SecurityException("Invalid Twilio signature");
+            throw new InvalidTwilioSignatureException("Invalid Twilio signature");
         }
     }
 
