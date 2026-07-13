@@ -9,6 +9,7 @@ import be.steby.CoreProject.il.filters.RateLimitFilter;
 import be.steby.CoreProject.il.security.OAuth2AuthenticationSuccessHandler;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -78,6 +79,9 @@ public class SecurityConfig {
 
     private final OAuth2AuthenticationSuccessHandler oauth2SuccessHandler;
 
+    @Autowired(required = false)
+    private RateLimitFilter rateLimitFilter;
+
     public SecurityConfig(OAuth2AuthenticationSuccessHandler oauth2SuccessHandler) {
         this.oauth2SuccessHandler = oauth2SuccessHandler;
     }
@@ -115,8 +119,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    JwtFilter jwtFilter,
-                                                   MustChangePasswordFilter mustChangePasswordFilter,
-                                                   RateLimitFilter rateLimitFilter) throws Exception {
+                                                   MustChangePasswordFilter mustChangePasswordFilter) throws Exception {
         http
                 // ========== CSRF Configuration ==========
                 .csrf(csrf -> csrf
@@ -240,8 +243,11 @@ public class SecurityConfig {
 
                 // ========== Filters ==========
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(mustChangePasswordFilter, JwtFilter.class)
-                .addFilterAfter(rateLimitFilter, MustChangePasswordFilter.class);
+                .addFilterAfter(mustChangePasswordFilter, JwtFilter.class);
+
+        if (rateLimitFilter != null) {
+            http.addFilterAfter(rateLimitFilter, MustChangePasswordFilter.class);
+        }
 
         log.info("Security configuration loaded successfully");
         log.info("✅ Using SecurityRoutesAggregator for all route configurations");
