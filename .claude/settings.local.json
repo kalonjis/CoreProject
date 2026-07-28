@@ -94,7 +94,19 @@
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\\\\FrontLast\\\\CoreProject_Front\\\\src\\\\app\\\\shared\\\\phone-link\" -Recurse -File | ForEach-Object { $_.FullName })",
       "Bash(docker exec asterisk-local *)",
       "Bash(docker exec asterisk-crm-local *)",
-      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\\" -Depth 1 | Where-Object { $_.PSIsContainer } | Select-Object Name)"
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\\" -Depth 1 | Where-Object { $_.PSIsContainer } | Select-Object Name)",
+      "PowerShell(.\\\\mvnw.cmd test -Dtest=AuthFlowIntegrationTest 2>&1 | Select-Object -Last 20)",
+      "PowerShell(./mvnw test \"-Dtest=CallerInfoIntegrationTest\" 2>&1 | Select-Object -Last 60)",
+      "PowerShell(./mvnw test \"-Dtest=CallerInfoIntegrationTest\" 2>&1 | Select-Object -Last 50)",
+      "PowerShell(./mvnw test 2>&1 | Select-Object -Last 40)",
+      "PowerShell(./mvnw test \"-Dtest=CallLifecycleIntegrationTest\" 2>&1 | Select-Object -Last 45)",
+      "PowerShell(./mvnw test 2>&1 | Select-Object -Last 12)",
+      "Bash(./mvnw test *)",
+      "Bash(./mvnw -q -Dtest=DeviceConfirmationIntegrationTest test)",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(awk -F'[ ,]+' '{run+=$3; fail+=$5; err+=$7; skip+=$9} END {print \"Total run:\", run, \"Failures:\", fail, \"Errors:\", err, \"Skipped:\", skip}')",
+      "Bash(awk -F: '{sum+=$2} END{print \"Total testcases:\", sum}')",
+      "Bash(awk -F: '{sum+=$2} END{print \"Total failures/errors:\", sum}')"
     ]
   }
 }
