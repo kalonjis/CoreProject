@@ -100,7 +100,13 @@
       "PowerShell(./mvnw test \"-Dtest=CallerInfoIntegrationTest\" 2>&1 | Select-Object -Last 50)",
       "PowerShell(./mvnw test 2>&1 | Select-Object -Last 40)",
       "PowerShell(./mvnw test \"-Dtest=CallLifecycleIntegrationTest\" 2>&1 | Select-Object -Last 45)",
-      "PowerShell(./mvnw test 2>&1 | Select-Object -Last 12)"
+      "PowerShell(./mvnw test 2>&1 | Select-Object -Last 12)",
+      "Bash(./mvnw test *)",
+      "Bash(./mvnw -q -Dtest=DeviceConfirmationIntegrationTest test)",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(awk -F'[ ,]+' '{run+=$3; fail+=$5; err+=$7; skip+=$9} END {print \"Total run:\", run, \"Failures:\", fail, \"Errors:\", err, \"Skipped:\", skip}')",
+      "Bash(awk -F: '{sum+=$2} END{print \"Total testcases:\", sum}')",
+      "Bash(awk -F: '{sum+=$2} END{print \"Total failures/errors:\", sum}')"
     ]
   }
 }

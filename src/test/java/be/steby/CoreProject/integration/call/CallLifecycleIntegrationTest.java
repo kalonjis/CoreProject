@@ -178,6 +178,14 @@ class CallLifecycleIntegrationTest extends IntegrationTestBase {
                 .andReturn();
     }
 
+    /** PATCHes the answer endpoint and returns the raw MvcResult (no status assertion). */
+    private MvcResult performAnswer(AuthSession auth, String publicId) throws Exception {
+        return mockMvc.perform(MockMvcRequestBuilders.patch(CALLS_URL + "/" + publicId + "/answer")
+                        .cookie(auth.accessToken(), auth.xsrfToken())
+                        .header("X-XSRF-TOKEN", auth.xsrfToken().getValue()))
+                .andReturn();
+    }
+
     // =========================================================================
     // Contrôle d'accès
     // =========================================================================
@@ -204,6 +212,37 @@ class CallLifecycleIntegrationTest extends IntegrationTestBase {
 
             mockMvc.perform(get(CALLS_URL + "/session-inexistante")
                             .cookie(extractCookie(login, "access_token")))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void answerSansAuthentificationNiCsrf_retourne403() throws Exception {
+            // PATCH sans cookie XSRF-TOKEN : le CsrfFilter rejette avant même
+            // que l'authentification soit évaluée (cf. sansAuthentification_retourne401
+            // ci-dessus, sur GET, qui n'est pas soumis au CSRF).
+            mockMvc.perform(MockMvcRequestBuilders.patch(CALLS_URL + "/session-inexistante/answer"))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void answerRoleUserSimple_retourne403() throws Exception {
+            createActiveUser("calllifecycle_answer_user", UserRole.USER);
+
+            MvcResult login = mockMvc.perform(post(LOGIN_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"username\":\"calllifecycle_answer_user\",\"password\":\"" + TEST_PASSWORD + "\"}")
+                            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            Cookie access = extractCookie(login, "access_token");
+            Cookie xsrf   = extractCookie(login, "XSRF-TOKEN");
+
+            // Cookie + header CSRF fournis pour isoler le 403 de @PreAuthorize
+            // (sans eux, le CsrfFilter renverrait 403 avant d'atteindre l'autorisation).
+            mockMvc.perform(MockMvcRequestBuilders.patch(CALLS_URL + "/session-inexistante/answer")
+                            .cookie(access, xsrf)
+                            .header("X-XSRF-TOKEN", xsrf.getValue()))
                     .andExpect(status().isForbidden());
         }
     }
@@ -294,6 +333,39 @@ class CallLifecycleIntegrationTest extends IntegrationTestBase {
     }
 
     // =========================================================================
+    // Answer — guards métier
+    // =========================================================================
+
+    @Nested
+    class AnswerGuards {
+
+        @Test
+        void dejaActive_retourne400() throws Exception {
+            AuthSession auth = loginAsNewCommercial("answer_twice");
+            Contact contact = createContact("answer_twice", "+32470000010");
+            String publicId = initiateCall(auth, contact);
+
+            assertEquals(200, performAnswer(auth, publicId).getResponse().getStatus());
+
+            MvcResult second = performAnswer(auth, publicId);
+            assertEquals(400, second.getResponse().getStatus());
+        }
+
+        @Test
+        void sessionDejaTerminee_retourne400() throws Exception {
+            AuthSession auth = loginAsNewCommercial("answer_ended");
+            Contact contact = createContact("answer_ended", "+32470000011");
+            String publicId = initiateCall(auth, contact);
+
+            assertEquals(200, performTerminate(auth, publicId,
+                    "{\"status\":\"ENDED\",\"durationSeconds\":30}").getResponse().getStatus());
+
+            MvcResult result = performAnswer(auth, publicId);
+            assertEquals(400, result.getResponse().getStatus());
+        }
+    }
+
+    // =========================================================================
     // Cycle nominal — initiate → terminate → Interaction + CallLog
     // =========================================================================
 
@@ -327,6 +399,24 @@ class CallLifecycleIntegrationTest extends IntegrationTestBase {
             assertEquals(CallSessionStatus.INITIATED, session.getStatus());
             assertEquals(CallProvider.TEL_URI, session.getProvider());
             assertNotNull(session.getStartedAt());
+        }
+
+        @Test
+        void answer_passeLaSessionEnActiveEtDefinitAnsweredAt() throws Exception {
+            AuthSession auth = loginAsNewCommercial("nominal_answer");
+            Contact contact = createContact("nominal_answer", "+32470000012");
+            String publicId = initiateCall(auth, contact);
+
+            MvcResult result = performAnswer(auth, publicId);
+            assertEquals(200, result.getResponse().getStatus());
+
+            JsonNode json = objectMapper.readTree(result.getResponse().getContentAsString());
+            assertEquals("ACTIVE", json.get("status").asText());
+            assertFalse(json.get("answeredAt").isNull());
+
+            CallSession session = callSessionRepository.findByPublicId(publicId).orElseThrow();
+            assertEquals(CallSessionStatus.ACTIVE, session.getStatus());
+            assertNotNull(session.getAnsweredAt());
         }
 
         @Test
