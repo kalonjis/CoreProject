@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+
 
 /**
  * Service implementation for managing refresh tokens. This service extends {@link BaseTokenServiceImpl}
@@ -42,8 +44,10 @@ public class DeviceConfirmationTokenServiceImpl extends BaseTokenServiceImpl<Dev
     }
 
     /**
-     * Creates a new device confirmation token.
-     * Revokes existing tokens for this device before creating new one.
+     * Creates a device confirmation token, reusing a still-valid one for this
+     * device if it exists instead of revoking and reminting it — avoids
+     * invalidating a link already sent by email when a second login/request
+     * comes in for the same unconfirmed device before it expires.
      */
     @Transactional
     public DeviceConfirmationToken createDeviceConfirmationToken(User user, Long deviceId) {
@@ -51,13 +55,22 @@ public class DeviceConfirmationTokenServiceImpl extends BaseTokenServiceImpl<Dev
             throw new MaxAttemptsReachedException("Too many attempts. Please try again later.");
         }
 
+        attemptService.recordAttempt(user, deviceId);
+
+        DeviceConfirmationToken existingToken = deviceTokenRepository
+                .findValidByUserIdAndDeviceId(user.getId(), deviceId, Instant.now())
+                .orElse(null);
+        if (existingToken != null) {
+            log.debug("Reusing existing device confirmation token for device {} of user {}",
+                    deviceId, user.getUsername());
+            return existingToken;
+        }
+
         int revokedCount = deviceTokenRepository.revokeAllByUserAndDevice(user.getId(), deviceId);
         if (revokedCount > 0) {
             log.debug("Revoked {} existing device confirmation token(s) for device {} of user {}",
                     revokedCount, deviceId, user.getUsername());
         }
-
-        attemptService.recordAttempt(user, deviceId);
 
         DeviceConfirmationToken token = super.createToken(
                 user,

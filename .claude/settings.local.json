@@ -106,7 +106,14 @@
       "Bash(echo \"EXIT_CODE=$?\")",
       "Bash(awk -F'[ ,]+' '{run+=$3; fail+=$5; err+=$7; skip+=$9} END {print \"Total run:\", run, \"Failures:\", fail, \"Errors:\", err, \"Skipped:\", skip}')",
       "Bash(awk -F: '{sum+=$2} END{print \"Total testcases:\", sum}')",
-      "Bash(awk -F: '{sum+=$2} END{print \"Total failures/errors:\", sum}')"
+      "Bash(awk -F: '{sum+=$2} END{print \"Total failures/errors:\", sum}')",
+      "Bash(git -C \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\\\\COREPROJECT_NOV25\\\\CoreProject\" log dev..device-confirmation-fixes --oneline)",
+      "Bash(git -C \"C:\\\\Users\\\\kalon\\\\OneDrive\\\\Documents\\\\CoreProject\\\\COREPROJECT_NOV25\\\\CoreProject\" diff dev...device-confirmation-fixes --stat)",
+      "Bash(./mvnw -q compile -DskipTests)",
+      "Bash(./mvnw -q test -Dtest=DeviceConfirmationIntegrationTest)",
+      "Bash(xargs -I{} grep -H \"Tests run\" {})",
+      "Bash(python3 -c ' *)",
+      "Bash(grep -iA1 -B1 \"test\\\\|mockito\\\\|h2\\\\|junit\\\\|assertj\\\\|testcontainer\")"
     ]
   }
 }
