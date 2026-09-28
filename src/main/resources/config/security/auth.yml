@@ -1,5 +1,6 @@
 security:
-  # Set to true in production (requires a valid SSL certificate)
+  # Requires a valid (non self-signed) SSL certificate — disabled by default,
+  # forced on for the prod profile below.
   hsts:
     enabled: false
 
@@ -13,4 +14,14 @@ security:
     combined:
       max-attempts: 3
       lockout-minutes: 5
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+security:
+  hsts:
+    enabled: true
 
