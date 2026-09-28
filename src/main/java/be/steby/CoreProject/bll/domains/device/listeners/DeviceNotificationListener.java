@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -57,8 +58,7 @@ public class DeviceNotificationListener {
 
         if (shouldNotify) {
             try {
-                DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
-                        event.user(), event.device().getId());
+                DeviceConfirmationToken token = createTokenWithRetry(event.user(), event.device().getId());
 
                 if (event.device().isBlacklisted()) {
                     mailerService.sendBlacklistedDeviceAlert(
@@ -88,8 +88,7 @@ public class DeviceNotificationListener {
      */
     private void handleBlacklistedDevice(DeviceSecurityEvent event) {
         try {
-            DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
-                    event.user(), event.device().getId());
+            DeviceConfirmationToken token = createTokenWithRetry(event.user(), event.device().getId());
 
             mailerService.sendBlacklistedDeviceAlert(
                     event.user(), event.device(), token.getPublicId());
@@ -106,8 +105,7 @@ public class DeviceNotificationListener {
      */
     private void handleNewDevice(DeviceSecurityEvent event) {
         try {
-            DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
-                    event.user(), event.device().getId());
+            DeviceConfirmationToken token = createTokenWithRetry(event.user(), event.device().getId());
 
             mailerService.sendNewDeviceAlert(
                     event.user(), event.device(), token.getPublicId());
@@ -125,6 +123,24 @@ public class DeviceNotificationListener {
     private void handleSuspiciousLogin(DeviceSecurityEvent event) {
         // Implementation for suspicious login notifications
         log.info("Suspicious login notification would be sent for user: {}", event.user().getUsername());
+    }
+
+    /**
+     * Creates a device confirmation token, retrying once in a fresh transaction
+     * if two concurrent logins from the same never-before-seen device race on
+     * the underlying {@code UserAttempt} unique constraint. A failed insert
+     * aborts the whole Postgres transaction, so the retry must be a brand-new
+     * call through the Spring proxy (new transaction), not a local catch inside
+     * {@code createDeviceConfirmationToken} itself.
+     */
+    private DeviceConfirmationToken createTokenWithRetry(User user, Long deviceId) {
+        try {
+            return deviceConfirmationTokenService.createDeviceConfirmationToken(user, deviceId);
+        } catch (DataIntegrityViolationException e) {
+            log.debug("Concurrent attempt-counter collision for user {} device {}, retrying",
+                    user.getUsername(), deviceId);
+            return deviceConfirmationTokenService.createDeviceConfirmationToken(user, deviceId);
+        }
     }
 
     /**
@@ -163,9 +179,9 @@ public class DeviceNotificationListener {
     /**
      * Sends a new confirmation link when the user manually requests one.
      *
-     * <p>Creates a fresh confirmation token (the previous one is automatically
-     * revoked by the token service) and sends the confirmation email.
-     * Silently skips if the user has exceeded the maximum number of attempts.</p>
+     * <p>Reuses the existing confirmation token if still valid, otherwise mints
+     * a fresh one, and sends the confirmation email. Silently skips if the user
+     * has exceeded the maximum number of attempts.</p>
      *
      * @param event contains the user and the device awaiting confirmation; both never null
      */
@@ -173,8 +189,7 @@ public class DeviceNotificationListener {
     @Async("emailExecutor")
     public void handleConfirmationLinkRequested(DeviceConfirmationLinkRequestedEvent event) {
         try {
-            DeviceConfirmationToken token = deviceConfirmationTokenService.createDeviceConfirmationToken(
-                    event.user(), event.device().getId());
+            DeviceConfirmationToken token = createTokenWithRetry(event.user(), event.device().getId());
 
             mailerService.sendNewDeviceAlert(event.user(), event.device(), token.getPublicId());
 
