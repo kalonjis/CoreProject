@@ -5,7 +5,9 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository for {@link DeviceConfirmationToken} persistence operations.
@@ -31,6 +33,20 @@ public interface DeviceTokenRepository extends BaseTokenRepository<DeviceConfirm
      * @return list of matching tokens, possibly empty
      */
     List<DeviceConfirmationToken> findAllByUserIdAndDeviceId(Long userId, Long deviceId);
+
+    /**
+     * Returns the currently valid (non-revoked, non-expired) confirmation token
+     * for a given user and device, if any.
+     *
+     * @param userId   the user's database ID
+     * @param deviceId the device's database ID
+     * @param now      current timestamp used for expiry check
+     * @return the valid token, or empty if none exists
+     */
+    @Query("SELECT t FROM DeviceConfirmationToken t WHERE t.user.id = :userId AND t.deviceId = :deviceId " +
+            "AND t.revoked = false AND t.expiryDate > :now")
+    Optional<DeviceConfirmationToken> findValidByUserIdAndDeviceId(
+            @Param("userId") Long userId, @Param("deviceId") Long deviceId, @Param("now") Instant now);
 
     // =========================================================================
     // DEVICE-AWARE REVOCATION
