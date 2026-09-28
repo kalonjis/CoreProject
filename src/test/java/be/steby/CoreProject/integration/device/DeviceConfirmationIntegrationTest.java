@@ -51,6 +51,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *   <li>Reject guards — malformed token, reuse after rejection</li>
  *   <li>Nominal flow — confirmation trusts the device, rejection blacklists it
  *       and blocks the next login attempt</li>
+ *   <li>Token reuse — a still-valid token is returned as-is instead of being
+ *       revoked and reminted; a revoked/expired one is</li>
  * </ol>
  */
 class DeviceConfirmationIntegrationTest extends IntegrationTestBase {
@@ -303,6 +305,45 @@ class DeviceConfirmationIntegrationTest extends IntegrationTestBase {
             MvcResult secondLogin = performLogin("devconf_reject_blocks_login", USER_AGENT);
 
             assertEquals(403, secondLogin.getResponse().getStatus());
+        }
+    }
+
+    // =========================================================================
+    // Réutilisation du token — createDeviceConfirmationToken ne révoque/recrée
+    // que si aucun token valide n'existe déjà pour ce (user, device)
+    // =========================================================================
+
+    @Nested
+    class ReutilisationToken {
+
+        @Test
+        void appelRepete_reutiliseLeTokenValideExistant_sansEnCreerUnAutre() throws Exception {
+            User user = createActiveUser("devconf_reuse_token");
+            Device device = loginAndGetDevice("devconf_reuse_token", USER_AGENT);
+            String firstToken = awaitConfirmationToken(user);
+
+            // Aucun login concurrent en cours ici — appel direct sûr (voir Javadoc de la classe).
+            String secondToken = confirmationTokenFor(user, device);
+
+            assertEquals(firstToken, secondToken,
+                    "Un token valide existant doit être réutilisé plutôt que révoqué et recréé");
+            assertEquals(1, deviceTokenRepository.findAllByUserIdAndDeviceId(user.getId(), device.getId()).size(),
+                    "Aucune nouvelle ligne de token ne doit être insérée quand l'existant est réutilisé");
+        }
+
+        @Test
+        void appelApresExpirationOuRevocation_enRecreeUnNouveau() throws Exception {
+            User user = createActiveUser("devconf_no_reuse_after_revoke");
+            Device device = loginAndGetDevice("devconf_no_reuse_after_revoke", USER_AGENT);
+            String firstToken = awaitConfirmationToken(user);
+
+            assertEquals(200, performReject(firstToken).getResponse().getStatus());
+
+            // Le token du rejet a été révoqué — un nouvel appel doit en minter un différent.
+            String secondToken = confirmationTokenFor(user, device);
+
+            assertNotEquals(firstToken, secondToken,
+                    "Une fois le token révoqué, l'appel suivant doit en créer un nouveau, pas le réutiliser");
         }
     }
 }
